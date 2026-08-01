@@ -278,3 +278,9 @@ When the source exists, the route is `bmad-correct-course` (to give it an owning
 Two things this entry predicted, checked rather than assumed. **It was right about the consumer boundaries** — the title is payload, reaching the song title slide, the group label, the autocomplete and picoclaw's readback. **It was wrong about the test suite:** it warned that regeneration "moves the suite", and `tests/pptx-content.test.mjs` did not move at all, because the fixtures it asserts contain no hymn whose title changed. That is worth recording as a gap rather than as luck — the suite would not have caught a badly joined index either, which is why `tests/corpus.test.mjs` now pins four titles directly.
 
 The architecture wait resolved differently than expected, and the distinction matters. Story 22.2 shipped **without** the AD, not by bypassing it: it added no channel, because `upsertHymns` already overwrote `title` from the corpus on every boot. The corrected titles rode the path that was already there. The `bmad-architecture` Update is still **open**, re-scoped to the forward question it always really was — should a shipped reference corpus keep an every-boot overwrite? If the answer is AD-21's counter, its target is `upsertHymns`, not this data.
+
+## Deferred from: code review of 21-2-translation-is-a-parameter (2026-08-02)
+
+- Partial verse range returns incomplete passage without error (`src/lib/scripture.ts:141`) — pre-existing scripture behavior; Story 21.4 owns reference/matcher semantics.
+- Removed corpus file leaves stale `bible_translations`/`bible_verses` rows (`src/lib/db/index.ts:125`) — reconcile only processes discovered files; corpus-file deletion cleanup is out of AC scope for Story 21.2.
+- `migrateBibleVersesTranslationCode` assumes `translation` or `translation_code` column exists (`src/lib/db/index.ts:111`) — edge case for exotic legacy DB shapes; no observed failure path on normal upgrade from shipped schema.

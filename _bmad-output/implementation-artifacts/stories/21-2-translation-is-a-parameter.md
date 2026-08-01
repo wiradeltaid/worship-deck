@@ -194,3 +194,23 @@ This story **implements** `[TARGET]` decisions rather than changing an invariant
 ### Completion Notes List
 
 ### File List
+
+### Review Findings
+
+- [ ] [Review][Patch] AC-7 negative test missing [`tests/`]
+- [ ] [Review][Patch] README/data-models claim hash-skip reconcile but code reconciles every boot [`README.md:66`, `docs/data-models-monolith.md:161`]
+- [ ] [Review][Patch] QUICKSTART still describes from-zero seeding [`docs/QUICKSTART.md:90`]
+- [ ] [Review][Patch] 503 error text still says "seeds on first boot" [`src/app/api/scripture/route.ts:56`]
+- [ ] [Review][Patch] `listInstalledBibleTranslations()` fully loads every corpus file on each `/api/scripture` request [`src/lib/corpus.ts:283`]
+- [ ] [Review][Patch] One invalid sibling corpus file 500s all scripture lookups [`src/app/api/scripture/route.ts:27`, `src/lib/corpus.ts:283`]
+- [ ] [Review][Patch] `bibleCorpusPath()` throws during 503 when corpus file absent from disk but DB empty [`src/app/api/scripture/route.ts:48`]
+- [ ] [Review][Patch] No HTTP tests for `?translation=` (400/503/200) [`tests/scripture.test.mjs`]
+- [ ] [Review][Patch] AC-14 reconcile smoke (DB-edit corrected on reboot) not automated [`tests/`]
+- [ ] [Review][Patch] `lookupScripture` does not normalize `translationCode` casing [`src/lib/scripture.ts:98`]
+- [ ] [Review][Patch] `getDb` singleton stays assigned if `reconcileBibleCorpus` throws mid-boot [`src/lib/db/index.ts:466`]
+- [ ] [Review][Patch] Epic 21 header still lists 21.2 as `ready-for-dev` [`epics.md`]
+- [ ] [Review][Patch] `discoverBibleTranslationFiles` does not exclude reserved `data/local/` [`src/lib/corpus.ts:72`]
+- [ ] [Review][Patch] `listBibleTranslations()` exported from `db/index.ts` but has zero callers [`src/lib/db/index.ts`]
+- [x] [Review][Defer] Partial verse range returns incomplete passage without error [`src/lib/scripture.ts:141`] — deferred, pre-existing
+- [x] [Review][Defer] Removed corpus file leaves stale `bible_translations`/`bible_verses` rows [`src/lib/db/index.ts:125`] — deferred, pre-existing
+- [x] [Review][Defer] `migrateBibleVersesTranslationCode` assumes `translation` or `translation_code` column exists [`src/lib/db/index.ts:111`] — deferred, pre-existing
