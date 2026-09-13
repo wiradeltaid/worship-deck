@@ -278,12 +278,15 @@ export default function ArtifactSlide({
       : layout.backgroundImage;
 
   return (
-    <div className="flex h-full w-full items-center justify-center overflow-hidden">
+    <div
+      className="flex h-full w-full items-center justify-center overflow-hidden"
+      style={{ containerType: 'size' }}
+    >
       <div
         style={{
           position: 'relative',
-          width: '100%',
-          maxHeight: '100%',
+          width: 'min(100cqw, calc(100cqh * 16 / 9))',
+          maxHeight: '100cqh',
           aspectRatio: '16 / 9',
         }}
       >

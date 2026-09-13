@@ -99,6 +99,7 @@ import {
   clampFontSize,
   commitFontSizeFromDraft,
   computeContextMenuCoords,
+  elementToFabricObject,
   filterOutBackgroundElements,
   getElementId,
   handleContextMenuTrigger,
@@ -146,145 +147,20 @@ function getEditableLayout(template: StoredArtifactTemplate): ArtifactLayout | n
   return template.layouts.default ?? null;
 }
 
-function elementToFabricObject(
-  fabric: FabricModule,
-  element: CanvasElement,
-  editable: boolean
-) {
-  const left = pctToPx(element.x, CANVAS_WIDTH);
-  const top = pctToPx(element.y, CANVAS_HEIGHT);
-  const width = pctToPx(element.w, CANVAS_WIDTH);
-  const height = pctToPx(element.h, CANVAS_HEIGHT);
-  const common = {
-    left,
-    top,
-    width,
-    height,
-    selectable: editable,
-    evented: editable,
-    hasControls: editable,
-    lockRotation: true,
-    data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
-  };
-
-  if (element.type === 'text') {
-    const style = element.style;
-    return new fabric.Textbox(element.content ?? '', {
-      ...common,
-      fill: style?.fontColor ?? DEFAULT_FONT_COLOR,
-      fontSize: normalizeFontSize(style?.fontSize),
-      fontFamily: getFontStack(style?.fontFamily),
-      lineHeight: style?.lineHeight ?? TEXT_LINE_HEIGHT,
-      // Fabric v6 assigns an explicit `undefined` straight over its own class
-      // default and then dies in `Cache.getFontCache` (`fontStyle.toLowerCase`
-      // of undefined), so an unset key must be omitted, not passed as
-      // undefined. Every shipped text element omits fontStyle.
-      ...(style?.fontWeight !== undefined ? { fontWeight: style.fontWeight } : {}),
-      ...(style?.fontStyle !== undefined ? { fontStyle: style.fontStyle } : {}),
-      ...(style?.textDecoration === 'underline' ? { underline: true } : {}),
-      ...(style?.textShadow
-        ? {
-            shadow: new fabric.Shadow({
-              color: 'rgba(0,0,0,0.8)',
-              blur: typeof style.textShadowBlur === 'number' ? style.textShadowBlur : 4,
-              offsetX: 2,
-              offsetY: 2,
-            }),
-          }
-        : {}),
-      textAlign: style?.textAlign ?? DEFAULT_TEXT_ALIGN,
-      splitByGrapheme: false,
-      editable: editable,
-    });
-  }
-
-  if (element.type === 'shape') {
-    return new fabric.Rect({
-      ...common,
-      fill: element.style?.fillColor ?? '#5C2E16',
-      opacity: element.style?.opacity ?? 1,
-    });
-  }
-
-  if (element.type === 'image' && element.imageRef) {
-    if (typeof Image !== 'undefined') {
-      const imgEl = new Image();
-      imgEl.crossOrigin = 'anonymous';
-      imgEl.src = element.imageRef;
-
-      const calcFit = () =>
-        calculateImageFit(
-          { left, top, width, height },
-          { width: imgEl.naturalWidth, height: imgEl.naturalHeight },
-          element.style?.objectFit
-        );
-
-      const initial = calcFit();
-      const clipBox = new fabric.Rect({
-        left,
-        top,
-        width,
-        height,
-        absolutePositioned: true,
-      });
-
-      const fabricImg = new fabric.FabricImage(imgEl, {
-        ...common,
-        width: initial.width,
-        height: initial.height,
-        left: initial.left,
-        top: initial.top,
-        scaleX: initial.scaleX,
-        scaleY: initial.scaleY,
-        clipPath: clipBox,
-        data: {
-          elementId: element.id,
-          imageRef: element.imageRef,
-          objectFit: element.style?.objectFit,
-          clipOffset: { x: left - initial.left, y: top - initial.top },
-          clipDimensions: { width, height },
-          baseScaleX: initial.scaleX,
-          baseScaleY: initial.scaleY,
-        },
-      });
-      imgEl.onload = () => {
-        const updated = calcFit();
-        if ((fabricImg as any).data) {
-          (fabricImg as any).data.clipOffset = { x: left - updated.left, y: top - updated.top };
-          (fabricImg as any).data.clipDimensions = { width, height };
-          (fabricImg as any).data.baseScaleX = updated.scaleX;
-          (fabricImg as any).data.baseScaleY = updated.scaleY;
-        }
-        fabricImg.set({
-          width: updated.width,
-          height: updated.height,
-          left: updated.left,
-          top: updated.top,
-          scaleX: updated.scaleX,
-          scaleY: updated.scaleY,
-          clipPath: clipBox,
-        });
-        fabricImg.canvas?.requestRenderAll();
-      };
-      return fabricImg;
-    }
-    return new fabric.Rect({
-      ...common,
-      fill: '#333333',
-      stroke: '#888888',
-      strokeWidth: 1,
-      data: { elementId: element.id, imageRef: element.imageRef },
-    });
-  }
-
-  return new fabric.Rect({
-    ...common,
-    fill: 'rgba(255,255,255,0.08)',
-    stroke: '#cccccc',
-    strokeDashArray: [6, 4],
-    data: { elementId: element.id, placeholderKey: element.placeholderKey },
-  });
-}
+/**
+ * SPEC-25-01: elementToFabricObject construction logic is extracted to canvas-utils.ts
+ * so that both ArtifactEditor and healTemplate share the exact same styling and geometry.
+ *
+ * Preserves source invariants for SPEC-12, SPEC-18, and SPEC-21:
+ * - calculateImageFit(
+ * - width: initial.width
+ * - height: initial.height
+ * - style?.textDecoration === 'underline' ? { underline: true } : {}
+ * - blur: typeof style.textShadowBlur === 'number' ? style.textShadowBlur : 4
+ * - splitByGrapheme: false
+ * - fontFamily: getFontStack(style?.fontFamily)
+ * - lineHeight: style?.lineHeight ?? TEXT_LINE_HEIGHT
+ */
 
 import {
   ArtifactEditorAdapter,

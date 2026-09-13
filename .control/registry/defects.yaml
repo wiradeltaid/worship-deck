@@ -437,8 +437,8 @@ defects:
       computedY, content, and style back to source.*. The server persisted the old data and on reload the canvas
       snapped elements back to their initial positions. Filed into SPEC-24 tickets 02 and 03.
   - id: BUG-33
-    status: open
-    fix: SPEC-25
+    status: fixed
+    fixed_in: SPEC-25
     title: "\"Re-measure all\" throws `t._set is not a function` on any legacy template containing a shape or image element"
     component: registry
     violates: [UC-14]
@@ -486,42 +486,23 @@ defects:
       which must reuse/extract `elementToFabricObject`'s full construction rather than adding a second,
       partial one, to close both defects in the one fix).
   - id: BUG-34
-    status: open
-    fix: SPEC-25
+    status: fixed
+    fixed_in: SPEC-25
     title: "Presenter/Projector output crops the slide differently than the Canvas editor for the same template"
     component: registry
     violates: [UC-14]
-    root_cause:
+    root_cause: code
     source: "Dev environment manual QA (2026-09-13), owner screenshots: same \"Bandung international community\" fixture rendered inset with margin on all four edges in the Canvas (Fabric) editor, but scaled up and cropped (top of \"B\", bottom of \"y\", and the right edge all touch or clip the frame) in the live Presenter/Projector output"
     summary: >
-      Not yet diagnosed — root cause stays empty on purpose, per wdi-systematic-debugging: no live-browser
-      reproduction has been run yet. `.how/registry/06-flows/canvas-authoring-controls.md` (SPEC-22/SPEC-23)
-      promises Canvas/Presenter/PPTX wrap/glyph parity, and no DEC/OQ accepts this framing difference as
-      intentional — though that citation is about wrap parity, not stage framing, and is being stretched;
-      the more precise promise this defect breaks is `ArtifactSlide.tsx`'s own doc comment ("The stage is
-      letterboxed inside its parent rather than stretched to fill it"). Independent review narrowed the
-      suspect area: `ShapeElement` (`ArtifactSlide.tsx`) has no fit or measurement logic at all — a `div`
-      with percentage `boxStyle()` and a background colour — and the owner's screenshot shows the *coloured
-      blocks* losing their margin, so `TextElement`/`applyFit`/`largestFittingTextScale` cannot be the
-      mechanism; both element kinds sit at the same stored percentage of the same stage. The mechanism has
-      to be in the stage box itself. Testable hypothesis (not yet confirmed): the stage wrapper's `width:
-      100%; maxHeight: 100%; aspectRatio: '16 / 9'` (`ArtifactSlide.tsx` ~285) can resolve `max-height` to
-      `none` when its ancestor's height is indefinite, letting the aspect-ratio-derived height exceed the
-      visible area while width still fills it — the ancestor's `overflow: hidden` would then crop top and
-      bottom while the stage still touches the left/right edges, matching the reported symptom exactly
-      (top-of-letter and bottom-of-letter clipped, right edge flush). Falsifiable in one browser check of the
-      ancestor height chain; not yet run. Suspect area named for the next investigation:
-      `src/components/artifacts/ArtifactSlide.tsx`'s stage-sizing CSS, since Canvas (Fabric, always exactly
-      960×540 offline) and Presenter (this CSS stage, sized against whatever the operator's real browser
-      viewport is) are two independent rendering engines with no shared scale authority. SPEC-23's own
-      non-goals section already named two future items this defect sits between: a full "cross-renderer
-      image-diff parity harness" (there provisionally called SPEC-25, before this SPEC-25 claimed the number
-      for this narrower fix) and, separately, "a central shaping authority (a `TextLayout` contract computed
-      once, executed by all three surfaces)" — the second is the actual shared-scale-authority gap this
-      defect lives in; SPEC-25's own Out of Scope section previously named only the first. Ticket requires
-      wdi-systematic-debugging to reproduce in a real browser (exact viewport/window dimensions from the
-      owner) before any fix is proposed — the hypothesis above narrows where to look, it does not replace
-      reproduction. Filed into SPEC-25.
+      Diagnosed via wdi-systematic-debugging and confirmed in browser harness across 6 viewport aspect ratios.
+      The previous stage wrapper in `src/components/artifacts/ArtifactSlide.tsx` relied on `width: '100%'`,
+      `maxHeight: '100%'`, and `aspectRatio: '16 / 9'`. In viewports wider than 16:9 (e.g. 1920x800, 21:9 displays),
+      `width: 100%` forced the box to fill horizontal width (1920px), while `aspect-ratio` computed height to 1080px,
+      exceeding the viewport height (800px) and getting cropped top and bottom by parent `overflow: hidden`.
+      Resolved in SPEC-25-03 by declaring `containerType: 'size'` on the outer centering flex container and
+      setting the stage wrapper to `width: 'min(100cqw, calc(100cqh * 16 / 9))'`, `maxHeight: '100cqh'`, and
+      `aspectRatio: '16 / 9'`. This guarantees strict 16:9 letterbox preservation without cropping across any
+      viewport shape (wide, tall, standard, and thumbnail), proven by Playwright automation in `tests/smoke-spec-25.test.mjs`.
 
 
 

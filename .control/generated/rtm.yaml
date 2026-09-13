@@ -1185,6 +1185,48 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-25-01
+  spec: SPEC-25
+  release: canvas-presenter-parity-and-heal-crash
+  test:
+  - tests/smoke-spec-25.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-25-02
+  spec: SPEC-25
+  release: canvas-presenter-parity-and-heal-crash
+  test:
+  - tests/smoke-spec-25.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-25-03
+  spec: SPEC-25
+  release: canvas-presenter-parity-and-heal-crash
+  test:
+  - tests/smoke-spec-25.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -2526,6 +2568,48 @@ rtm:
   release: canvas-healing-persistence-isolation
   test:
   - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-25-01
+  spec: SPEC-25
+  release: canvas-presenter-parity-and-heal-crash
+  test:
+  - tests/smoke-spec-25.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-25-02
+  spec: SPEC-25
+  release: canvas-presenter-parity-and-heal-crash
+  test:
+  - tests/smoke-spec-25.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-25-03
+  spec: SPEC-25
+  release: canvas-presenter-parity-and-heal-crash
+  test:
+  - tests/smoke-spec-25.test.mjs
   status: done
   exempt: false
   green: true
