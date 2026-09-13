@@ -627,6 +627,30 @@ decisions:
       - tests/smoke-spec-25.test.mjs
       - package.json
       - internal/httpapi/background_library_test.go
+  - id: DEC-028
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-13)"
+    title: Autopilot mandate for Canvas vs Presenter Visual & Framing Parity (SPEC-26)
+    file: .control/decisions/DEC-028-autopilot-mandate-canvas-presenter-visual-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-20'
+    touches:
+      - .control/memlog/autopilot-DEC-028.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .control/registry/defects.yaml
+      - .scratch/SPEC-26-canvas-presenter-visual-parity/SPEC.md
+      - src/components/admin/ArtifactEditor.tsx
+      - src/lib/registry/canvas-utils.ts
+      - src/components/artifacts/ArtifactSlide.tsx
+      - tests/smoke-spec-26.test.mjs
+      - package.json
 
 
 
