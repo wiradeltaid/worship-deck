@@ -436,6 +436,92 @@ defects:
       style change). On save, serializeCanvas received isHealingSave: true and aggressively overwrote computedX,
       computedY, content, and style back to source.*. The server persisted the old data and on reload the canvas
       snapped elements back to their initial positions. Filed into SPEC-24 tickets 02 and 03.
+  - id: BUG-33
+    status: open
+    fix: SPEC-25
+    title: "\"Re-measure all\" throws `t._set is not a function` on any legacy template containing a shape or image element"
+    component: registry
+    violates: [UC-14]
+    root_cause: code
+    source: "Dev environment manual QA (2026-09-13), owner report: clicking admin.artifacts.remeasureAll on a legacy template throws `t._set is not a function`"
+    summary: >
+      Diagnosed via wdi-systematic-debugging, and independently reproduced (twice, by two separate passes).
+      `healTemplate()` (`src/lib/registry/canvas-utils.ts:884`) adds every non-text element to the Fabric
+      canvas as a bare object literal — `canvas.add({ ...common, type: element.type })` — instead of a real
+      `fabric.Rect`/`fabric.Image`/`fabric.Object` instance. `fabric.Canvas`'s `_onObjectAdded`
+      (`node_modules/fabric/dist/index.node.mjs:3192-3198`, fabric `6.6.1`) unconditionally calls
+      `obj._set('canvas', this)` on every added object; a plain object has no `_set` method, so this throws the
+      instant a re-measured template contains a shape or image element. **Correction to the first diagnosis:**
+      this does NOT require a real browser — `import('fabric')` in plain Node (or `fabric/node`) reproduces the
+      crash identically via `StaticCanvas`, in well under a second. **Trigger is narrower than "any template
+      with a shape/image":** `isElementUnmeasured()` returns `false` for every non-text type, so a template of
+      only shapes/images returns early and never reaches the crash; the trigger is an *unmeasured text element
+      together with* at least one shape/image element in the same template.
+      Introduced in SPEC-23-05 (`fe8b1f5`, "measurement coverage on open & heal with re-measure action") — not
+      a SPEC-24 regression, only newly surfaced because no manual or automated test had exercised "Re-measure
+      all" against such a template until now. `tests/smoke-spec-23.test.mjs` calls
+      `healTemplate(legacyTemplate, {})` with `fabric: {}` and no `document` global, so every existing test
+      takes the Node-headless fallback path for both the canvas (a hand-rolled object whose `add()` is a bare
+      `Array.push`, never invoking `_onObjectAdded`/`_set`) and text elements — the real-Fabric path this bug
+      lives in has zero test coverage.
+
+      **A second, more serious defect at the same root cause, found during independent review and folded into
+      this same row rather than opened separately (same file, same function, same fix ticket):**
+      `healTemplate()`'s own text-element construction (`canvas-utils.ts` ~875) and its shape/image construction
+      both omit style fields that `elementToFabricObject()` (`ArtifactEditor.tsx:149`, the construction path the
+      interactive canvas already uses correctly) always supplies — `fill`/`opacity` for shapes,
+      `fill`/`textAlign`/`lineHeight`/`underline`/`shadow` for text. Verified at runtime: healing a shape with no
+      authored `fillColor` used to pass its `undefined` fill through untouched (plain object literal has no
+      `fill` at all); constructing a real `fabric.Rect` instead — as a literal fix for the crash above, with no
+      other change — defaults `fill` to `'rgb(0,0,0)'` and `opacity` to `1`, which `serializeCanvas`'s
+      `toStrictHexColor` then writes back as `#000000`, repainting the shape black. Likewise, a real
+      `fabric.Textbox` constructed without the missing options strips `fontColor`, resets `textAlign` to
+      Fabric's own default, and drops `lineHeight`/`underline`/`textShadow` — verified against a realistic
+      fixture (white, centred, underlined, shadowed text healed into black, left-aligned, plain text). Because
+      `handleRemeasureAll` loops over and *saves* every template it changes, fixing the crash without also
+      fixing this would turn "Re-measure all" into a library-wide style-and-colour wipe — exactly the class of
+      damage SPEC-24 (BUG-32) already closed once, and exactly what the owner's own checklist wording
+      ("elemen yang tidak diedit tidak boleh bergeser/berubah visual") already guards against. The crash today
+      partially masks this by aborting the batch before most templates save. Filed into SPEC-25 (ticket 01,
+      which must reuse/extract `elementToFabricObject`'s full construction rather than adding a second,
+      partial one, to close both defects in the one fix).
+  - id: BUG-34
+    status: open
+    fix: SPEC-25
+    title: "Presenter/Projector output crops the slide differently than the Canvas editor for the same template"
+    component: registry
+    violates: [UC-14]
+    root_cause:
+    source: "Dev environment manual QA (2026-09-13), owner screenshots: same \"Bandung international community\" fixture rendered inset with margin on all four edges in the Canvas (Fabric) editor, but scaled up and cropped (top of \"B\", bottom of \"y\", and the right edge all touch or clip the frame) in the live Presenter/Projector output"
+    summary: >
+      Not yet diagnosed — root cause stays empty on purpose, per wdi-systematic-debugging: no live-browser
+      reproduction has been run yet. `.how/registry/06-flows/canvas-authoring-controls.md` (SPEC-22/SPEC-23)
+      promises Canvas/Presenter/PPTX wrap/glyph parity, and no DEC/OQ accepts this framing difference as
+      intentional — though that citation is about wrap parity, not stage framing, and is being stretched;
+      the more precise promise this defect breaks is `ArtifactSlide.tsx`'s own doc comment ("The stage is
+      letterboxed inside its parent rather than stretched to fill it"). Independent review narrowed the
+      suspect area: `ShapeElement` (`ArtifactSlide.tsx`) has no fit or measurement logic at all — a `div`
+      with percentage `boxStyle()` and a background colour — and the owner's screenshot shows the *coloured
+      blocks* losing their margin, so `TextElement`/`applyFit`/`largestFittingTextScale` cannot be the
+      mechanism; both element kinds sit at the same stored percentage of the same stage. The mechanism has
+      to be in the stage box itself. Testable hypothesis (not yet confirmed): the stage wrapper's `width:
+      100%; maxHeight: 100%; aspectRatio: '16 / 9'` (`ArtifactSlide.tsx` ~285) can resolve `max-height` to
+      `none` when its ancestor's height is indefinite, letting the aspect-ratio-derived height exceed the
+      visible area while width still fills it — the ancestor's `overflow: hidden` would then crop top and
+      bottom while the stage still touches the left/right edges, matching the reported symptom exactly
+      (top-of-letter and bottom-of-letter clipped, right edge flush). Falsifiable in one browser check of the
+      ancestor height chain; not yet run. Suspect area named for the next investigation:
+      `src/components/artifacts/ArtifactSlide.tsx`'s stage-sizing CSS, since Canvas (Fabric, always exactly
+      960×540 offline) and Presenter (this CSS stage, sized against whatever the operator's real browser
+      viewport is) are two independent rendering engines with no shared scale authority. SPEC-23's own
+      non-goals section already named two future items this defect sits between: a full "cross-renderer
+      image-diff parity harness" (there provisionally called SPEC-25, before this SPEC-25 claimed the number
+      for this narrower fix) and, separately, "a central shaping authority (a `TextLayout` contract computed
+      once, executed by all three surfaces)" — the second is the actual shared-scale-authority gap this
+      defect lives in; SPEC-25's own Out of Scope section previously named only the first. Ticket requires
+      wdi-systematic-debugging to reproduce in a real browser (exact viewport/window dimensions from the
+      owner) before any fix is proposed — the hypothesis above narrows where to look, it does not replace
+      reproduction. Filed into SPEC-25.
 
 
 

@@ -1312,3 +1312,34 @@ waves:
         tests:
           - tests/smoke-spec-24.test.mjs
 
+  - id: SPEC-25
+    status: open
+    release: canvas-presenter-parity-and-heal-crash
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-24]
+    spec_folder: .scratch/SPEC-25-canvas-presenter-parity-and-heal-crash/
+    tickets:
+      - id: "SPEC-25-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-25.test.mjs
+      - id: "SPEC-25-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-25-01"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-25.test.mjs
+      - id: "SPEC-25-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-25-02"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-25.test.mjs
+
