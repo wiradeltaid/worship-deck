@@ -1134,6 +1134,62 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-24-01
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-02
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-03
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-04
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -2419,6 +2475,62 @@ rtm:
   test:
   - tests/smoke-spec-23.test.mjs
   - tests/artifact-render-model.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-01
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-02
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-03
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-24-04
+  spec: SPEC-24
+  release: canvas-healing-persistence-isolation
+  test:
+  - tests/smoke-spec-24.test.mjs
   status: done
   exempt: false
   green: true

@@ -580,6 +580,29 @@ decisions:
       - tests/artifact-render-model.test.mjs
       - tests/artifact-font-catalog.test.mjs
       - .scratch/SPEC-23-wysiwyg-parity-wrap-slack/SPEC.md
+  - id: DEC-026
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-12)"
+    title: Autopilot mandate for Canvas Healing Dirty-State & Persistence Isolation (SPEC-24)
+    file: .control/decisions/DEC-026-autopilot-mandate-canvas-healing-persistence-isolation.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-19'
+    touches:
+      - .control/memlog/autopilot-DEC-026.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - src/components/admin/ArtifactEditor.tsx
+      - src/lib/registry/canvas-utils.ts
+      - tests/smoke-spec-24.test.mjs
+      - package.json
+      - .scratch/SPEC-24-canvas-healing-persistence-isolation/SPEC.md
+
 
 
 

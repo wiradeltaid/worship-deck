@@ -429,9 +429,13 @@ export default function ArtifactEditor({
     status === 'deleting' ||
     status === 'reordering';
 
-  const markDirty = useCallback(() => {
+  /** SPEC-24-02: Atomic user mutation guard: transition form to dirty and reset healing flag */
+  const markUserDirty = useCallback(() => {
+    isHealingOnlyRef.current = false;
     setIsDirty((current) => nextDirtyState(current, 'mutated'));
   }, []);
+
+  const markDirty = markUserDirty;
 
   /** Mirrors Fabric's active selection into React (uncontrolled canvas stays the source). */
   const syncSelection = useCallback((canvas: import('fabric').Canvas) => {
@@ -753,6 +757,7 @@ export default function ArtifactEditor({
 
       // SPEC-14-01: On active image object moving, synchronize clipPath coordinates
       const onObjectMoving = (opt: any) => {
+        markUserDirty();
         const target = opt.target;
         if (target && syncImageClipOnMove(target)) {
           canvas.requestRenderAll();
@@ -762,15 +767,18 @@ export default function ArtifactEditor({
 
       // SPEC-15-01: On active image object scaling, synchronize clipPath coordinates and dimensions
       const onObjectScaling = (opt: any) => {
+        markUserDirty();
         const target = opt.target;
         if (target && syncImageClipOnScale(target)) {
           canvas.requestRenderAll();
         }
       };
       canvas.on('object:scaling', onObjectScaling);
+      canvas.on('object:resizing', markUserDirty);
 
       // SPEC-13-03: On image object scaling/modification, recalculate contain fit so image content grows/shrinks with handles
       const onObjectModified = (opt: any) => {
+        markUserDirty();
         const target = opt.target;
         const action = opt?.action || opt?.transform?.action;
         if (action === 'drag' || action === 'move') {
@@ -797,6 +805,7 @@ export default function ArtifactEditor({
       canvas.on('object:modified', onObjectModified);
 
       const onTextChanged = (opt: any) => {
+        markUserDirty();
         const target = opt.target;
         const targetData = target ? (target as any).data : null;
         if (target && isFabricTextObject(target) && targetData) {
@@ -821,6 +830,7 @@ export default function ArtifactEditor({
         canvas.off('mouse:up', onMouseUp);
         canvas.off('object:moving', onObjectMoving);
         canvas.off('object:scaling', onObjectScaling);
+        canvas.off('object:resizing', markUserDirty);
         canvas.off('object:modified', onObjectModified);
         canvas.off('text:changed', onTextChanged);
         upperCanvasEl?.removeEventListener('contextmenu', onNativeContextMenu);
@@ -831,14 +841,9 @@ export default function ArtifactEditor({
 
       if (disposeCanvasIfAborted()) return;
 
-      // SPEC-23-05: Healing pass on open.
-      // If any text element lacks measurements or its measurement has drifted from current style,
-      // mark dirty so the next save persists measurements.
-      const hasUnmeasured = layout.elements.some(isElementUnmeasured);
-      if (hasUnmeasured) {
-        markDirty();
-        isHealingOnlyRef.current = true;
-      }
+      // SPEC-24-01: Decouple background healing from navigation dirty-state guard.
+      // An unmeasured template does NOT call markDirty() on mount, preserving clean navigation.
+      isHealingOnlyRef.current = false;
 
       canvas.requestRenderAll();
       fitCanvasToShell();

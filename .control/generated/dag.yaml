@@ -155,6 +155,16 @@ dag:
     - SPEC-23-06
   - parallel:
     - SPEC-23-07
+- spec: SPEC-24
+  order:
+  - parallel:
+    - SPEC-24-01
+  - parallel:
+    - SPEC-24-02
+  - parallel:
+    - SPEC-24-03
+  - parallel:
+    - SPEC-24-04
 - spec: W1
   order:
   - parallel:

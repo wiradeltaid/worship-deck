@@ -384,8 +384,10 @@ export function serializeCanvas(
           ? pxToPct(measuredHeight, CANVAS_HEIGHT)
           : source.h;
 
-    const computedX = isHealing || left === authoredLeft ? source.x : pxToPct(left, CANVAS_WIDTH);
-    const computedY = isHealing || top === authoredTop ? source.y : pxToPct(top, CANVAS_HEIGHT);
+    // SPEC-24-03: Non-destructive canvas serialization.
+    // Coordinates reflect live Fabric object positions when moved; never force source.x/y when left/top has moved.
+    const computedX = left === authoredLeft ? source.x : pxToPct(left, CANVAS_WIDTH);
+    const computedY = top === authoredTop ? source.y : pxToPct(top, CANVAS_HEIGHT);
 
     // SPEC-21-02: Retain minimum dimension floor, but do not truncate off-canvas bleeding
     const clampedW = isHealing ? w : Math.max(MIN_ELEMENT_W_PCT, w);
@@ -402,11 +404,8 @@ export function serializeCanvas(
 
     if (isText) {
       const text = obj.text ?? '';
-      if (isHealing) {
-        if (source.content !== undefined) {
-          next.content = source.content;
-        }
-      } else if (source.content !== undefined || text !== '') {
+      // SPEC-24-03: Never overwrite modified text content on save
+      if (source.content !== undefined || text !== '') {
         next.content = text;
       }
 
@@ -437,19 +436,12 @@ export function serializeCanvas(
         delete next.wrapLines;
       }
 
-      if (isHealing) {
-        if (source.style) {
-          next.style = { ...source.style };
-        } else {
-          delete next.style;
-        }
+      // SPEC-24-03: Never overwrite modified text styles on save
+      const style = serializeTextStyle(source, obj);
+      if (style) {
+        next.style = style;
       } else {
-        const style = serializeTextStyle(source, obj);
-        if (style) {
-          next.style = style;
-        } else {
-          delete next.style;
-        }
+        delete next.style;
       }
 
       // SPEC-23-01: Persist longestWordPx and measuredWith stamp

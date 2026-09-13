@@ -1271,7 +1271,7 @@ waves:
           - tests/artifact-render-model.test.mjs
 
   - id: SPEC-24
-    status: open
+    status: closed
     release: canvas-healing-persistence-isolation
     prd: [offline-deck]
     fr: [FR-20]
