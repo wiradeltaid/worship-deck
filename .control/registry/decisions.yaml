@@ -653,6 +653,34 @@ decisions:
       - spa/src/App.tsx
       - tests/smoke-spec-26.test.mjs
       - package.json
+  - id: DEC-029
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-13)"
+    title: Autopilot mandate for PPTX as Primary Anchor 1-to-1 Visual Parity (SPEC-27)
+    file: .control/decisions/DEC-029-autopilot-mandate-pptx-anchor-visual-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-20'
+    touches:
+      - .control/memlog/autopilot-DEC-029.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-27-pptx-anchor-visual-parity/SPEC.md
+      - package.json
+      - src/components/admin/ArtifactEditor.tsx
+      - src/components/artifacts/ArtifactSlide.tsx
+      - src/lib/artifacts/render-model.ts
+      - src/lib/pptx-draw.ts
+      - src/lib/registry/canvas-utils.ts
+      - src/lib/fonts/embed-fonts.ts
+      - tests/smoke-spec-23.test.mjs
+      - tests/smoke-spec-27.test.mjs
+      - tests/pptx-conformance.test.mjs
 
 
 

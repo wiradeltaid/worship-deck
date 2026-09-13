@@ -11,6 +11,7 @@ import {
   MAX_IMAGE_BYTES,
 } from './remote-image';
 import { slideTransitionXml, type SlideTransition } from './transitions';
+import { embedPresentationFonts } from './fonts/embed-fonts';
 import { isBundledAssetRef } from '@/lib/registry/asset-safety';
 import {
   assertRuntimeVersion,
@@ -271,9 +272,9 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     align: resolveTextAlign(style),
     valign: resolveVerticalAlign(style),
     lineSpacingMultiple:
-      typeof style?.lineHeight === 'number' && style.lineHeight > 0
+      (typeof style?.lineHeight === 'number' && style.lineHeight > 0
         ? style.lineHeight
-        : TEXT_LINE_HEIGHT,
+        : TEXT_LINE_HEIGHT) / 1.2,
     shadow: style?.textShadow
       ? {
           type: 'outer',
@@ -527,7 +528,8 @@ async function patchAutofitFontScale(zip: JSZip): Promise<void> {
 async function postProcessArchive(
   buffer: Buffer,
   slideIndexes: Set<number>,
-  transition: SlideTransition
+  transition: SlideTransition,
+  usedFonts?: Set<string>
 ): Promise<Buffer> {
   try {
     const zip = await JSZip.loadAsync(buffer);
@@ -549,6 +551,14 @@ async function postProcessArchive(
       await patchAutofitFontScale(zip);
     } catch (error) {
       console.error('[pptx] autofit fontScale patch skipped:', error);
+    }
+
+    if (usedFonts && usedFonts.size > 0) {
+      try {
+        await embedPresentationFonts(zip, usedFonts);
+      } catch (error) {
+        console.error('[pptx] font embedding skipped:', error);
+      }
     }
 
     const out = await zip.generateAsync({
@@ -583,10 +593,16 @@ export async function generatePptxFromPlan(
     count: 0,
   };
 
+  const usedFonts = new Set<string>();
   for (const item of plan) {
     renderArtifactSlide(ctx, item.artifact, item.fade !== false);
+    for (const el of item.artifact.layout.elements) {
+      if (el.type === 'text' && el.style?.fontFamily) {
+        usedFonts.add(el.style.fontFamily);
+      }
+    }
   }
 
   const buffer = (await pres.write({ outputType: 'nodebuffer' })) as Buffer;
-  return postProcessArchive(buffer, ctx.transitionIndexes, style);
+  return postProcessArchive(buffer, ctx.transitionIndexes, style, usedFonts);
 }

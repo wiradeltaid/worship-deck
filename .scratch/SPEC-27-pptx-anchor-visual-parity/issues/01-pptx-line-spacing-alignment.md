@@ -4,8 +4,8 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] In `pptx-draw.ts`, normalize `lineSpacingMultiple` as `style.lineHeight / 1.2` so that `<a:spcPct>` in OOXML reflects true em height matching CSS line-height.
-- [ ] For tight line-height (`lineHeight < 1.0`), compensate first-line baseline half-leading in `ArtifactSlide.tsx` so top ascenders (such as "B" and "d") remain inside the box without clipping.
-- [ ] Ensure `toPptxGeometry` and existing regression tests in `smoke-spec-22.test.mjs` and `smoke-spec-23.test.mjs` remain green.
+- [x] In `pptx-draw.ts`, normalize `lineSpacingMultiple` as `style.lineHeight / 1.2` so that `<a:spcPct>` in OOXML reflects true em height matching CSS line-height.
+- [x] For tight line-height (`lineHeight < 1.0`), compensate first-line baseline half-leading in `ArtifactSlide.tsx` so top ascenders (such as "B" and "d") remain inside the box without clipping.
+- [x] Ensure `toPptxGeometry` and existing regression tests in `smoke-spec-22.test.mjs` and `smoke-spec-23.test.mjs` remain green.

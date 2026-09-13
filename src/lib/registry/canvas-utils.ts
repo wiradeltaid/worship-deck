@@ -392,12 +392,13 @@ export function elementToFabricObject(
   fabric: any,
   element: CanvasElement,
   editable: boolean = false,
-  options?: { isHealing?: boolean }
+  options?: { isHealing?: boolean; transparentProxy?: boolean }
 ): any {
   const left = pctToPx(element.x, CANVAS_WIDTH);
   const top = pctToPx(element.y, CANVAS_HEIGHT);
   const width = pctToPx(element.w, CANVAS_WIDTH);
   const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const isProxy = Boolean(options?.transparentProxy);
   const common = {
     left,
     top,
@@ -408,14 +409,32 @@ export function elementToFabricObject(
     hasControls: editable,
     lockRotation: true,
     data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
+    ...(isProxy
+      ? {
+          cornerColor: '#2563EB',
+          borderColor: '#2563EB',
+          cornerSize: 8,
+          transparentCorners: false,
+        }
+      : {}),
   };
 
   if (element.type === 'text') {
     if (typeof fabric?.Textbox === 'function') {
       try {
-        const textOpts = buildTextFabricOptions(element, { editable, fabric });
+        const textOpts: any = buildTextFabricOptions(element, { editable, fabric });
+        if (isProxy) {
+          textOpts.fill = 'transparent';
+          textOpts.cornerColor = '#2563EB';
+          textOpts.borderColor = '#2563EB';
+          textOpts.cornerSize = 8;
+          textOpts.transparentCorners = false;
+        }
         const tb = new fabric.Textbox(element.content ?? '', textOpts);
         applyFabricTextFit(tb, element, fabric);
+        if (isProxy) {
+          tb.fill = 'transparent';
+        }
         return tb;
       } catch {
         // Fallback for headless test environments where 2D rendering context is missing (Node jsdom)
@@ -440,13 +459,15 @@ export function elementToFabricObject(
       fontStyle: element.style?.fontStyle ?? 'normal',
       dynamicMinWidth: longestWordPx,
       textLines: words.length > 0 ? [text] : [],
-      fill: element.style?.fontColor ?? DEFAULT_FONT_COLOR,
+      fill: isProxy ? 'transparent' : (element.style?.fontColor ?? DEFAULT_FONT_COLOR),
       textAlign: element.style?.textAlign ?? DEFAULT_TEXT_ALIGN,
       lineHeight: element.style?.lineHeight ?? TEXT_LINE_HEIGHT,
       underline: element.style?.textDecoration === 'underline',
-      shadow: element.style?.textShadow
-        ? { blur: typeof element.style.textShadowBlur === 'number' ? element.style.textShadowBlur : 4 }
-        : undefined,
+      shadow: isProxy
+        ? undefined
+        : element.style?.textShadow
+          ? { blur: typeof element.style.textShadowBlur === 'number' ? element.style.textShadowBlur : 4 }
+          : undefined,
     };
 
     if (typeof fabric?.Rect === 'function') {
@@ -461,18 +482,42 @@ export function elementToFabricObject(
 
   if (element.type === 'shape') {
     if (typeof fabric?.Rect === 'function') {
-      const shapeOpts = buildShapeFabricOptions(element, { editable });
+      const shapeOpts: any = buildShapeFabricOptions(element, { editable });
+      if (isProxy) {
+        shapeOpts.fill = 'transparent';
+        shapeOpts.stroke = 'transparent';
+        shapeOpts.cornerColor = '#2563EB';
+        shapeOpts.borderColor = '#2563EB';
+        shapeOpts.cornerSize = 8;
+        shapeOpts.transparentCorners = false;
+      }
       return new fabric.Rect(shapeOpts);
     }
     return {
       ...common,
       type: 'shape',
-      fill: element.style?.fillColor ?? '#5C2E16',
-      opacity: element.style?.opacity ?? 1,
+      fill: isProxy ? 'transparent' : (element.style?.fillColor ?? '#5C2E16'),
+      opacity: isProxy ? 0 : (element.style?.opacity ?? 1),
     };
   }
 
   const isHealing = options?.isHealing ?? false;
+
+  if (isProxy && typeof fabric?.Rect === 'function') {
+    return new fabric.Rect({
+      ...common,
+      fill: 'transparent',
+      stroke: 'transparent',
+      cornerColor: '#2563EB',
+      borderColor: '#2563EB',
+      cornerSize: 8,
+      transparentCorners: false,
+      data: {
+        ...common.data,
+        imageRef: element.imageRef,
+      },
+    });
+  }
 
   if (element.type === 'image' && element.imageRef) {
     if (!isHealing && typeof Image !== 'undefined' && typeof fabric?.FabricImage === 'function') {
