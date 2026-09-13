@@ -155,6 +155,276 @@ export function calculateImageFit(
   };
 }
 
+export function buildTextFabricOptions(
+  element: CanvasElement,
+  options?: { editable?: boolean; fabric?: any }
+) {
+  const left = pctToPx(element.x, CANVAS_WIDTH);
+  const top = pctToPx(element.y, CANVAS_HEIGHT);
+  const width = pctToPx(element.w, CANVAS_WIDTH);
+  const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const editable = options?.editable ?? false;
+  const common = {
+    left,
+    top,
+    width,
+    height,
+    selectable: editable,
+    evented: editable,
+    hasControls: editable,
+    lockRotation: true,
+    data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
+  };
+
+  const style = element.style;
+  const fabricModule = options?.fabric;
+
+  let shadow: any;
+  if (style?.textShadow) {
+    const shadowOpts = {
+      color: 'rgba(0,0,0,0.8)',
+      blur: typeof style.textShadowBlur === 'number' ? style.textShadowBlur : 4,
+      offsetX: 2,
+      offsetY: 2,
+    };
+    shadow =
+      typeof fabricModule?.Shadow === 'function'
+        ? new fabricModule.Shadow(shadowOpts)
+        : shadowOpts;
+  }
+
+  return {
+    ...common,
+    fill: style?.fontColor ?? DEFAULT_FONT_COLOR,
+    fontSize: normalizeFontSize(style?.fontSize),
+    fontFamily: getFontStack(style?.fontFamily),
+    lineHeight: style?.lineHeight ?? TEXT_LINE_HEIGHT,
+    // Fabric v6 assigns an explicit `undefined` straight over its own class
+    // default and then dies in `Cache.getFontCache` (`fontStyle.toLowerCase`
+    // of undefined), so an unset key must be omitted, not passed as
+    // undefined. Every shipped text element omits fontStyle.
+    ...(style?.fontWeight !== undefined ? { fontWeight: style.fontWeight } : {}),
+    ...(style?.fontStyle !== undefined ? { fontStyle: style.fontStyle } : {}),
+    ...(style?.textDecoration === 'underline' ? { underline: true } : {}),
+    ...(shadow ? { shadow } : {}),
+    textAlign: style?.textAlign ?? DEFAULT_TEXT_ALIGN,
+    splitByGrapheme: false,
+    editable,
+  };
+}
+
+export function buildShapeFabricOptions(
+  element: CanvasElement,
+  options?: { editable?: boolean }
+) {
+  const left = pctToPx(element.x, CANVAS_WIDTH);
+  const top = pctToPx(element.y, CANVAS_HEIGHT);
+  const width = pctToPx(element.w, CANVAS_WIDTH);
+  const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const editable = options?.editable ?? false;
+  const common = {
+    left,
+    top,
+    width,
+    height,
+    selectable: editable,
+    evented: editable,
+    hasControls: editable,
+    lockRotation: true,
+    data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
+  };
+
+  return {
+    ...common,
+    fill: element.style?.fillColor ?? '#5C2E16',
+    opacity: element.style?.opacity ?? 1,
+  };
+}
+
+export function elementToFabricObject(
+  fabric: any,
+  element: CanvasElement,
+  editable: boolean = false,
+  options?: { isHealing?: boolean }
+): any {
+  const left = pctToPx(element.x, CANVAS_WIDTH);
+  const top = pctToPx(element.y, CANVAS_HEIGHT);
+  const width = pctToPx(element.w, CANVAS_WIDTH);
+  const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const common = {
+    left,
+    top,
+    width,
+    height,
+    selectable: editable,
+    evented: editable,
+    hasControls: editable,
+    lockRotation: true,
+    data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
+  };
+
+  if (element.type === 'text') {
+    if (typeof fabric?.Textbox === 'function') {
+      try {
+        const textOpts = buildTextFabricOptions(element, { editable, fabric });
+        return new fabric.Textbox(element.content ?? '', textOpts);
+      } catch {
+        // Fallback for headless test environments where 2D rendering context is missing (Node jsdom)
+      }
+    }
+    // Fallback object for headless test mocks
+    const text = element.content ?? '';
+    const words = text.split(/\s+/).filter(Boolean);
+    let longestWord = '';
+    for (const w of words) {
+      if (w.length > longestWord.length) longestWord = w;
+    }
+    const em = normalizeFontSize(element.style?.fontSize);
+    const longestWordPx = longestWord.length * em * 0.55;
+    const fallbackData = {
+      ...common,
+      type: 'text',
+      text,
+      fontSize: em,
+      fontFamily: element.style?.fontFamily ?? DEFAULT_FONT_FAMILY,
+      fontWeight: element.style?.fontWeight ?? 'normal',
+      fontStyle: element.style?.fontStyle ?? 'normal',
+      dynamicMinWidth: longestWordPx,
+      textLines: words.length > 0 ? [text] : [],
+      fill: element.style?.fontColor ?? DEFAULT_FONT_COLOR,
+      textAlign: element.style?.textAlign ?? DEFAULT_TEXT_ALIGN,
+      lineHeight: element.style?.lineHeight ?? TEXT_LINE_HEIGHT,
+      underline: element.style?.textDecoration === 'underline',
+      shadow: element.style?.textShadow
+        ? { blur: typeof element.style.textShadowBlur === 'number' ? element.style.textShadowBlur : 4 }
+        : undefined,
+    };
+
+    if (typeof fabric?.Rect === 'function') {
+      const standIn = new fabric.Rect(fallbackData);
+      Object.defineProperty(standIn, 'type', { value: 'text', writable: true, configurable: true });
+      Object.assign(standIn, fallbackData);
+      return standIn;
+    }
+
+    return fallbackData;
+  }
+
+  if (element.type === 'shape') {
+    if (typeof fabric?.Rect === 'function') {
+      const shapeOpts = buildShapeFabricOptions(element, { editable });
+      return new fabric.Rect(shapeOpts);
+    }
+    return {
+      ...common,
+      type: 'shape',
+      fill: element.style?.fillColor ?? '#5C2E16',
+      opacity: element.style?.opacity ?? 1,
+    };
+  }
+
+  const isHealing = options?.isHealing ?? false;
+
+  if (element.type === 'image' && element.imageRef) {
+    if (!isHealing && typeof Image !== 'undefined' && typeof fabric?.FabricImage === 'function') {
+      const imgEl = new Image();
+      imgEl.crossOrigin = 'anonymous';
+      imgEl.src = element.imageRef;
+
+      const calcFit = () =>
+        calculateImageFit(
+          { left, top, width, height },
+          { width: imgEl.naturalWidth, height: imgEl.naturalHeight },
+          element.style?.objectFit
+        );
+
+      const initial = calcFit();
+      const clipBox =
+        typeof fabric?.Rect === 'function'
+          ? new fabric.Rect({
+              left,
+              top,
+              width,
+              height,
+              absolutePositioned: true,
+            })
+          : undefined;
+
+      const fabricImg = new fabric.FabricImage(imgEl, {
+        ...common,
+        width: initial.width,
+        height: initial.height,
+        left: initial.left,
+        top: initial.top,
+        scaleX: initial.scaleX,
+        scaleY: initial.scaleY,
+        clipPath: clipBox,
+        data: {
+          elementId: element.id,
+          imageRef: element.imageRef,
+          objectFit: element.style?.objectFit,
+          clipOffset: { x: left - initial.left, y: top - initial.top },
+          clipDimensions: { width, height },
+          baseScaleX: initial.scaleX,
+          baseScaleY: initial.scaleY,
+        },
+      });
+      imgEl.onload = () => {
+        const updated = calcFit();
+        if ((fabricImg as any).data) {
+          (fabricImg as any).data.clipOffset = { x: left - updated.left, y: top - updated.top };
+          (fabricImg as any).data.clipDimensions = { width, height };
+          (fabricImg as any).data.baseScaleX = updated.scaleX;
+          (fabricImg as any).data.baseScaleY = updated.scaleY;
+        }
+        fabricImg.set({
+          width: updated.width,
+          height: updated.height,
+          left: updated.left,
+          top: updated.top,
+          scaleX: updated.scaleX,
+          scaleY: updated.scaleY,
+          clipPath: clipBox,
+        });
+        fabricImg.canvas?.requestRenderAll();
+      };
+      return fabricImg;
+    }
+
+    if (typeof fabric?.Rect === 'function') {
+      return new fabric.Rect({
+        ...common,
+        fill: '#333333',
+        stroke: '#888888',
+        strokeWidth: 1,
+        data: { elementId: element.id, imageRef: element.imageRef },
+      });
+    }
+
+    return {
+      ...common,
+      type: 'image',
+      data: { elementId: element.id, imageRef: element.imageRef },
+    };
+  }
+
+  if (typeof fabric?.Rect === 'function') {
+    return new fabric.Rect({
+      ...common,
+      fill: 'rgba(255,255,255,0.08)',
+      stroke: '#cccccc',
+      strokeDashArray: [6, 4],
+      data: { elementId: element.id, placeholderKey: element.placeholderKey },
+    });
+  }
+
+  return {
+    ...common,
+    type: element.type,
+    data: { elementId: element.id, placeholderKey: element.placeholderKey },
+  };
+}
+
 export type FabricTextLike = {
   type: string;
   text?: string;
@@ -817,7 +1087,11 @@ export function healTemplate(
   } else {
     // In Node / test harness environment
     if (typeof fabric?.StaticCanvas === 'function') {
-      canvas = new fabric.StaticCanvas(null, { width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+      canvas = new fabric.StaticCanvas(null, {
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        renderOnAddRemove: false,
+      });
     } else {
       const objects: any[] = [];
       canvas = {
@@ -833,56 +1107,8 @@ export function healTemplate(
     .sort((a: any, b: any) => a.element.zIndex - b.element.zIndex || a.index - b.index);
 
   for (const { element } of painted) {
-    const left = pctToPx(element.x, CANVAS_WIDTH);
-    const top = pctToPx(element.y, CANVAS_HEIGHT);
-    const width = pctToPx(element.w, CANVAS_WIDTH);
-    const height = pctToPx(element.h, CANVAS_HEIGHT);
-    const common = {
-      left,
-      top,
-      width,
-      height,
-      data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
-    };
-
-    if (element.type === 'text') {
-      const style = element.style;
-      const text = element.content ?? '';
-      let textObj: any;
-      if (typeof fabric?.Textbox === 'function') {
-        textObj = new fabric.Textbox(text, {
-          ...common,
-          fontSize: normalizeFontSize(style?.fontSize),
-          fontFamily: getFontStack(style?.fontFamily),
-          fontWeight: style?.fontWeight ?? 'normal',
-          fontStyle: style?.fontStyle ?? 'normal',
-          splitByGrapheme: false,
-        });
-      } else {
-        // Fallback object for headless test mocks
-        const words = text.split(/\s+/).filter(Boolean);
-        let longestWord = '';
-        for (const w of words) {
-          if (w.length > longestWord.length) longestWord = w;
-        }
-        const em = normalizeFontSize(style?.fontSize);
-        const longestWordPx = longestWord.length * em * 0.55;
-        textObj = {
-          ...common,
-          type: 'text',
-          text,
-          fontSize: em,
-          fontFamily: style?.fontFamily ?? DEFAULT_FONT_FAMILY,
-          fontWeight: style?.fontWeight ?? 'normal',
-          fontStyle: style?.fontStyle ?? 'normal',
-          dynamicMinWidth: longestWordPx,
-          textLines: words.length > 0 ? [text] : [],
-        };
-      }
-      canvas.add(textObj);
-    } else {
-      canvas.add({ ...common, type: element.type });
-    }
+    const obj = elementToFabricObject(fabric, element, false, { isHealing: true });
+    canvas.add(obj);
   }
 
   const updatedElements = serializeCanvas(

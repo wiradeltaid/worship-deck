@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func jsonDecode(r io.Reader, v any) error {
@@ -89,6 +90,7 @@ func TestBackgroundLibrary_AdminCRUDAndOperatorList(t *testing.T) {
 	}
 
 	// 8. PATCH image 2 to be default (should unset image 1 default) -> 200
+	time.Sleep(5 * time.Millisecond)
 	res = songSetRequest(t, ts, "PATCH", fmt.Sprintf("/api/admin/background-library/%d", id2), fmt.Sprintf(`{"updatedAt":%q,"isDefault":true}`, updatedAt2), cookie)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("PATCH image 2 default = %d, want 200", res.StatusCode)

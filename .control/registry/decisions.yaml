@@ -602,6 +602,31 @@ decisions:
       - tests/smoke-spec-24.test.mjs
       - package.json
       - .scratch/SPEC-24-canvas-healing-persistence-isolation/SPEC.md
+  - id: DEC-027
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-13)"
+    title: Autopilot mandate for Canvas/Presenter Parity Gap & Heal-Crash (SPEC-25)
+    file: .control/decisions/DEC-027-autopilot-mandate-canvas-presenter-parity-heal-crash.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-20'
+    touches:
+      - .control/memlog/autopilot-DEC-027.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .control/registry/defects.yaml
+      - .scratch/SPEC-25-canvas-presenter-parity-and-heal-crash/SPEC.md
+      - src/components/admin/ArtifactEditor.tsx
+      - src/lib/registry/canvas-utils.ts
+      - src/components/artifacts/ArtifactSlide.tsx
+      - tests/smoke-spec-25.test.mjs
+      - package.json
+      - internal/httpapi/background_library_test.go
 
 
 

@@ -1313,7 +1313,7 @@ waves:
           - tests/smoke-spec-24.test.mjs
 
   - id: SPEC-25
-    status: open
+    status: closed
     release: canvas-presenter-parity-and-heal-crash
     prd: [offline-deck]
     fr: [FR-20]
