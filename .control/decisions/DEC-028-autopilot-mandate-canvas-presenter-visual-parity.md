@@ -1,7 +1,7 @@
 ---
 type: mandate
 id: DEC-028
-status: accepted
+status: applied
 accepted_by: 'kodesh87 (2026-09-13)'
 touches:
   - .control/memlog/autopilot-DEC-028.md
@@ -12,6 +12,8 @@ touches:
   - src/components/admin/ArtifactEditor.tsx
   - src/lib/registry/canvas-utils.ts
   - src/components/artifacts/ArtifactSlide.tsx
+  - spa/src/pages/ParityDiagnosticPage.tsx
+  - spa/src/App.tsx
   - tests/smoke-spec-26.test.mjs
   - package.json
 supersedes: null

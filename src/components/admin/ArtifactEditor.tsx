@@ -118,6 +118,9 @@ import {
   shouldPreserveSelectionOnContextMenu,
   syncImageClipOnMove,
   syncImageClipOnScale,
+  syncTextClipOnMove,
+  syncTextClipOnScale,
+  applyFabricTextFit,
   TEXT_LINE_HEIGHT,
   toStrictHexColor,
   updateImageElementFit,
@@ -631,35 +634,55 @@ export default function ArtifactEditor({
       };
       upperCanvasEl?.addEventListener('contextmenu', onNativeContextMenu);
 
-      // SPEC-14-01: On active image object moving, synchronize clipPath coordinates
+      // SPEC-14-01 / SPEC-26-02: On active object moving, synchronize clipPath coordinates
       const onObjectMoving = (opt: any) => {
         markUserDirty();
         const target = opt.target;
-        if (target && syncImageClipOnMove(target)) {
-          canvas.requestRenderAll();
+        if (target) {
+          const targetData = ((target as any).data = (target as any).data || {});
+          targetData.userMoved = true;
+          if (syncImageClipOnMove(target) || syncTextClipOnMove(target)) {
+            canvas.requestRenderAll();
+          }
         }
       };
       canvas.on('object:moving', onObjectMoving);
 
-      // SPEC-15-01: On active image object scaling, synchronize clipPath coordinates and dimensions
+      // SPEC-15-01 / SPEC-26-02: On active object scaling, synchronize clipPath coordinates and dimensions
       const onObjectScaling = (opt: any) => {
         markUserDirty();
         const target = opt.target;
-        if (target && syncImageClipOnScale(target)) {
-          canvas.requestRenderAll();
+        if (target) {
+          const targetData = ((target as any).data = (target as any).data || {});
+          targetData.userResizedWidth = true;
+          targetData.userResizedHeight = true;
+          if (syncImageClipOnScale(target) || syncTextClipOnScale(target)) {
+            canvas.requestRenderAll();
+          }
         }
       };
       canvas.on('object:scaling', onObjectScaling);
       canvas.on('object:resizing', markUserDirty);
 
-      // SPEC-13-03: On image object scaling/modification, recalculate contain fit so image content grows/shrinks with handles
+      // SPEC-13-03 / SPEC-26-02: On object scaling/modification, recalculate fit so content stays synchronized
       const onObjectModified = (opt: any) => {
         markUserDirty();
         const target = opt.target;
         const action = opt?.action || opt?.transform?.action;
+        const targetData = target ? ((target as any).data = (target as any).data || {}) : null;
         if (action === 'drag' || action === 'move') {
+          if (targetData) targetData.userMoved = true;
           syncImageClipOnMove(target);
+          syncTextClipOnMove(target);
           return;
+        }
+        if (action && (action.includes('scale') || action.includes('resiz'))) {
+          if (targetData) {
+            targetData.userResizedWidth = true;
+            targetData.userResizedHeight = true;
+            targetData.authoredWidth = (target.width ?? 0) * (target.scaleX ?? 1);
+            targetData.authoredHeight = (target.height ?? 0) * (target.scaleY ?? 1);
+          }
         }
         if (target && target.data?.imageRef) {
           if (updateImageElementFit(target, fabric)) {
@@ -667,14 +690,15 @@ export default function ArtifactEditor({
           }
         }
         if (target && isFabricTextObject(target)) {
-          const targetData = (target as any).data;
-          if (typeof target.scaleY === 'number' && target.scaleY !== 1 && targetData?.authoredHeight) {
-            targetData.authoredHeight *= target.scaleY;
-            target.scaleY = 1;
+          if (typeof target.scaleX === 'number' && target.scaleX !== 1) {
+            target.set('width', (target.width ?? 0) * target.scaleX);
+            target.set('scaleX', 1);
           }
-          if (targetData) {
-            targetData.authoredHeight = (target.height ?? 0) * (target.scaleY ?? 1);
+          if (typeof target.scaleY === 'number' && target.scaleY !== 1) {
+            target.set('height', (target.height ?? 0) * target.scaleY);
+            target.set('scaleY', 1);
           }
+          syncTextClipOnScale(target);
           syncSelection(canvas);
         }
       };
@@ -683,9 +707,31 @@ export default function ArtifactEditor({
       const onTextChanged = (opt: any) => {
         markUserDirty();
         const target = opt.target;
-        const targetData = target ? (target as any).data : null;
+        const targetData = target ? ((target as any).data = (target as any).data || {}) : null;
         if (target && isFabricTextObject(target) && targetData) {
-          targetData.authoredHeight = (target.height ?? 0) * (target.scaleY ?? 1);
+          targetData.userEditedText = true;
+          const boxW = targetData.authoredWidth ?? target.width ?? 100;
+          const boxH = targetData.authoredHeight ?? target.height ?? 100;
+          const elementStub: CanvasElement = {
+            id: targetData.elementId ?? 'text',
+            type: 'text',
+            required: false,
+            x: pxToPct(target.left ?? 0, CANVAS_WIDTH),
+            y: pxToPct(target.top ?? 0, CANVAS_HEIGHT),
+            w: pxToPct(boxW, CANVAS_WIDTH),
+            h: pxToPct(boxH, CANVAS_HEIGHT),
+            zIndex: 0,
+            content: target.text ?? '',
+            style: {
+              fontSize: typeof target.fontSize === 'number' ? target.fontSize : undefined,
+              lineHeight: typeof (target as any).lineHeight === 'number' ? (target as any).lineHeight : undefined,
+              fontFamily: target.fontFamily,
+              fontWeight: target.fontWeight !== undefined ? String(target.fontWeight) : undefined,
+              fontStyle: target.fontStyle,
+            },
+          };
+          applyFabricTextFit(target, elementStub, fabric);
+          canvas.requestRenderAll();
         }
       };
       canvas.on('text:changed', onTextChanged);

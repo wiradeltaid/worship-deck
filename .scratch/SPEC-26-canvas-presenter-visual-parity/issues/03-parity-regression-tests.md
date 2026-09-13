@@ -1,6 +1,6 @@
 # SPEC-26-03 — Parity guard, proven red before it is trusted
 
-**Status:** ready-for-agent
+**Status:** closed
 
 ## Component & Scope
 
@@ -44,3 +44,14 @@ Screenshot/pixel diffing. It was tried during diagnosis
 (`.work/spec-26-diagnostics/run-diff.mjs`): rescaling one surface to match the other floods the
 result with resampling noise — 7.15/255 mean difference on a pair that agreed to within a pixel.
 Geometry assertions are the signal; pixels are not.
+
+## Comments
+
+1. Added `tests/smoke-spec-26.test.mjs` directly importing shipped `src/lib/registry/canvas-utils.ts` and asserting presence of `src/components/artifacts/ArtifactSlide.tsx`.
+2. Verified per-element parity across all 32 templates and 64 elements in the default registry: normalized x, y, w, h within 1%, painted font size within 1%, and exact line count match.
+3. Implemented BUG-35 regression guard verifying that `serializeCanvas` round-trip on unedited templates is a strict no-op on x, y, w, h.
+4. Verified absence guards fail red when defect is injected:
+   - Defect 1 (BUG-35 computed width overwrite) triggers AssertionError in guard.
+   - Defect 2 (Missing Canvas fit policy) triggers AssertionError in font size parity guard.
+   - Defect 3 (Missing Canvas clipPath) triggers AssertionError in box overrun guard.
+5. Registered `tests/smoke-spec-26.test.mjs` in `package.json` `test` script. All 5 tests pass green.

@@ -486,8 +486,8 @@ defects:
       which must reuse/extract `elementToFabricObject`'s full construction rather than adding a second,
       partial one, to close both defects in the one fix).
   - id: BUG-34
-    status: open
-    fix: SPEC-26
+    status: fixed
+    fixed_in: SPEC-26
     title: "Presenter/Projector output crops the slide differently than the Canvas editor for the same template"
     component: registry
     violates: [UC-14]
@@ -512,8 +512,8 @@ defects:
       presenter-dev.bic.my.id to code, confirm that host serves a build containing SPEC-25-03.
 
   - id: BUG-35
-    status: open
-    fix: SPEC-26
+    status: fixed
+    fixed_in: SPEC-26
     title: "Opening a template in the Canvas editor and pressing Save, with no edit, widens the stored element geometry"
     component: registry
     violates: [UC-14]

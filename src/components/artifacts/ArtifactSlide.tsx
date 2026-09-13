@@ -145,6 +145,7 @@ function TextElement({ element }: { element: ResolvedElement }) {
   return (
     <div
       ref={boxRef}
+      data-element-id={element.id}
       style={{
         ...boxStyle(element),
         display: 'flex',
@@ -187,7 +188,7 @@ function ImageElement({ element }: { element: ResolvedElement }) {
   if (imageUrl === undefined) return null;
 
   return (
-    <div style={boxStyle(element)}>
+    <div data-element-id={element.id} style={boxStyle(element)}>
       {/* Sources are remote allow-listed URLs and hub-local `/api/uploads/*`
           routes resolved at request time. */}
       <img
@@ -207,6 +208,7 @@ function ImageElement({ element }: { element: ResolvedElement }) {
 function ShapeElement({ element }: { element: ResolvedElement }) {
   return (
     <div
+      data-element-id={element.id}
       style={{
         ...boxStyle(element),
         backgroundColor: toCssColor(element.style.fillColor) ?? 'transparent',
