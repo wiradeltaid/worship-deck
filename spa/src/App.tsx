@@ -11,6 +11,7 @@ import PresentPage from './pages/PresentPage';
 import RemotePage from './pages/RemotePage';
 import SlideshowPage from './pages/SlideshowPage';
 import ProjectorPage from './pages/ProjectorPage';
+import ParityDiagnosticPage from './pages/ParityDiagnosticPage';
 import AdminPage from './pages/AdminPage';
 import AdminArtifactsPage from './pages/AdminArtifactsPage';
 import OperatorShell from './pages/OperatorShell';
@@ -29,6 +30,7 @@ export default function App() {
     <Routes>
       <Route path="/services/:id/present/projector" element={<ProjectorPage />} />
       <Route path="/services/:id/slideshow" element={<SlideshowPage />} />
+      <Route path="/services/diagnostic-parity" element={<ParityDiagnosticPage />} />
       {/* Login must stay outside OperatorShell — shell returns null until authed. */}
       <Route path="/login" element={<LoginPage />} />
       <Route element={<SessionProvider><OperatorShell /></SessionProvider>}>

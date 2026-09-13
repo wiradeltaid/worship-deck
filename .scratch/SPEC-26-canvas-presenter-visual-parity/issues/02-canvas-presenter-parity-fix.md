@@ -1,6 +1,6 @@
 # SPEC-26-02 — Stop geometry drift on save, then reconcile the two text engines
 
-**Status:** ready-for-agent
+**Status:** closed
 
 ## Component & Scope
 
@@ -61,3 +61,9 @@ facts are:
 
 `BUG-35` is not yet in `.control/registry/defects.yaml`. Register it there before shipping this
 ticket, or fold it into BUG-34 explicitly — it MUST NOT be fixed silently.
+
+## Comments
+
+1. Closed BUG-35: `serializeCanvas` now checks `data.authoredWidth`/`data.authoredHeight` and only writes back dimensions if the user actively resized the element (`userResizedWidth`, `userResizedHeight`) or moved it (`userMoved`). Unedited saves across all 32 templates are now strict no-ops.
+2. Reconciled text engines: implemented `applyFabricTextFit` which uses two-tier DOM probe measuring exact `scrollWidth`/`scrollHeight` with `textFitRatio` and `largestFittingTextScale`, aligning Fabric's painted font size, line wrapping, and bounding clipPath with `ArtifactSlide`. All 32 shipped templates report 0 GEOM, 0 WRAP, 0 FIT, 0 CLIP, and 0 OVERRUN divergences.
+3. Verified end-to-end with `tests/smoke-spec-26.test.mjs` and `npm test` all green.

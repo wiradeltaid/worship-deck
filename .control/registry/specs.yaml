@@ -1348,7 +1348,7 @@ waves:
           - tests/smoke-spec-25.test.mjs
 
   - id: SPEC-26
-    status: open
+    status: closed
     release: canvas-presenter-visual-parity
     prd: [offline-deck]
     fr: [FR-20]

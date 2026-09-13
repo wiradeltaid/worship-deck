@@ -3,7 +3,14 @@ import type {
   CanvasElement,
 } from '@/lib/registry/types';
 import { DEFAULT_FONT_FAMILY, getFontStack, resolveCatalogFontFamily } from '@/lib/registry/font-catalog';
-import { TEXT_LINE_HEIGHT, applyWrapSlack, isMeasurementValid } from '@/lib/artifacts/render-model';
+import {
+  TEXT_LINE_HEIGHT,
+  applyWrapSlack,
+  isMeasurementValid,
+  largestFittingTextScale,
+  textFitRatio,
+  MIN_TEXT_FIT_SCALE,
+} from '@/lib/artifacts/render-model';
 
 export { TEXT_LINE_HEIGHT };
 
@@ -241,6 +248,146 @@ export function buildShapeFabricOptions(
   };
 }
 
+export function applyFabricTextFit(
+  tb: any,
+  element: CanvasElement,
+  fabric: any
+): void {
+  const text = element.content ?? '';
+  const baseFontSize = normalizeFontSize(element.style?.fontSize);
+  const boxWidth = pctToPx(element.w, CANVAS_WIDTH);
+  const boxHeight = pctToPx(element.h, CANVAS_HEIGHT);
+  const roundedBoxW = Math.round(boxWidth);
+  const roundedBoxH = Math.round(boxHeight);
+
+  let bestScale = 1;
+  if (text.trim().length > 0) {
+    if (typeof document !== 'undefined' && typeof document.createElement === 'function' && document.body) {
+      const outer = document.createElement('div');
+      outer.style.cssText = `position:fixed; left:-9999px; top:-9999px; width:${roundedBoxW}px; height:${roundedBoxH}px; display:flex; flex-direction:column; overflow:hidden;`;
+      const inner = document.createElement('div');
+      inner.style.cssText = 'width:100%; white-space:pre-wrap;';
+      inner.style.fontFamily = getFontStack(element.style?.fontFamily);
+      inner.style.lineHeight = String(typeof element.style?.lineHeight === 'number' ? element.style.lineHeight : TEXT_LINE_HEIGHT);
+      inner.style.fontWeight = element.style?.fontWeight ? String(element.style.fontWeight) : 'normal';
+      inner.style.fontStyle = element.style?.fontStyle ?? 'normal';
+      inner.textContent = text;
+      outer.appendChild(inner);
+      document.body.appendChild(outer);
+
+      const fitsAt = (scale: number): boolean => {
+        inner.style.fontSize = `${baseFontSize * scale}px`;
+        return (
+          textFitRatio({
+            contentWidth: inner.scrollWidth,
+            contentHeight: inner.scrollHeight,
+            boxWidth: outer.clientWidth,
+            boxHeight: outer.clientHeight,
+            fontSizePx: baseFontSize * scale,
+          }) >= 1
+        );
+      };
+
+      bestScale = largestFittingTextScale(fitsAt);
+      outer.remove();
+    } else if (typeof tb?.initDimensions === 'function') {
+      const fitsAt = (scale: number): boolean => {
+        tb.fontSize = baseFontSize * scale;
+        tb.set('width', boxWidth);
+        tb.initDimensions();
+
+        if (tb.dynamicMinWidth > boxWidth) {
+          return false;
+        }
+
+        const contentHeight = tb.calcTextHeight();
+        let contentWidth = 0;
+        if (tb.textLines) {
+          for (let i = 0; i < tb.textLines.length; i++) {
+            const lw = tb.getLineWidth(i);
+            if (lw > contentWidth) contentWidth = lw;
+          }
+        }
+        if (tb.dynamicMinWidth > contentWidth) {
+          contentWidth = tb.dynamicMinWidth;
+        }
+
+        return (
+          textFitRatio({
+            contentWidth,
+            contentHeight,
+            boxWidth,
+            boxHeight,
+            fontSizePx: baseFontSize * scale,
+          }) >= 1
+        );
+      };
+
+      bestScale = largestFittingTextScale(fitsAt);
+    }
+  }
+
+  tb.fontSize = baseFontSize * bestScale;
+  tb.set('width', boxWidth);
+  if (typeof tb.initDimensions === 'function') {
+    tb.initDimensions();
+  }
+  // Enforce authored box bounds: dynamicMinWidth must not widen box width past authored
+  tb.set('width', boxWidth);
+  tb.set('height', boxHeight);
+
+  if (tb.data) {
+    tb.data.fitScale = bestScale;
+    tb.data.authoredWidth = boxWidth;
+    tb.data.authoredHeight = boxHeight;
+  }
+
+  // Clip text overflow outside authored box
+  if (typeof fabric?.Rect === 'function') {
+    tb.clipPath = new fabric.Rect({
+      left: tb.left,
+      top: tb.top,
+      width: boxWidth,
+      height: boxHeight,
+      absolutePositioned: true,
+    });
+  }
+
+  if (typeof tb.setCoords === 'function') {
+    tb.setCoords();
+  }
+}
+
+export function syncTextClipOnMove(target: any): boolean {
+  if (!target || !target.clipPath) return false;
+  const clip = target.clipPath;
+  clip.set({
+    left: target.left ?? 0,
+    top: target.top ?? 0,
+  });
+  if (typeof clip.setCoords === 'function') {
+    clip.setCoords();
+  }
+  return true;
+}
+
+export function syncTextClipOnScale(target: any): boolean {
+  if (!target || !target.clipPath) return false;
+  const clip = target.clipPath;
+  const w = (target.width ?? 0) * (target.scaleX ?? 1);
+  const h = (target.height ?? 0) * (target.scaleY ?? 1);
+  clip.set({
+    left: target.left ?? 0,
+    top: target.top ?? 0,
+    width: w,
+    height: h,
+  });
+  if (typeof clip.setCoords === 'function') {
+    clip.setCoords();
+  }
+  return true;
+}
+
 export function elementToFabricObject(
   fabric: any,
   element: CanvasElement,
@@ -267,7 +414,9 @@ export function elementToFabricObject(
     if (typeof fabric?.Textbox === 'function') {
       try {
         const textOpts = buildTextFabricOptions(element, { editable, fabric });
-        return new fabric.Textbox(element.content ?? '', textOpts);
+        const tb = new fabric.Textbox(element.content ?? '', textOpts);
+        applyFabricTextFit(tb, element, fabric);
+        return tb;
       } catch {
         // Fallback for headless test environments where 2D rendering context is missing (Node jsdom)
       }
@@ -619,40 +768,63 @@ export function serializeCanvas(
     const measuredTextHeightPct = pxToPct(measuredHeight, CANVAS_HEIGHT);
     const measuredTextWidthPct = pxToPct(measuredWidth, CANVAS_WIDTH);
 
-    // SPEC-20-04: Auto-sync bounding box dimensions for text elements so bounding box encapsulates rendered text
-    // SPEC-23-05: In healing saves, preserve authored width as the baseline
-    let w = isHealing
-      ? source.w
-      : isWidthResized
-        ? pxToPct(measuredWidth, CANVAS_WIDTH)
-        : isText
-          ? Math.max(source.w, measuredTextWidthPct)
-          : source.w;
+    const hasAuthoredWidth = typeof (obj as any).data?.authoredWidth === 'number';
+    const hasAuthoredHeight = typeof (obj as any).data?.authoredHeight === 'number';
+    const isUserResizedW = (obj as any).data?.userResizedWidth === true;
+    const isUserResizedH = (obj as any).data?.userResizedHeight === true;
+    const isUserMoved = (obj as any).data?.userMoved === true;
+
+    const isPlaceholder =
+      Boolean(source.placeholderKey) ||
+      (typeof source.content === 'string' && /\{[a-zA-Z0-9_]+\}/.test(source.content));
+
+    // SPEC-20-04 / SPEC-26-02 / BUG-35:
+    // A dimension Fabric computed MUST NOT be written back as authored geometry.
+    // Only a dimension the operator actually changed — a drag of a resize handle — may be persisted.
+    let w = source.w;
+    if (isHealing) {
+      w = source.w;
+    } else if (hasAuthoredWidth) {
+      if (isUserResizedW) {
+        w = pxToPct(measuredWidth, CANVAS_WIDTH);
+      } else {
+        w = source.w;
+      }
+    } else if (isWidthResized) {
+      w = pxToPct(measuredWidth, CANVAS_WIDTH);
+    } else if (isText) {
+      w = Math.max(source.w, measuredTextWidthPct);
+    }
 
     let longestWordPx: number | undefined;
     let didSlackWiden = false;
 
     // SPEC-23-01: Longest-word slack invariant on Textbox widening
+    // Only applied to static text (placeholders are measured only on runtime display/export)
     if (isText) {
       const dynamicMinWidth = (obj as any).dynamicMinWidth ?? (obj as any).longestWordPx;
       if (typeof dynamicMinWidth === 'number' && Number.isFinite(dynamicMinWidth) && dynamicMinWidth > 0) {
         longestWordPx = dynamicMinWidth * scaleX;
-        const slackedW = applyWrapSlack(w, longestWordPx);
-        if (Math.abs(slackedW - w) > 0.001) {
-          w = slackedW;
-          didSlackWiden = true;
+        if (!isPlaceholder && (isHealing || isUserResizedW || !hasAuthoredWidth)) {
+          const slackedW = applyWrapSlack(w, longestWordPx);
+          if (Math.abs(slackedW - w) > 0.001) {
+            w = slackedW;
+            didSlackWiden = true;
+          }
         }
       }
     }
 
-    // SPEC-23-05 Req 3: Healing saves MUST NOT resize h or rewrite zIndex/x/y
+    // SPEC-23-05 Req 3 / SPEC-26-02: Preserves authored h on save unless user actively resized height
     const h = isHealing
       ? source.h
-      : isText
-        ? Math.max(source.h, measuredTextHeightPct)
-        : isHeightResized
-          ? pxToPct(measuredHeight, CANVAS_HEIGHT)
-          : source.h;
+      : hasAuthoredHeight
+        ? (isUserResizedH ? pxToPct(measuredHeight, CANVAS_HEIGHT) : source.h)
+        : isText
+          ? Math.max(source.h, measuredTextHeightPct)
+          : isHeightResized
+            ? pxToPct(measuredHeight, CANVAS_HEIGHT)
+            : source.h;
 
     // SPEC-24-03: Non-destructive canvas serialization.
     // Coordinates reflect live Fabric object positions when moved; never force source.x/y when left/top has moved.

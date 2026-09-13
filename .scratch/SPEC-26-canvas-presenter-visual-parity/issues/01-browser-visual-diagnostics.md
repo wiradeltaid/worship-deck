@@ -1,6 +1,6 @@
 # SPEC-26-01 — Committed two-engine parity harness
 
-**Status:** ready-for-agent
+**Status:** closed
 
 ## Component & Scope
 
@@ -43,3 +43,15 @@ before that happens, or the evidence is lost.
 
 The stage wrapper in `ArtifactSlide.tsx` (lines 280-317). Measured correct at 1600x900, 2560x1080,
 1920x600, 1000x1000 and 1080x1920 on both `/slideshow` and `/present/projector`.
+
+## Comments
+
+Committed two-engine visual parity harness ported to `spa/src/pages/ParityDiagnosticPage.tsx`,
+wired to `/services/diagnostic-parity` in `spa/src/App.tsx`, and verified in `tests/smoke-spec-26.test.mjs` (T-26-01).
+Imports shipped modules (`elementToFabricObject` from `src/lib/registry/canvas-utils.ts` and `ArtifactSlide` from `src/components/artifacts/ArtifactSlide.tsx`).
+Evaluates all 32 templates and 64 elements across default registry, reproducing the baseline divergences:
+- GEOM: 2 (`node_modules/fabric/dist/index.mjs:22952` Textbox widening to `dynamicMinWidth`)
+- WRAP: 7 (line break divergence due to unbounded Fabric font size vs shrunk CSS font size)
+- FIT: 19/20 (ArtifactSlide shrink-to-fit in `src/components/artifacts/ArtifactSlide.tsx:69-139` vs Fabric unbounded painting)
+- CLIP: 11 (CSS box `overflow: hidden` in `src/components/artifacts/ArtifactSlide.tsx:44` vs Fabric unclipped overflow)
+- OVERRUN: 20 (Fabric Textbox discarding authored box height in `node_modules/fabric/dist/index.mjs:22960`)
