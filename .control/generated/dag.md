@@ -186,6 +186,16 @@ dag:
     - SPEC-26-02
   - parallel:
     - SPEC-26-03
+- spec: SPEC-27
+  order:
+  - parallel:
+    - SPEC-27-01
+  - parallel:
+    - SPEC-27-02
+  - parallel:
+    - SPEC-27-03
+  - parallel:
+    - SPEC-27-04
 - spec: W1
   order:
   - parallel:
