@@ -1,13 +1,23 @@
 ---
 type: mandate
 id: DEC-029
-status: accepted
+status: applied
 accepted_by: 'kodesh87 (2026-09-13)'
 touches:
   - .control/memlog/autopilot-DEC-029.md
   - .control/registry/specs.yaml
   - .control/registry/decisions.yaml
   - .scratch/SPEC-27-pptx-anchor-visual-parity/SPEC.md
+  - package.json
+  - src/components/admin/ArtifactEditor.tsx
+  - src/components/artifacts/ArtifactSlide.tsx
+  - src/lib/artifacts/render-model.ts
+  - src/lib/pptx-draw.ts
+  - src/lib/registry/canvas-utils.ts
+  - src/lib/fonts/embed-fonts.ts
+  - tests/smoke-spec-23.test.mjs
+  - tests/smoke-spec-27.test.mjs
+  - tests/pptx-conformance.test.mjs
 supersedes: null
 superseded_by: null
 created: '2026-09-13'

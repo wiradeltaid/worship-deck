@@ -1383,7 +1383,7 @@ waves:
           - tests/smoke-spec-26.test.mjs
 
   - id: SPEC-27
-    status: open
+    status: closed
     release: pptx-anchor-visual-parity
     prd: [offline-deck]
     fr: [FR-20]

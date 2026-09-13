@@ -19,7 +19,9 @@ import {
   Type,
   Underline,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ArtifactSlide from '@/components/artifacts/ArtifactSlide';
+import type { ArtifactInstance } from '@/lib/artifacts/runtime-contract';
 import type {
   ArtifactLayout,
   ArtifactTemplateSummary,
@@ -262,15 +264,59 @@ export default function ArtifactEditor({
   const dragSourceIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const saveSequenceRef = useRef(0);
+  const [liveElements, setLiveElements] = useState<CanvasElement[]>([]);
+  const [stageDimensions, setStageDimensions] = useState<{ width: number; height: number }>({
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT,
+  });
+
+  const liveInstance: ArtifactInstance | null = useMemo(() => {
+    if (!template) return null;
+    const layout = getEditableLayout(template);
+    if (!layout) return null;
+    return {
+      runtimeVersion: 1,
+      instanceId: `editor-${template.id}`,
+      templateId: template.id,
+      label: template.label,
+      baseType: template.baseType,
+      layoutKey: 'default',
+      layout: {
+        aspectRatio: '16:9',
+        backgroundColor: layout.backgroundColor || '#000000',
+        backgroundImage: layout.backgroundImage,
+        elements: liveElements.map((el) => ({
+          id: el.id,
+          type: el.type,
+          x: el.x,
+          y: el.y,
+          w: el.w,
+          h: el.h,
+          zIndex: el.zIndex,
+          text: el.content ?? (el.placeholderKey ? `{${el.placeholderKey}}` : ''),
+          wrapLines: el.wrapLines,
+          longestWordPx: el.longestWordPx,
+          measuredWith: el.measuredWith,
+          imageUrl: el.imageRef,
+          placeholderKey: el.placeholderKey,
+          style: el.style ?? {},
+        })),
+      },
+    };
+  }, [template, liveElements]);
 
   const fitCanvasToShell = useCallback(() => {
     const shell = canvasShellRef.current;
     const canvas = fabricCanvasRef.current;
-    if (!shell || !canvas) return;
+    if (!shell) return;
     const width = shell.clientWidth;
     const height = shell.clientHeight;
     if (width <= 0 || height <= 0) return;
     const scale = Math.min(width / CANVAS_WIDTH, height / CANVAS_HEIGHT);
+    const stageW = Math.round(CANVAS_WIDTH * scale);
+    const stageH = Math.round(CANVAS_HEIGHT * scale);
+    setStageDimensions({ width: stageW, height: stageH });
+    if (!canvas) return;
     // One scaling mechanism only: keep the logical canvas at 960×540 and let
     // Fabric's zoom scale the paint. Resize the wrapper element (the
     // `.canvas-container` Fabric auto-generates) so the visible stage fills
@@ -279,8 +325,10 @@ export default function ArtifactEditor({
     canvas.setZoom(scale);
     const wrapper = canvas.wrapperEl;
     if (wrapper) {
-      wrapper.style.width = `${CANVAS_WIDTH * scale}px`;
-      wrapper.style.height = `${CANVAS_HEIGHT * scale}px`;
+      wrapper.style.width = `${stageW}px`;
+      wrapper.style.height = `${stageH}px`;
+      wrapper.style.position = 'absolute';
+      wrapper.style.inset = '0';
     }
     canvas.calcOffset();
     canvas.requestRenderAll();
@@ -476,10 +524,11 @@ export default function ArtifactEditor({
         selection: true,
         fireRightClick: true,
         stopContextMenu: true,
-        backgroundColor: layout.backgroundColor,
+        backgroundColor: 'transparent',
         preserveObjectStacking: true,
       });
       fabricCanvasRef.current = canvas;
+      setLiveElements(layout.elements.map((el) => ({ ...el })));
 
       const disposeCanvasIfAborted = () => {
         if (!disposed) return false;
@@ -528,7 +577,7 @@ export default function ArtifactEditor({
         .map((element, index) => ({ element, index }))
         .sort((a, b) => a.element.zIndex - b.element.zIndex || a.index - b.index);
       for (const { element } of painted) {
-        canvas.add(elementToFabricObject(fabric, element, true));
+        canvas.add(elementToFabricObject(fabric, element, true, { transparentProxy: true }));
       }
 
       const onSelectionChange = () => {
@@ -634,7 +683,7 @@ export default function ArtifactEditor({
       };
       upperCanvasEl?.addEventListener('contextmenu', onNativeContextMenu);
 
-      // SPEC-14-01 / SPEC-26-02: On active object moving, synchronize clipPath coordinates
+      // SPEC-14-01 / SPEC-26-02 / SPEC-27-02: On active object moving, synchronize clipPath coordinates & live elements
       const onObjectMoving = (opt: any) => {
         markUserDirty();
         const target = opt.target;
@@ -644,11 +693,27 @@ export default function ArtifactEditor({
           if (syncImageClipOnMove(target) || syncTextClipOnMove(target)) {
             canvas.requestRenderAll();
           }
+          const id = getElementId(target);
+          if (id) {
+            const left = target.left ?? 0;
+            const top = target.top ?? 0;
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                el.id === id
+                  ? {
+                      ...el,
+                      x: pxToPct(left, CANVAS_WIDTH),
+                      y: pxToPct(top, CANVAS_HEIGHT),
+                    }
+                  : el
+              )
+            );
+          }
         }
       };
       canvas.on('object:moving', onObjectMoving);
 
-      // SPEC-15-01 / SPEC-26-02: On active object scaling, synchronize clipPath coordinates and dimensions
+      // SPEC-15-01 / SPEC-26-02 / SPEC-27-02: On active object scaling, synchronize clipPath coordinates, dimensions & live elements
       const onObjectScaling = (opt: any) => {
         markUserDirty();
         const target = opt.target;
@@ -659,17 +724,63 @@ export default function ArtifactEditor({
           if (syncImageClipOnScale(target) || syncTextClipOnScale(target)) {
             canvas.requestRenderAll();
           }
+          const id = getElementId(target);
+          if (id) {
+            const scaleX = Math.abs(target.scaleX ?? 1);
+            const scaleY = Math.abs(target.scaleY ?? 1);
+            const w = (target.width ?? 100) * scaleX;
+            const h = (target.height ?? 50) * scaleY;
+            const left = target.left ?? 0;
+            const top = target.top ?? 0;
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                el.id === id
+                  ? {
+                      ...el,
+                      x: pxToPct(left, CANVAS_WIDTH),
+                      y: pxToPct(top, CANVAS_HEIGHT),
+                      w: pxToPct(w, CANVAS_WIDTH),
+                      h: pxToPct(h, CANVAS_HEIGHT),
+                    }
+                  : el
+              )
+            );
+          }
         }
       };
       canvas.on('object:scaling', onObjectScaling);
       canvas.on('object:resizing', markUserDirty);
 
-      // SPEC-13-03 / SPEC-26-02: On object scaling/modification, recalculate fit so content stays synchronized
+      // SPEC-13-03 / SPEC-26-02 / SPEC-27-02: On object scaling/modification, recalculate fit & sync live elements
       const onObjectModified = (opt: any) => {
         markUserDirty();
         const target = opt.target;
         const action = opt?.action || opt?.transform?.action;
         const targetData = target ? ((target as any).data = (target as any).data || {}) : null;
+        if (target) {
+          const id = getElementId(target);
+          if (id) {
+            const scaleX = Math.abs(target.scaleX ?? 1);
+            const scaleY = Math.abs(target.scaleY ?? 1);
+            const w = (target.width ?? 100) * scaleX;
+            const h = (target.height ?? 50) * scaleY;
+            const left = target.left ?? 0;
+            const top = target.top ?? 0;
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                el.id === id
+                  ? {
+                      ...el,
+                      x: pxToPct(left, CANVAS_WIDTH),
+                      y: pxToPct(top, CANVAS_HEIGHT),
+                      w: pxToPct(w, CANVAS_WIDTH),
+                      h: pxToPct(h, CANVAS_HEIGHT),
+                    }
+                  : el
+              )
+            );
+          }
+        }
         if (action === 'drag' || action === 'move') {
           if (targetData) targetData.userMoved = true;
           syncImageClipOnMove(target);
@@ -710,6 +821,13 @@ export default function ArtifactEditor({
         const targetData = target ? ((target as any).data = (target as any).data || {}) : null;
         if (target && isFabricTextObject(target) && targetData) {
           targetData.userEditedText = true;
+          const id = getElementId(target);
+          const newText = target.text ?? '';
+          if (id) {
+            setLiveElements((prev) =>
+              prev.map((el) => (el.id === id ? { ...el, content: newText } : el))
+            );
+          }
           const boxW = targetData.authoredWidth ?? target.width ?? 100;
           const boxH = targetData.authoredHeight ?? target.height ?? 100;
           const elementStub: CanvasElement = {
@@ -847,7 +965,8 @@ export default function ArtifactEditor({
       if (fabricCanvasRef.current !== canvas) return;
 
       addedElementsRef.current.set(id, element);
-      const obj = elementToFabricObject(fabric, element, true);
+      setLiveElements((prev) => [...prev, element]);
+      const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
       canvas.setActiveObject(obj);
       canvas.requestRenderAll();
@@ -986,7 +1105,8 @@ export default function ArtifactEditor({
       if (fabricCanvasRef.current !== canvas) return;
 
       addedElementsRef.current.set(id, element);
-      const obj = elementToFabricObject(fabric, element, true);
+      setLiveElements((prev) => [...prev, element]);
+      const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
       canvas.setActiveObject(obj);
       canvas.requestRenderAll();
@@ -1068,7 +1188,8 @@ export default function ArtifactEditor({
       }
 
       addedElementsRef.current.set(id, element);
-      const obj = elementToFabricObject(fabric, element, true);
+      setLiveElements((prev) => [...prev, element]);
+      const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
       canvas.setActiveObject(obj);
       canvas.requestRenderAll();
@@ -1184,7 +1305,8 @@ export default function ArtifactEditor({
       if (fabricCanvasRef.current !== canvas) return;
 
       addedElementsRef.current.set(id, element);
-      const obj = elementToFabricObject(fabric, element, true);
+      setLiveElements((prev) => [...prev, element]);
+      const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
       canvas.setActiveObject(obj);
       canvas.requestRenderAll();
@@ -1222,10 +1344,15 @@ export default function ArtifactEditor({
     if (removable.length > 0) {
       canvas.discardActiveObject();
       canvas.remove(...removable);
+      const removedIds = new Set<string>();
       for (const obj of removable) {
         const elementId = getElementId(obj);
-        if (elementId) addedElementsRef.current.delete(elementId);
+        if (elementId) {
+          addedElementsRef.current.delete(elementId);
+          removedIds.add(elementId);
+        }
       }
+      setLiveElements((prev) => prev.filter((el) => !removedIds.has(el.id)));
       canvas.requestRenderAll();
       syncSelection(canvas);
       // Same reason as `insertElement`: `canvas.remove` already fires
@@ -1395,7 +1522,8 @@ export default function ArtifactEditor({
       }
 
       addedElementsRef.current.set(id, clonedElement);
-      const fabricObj = elementToFabricObject(fabric, clonedElement, true);
+      setLiveElements((prev) => [...prev, clonedElement]);
+      const fabricObj = elementToFabricObject(fabric, clonedElement, true, { transparentProxy: true });
       canvas.add(fabricObj);
       newObjects.push(fabricObj);
     }
@@ -1447,6 +1575,18 @@ export default function ArtifactEditor({
 
   const handleFontColorChange = (color: string) => {
     setFontColor(color);
+    setLiveElements((prev) =>
+      prev.map((el) => {
+        if (!selectedElementIds.includes(el.id)) return el;
+        return {
+          ...el,
+          style: {
+            ...el.style,
+            fontColor: color,
+          },
+        };
+      })
+    );
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
     let updated = false;
@@ -1466,8 +1606,6 @@ export default function ArtifactEditor({
     setFontFamily(family);
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
-
-    // SPEC-23-03: Await fonts.load before setting fontFamily & markDirty
     if (typeof document !== 'undefined' && document.fonts?.load) {
       try {
         const texts = canvas.getActiveObjects().filter(isFabricTextObject);
@@ -1476,7 +1614,7 @@ export default function ArtifactEditor({
       } catch {}
     }
     if (fabricCanvasRef.current !== canvas) return;
-
+    setLiveElements((p) => p.map((e) => selectedElementIds.includes(e.id) ? { ...e, style: { ...e.style, fontFamily: family } } : e));
     let updated = false;
     for (const obj of canvas.getActiveObjects()) {
       if (!isFabricTextObject(obj)) continue;
@@ -1498,12 +1636,24 @@ export default function ArtifactEditor({
     if (texts.length === 0) return;
     const nextWeight: 'normal' | 'bold' = fontWeight === 'bold' ? 'normal' : 'bold';
     setFontWeight(nextWeight);
+    setLiveElements((prev) =>
+      prev.map((el) => {
+        if (!selectedElementIds.includes(el.id)) return el;
+        return {
+          ...el,
+          style: {
+            ...el.style,
+            fontWeight: nextWeight,
+          },
+        };
+      })
+    );
     for (const obj of texts) {
       obj.set({ fontWeight: nextWeight });
     }
     canvas.requestRenderAll();
     markDirty();
-  }, [fontWeight, markDirty]);
+  }, [fontWeight, selectedElementIds, markDirty]);
 
   const handleToggleItalic = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -1512,12 +1662,24 @@ export default function ArtifactEditor({
     if (texts.length === 0) return;
     const nextStyle: 'normal' | 'italic' = fontStyle === 'italic' ? 'normal' : 'italic';
     setFontStyle(nextStyle);
+    setLiveElements((prev) =>
+      prev.map((el) => {
+        if (!selectedElementIds.includes(el.id)) return el;
+        return {
+          ...el,
+          style: {
+            ...el.style,
+            fontStyle: nextStyle,
+          },
+        };
+      })
+    );
     for (const obj of texts) {
       obj.set({ fontStyle: nextStyle });
     }
     canvas.requestRenderAll();
     markDirty();
-  }, [fontStyle, markDirty]);
+  }, [fontStyle, selectedElementIds, markDirty]);
 
   const handleToggleUnderline = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -1526,17 +1688,41 @@ export default function ArtifactEditor({
     if (texts.length === 0) return;
     const nextUnderline = !underline;
     setUnderline(nextUnderline);
+    setLiveElements((prev) =>
+      prev.map((el) => {
+        if (!selectedElementIds.includes(el.id)) return el;
+        return {
+          ...el,
+          style: {
+            ...el.style,
+            textDecoration: nextUnderline ? 'underline' : 'none',
+          },
+        };
+      })
+    );
     for (const obj of texts) {
       obj.set({ underline: nextUnderline } as any);
     }
     canvas.requestRenderAll();
     markDirty();
-  }, [underline, markDirty]);
+  }, [underline, selectedElementIds, markDirty]);
 
   const handleLineHeightChange = useCallback(
     (val: number) => {
       const clamped = Math.max(0.8, Math.min(2.5, Number(val.toFixed(2))));
       setLineHeight(clamped);
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              lineHeight: clamped,
+            },
+          };
+        })
+      );
       const canvas = fabricCanvasRef.current;
       if (!canvas) return;
       for (const obj of canvas.getActiveObjects()) {
@@ -1547,7 +1733,7 @@ export default function ArtifactEditor({
       canvas.requestRenderAll();
       markDirty();
     },
-    [markDirty]
+    [selectedElementIds, markDirty]
   );
 
   const handleToggleTextShadow = useCallback(async () => {
@@ -1556,6 +1742,18 @@ export default function ArtifactEditor({
     const fabric = await import('fabric');
     const nextShadow = !textShadow;
     setTextShadow(nextShadow);
+    setLiveElements((prev) =>
+      prev.map((el) => {
+        if (!selectedElementIds.includes(el.id)) return el;
+        return {
+          ...el,
+          style: {
+            ...el.style,
+            textShadow: nextShadow,
+          },
+        };
+      })
+    );
     const shadowObj = nextShadow
       ? new fabric.Shadow({ color: 'rgba(0,0,0,0.8)', blur: shadowBlur, offsetX: 2, offsetY: 2 })
       : null;
@@ -1566,12 +1764,24 @@ export default function ArtifactEditor({
     }
     canvas.requestRenderAll();
     markDirty();
-  }, [textShadow, shadowBlur, markDirty]);
+  }, [textShadow, shadowBlur, selectedElementIds, markDirty]);
 
   const handleShadowBlurChange = useCallback(
     async (blurVal: number) => {
       const clamped = Math.max(0, Math.min(20, Math.round(blurVal)));
       setShadowBlur(clamped);
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              textShadowBlur: clamped,
+            },
+          };
+        })
+      );
       const canvas = fabricCanvasRef.current;
       if (!canvas) return;
       const fabric = await import('fabric');
@@ -1589,7 +1799,7 @@ export default function ArtifactEditor({
       canvas.requestRenderAll();
       markDirty();
     },
-    [markDirty]
+    [selectedElementIds, markDirty]
   );
 
   /**
@@ -1599,6 +1809,9 @@ export default function ArtifactEditor({
    */
   const handleTextContentChange = (value: string) => {
     setTextContent(value);
+    setLiveElements((prev) =>
+      prev.map((el) => (selectedElementIds.includes(el.id) ? { ...el, content: value } : el))
+    );
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
     const texts = canvas.getActiveObjects().filter(isFabricTextObject);
@@ -1636,6 +1849,7 @@ export default function ArtifactEditor({
       canvas.requestRenderAll();
       markDirty();
     }
+    setLiveElements((p) => p.map((e) => selectedElementIds.includes(e.id) ? { ...e, style: { ...e.style, fontSize: result.fontSize } } : e));
   };
 
   const [internalCopiedSlidePayload, setInternalCopiedSlidePayload] = useState<CopiedSlide | null>(null);
@@ -1703,6 +1917,18 @@ export default function ArtifactEditor({
 
   const handleSetTextAlign = useCallback(
     (align: 'left' | 'center' | 'right') => {
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              textAlign: align,
+            },
+          };
+        })
+      );
       const canvas = fabricCanvasRef.current;
       if (!canvas) return;
       const texts = canvas.getActiveObjects().filter(isFabricTextObject);
@@ -1713,12 +1939,24 @@ export default function ArtifactEditor({
       canvas.requestRenderAll();
       markDirty();
     },
-    [markDirty]
+    [selectedElementIds, markDirty]
   );
 
   const handleSetShapeFill = useCallback(
     (color: string) => {
       setShapeFill(color);
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              fillColor: color,
+            },
+          };
+        })
+      );
       const canvas = fabricCanvasRef.current;
       if (!canvas) return;
       for (const obj of canvas.getActiveObjects()) {
@@ -1729,7 +1967,7 @@ export default function ArtifactEditor({
       canvas.requestRenderAll();
       markDirty();
     },
-    [markDirty]
+    [selectedElementIds, markDirty]
   );
 
   const handleCloneTemplate = async (item: ArtifactTemplateSummary) => {
@@ -3097,7 +3335,47 @@ export default function ArtifactEditor({
                     e.preventDefault();
                   }}
                 >
-                  <canvas ref={canvasRef} />
+                  {/* SPEC-27-02: 16:9 Stage Container with high-contrast boundary, drop shadow, and overflow: hidden */}
+                  <div
+                    data-testid="editor-16-9-stage"
+                    style={{
+                      width: `${stageDimensions.width}px`,
+                      height: `${stageDimensions.height}px`,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
+                      backgroundColor: '#000000',
+                    }}
+                  >
+                    {/* Visual Layer: Real ArtifactSlide Component (Option A) */}
+                    {liveInstance ? (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          pointerEvents: 'none',
+                          width: '100%',
+                          height: '100%',
+                        }}
+                      >
+                        <ArtifactSlide instance={liveInstance} />
+                      </div>
+                    ) : null}
+
+                    {/* Interaction Layer: Transparent Fabric Canvas Overlay */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'auto',
+                        width: '100%',
+                        height: '100%',
+                      }}
+                    >
+                      <canvas ref={canvasRef} />
+                    </div>
+                  </div>
 
                   {/* Context Menu (Right Click) */}
                   {contextMenu ? (

@@ -4,8 +4,8 @@
 
 **Blocked by:** 03 (Embedded TrueType font packaging in PPTX export)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Implement `tests/pptx-conformance.test.mjs` that exports a presentation via the backend, drives Microsoft PowerPoint COM (`PowerPoint.Application`) to export slide 1 to PNG at 1920x1080, and compares bounding box, text line position, and clipping against `<ArtifactSlide>`.
-- [ ] Prove absence guards fail red when defects are injected (e.g. font embedding disabled, line spacing normalized factor removed, stage clipping disabled) and pass green when resolved.
-- [ ] Register `tests/pptx-conformance.test.mjs` in `package.json`'s `test` script and ensure all test suites pass green.
+- [x] Implement `tests/pptx-conformance.test.mjs` that exports a presentation via the backend, drives Microsoft PowerPoint COM (`PowerPoint.Application`) to export slide 1 to PNG at 1920x1080, and compares bounding box, text line position, and clipping against `<ArtifactSlide>`.
+- [x] Prove absence guards fail red when defects are injected (e.g. font embedding disabled, line spacing normalized factor removed, stage clipping disabled) and pass green when resolved.
+- [x] Register `tests/pptx-conformance.test.mjs` in `package.json`'s `test` script and ensure all test suites pass green.

@@ -4,9 +4,9 @@
 
 **Blocked by:** 02 (Canvas Editor single DOM visual architecture)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Cache/bundle TrueType (`.ttf`) font files for non-system presentation fonts (e.g. Poppins, Montserrat, Inter) in the repository.
-- [ ] During PPTX post-processing in `pptx-draw.ts`, embed the font data files into the ZIP archive under `ppt/fonts/*.fntdata`.
-- [ ] Inject `<p:embeddedFontLst>` into `ppt/presentation.xml` and register the font parts in `ppt/_rels/presentation.xml.rels`.
-- [ ] Verify that exported presentations open cleanly in Microsoft PowerPoint Desktop with embedded fonts recognized.
+- [x] Cache/bundle TrueType (`.ttf`) font files for non-system presentation fonts (e.g. Poppins, Montserrat, Inter) in the repository.
+- [x] During PPTX post-processing in `pptx-draw.ts`, embed the font data files into the ZIP archive under `ppt/fonts/*.fntdata`.
+- [x] Inject `<p:embeddedFontLst>` into `ppt/presentation.xml` and register the font parts in `ppt/_rels/presentation.xml.rels`.
+- [x] Verify that exported presentations open cleanly in Microsoft PowerPoint Desktop with embedded fonts recognized.

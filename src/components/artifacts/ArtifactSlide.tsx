@@ -142,6 +142,13 @@ function TextElement({ element }: { element: ResolvedElement }) {
   if (text === undefined) return null;
 
   const style = element.style;
+  const effectiveLineHeight =
+    typeof style?.lineHeight === 'number' && style.lineHeight > 0
+      ? style.lineHeight
+      : TEXT_LINE_HEIGHT;
+  const topHalfLeadingComp =
+    effectiveLineHeight < 1.0 ? (1.0 - effectiveLineHeight) / 2 : 0;
+
   return (
     <div
       ref={boxRef}
@@ -169,7 +176,8 @@ function TextElement({ element }: { element: ResolvedElement }) {
         style={{
           width: '100%',
           whiteSpace: 'pre-wrap',
-          lineHeight: typeof style?.lineHeight === 'number' ? style.lineHeight : TEXT_LINE_HEIGHT,
+          lineHeight: effectiveLineHeight,
+          paddingTop: topHalfLeadingComp > 0 ? `${topHalfLeadingComp}em` : undefined,
           textShadow: style?.textShadow
             ? `2px 2px ${typeof style.textShadowBlur === 'number' ? style.textShadowBlur : 4}px rgba(0, 0, 0, 0.8)`
             : undefined,

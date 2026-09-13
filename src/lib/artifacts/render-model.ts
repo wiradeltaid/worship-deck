@@ -530,9 +530,19 @@ export function estimateTextFitScale(element: ResolvedElement): number {
     ? element.longestWordPx
     : 0;
 
+  const lineHeight =
+    typeof element.style?.lineHeight === 'number' && element.style.lineHeight > 0
+      ? element.style.lineHeight
+      : TEXT_LINE_HEIGHT;
+
+  const contentHeight =
+    lineHeight < 1.0
+      ? (lines * lineHeight + (1.0 - lineHeight)) * em
+      : lines * lineHeight * em;
+
   return resolveTextFitScale({
     contentWidth,
-    contentHeight: lines * TEXT_LINE_HEIGHT * em,
+    contentHeight,
     boxWidth: (element.w / 100) * REFERENCE_CANVAS.width,
     boxHeight: (element.h / 100) * REFERENCE_CANVAS.height,
     fontSizePx: em,

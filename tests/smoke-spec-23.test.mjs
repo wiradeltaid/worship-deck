@@ -918,10 +918,11 @@ test('T-23-10: Line spacing is always explicitly emitted with default TEXT_LINE_
   const zip = await JSZip.loadAsync(buf);
   const xml = await zip.file('ppt/slides/slide1.xml').async('string');
 
-  // TEXT_LINE_HEIGHT is 1.2 -> 120% -> spcPct val="120000"
+  // SPEC-27: In PowerPoint OOXML, spcPct is relative to 1.2em single-line pitch.
+  // Normalizing by / 1.2 emits val="100000" for default 1.2 line spacing, matching CSS 1:1.
   assert.ok(
-    xml.includes('<a:spcPct val="120000"/>'),
-    'slide XML must contain explicit <a:spcPct val="120000"/> for default 1.2 line spacing'
+    xml.includes('<a:spcPct val="100000"/>'),
+    'slide XML must contain explicit <a:spcPct val="100000"/> for default 1.2 line spacing (SPEC-27)'
   );
 });
 
@@ -1220,7 +1221,7 @@ test('T-23-13: Unmeasured element exports valid PPTX without crashing', async ()
 
   assert.ok(xml.includes('<a:t>Unmeasured slide text content</a:t>'), 'run-level text emitted');
   assert.ok(xml.includes('<a:normAutofit fontScale="100000"/>'), 'autofit emitted');
-  assert.ok(xml.includes('<a:spcPct val="120000"/>'), 'line spacing emitted');
+  assert.ok(xml.includes('<a:spcPct val="100000"/>'), 'line spacing emitted');
 });
 
 test('SPEC-23-05: Coherence guard logs on wrapLines rejection', () => {
