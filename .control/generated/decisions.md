@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**28 decisions** — applied: 28.
+**29 decisions** — accepted: 1 · applied: 28.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -36,3 +36,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-026` | Autopilot mandate for Canvas Healing Dirty-State & Persistence Isolation (SPEC-24) | `applied` | mandate | `.control/memlog/autopilot-DEC-026.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `src/components/admin/ArtifactEditor.tsx`, `src/lib/registry/canvas-utils.ts`, `tests/smoke-spec-24.test.mjs`, `package.json`, `.scratch/SPEC-24-canvas-healing-persistence-isolation/SPEC.md` | `.control/decisions/DEC-026-autopilot-mandate-canvas-healing-persistence-isolation.md` |
 | `DEC-027` | Autopilot mandate for Canvas/Presenter Parity Gap & Heal-Crash (SPEC-25) | `applied` | mandate | `.control/memlog/autopilot-DEC-027.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.control/registry/defects.yaml`, `.scratch/SPEC-25-canvas-presenter-parity-and-heal-crash/SPEC.md`, `src/components/admin/ArtifactEditor.tsx`, `src/lib/registry/canvas-utils.ts`, `src/components/artifacts/ArtifactSlide.tsx`, `tests/smoke-spec-25.test.mjs`, `package.json`, `internal/httpapi/background_library_test.go` | `.control/decisions/DEC-027-autopilot-mandate-canvas-presenter-parity-heal-crash.md` |
 | `DEC-028` | Autopilot mandate for Canvas vs Presenter Visual & Framing Parity (SPEC-26) | `applied` | mandate | `.control/memlog/autopilot-DEC-028.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.control/registry/defects.yaml`, `.scratch/SPEC-26-canvas-presenter-visual-parity/SPEC.md`, `src/components/admin/ArtifactEditor.tsx`, `src/lib/registry/canvas-utils.ts`, `src/components/artifacts/ArtifactSlide.tsx`, `spa/src/pages/ParityDiagnosticPage.tsx`, `spa/src/App.tsx`, `tests/smoke-spec-26.test.mjs`, `package.json` | `.control/decisions/DEC-028-autopilot-mandate-canvas-presenter-visual-parity.md` |
+| `DEC-029` | Autopilot mandate for PPTX as Primary Anchor 1-to-1 Visual Parity (SPEC-27) | `accepted` | mandate | `.control/memlog/autopilot-DEC-029.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-27-pptx-anchor-visual-parity/SPEC.md` | `.control/decisions/DEC-029-autopilot-mandate-pptx-anchor-visual-parity.md` |
