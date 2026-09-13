@@ -486,23 +486,49 @@ defects:
       which must reuse/extract `elementToFabricObject`'s full construction rather than adding a second,
       partial one, to close both defects in the one fix).
   - id: BUG-34
-    status: fixed
-    fixed_in: SPEC-25
+    status: open
+    fix: SPEC-26
     title: "Presenter/Projector output crops the slide differently than the Canvas editor for the same template"
     component: registry
     violates: [UC-14]
     root_cause: code
-    source: "Dev environment manual QA (2026-09-13), owner screenshots: same \"Bandung international community\" fixture rendered inset with margin on all four edges in the Canvas (Fabric) editor, but scaled up and cropped (top of \"B\", bottom of \"y\", and the right edge all touch or clip the frame) in the live Presenter/Projector output"
+    source: "Dev environment manual QA (2026-09-13), owner screenshots: same \"Bandung international community\" fixture rendered inset with margin on all four edges in the Canvas (Fabric) editor, but scaled up and cropped (top of \"B\", bottom of \"y\", and the right edge all touch or clip the frame) in the live Presenter/Projector output. Residual confirmed on dev deploy after SPEC-25: visual framing disparity remains unresolved between Canvas and Presenter views."
     summary: >
-      Diagnosed via wdi-systematic-debugging and confirmed in browser harness across 6 viewport aspect ratios.
-      The previous stage wrapper in `src/components/artifacts/ArtifactSlide.tsx` relied on `width: '100%'`,
-      `maxHeight: '100%'`, and `aspectRatio: '16 / 9'`. In viewports wider than 16:9 (e.g. 1920x800, 21:9 displays),
-      `width: 100%` forced the box to fill horizontal width (1920px), while `aspect-ratio` computed height to 1080px,
-      exceeding the viewport height (800px) and getting cropped top and bottom by parent `overflow: hidden`.
-      Resolved in SPEC-25-03 by declaring `containerType: 'size'` on the outer centering flex container and
-      setting the stage wrapper to `width: 'min(100cqw, calc(100cqh * 16 / 9))'`, `maxHeight: '100cqh'`, and
-      `aspectRatio: '16 / 9'`. This guarantees strict 16:9 letterbox preservation without cropping across any
-      viewport shape (wide, tall, standard, and thumbnail), proven by Playwright automation in `tests/smoke-spec-25.test.mjs`.
+      Reopened after SPEC-25, then re-diagnosed under SPEC-26 by direct measurement in Chromium against
+      this working tree (runners in .work/spec-26-diagnostics/; numbers in sweep-report.txt).
+      SPEC-25-03's container-query stage wrapper is NOT the residual defect: measured on the real
+      /slideshow and /present/projector routes at 1600x900, 2560x1080, 1920x600, 1000x1000 and
+      1080x1920, the stage holds a 1.7778 ratio everywhere, the letterbox/pillarbox bars are correct,
+      no element box escapes the stage and no text box clips. The real defect is inside the stage:
+      Fabric's Textbox and ArtifactSlide size and clip text by opposite rules. Textbox discards the
+      constructor's height (fabric index.mjs:22960) and widens itself to dynamicMinWidth
+      (index.mjs:22952-22954), so the Canvas paints text unbounded and unshrunk; ArtifactSlide applies
+      the authored box, overflow:hidden and shrink-to-fit. Across the 32 shipped canvas templates
+      (64 elements) this yields 20 FIT, 20 OVERRUN, 11 CLIP, 7 WRAP and 2 GEOM divergences. The
+      "Bandung international community" (welcome) layout the report cites is one of the CLEAN ones -
+      measured mean channel difference between the two live surfaces is 7.15/255, which is screenshot
+      rescaling noise; sermon, closing-prayer-ds, intercessory-671-lyric-1 and hope-lyric-1 are the
+      templates that actually exhibit it. Before attributing any remaining symptom on
+      presenter-dev.bic.my.id to code, confirm that host serves a build containing SPEC-25-03.
 
-
-
+  - id: BUG-35
+    status: open
+    fix: SPEC-26
+    title: "Opening a template in the Canvas editor and pressing Save, with no edit, widens the stored element geometry"
+    component: registry
+    violates: [UC-14]
+    root_cause: code
+    source: "SPEC-26 second-opinion diagnosis (2026-09-13), measured end-to-end against the real API by .work/spec-26-diagnostics/run-save-roundtrip.mjs"
+    summary: >
+      Fabric's Textbox widens itself to `dynamicMinWidth` when the longest unbreakable run does not fit
+      the authored width (fabric index.mjs:22952-22954), and `serializeCanvas` writes that computed width
+      back as authored geometry (canvas-utils.ts:625-630, `isWidthResized ? pxToPct(measuredWidth, ...)`).
+      An unsubstituted placeholder token is one such unbreakable run, so the box is permanently resized to
+      fit text that is substituted away before the slide is ever projected. Measured: opening `sermon` in
+      /admin/artifacts and pressing Save with no edit at all rewrites e1.w from 31.26 to 45.095105926513675
+      (+44.3%). Found while diagnosing BUG-34 and filed separately because it is a distinct mechanism with
+      its own guard: it corrupts stored data rather than only rendering it differently, and it drags authored
+      geometry further from the Presenter's rendering on every save. `data.authoredWidth` / `authoredHeight`
+      are already carried on every Fabric object (canvas-utils.ts:176, :234) and are the intended
+      discriminator between a dimension the operator dragged and one Fabric computed. `applyWrapSlack`
+      (SPEC-23-01) is a deliberate widening with a stated reason and is not this defect.

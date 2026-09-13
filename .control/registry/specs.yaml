@@ -1347,3 +1347,39 @@ waves:
         tests:
           - tests/smoke-spec-25.test.mjs
 
+  - id: SPEC-26
+    status: open
+    release: canvas-presenter-visual-parity
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: S
+    depends_on: [SPEC-25]
+    spec_folder: .scratch/SPEC-26-canvas-presenter-visual-parity/
+    spec_reviewed:
+      date: '2026-09-13'
+      sha: '66f7a89'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-26-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-26.test.mjs
+      - id: "SPEC-26-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-26-01"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-26.test.mjs
+      - id: "SPEC-26-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-26-02"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-26.test.mjs
+
+

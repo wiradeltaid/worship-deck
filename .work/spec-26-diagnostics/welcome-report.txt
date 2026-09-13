@@ -1,0 +1,42 @@
+
+=== SPEC-26 renderer parity: template "welcome" ===
+CSS stage: 960 x 540   Fabric canvas: 960 x 540
+background image native 1672x941 (AR 1.77683; 16:9 = 1.77778)
+  Fabric stretch (scaleX/scaleY independent) -> whole image visible, non-uniform
+  CSS background-size:cover -> crops 0.00px per side horizontally, 0.14px per side vertically (in 960x540 space)
+
+--- element e1 (text) authored x=5.63 y=55.62 w=56.42 h=25.47 fontSize=101.75 ---
+authored box in 960x540 px : left=54.05 top=300.35 w=541.63 h=137.54
+FABRIC object              : left=54.05 top=300.35 w=541.63 h=114.98  (bounding 542.63x115.98 @ 54.05,300.35)
+CSS box (normalised to 960): left=54.05 top=300.34 w=541.63 h=137.53
+FABRIC text   : lines=["Welcome to"] lineWidths=[535.33] calcTextHeight=114.98 fontSize=101.75
+FABRIC height honoured? authored h=137.54 -> object h=114.98  NO (Textbox recomputed from text)
+CSS text      : fitScale=1 computedFontSize=101.75px (=101.75px in 960x540 space)
+CSS lineRects (normalised): [{"left":54.05,"top":304.34,"w":535.34,"h":114}]
+CSS content scrollH=122 boxClientH=138  fits
+paint bottom  : FABRIC 415.33px   CSS box bottom 437.88px  delta -22.55px
+font size     : FABRIC 101.75  CSS 101.75  delta 0.00px 
+
+--- element e2 (text) authored x=5.63 y=80.48 w=77.04 h=7.97 fontSize=20.7 ---
+authored box in 960x540 px : left=54.05 top=434.59 w=739.58 h=43.04
+FABRIC object              : left=54.05 top=434.59 w=739.58 h=23.39  (bounding 740.58x24.39 @ 54.05,434.59)
+CSS box (normalised to 960): left=54.05 top=434.58 w=739.58 h=43.03
+FABRIC text   : lines=["BANDUNG INTERNATIONAL COMMUNITY"] lineWidths=[406.73] calcTextHeight=23.39 fontSize=20.7
+FABRIC height honoured? authored h=43.04 -> object h=23.39  NO (Textbox recomputed from text)
+CSS text      : fitScale=1 computedFontSize=20.6998px (=20.70px in 960x540 space)
+CSS lineRects (normalised): [{"left":54.05,"top":434.58,"w":405.78,"h":23}]
+CSS content scrollH=25 boxClientH=43  fits
+paint bottom  : FABRIC 457.98px   CSS box bottom 477.61px  delta -19.63px
+font size     : FABRIC 20.7  CSS 20.70  delta -0.00px 
+
+--- element e3 (text) authored x=5.63 y=89.5 w=50 h=5.5 fontSize=14.67 ---
+authored box in 960x540 px : left=54.05 top=483.30 w=480.00 h=29.70
+FABRIC object              : left=54.05 top=483.30 w=480.00 h=16.58  (bounding 481.00x17.58 @ 54.05,483.30)
+CSS box (normalised to 960): left=54.05 top=483.30 w=480.00 h=29.69
+FABRIC text   : lines=["{service_date}"] lineWidths=[92.98] calcTextHeight=16.58 fontSize=14.67
+FABRIC height honoured? authored h=29.70 -> object h=16.58  NO (Textbox recomputed from text)
+CSS text      : fitScale=1 computedFontSize=14.6702px (=14.67px in 960x540 space)
+CSS lineRects (normalised): [{"left":54.05,"top":483.3,"w":92.98,"h":16}]
+CSS content scrollH=18 boxClientH=30  fits
+paint bottom  : FABRIC 499.88px   CSS box bottom 512.98px  delta -13.11px
+font size     : FABRIC 14.67  CSS 14.67  delta 0.00px 

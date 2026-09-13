@@ -1,0 +1,120 @@
+
+## bible-talk-sequence (Bible Talk Sequence)
+   FIT     e1: ArtifactSlide shrinks to 83% (41.4px) — Fabric paints at 49.91px. text="Bible Talk 
+Sequence"
+   CLIP    e1: content 99px in a 97px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 26.8px below the authored box bottom (Textbox discards h=97.3, uses 124.1)
+   WRAP    e2: Fabric 9 line(s) ["Prayer Partner ","Opening Song ","Opening Prayer ","Verse Reading ","Bible Talk ","Closing Song ","Closing Prayer ","","Break Time"] vs CSS 16 line(s)
+
+## prayer-partners (Prayer Partners)
+   FIT     e1: ArtifactSlide shrinks to 80% (56.0px) — Fabric paints at 70px. text="Prayer 
+Partners"
+   CLIP    e1: content 134px in a 132px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 42.3px below the authored box bottom (Textbox discards h=131.8, uses 174.0)
+
+## bt-opening-song-cue (Opening Song)
+   FIT     e1: ArtifactSlide shrinks to 86% (69.1px) — Fabric paints at 80.37px. text="Opening 
+Song"
+   CLIP    e1: content 166px in a 164px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 35.5px below the authored box bottom (Textbox discards h=164.3, uses 199.8)
+
+## verse-reading (Verse Reading)
+   FIT     e3: ArtifactSlide shrinks to 35% (16.3px) — Fabric paints at 46.67px. text="{scripture_reference}"
+   CLIP    e3: content 20px in a 14px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e3: Fabric paints 39.1px below the authored box bottom (Textbox discards h=13.6, uses 52.7)
+
+## bt-closing-song-cue (Closing Song)
+   FIT     e1: ArtifactSlide shrinks to 86% (69.1px) — Fabric paints at 80.37px. text="Closing 
+Song"
+   CLIP    e1: content 166px in a 164px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 35.5px below the authored box bottom (Textbox discards h=164.3, uses 199.8)
+
+## break-time (Break Time)
+   WRAP    e3: Fabric 3 line(s) ["Bank Mandiri ","12345 67 8901 23 ","Gereja Masehi Advent Hari Ketujuh BIC"] vs CSS 5 line(s)
+
+## ds-sequence (Divine Service Sequence)
+   FIT     e1: ArtifactSlide shrinks to 75% (31.9px) — Fabric paints at 42.58px. text="Divine Service 
+Sequence"
+   OVERRUN e1: Fabric paints 30.0px below the authored box bottom (Textbox discards h=75.8, uses 105.9)
+   WRAP    e2: Fabric 9 line(s) ["Opening Song ","Intercessory Prayer ","Special Song ","Sermon ","Closing Song ","Closing Prayer ","Announcements ","","Fellowship Meal"] vs CSS 16 line(s)
+
+## ds-opening-song-cue (Opening Song)
+   FIT     e1: ArtifactSlide shrinks to 86% (69.1px) — Fabric paints at 80.37px. text="Opening 
+Song"
+   CLIP    e1: content 166px in a 164px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 35.5px below the authored box bottom (Textbox discards h=164.3, uses 199.8)
+
+## intercessory-prayer (Intercessory Prayer)
+   FIT     e1: ArtifactSlide shrinks to 85% (69.9px) — Fabric paints at 82.27px. text="Intercessory Prayer"
+   CLIP    e1: content 168px in a 166px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 38.9px below the authored box bottom (Textbox discards h=165.6, uses 204.5)
+
+## intercessory-671-lyric-1 (Intercessory Song (#671))
+   FIT     e1: ArtifactSlide shrinks to 80% (37.3px) — Fabric paints at 46.67px. text="Now, Dear Lord, as we pray, Take our hea"
+   OVERRUN e1: Fabric paints 213.0px below the authored box bottom (Textbox discards h=282.7, uses 495.7)
+
+## intercessory-prayer-during (Intercessory Prayer)
+   OVERRUN e1: Fabric paints 6.6px below the authored box bottom (Textbox discards h=285.2, uses 291.8)
+   WRAP    e1: Fabric 9 line(s) ["Now, dear Lord, as we pray, ","take our hearts and minds far away ","from the press of the world all around ","to your throne where grace does abound. ","","May our lives be transformed by Your love, ","may our souls be refreshed from above. ","At this moment, let people everywhere ","join us now as we come to You in prayer."] vs CSS 16 line(s)
+
+## intercessory-684-lyric-1 (Intercessory Song (#684))
+   WRAP    e1: Fabric 3 line(s) ["Hear our prayer, O Lord, Hear our prayer, O","Lord; Incline Thine ear to us, And grant us","Thy peace. Amen."] vs CSS 5 line(s)
+
+## special-song (Special Song)
+   FIT     e2: ArtifactSlide shrinks to 84% (26.2px) — Fabric paints at 31.23px. text="{special_song}"
+   OVERRUN e2: Fabric paints 5.6px below the authored box bottom (Textbox discards h=29.7, uses 35.3)
+
+## sermon (Sermon)
+   GEOM    e1: fabric(559.9,187.2 w424.4) vs css(559.9,187.2 w300.1)
+   FIT     e1: ArtifactSlide shrinks to 70% (48.6px) — Fabric paints at 69.41px. text="{sermon_title}"
+
+## ds-closing-song-cue (Closing Song)
+   FIT     e1: ArtifactSlide shrinks to 86% (69.1px) — Fabric paints at 80.37px. text="Closing 
+Song"
+   CLIP    e1: content 166px in a 164px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 35.5px below the authored box bottom (Textbox discards h=164.3, uses 199.8)
+
+## closing-prayer-ds (Closing Prayer)
+   FIT     e1: ArtifactSlide shrinks to 74% (50.7px) — Fabric paints at 68.55px. text="Closing 
+Prayer"
+   CLIP    e1: content 122px in a 120px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 50.8px below the authored box bottom (Textbox discards h=119.6, uses 170.4)
+   FIT     e2: ArtifactSlide shrinks to 79% (20.4px) — Fabric paints at 25.78px. text="{closing_prayer_person}"
+   OVERRUN e2: Fabric paints 6.0px below the authored box bottom (Textbox discards h=23.1, uses 29.1)
+
+## hope-lyric-1 (We Have This Hope)
+   OVERRUN e1: Fabric paints 23.1px below the authored box bottom (Textbox discards h=282.7, uses 305.9)
+   WRAP    e1: Fabric 5 line(s) ["We have this hope that burns within our","hearts,","Hope in the coming of the Lord.","We have this faith that Christ alone imparts,","Faith in the promise of His Word."] vs CSS 9 line(s)
+
+## hope-lyric-2 (We Have This Hope)
+   FIT     e1: ArtifactSlide shrinks to 84% (39.2px) — Fabric paints at 46.67px. text="We believe the time is here,
+When the na"
+   OVERRUN e1: Fabric paints 149.7px below the authored box bottom (Textbox discards h=282.7, uses 432.4)
+
+## offering-tithe (Offering & Tithe)
+   FIT     e1: ArtifactSlide shrinks to 96% (48.4px) — Fabric paints at 50.39px. text="Offering & Tithe"
+   CLIP    e1: content 58px in a 56px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 1.1px below the authored box bottom (Textbox discards h=55.9, uses 56.9)
+   FIT     e2: ArtifactSlide shrinks to 94% (30.0px) — Fabric paints at 31.95px. text="1234567890123 
+Gereja Masehi Advent Hari"
+   OVERRUN e2: Fabric paints 8.1px below the authored box bottom (Textbox discards h=71.3, uses 79.4)
+   FIT     e3: ArtifactSlide shrinks to 97% (31.0px) — Fabric paints at 31.95px. text="Bank Mandiri"
+
+## midweek-prayer (Midweek Prayer)
+   WRAP    e2: Fabric 3 line(s) ["Join us midweek for prayer and fellowship.","Day / time: [placeholder]","All are welcome."] vs CSS 5 line(s)
+
+## contact (Contact)
+   FIT     e1: ArtifactSlide shrinks to 90% (54.9px) — Fabric paints at 60.99px. text="For more information"
+   CLIP    e1: content 132px in a 130px box — clipped in ArtifactSlide, painted in full by Fabric
+   OVERRUN e1: Fabric paints 21.5px below the authored box bottom (Textbox discards h=130.1, uses 151.6)
+   GEOM    e2: fabric(599.2,294.1 w225.4) vs css(599.2,294.1 w184.8)
+   FIT     e2: ArtifactSlide shrinks to 82% (20.5px) — Fabric paints at 25.03px. text="example.org/contact"
+   OVERRUN e2: Fabric paints 2.0px below the authored box bottom (Textbox discards h=26.3, uses 28.3)
+
+
+=== SWEEP TOTALS over 32 templates / 64 elements ===
+GEOM (box geometry disagrees >1px) : 2
+WRAP (different line breaking)     : 7
+FIT  (presenter shrinks, canvas not): 20
+CLIP (presenter clips, canvas not) : 11
+OVERRUN (canvas paints outside box): 20

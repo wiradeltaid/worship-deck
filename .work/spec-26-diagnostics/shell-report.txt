@@ -1,0 +1,42 @@
+=== SPEC-26: Canvas Editor stage (fitCanvasToShell) at real viewport sizes ===
+"clipped" = painted slide pixels that fall outside the <canvas> element and are therefore never drawn.
+
+laptop 1366x768
+  shell 1366x458  zoom scale 0.8481
+  painted slide  814.2 x 458.0 css px
+  <canvas> css   960.0 x 540.0   (attr 960x540, style 960px/540px)
+  wrapper css    814.2 x 458.0
+  CLIPPED right 0.0px, bottom 0.0px  (none)
+  canvas overflows wrapper: right 145.8px, bottom 82.0px
+
+laptop 1600x900
+  shell 1600x590  zoom scale 1.0926
+  painted slide  1048.9 x 590.0 css px
+  <canvas> css   960.0 x 540.0   (attr 960x540, style 960px/540px)
+  wrapper css    1048.9 x 590.0
+  CLIPPED right 88.9px, bottom 50.0px  *** 8.5% of slide width / 8.5% of height NEVER DRAWN ***
+  canvas overflows wrapper: right -88.9px, bottom -50.0px
+
+desktop 1920x1080
+  shell 1920x770  zoom scale 1.4259
+  painted slide  1368.9 x 770.0 css px
+  <canvas> css   960.0 x 540.0   (attr 960x540, style 960px/540px)
+  wrapper css    1368.9 x 770.0
+  CLIPPED right 408.9px, bottom 230.0px  *** 29.9% of slide width / 29.9% of height NEVER DRAWN ***
+  canvas overflows wrapper: right -408.9px, bottom -230.0px
+
+QHD 2560x1440
+  shell 2560x1130  zoom scale 2.0926
+  painted slide  2008.9 x 1130.0 css px
+  <canvas> css   960.0 x 540.0   (attr 960x540, style 960px/540px)
+  wrapper css    2008.9 x 1130.0
+  CLIPPED right 1048.9px, bottom 590.0px  *** 52.2% of slide width / 52.2% of height NEVER DRAWN ***
+  canvas overflows wrapper: right -1048.9px, bottom -590.0px
+
+4K 3840x2160
+  shell 3840x1850  zoom scale 3.4259
+  painted slide  3288.9 x 1850.0 css px
+  <canvas> css   960.0 x 540.0   (attr 960x540, style 960px/540px)
+  wrapper css    3288.9 x 1850.0
+  CLIPPED right 2328.9px, bottom 1310.0px  *** 70.8% of slide width / 70.8% of height NEVER DRAWN ***
+  canvas overflows wrapper: right -2328.9px, bottom -1310.0px

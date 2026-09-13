@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:#444;}
+  /* mirrors ArtifactEditor.tsx:3048 canvasShell classes */
+  #shell{position:relative;display:flex;aspect-ratio:16/9;width:100%;
+         max-height:calc(100vh - 310px);min-height:320px;
+         align-items:center;justify-content:center;overflow:hidden;
+         border-radius:0.75rem;border:1px solid #888;background:rgba(0,0,0,0.9);}
+</style>
+</head>
+<body>
+<div id="shell"><canvas id="c"></canvas></div>
+<script type="module">
+import * as fabric from '/node_modules/fabric/dist/fabric.mjs';
+const CANVAS_WIDTH = 960, CANVAS_HEIGHT = 540;
+const LAYOUT = window.__LAYOUT__;
+const pctToPx = (p, t) => (p / 100) * t;
+
+const canvas = new fabric.Canvas(document.getElementById('c'), {
+  width: CANVAS_WIDTH, height: CANVAS_HEIGHT,
+  backgroundColor: LAYOUT.backgroundColor, preserveObjectStacking: true,
+});
+if (LAYOUT.backgroundImage) {
+  const bg = await fabric.FabricImage.fromURL(LAYOUT.backgroundImage, { crossOrigin: 'anonymous' });
+  bg.set({ left: 0, top: 0,
+    scaleX: CANVAS_WIDTH / (bg.width || CANVAS_WIDTH),
+    scaleY: CANVAS_HEIGHT / (bg.height || CANVAS_HEIGHT),
+    selectable: false, evented: false });
+  canvas.backgroundImage = bg;
+}
+await document.fonts.ready;
+for (const el of LAYOUT.elements.slice().sort((a, b) => a.zIndex - b.zIndex)) {
+  const s = el.style || {};
+  const o = el.type === 'text'
+    ? new fabric.Textbox(el.content || '', {
+        left: pctToPx(el.x, CANVAS_WIDTH), top: pctToPx(el.y, CANVAS_HEIGHT),
+        width: pctToPx(el.w, CANVAS_WIDTH), height: pctToPx(el.h, CANVAS_HEIGHT),
+        fill: s.fontColor || '#FFFFFF', fontSize: s.fontSize === undefined ? 32 : s.fontSize,
+        fontFamily: '"Arial", sans-serif', lineHeight: s.lineHeight === undefined ? 1.2 : s.lineHeight,
+        textAlign: s.textAlign || 'left', splitByGrapheme: false, editable: false,
+        selectable: false, evented: false })
+    : new fabric.Rect({
+        left: pctToPx(el.x, CANVAS_WIDTH), top: pctToPx(el.y, CANVAS_HEIGHT),
+        width: pctToPx(el.w, CANVAS_WIDTH), height: pctToPx(el.h, CANVAS_HEIGHT),
+        fill: s.fillColor || '#5C2E16', opacity: s.opacity === undefined ? 1 : s.opacity,
+        selectable: false, evented: false });
+  canvas.add(o);
+}
+
+// verbatim port of ArtifactEditor.tsx fitCanvasToShell (lines 263-283)
+window.__fit = function () {
+  const shell = document.getElementById('shell');
+  const width = shell.clientWidth, height = shell.clientHeight;
+  if (width <= 0 || height <= 0) return null;
+  const scale = Math.min(width / CANVAS_WIDTH, height / CANVAS_HEIGHT);
+  canvas.setZoom(scale);
+  const wrapper = canvas.wrapperEl;
+  if (wrapper) {
+    wrapper.style.width = (CANVAS_WIDTH * scale) + 'px';
+    wrapper.style.height = (CANVAS_HEIGHT * scale) + 'px';
+  }
+  canvas.calcOffset();
+  canvas.renderAll();
+  const lower = canvas.lowerCanvasEl;
+  const lowerRect = lower.getBoundingClientRect();
+  const wrapRect = wrapper.getBoundingClientRect();
+  const shellRect = shell.getBoundingClientRect();
+  return {
+    shell: { w: width, h: height },
+    scale: scale,
+    wrapperCss: { w: wrapRect.width, h: wrapRect.height },
+    lowerCanvasCssPx: { w: lowerRect.width, h: lowerRect.height },
+    lowerCanvasAttr: { w: lower.width, h: lower.height },
+    lowerCanvasStyle: { w: lower.style.width, h: lower.style.height },
+    visibleStage: {
+      w: Math.min(lowerRect.width, wrapRect.width),
+      h: Math.min(lowerRect.height, wrapRect.height),
+    },
+    paintedSlide: { w: CANVAS_WIDTH * scale, h: CANVAS_HEIGHT * scale },
+    clippedRightPx: Math.max(0, CANVAS_WIDTH * scale - lowerRect.width),
+    clippedBottomPx: Math.max(0, CANVAS_HEIGHT * scale - lowerRect.height),
+    canvasOverflowsWrapperRight: lowerRect.right - wrapRect.right,
+    canvasOverflowsWrapperBottom: lowerRect.bottom - wrapRect.bottom,
+    shellRect: { w: shellRect.width, h: shellRect.height },
+  };
+};
+window.__READY__ = true;
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:#222;}
+  #fabricPane{width:960px;height:540px;position:relative;}
+  #cssPane{width:960px;height:540px;position:relative;}
+</style>
+</head>
+<body>
+<div id="fabricPane"><canvas id="c"></canvas></div>
+<div id="cssPane"><div id="slideRoot" style="height:100%;width:100%"></div></div>
+<script type="module">
+import * as fabric from '/node_modules/fabric/dist/fabric.mjs';
+
+const CANVAS_WIDTH = 960, CANVAS_HEIGHT = 540;
+const TEXT_LINE_HEIGHT = 1.2;
+const TEXT_FIT_LEADING_ALLOWANCE = 0.05;
+const MIN_TEXT_FIT_SCALE = 0.35;
+const TEXT_FIT_SCALE_STEP = 0.01;
+const FONT_STACK = '"Arial", sans-serif';
+
+const LAYOUT = window.__LAYOUT__;
+const pctToPx = (p, total) => (p / 100) * total;
+function round(v, d) { const dd = d === undefined ? 4 : d; const f = Math.pow(10, dd); const o = Math.round(v * f) / f; return Object.is(o, -0) ? 0 : o; }
+
+// ---------- Fabric side: mirrors ArtifactEditor + buildTextFabricOptions ----------
+const canvasEl = document.getElementById('c');
+const canvas = new fabric.Canvas(canvasEl, {
+  width: CANVAS_WIDTH, height: CANVAS_HEIGHT,
+  backgroundColor: LAYOUT.backgroundColor,
+  preserveObjectStacking: true,
+});
+if (LAYOUT.backgroundImage) {
+  const bg = await fabric.FabricImage.fromURL(LAYOUT.backgroundImage, { crossOrigin: 'anonymous' });
+  bg.set({ left: 0, top: 0,
+    scaleX: CANVAS_WIDTH / (bg.width || CANVAS_WIDTH),
+    scaleY: CANVAS_HEIGHT / (bg.height || CANVAS_HEIGHT),
+    selectable: false, evented: false });
+  canvas.backgroundImage = bg;
+  window.__BG_NATIVE__ = { width: bg.width, height: bg.height };
+}
+await document.fonts.ready;
+
+const fabricObjects = {};
+const sorted = LAYOUT.elements.slice().sort((a, b) => a.zIndex - b.zIndex);
+for (const el of sorted) {
+  const left = pctToPx(el.x, CANVAS_WIDTH), top = pctToPx(el.y, CANVAS_HEIGHT);
+  const width = pctToPx(el.w, CANVAS_WIDTH), height = pctToPx(el.h, CANVAS_HEIGHT);
+  const s = el.style || {};
+  let obj;
+  if (el.type === 'text') {
+    const opts = {
+      left: left, top: top, width: width, height: height,
+      selectable: false, evented: false, hasControls: false, lockRotation: true,
+      fill: s.fontColor || '#FFFFFF',
+      fontSize: s.fontSize === undefined ? 32 : s.fontSize,
+      fontFamily: FONT_STACK,
+      lineHeight: s.lineHeight === undefined ? TEXT_LINE_HEIGHT : s.lineHeight,
+      textAlign: s.textAlign || 'left',
+      splitByGrapheme: false,
+      editable: false,
+    };
+    if (s.fontWeight !== undefined) opts.fontWeight = s.fontWeight;
+    if (s.fontStyle !== undefined) opts.fontStyle = s.fontStyle;
+    if (s.textDecoration === 'underline') opts.underline = true;
+    obj = new fabric.Textbox(el.content || '', opts);
+  } else {
+    obj = new fabric.Rect({ left: left, top: top, width: width, height: height,
+      selectable: false, evented: false,
+      fill: s.fillColor || '#5C2E16', opacity: s.opacity === undefined ? 1 : s.opacity });
+  }
+  canvas.add(obj);
+  fabricObjects[el.id] = obj;
+}
+canvas.renderAll();
+
+const fabricOut = {};
+for (const id of Object.keys(fabricObjects)) {
+  const o = fabricObjects[id];
+  const br = o.getBoundingRect();
+  fabricOut[id] = {
+    authoredLeft: o.left, authoredTop: o.top,
+    width: o.width, height: o.height,
+    scaleX: o.scaleX, scaleY: o.scaleY,
+    boundingRect: { left: br.left, top: br.top, width: br.width, height: br.height },
+    textLines: o.textLines ? o.textLines.slice() : undefined,
+    calcTextHeight: typeof o.calcTextHeight === 'function' ? o.calcTextHeight() : undefined,
+    lineWidths: o.textLines ? o.textLines.map((_, i) => o.getLineWidth(i)) : undefined,
+    fontSize: o.fontSize,
+  };
+}
+window.__FABRIC__ = fabricOut;
+
+// ---------- CSS side: mirrors ArtifactSlide.tsx ----------
+function textFitRatio(m) {
+  const em = Number.isFinite(m.fontSizePx) ? Math.max(0, m.fontSizePx) : 0;
+  const inkHeight = m.contentHeight - TEXT_FIT_LEADING_ALLOWANCE * em;
+  const axis = function (needed, avail) {
+    if (!Number.isFinite(needed) || needed <= 0) return Infinity;
+    if (!Number.isFinite(avail) || avail <= 0) return 0;
+    return avail / needed;
+  };
+  return Math.min(axis(inkHeight, m.boxHeight), axis(m.contentWidth, m.boxWidth));
+}
+function largestFittingTextScale(fits) {
+  if (fits(1)) return 1;
+  const scaleAt = function (s) { return round(s * TEXT_FIT_SCALE_STEP); };
+  const minStep = Math.round(MIN_TEXT_FIT_SCALE / TEXT_FIT_SCALE_STEP);
+  let low = minStep, high = Math.round(1 / TEXT_FIT_SCALE_STEP) - 1, best = minStep;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (fits(scaleAt(mid))) { best = mid; low = mid + 1; } else { high = mid - 1; }
+  }
+  return scaleAt(best);
+}
+
+const root = document.getElementById('slideRoot');
+const outer = document.createElement('div');
+outer.style.cssText = 'display:flex;height:100%;width:100%;align-items:center;justify-content:center;overflow:hidden;container-type:size;';
+const frame = document.createElement('div');
+frame.style.cssText = 'position:relative;width:min(100cqw, calc(100cqh * 16 / 9));max-height:100cqh;aspect-ratio:16/9;';
+const stage = document.createElement('div');
+stage.id = 'stage';
+stage.style.cssText = 'position:absolute;inset:0;overflow:hidden;container-type:size;background-color:' + (LAYOUT.backgroundColor || '#000') + ';';
+if (LAYOUT.backgroundImage) {
+  stage.style.backgroundImage = 'url(' + JSON.stringify(LAYOUT.backgroundImage) + ')';
+  stage.style.backgroundSize = 'cover';
+  stage.style.backgroundPosition = 'center';
+  stage.style.backgroundRepeat = 'no-repeat';
+}
+frame.appendChild(stage); outer.appendChild(frame); root.appendChild(outer);
+
+const cssNodes = {};
+for (const el of sorted) {
+  const s = el.style || {};
+  const box = document.createElement('div');
+  const fontSizeCqh = round(((s.fontSize === undefined ? 32 : s.fontSize) / CANVAS_HEIGHT) * 100);
+  box.style.cssText = 'position:absolute;left:' + round(el.x) + '%;top:' + round(el.y) + '%;width:' + round(el.w) + '%;height:' + round(el.h) + '%;font-size:' + fontSizeCqh + 'cqh;overflow:hidden;';
+  if (el.type === 'text') {
+    const va = s.verticalAlign === 'middle' ? 'center' : s.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start';
+    const ta = s.textAlign === 'center' ? 'center' : s.textAlign === 'right' ? 'flex-end' : 'flex-start';
+    box.style.display = 'flex'; box.style.flexDirection = 'column';
+    box.style.justifyContent = va; box.style.alignItems = ta;
+    box.style.textAlign = s.textAlign || 'left';
+    box.style.fontFamily = FONT_STACK;
+    box.style.color = s.fontColor || '#FFFFFF';
+    const content = document.createElement('div');
+    content.style.cssText = 'width:100%;white-space:pre-wrap;line-height:' + (typeof s.lineHeight === 'number' ? s.lineHeight : TEXT_LINE_HEIGHT) + ';font-size:calc(1em * var(--artifact-fit-scale, 1));';
+    content.textContent = el.content || '';
+    box.appendChild(content);
+    cssNodes[el.id] = { box: box, content: content };
+  } else {
+    box.style.backgroundColor = s.fillColor || 'transparent';
+    box.style.opacity = String(s.opacity === undefined ? 1 : s.opacity);
+    cssNodes[el.id] = { box: box, content: null };
+  }
+  stage.appendChild(box);
+}
+
+// shrink-to-fit pass, exactly as TextElement does
+for (const id of Object.keys(cssNodes)) {
+  const n = cssNodes[id];
+  if (!n.content) continue;
+  const box = n.box, content = n.content;
+  const boxWidth = box.clientWidth, boxHeight = box.clientHeight;
+  const fitsAt = function (scale) {
+    content.style.setProperty('--artifact-fit-scale', String(scale));
+    return textFitRatio({
+      contentWidth: content.scrollWidth, contentHeight: content.scrollHeight,
+      boxWidth: boxWidth, boxHeight: boxHeight,
+      fontSizePx: parseFloat(getComputedStyle(content).fontSize),
+    }) >= 1;
+  };
+  content.style.setProperty('--artifact-fit-scale', String(largestFittingTextScale(fitsAt)));
+}
+
+const stageRect = stage.getBoundingClientRect();
+const cssOut = {};
+for (const id of Object.keys(cssNodes)) {
+  const n = cssNodes[id];
+  const br = n.box.getBoundingClientRect();
+  let contentInfo;
+  if (n.content) {
+    const cr = n.content.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(n.content);
+    const lineRects = Array.prototype.slice.call(range.getClientRects()).map(function (r) {
+      return { left: r.left - stageRect.left, top: r.top - stageRect.top, width: r.width, height: r.height };
+    });
+    contentInfo = {
+      rect: { left: cr.left - stageRect.left, top: cr.top - stageRect.top, width: cr.width, height: cr.height },
+      scrollWidth: n.content.scrollWidth, scrollHeight: n.content.scrollHeight,
+      fitScale: n.content.style.getPropertyValue('--artifact-fit-scale'),
+      computedFontSize: getComputedStyle(n.content).fontSize,
+      lineRects: lineRects,
+    };
+  }
+  cssOut[id] = {
+    box: { left: br.left - stageRect.left, top: br.top - stageRect.top, width: br.width, height: br.height },
+    content: contentInfo,
+  };
+}
+window.__CSS__ = cssOut;
+window.__STAGE__ = { width: stageRect.width, height: stageRect.height };
+window.__READY__ = true;
+</script>
+</body>
+</html>

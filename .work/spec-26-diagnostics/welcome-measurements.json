@@ -1,0 +1,164 @@
+{
+  "fabric": {
+    "e1": {
+      "authoredLeft": 54.047999999999995,
+      "authoredTop": 300.348,
+      "width": 541.6320000000001,
+      "height": 114.97749999999999,
+      "scaleX": 1,
+      "scaleY": 1,
+      "boundingRect": {
+        "left": 54.048,
+        "top": 300.348,
+        "width": 542.6320000000001,
+        "height": 115.97749999999996
+      },
+      "textLines": [
+        "Welcome to"
+      ],
+      "calcTextHeight": 114.97749999999999,
+      "lineWidths": [
+        535.3302001953125
+      ],
+      "fontSize": 101.75
+    },
+    "e2": {
+      "authoredLeft": 54.047999999999995,
+      "authoredTop": 434.59200000000004,
+      "width": 739.5840000000001,
+      "height": 23.391,
+      "scaleX": 1,
+      "scaleY": 1,
+      "boundingRect": {
+        "left": 54.048,
+        "top": 434.59200000000004,
+        "width": 740.5840000000001,
+        "height": 24.390999999999963
+      },
+      "textLines": [
+        "BANDUNG INTERNATIONAL COMMUNITY"
+      ],
+      "calcTextHeight": 23.391,
+      "lineWidths": [
+        406.732763671875
+      ],
+      "fontSize": 20.7
+    },
+    "e3": {
+      "authoredLeft": 54.047999999999995,
+      "authoredTop": 483.3,
+      "width": 480,
+      "height": 16.577099999999998,
+      "scaleX": 1,
+      "scaleY": 1,
+      "boundingRect": {
+        "left": 54.048,
+        "top": 483.3,
+        "width": 481,
+        "height": 17.577099999999973
+      },
+      "textLines": [
+        "{service_date}"
+      ],
+      "calcTextHeight": 16.577099999999998,
+      "lineWidths": [
+        92.97685546875002
+      ],
+      "fontSize": 14.67
+    }
+  },
+  "css": {
+    "e1": {
+      "box": {
+        "left": 54.046875,
+        "top": 300.34375,
+        "width": 541.625,
+        "height": 137.53125
+      },
+      "content": {
+        "rect": {
+          "left": 54.046875,
+          "top": 300.34375,
+          "width": 541.625,
+          "height": 122.09375
+        },
+        "scrollWidth": 542,
+        "scrollHeight": 122,
+        "fitScale": "1",
+        "computedFontSize": "101.75px",
+        "lineRects": [
+          {
+            "left": 54.046875,
+            "top": 304.34375,
+            "width": 535.34375,
+            "height": 114
+          }
+        ]
+      }
+    },
+    "e2": {
+      "box": {
+        "left": 54.046875,
+        "top": 434.578125,
+        "width": 739.578125,
+        "height": 43.03125
+      },
+      "content": {
+        "rect": {
+          "left": 54.046875,
+          "top": 434.578125,
+          "width": 739.578125,
+          "height": 24.84375
+        },
+        "scrollWidth": 740,
+        "scrollHeight": 25,
+        "fitScale": "1",
+        "computedFontSize": "20.6998px",
+        "lineRects": [
+          {
+            "left": 54.046875,
+            "top": 434.578125,
+            "width": 405.78125,
+            "height": 23
+          }
+        ]
+      }
+    },
+    "e3": {
+      "box": {
+        "left": 54.046875,
+        "top": 483.296875,
+        "width": 480,
+        "height": 29.6875
+      },
+      "content": {
+        "rect": {
+          "left": 54.046875,
+          "top": 483.296875,
+          "width": 480,
+          "height": 17.59375
+        },
+        "scrollWidth": 480,
+        "scrollHeight": 18,
+        "fitScale": "1",
+        "computedFontSize": "14.6702px",
+        "lineRects": [
+          {
+            "left": 54.046875,
+            "top": 483.296875,
+            "width": 92.984375,
+            "height": 16
+          }
+        ]
+      }
+    }
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  },
+  "bgNative": {
+    "width": 1672,
+    "height": 941
+  }
+}
