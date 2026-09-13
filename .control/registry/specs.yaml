@@ -1320,6 +1320,10 @@ waves:
     size: M
     depends_on: [SPEC-24]
     spec_folder: .scratch/SPEC-25-canvas-presenter-parity-and-heal-crash/
+    spec_reviewed:
+      date: '2026-09-13'
+      sha: '90ad723'
+      lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-25-01"
         component: registry
