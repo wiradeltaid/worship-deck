@@ -276,8 +276,6 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
 
   // Parity with ArtifactSlide.tsx: compensate negative half-leading when lineHeight < 1.0.
   // In CSS DOM, paddingTop = (1.0 - lineHeight)/2 em pushes text down into the box.
-  // In PPTX, adding topShift without clamping negative geometry.y ensures that bleeding
-  // titles (e.g. y = -4.32%) have their top glyph ascenders align exactly at the slide top edge (y = 0).
   const topHalfLeadingComp =
     effectiveLineHeight < 1.0 ? (1.0 - effectiveLineHeight) / 2 : 0;
   const topShiftInches =
@@ -285,16 +283,30 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
       ? Math.round(((topHalfLeadingComp * fontSize) / 72) * 10000) / 10000
       : 0;
 
-  // Off-canvas negative Y coordinates survive unclamped, combined with leading compensation.
-  const resolvedY = geometry.y + topShiftInches;
+  const targetY = geometry.y + topShiftInches;
+  // Parity with Canvas 16:9 stage overflow:hidden:
+  // In Canvas DOM, the 16:9 stage container has overflow: hidden. Any element positioned
+  // with negative coordinates (e.g. y = -4.32%) is clipped by the stage border at y = 0.
+  // In PowerPoint normal editing view, shapes do not clip outside the slide canvas.
+  // Clamping top-anchored targetY to >= 0 ensures that top-bleeding text aligns its top
+  // glyph ascenders exactly at the slide outline (y = 0) without protruding above it.
+  const resolvedY = valign === 'top' && targetY < 0 ? 0 : targetY;
+
+  // When Canvas has already authoritatively partitioned lines (hasAuthoritativeWrap)
+  // or when runs contain explicit soft breaks, PowerPoint must respect those breaks
+  // and NOT perform mid-word wrapping.
+  const hasSoftBreaks =
+    Array.isArray(textRuns) &&
+    textRuns.some((r) => Boolean(r.options?.softBreakBefore) || Boolean(r.options?.breakLine));
+  const shouldWrap = !hasAuthoritativeWrap && !hasSoftBreaks;
 
   // Line spacing normalization:
-  // For standard line-heights (>= 1.0), PowerPoint single pitch (1.2em) requires dividing by 1.2.
-  // For tight line-heights (< 1.0), PowerPoint text box metrics require proportional calibration
-  // (lineHeight / 1.1) so that multi-line text height and bottom glyph descenders align 1:1 with Canvas DOM.
+  // For tight line-heights (< 1.0), PowerPoint textbox line metrics require proportional
+  // pitch (lineHeight * 0.9 = 0.72 for 0.8) so that multi-line text height and bottom glyph
+  // descenders align 1:1 with Canvas DOM without 50px bottom gap or bottom protrusion.
   const lineSpacingMultiple =
     effectiveLineHeight < 1.0
-      ? Math.round((effectiveLineHeight / 1.1) * 10000) / 10000
+      ? Math.round(effectiveLineHeight * 0.9 * 10000) / 10000
       : Math.round((effectiveLineHeight / 1.2) * 10000) / 10000;
 
   slide.addText(textRuns as any, {
@@ -305,6 +317,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     margin: 0, // SPEC-22: eliminate PowerPoint 0.2" default insets for Canvas/Presenter wrap width parity
     fontSize,
     fit: 'shrink',
+    wrap: shouldWrap,
     fontFace: resolveFontFamily(style),
     color: toPptxColor(style.fontColor) ?? 'FFFFFF',
     bold: resolveBold(style),

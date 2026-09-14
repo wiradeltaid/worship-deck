@@ -1039,7 +1039,10 @@ export function estimateTextFitScale(element: ResolvedElement): number {
   const lines = resolveWrapLineCount(element);
   if (lines <= 0) return 1;
 
-  const contentWidth = resolveFallbackLongestTokenWidthPx(element);
+  const hasAuthoritativeWrap =
+    Array.isArray(element.wrapLines) &&
+    element.wrapLines.length > 0 &&
+    validateWrapLines(text, element.wrapLines) !== null;
 
   const lineHeight =
     typeof element.style?.lineHeight === 'number' && element.style.lineHeight > 0
@@ -1051,11 +1054,19 @@ export function estimateTextFitScale(element: ResolvedElement): number {
       ? (lines * lineHeight + (1.0 - lineHeight)) * em
       : lines * lineHeight * em;
 
+  const boxWidth = (element.w / 100) * REFERENCE_CANVAS.width;
+  const boxHeight = (element.h / 100) * REFERENCE_CANVAS.height;
+
+  // When wrapLines is authoritatively validated from Canvas, horizontal lines
+  // are already partitioned to fit the authored box width at scale 1.
+  // In that case, width does not force redundant downscaling; only vertical height overflow does.
+  const contentWidth = hasAuthoritativeWrap ? 0 : resolveFallbackLongestTokenWidthPx(element);
+
   return resolveTextFitScale({
     contentWidth,
     contentHeight,
-    boxWidth: (element.w / 100) * REFERENCE_CANVAS.width,
-    boxHeight: (element.h / 100) * REFERENCE_CANVAS.height,
+    boxWidth,
+    boxHeight,
     fontSizePx: em,
   });
 }
