@@ -1035,17 +1035,6 @@ export function estimateTextFitScale(element: ResolvedElement): number {
   const text = resolveElementText(element);
   if (text === undefined) return 1;
 
-  // SPEC-30: When wrapLines is absent or unvalidated, and stored measurement is invalid,
-  // the coupled fallback layout is the single authoritative source of fit scale.
-  const hasAuthoritativeWrap =
-    Array.isArray(element.wrapLines) &&
-    element.wrapLines.length > 0 &&
-    validateWrapLines(text, element.wrapLines) !== null;
-
-  if (!hasAuthoritativeWrap && !isMeasurementValid(element)) {
-    return resolveFallbackTextLayout(element).scale;
-  }
-
   const em = fontSizePx(element.style);
   const lines = resolveWrapLineCount(element);
   if (lines <= 0) return 1;

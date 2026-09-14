@@ -402,7 +402,11 @@ test('T-30-05: Real Microsoft PowerPoint COM Automated Open & Slide Export Verif
     const actualCoverage = parseFloat(match[3]);
 
     assert.equal(actualLines, 3, `Must render exactly 3 complete-word lines in PowerPoint, got ${actualLines}`);
-    assert.ok(actualBoundTop >= 0, `Top-anchored text must not poke above slide top border (y >= 0), got ${actualBoundTop}`);
+    const expectedTopPt = (repro.y / 100) * 405;
+    assert.ok(
+      Math.abs(actualBoundTop - expectedTopPt) < 1.0,
+      `Top-anchored text must preserve authored position (${expectedTopPt.toFixed(2)} pt), got ${actualBoundTop}`
+    );
     assert.ok(actualCoverage >= 0.70, `Text must cover at least 70% of slide height without large empty space, got ${(actualCoverage * 100).toFixed(1)}%`);
 
     assert.ok(fs.existsSync(tempPng), 'Rendered PNG must exist');
