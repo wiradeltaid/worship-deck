@@ -139,7 +139,7 @@ Contributors: please read [`.constitution/project/private-data.md`](.constitutio
 
 The MIT licence in [LICENSE](LICENSE) grants broad rights over the code. It says nothing about names
 or logos — so it covers this repository's code, not the name **Worship Presenter Web**, not
-**Wira Digital Indonesia**, and not the icon or wordmark.
+**WDI**, and not the icon or wordmark.
 
 You may use those names to refer to this project: "based on Worship Presenter Web", "a fork of it",
 "compatible with it". You may not use them as the name of your own product, or in a way that

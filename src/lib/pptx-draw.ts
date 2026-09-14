@@ -276,11 +276,13 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
 
   // Parity with ArtifactSlide.tsx: compensate negative half-leading when lineHeight < 1.0.
   // In CSS DOM, paddingTop = (1.0 - lineHeight)/2 em pushes text down into the box.
-  // In PowerPoint typography, tight line-heights sit inherently ~0.038em higher than browser CSS DOM;
-  // adding global baseline compensation ensures both top and bottom text layers align identically.
+  // In PowerPoint DrawingML, text boxes position the first line relative to font ascenders
+  // without CSS negative half-leading. Tight line-heights sit inherently higher in PowerPoint;
+  // applying tight baseline compensation (0.1445em) brings both top and bottom text layers
+  // into 1-to-1 visual parity with Canvas DOM.
   const topHalfLeadingComp =
     effectiveLineHeight < 1.0 ? (1.0 - effectiveLineHeight) / 2 : 0;
-  const tightBaselineComp = effectiveLineHeight < 1.0 ? 0.038 : 0;
+  const tightBaselineComp = effectiveLineHeight < 1.0 ? 0.1445 : 0;
   const topShiftInches =
     valign === 'top' && (topHalfLeadingComp > 0 || tightBaselineComp > 0)
       ? Math.round((((topHalfLeadingComp + tightBaselineComp) * fontSize) / 72) * 10000) / 10000
@@ -291,12 +293,15 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
   // In Canvas DOM, the 16:9 stage container has overflow: hidden. Any element positioned
   // with negative coordinates (e.g. y = -4.32%) is clipped by the stage border at y = 0.
   // In PowerPoint normal editing view, shapes do not clip outside the slide canvas.
-  // When lineHeight < 1.0, PowerPoint font ascenders protrude above the shape boundary.
-  // Offsetting clamped targetY by this font ascender margin ensures that top-bleeding
-  // text aligns its top glyph ascenders exactly at the slide outline (y = 0) without protruding above it.
-  const ascenderMarginInches =
-    effectiveLineHeight < 1.0 ? Math.round(((0.09 * fontSize) / 72) * 10000) / 10000 : 0;
-  const resolvedY = valign === 'top' && targetY < 0 ? ascenderMarginInches : targetY;
+  // The minimum shape top required to keep font ascenders inside the slide boundary is 0.115em.
+  // Clamping negative-authored text to minTopInches ensures that top-bleeding text
+  // aligns its top glyph ascenders exactly at the slide outline (y = 0) without protruding above it.
+  const minTopInches =
+    effectiveLineHeight < 1.0 ? Math.round(((0.115 * fontSize) / 72) * 10000) / 10000 : 0;
+  const resolvedY =
+    valign === 'top' && geometry.y < 0
+      ? Math.max(targetY, minTopInches)
+      : targetY;
 
   // When Canvas has already authoritatively partitioned lines (hasAuthoritativeWrap)
   // or when runs contain explicit soft breaks, PowerPoint must respect those breaks
@@ -307,13 +312,11 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
   const shouldWrap = !hasAuthoritativeWrap && !hasSoftBreaks;
 
   // Line spacing normalization:
-  // For tight line-heights (< 1.0), PowerPoint textbox line metrics require proportional
-  // pitch (lineHeight * 0.875 = 0.70 for 0.8) so that multi-line text height and bottom glyph
-  // descenders align 1:1 with Canvas DOM and remain strictly inside the slide boundary (y <= 405pt).
-  const lineSpacingMultiple =
-    effectiveLineHeight < 1.0
-      ? Math.round(effectiveLineHeight * 0.875 * 10000) / 10000
-      : Math.round((effectiveLineHeight / 1.2) * 10000) / 10000;
+  // In PowerPoint DrawingML, single line spacing (val="100000") corresponds to 1.2x font size.
+  // Dividing effectiveLineHeight by 1.2 scales the DrawingML line pitch proportionally to
+  // match CSS line-height across all values (0.8 / 1.2 = 0.6667 for 0.8; 1.2 / 1.2 = 1.0 for 1.2),
+  // ensuring multi-line text height and bottom glyph descenders align 1:1 with Canvas DOM.
+  const lineSpacingMultiple = Math.round((effectiveLineHeight / 1.2) * 10000) / 10000;
 
   slide.addText(textRuns as any, {
     x: geometry.x,
