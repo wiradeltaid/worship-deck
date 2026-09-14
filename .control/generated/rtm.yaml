@@ -1452,6 +1452,64 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-31-01
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-02
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-03
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-04
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3064,6 +3122,64 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-01
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-02
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-03
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-31-04
+  spec: SPEC-31
+  release: initial-pptx-import-smart-background
+  test:
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

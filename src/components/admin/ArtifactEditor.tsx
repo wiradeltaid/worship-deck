@@ -1124,6 +1124,20 @@ export default function ArtifactEditor({
       const fabric = await import('fabric');
       if (fabricCanvasRef.current !== canvas) return;
 
+      if (url) {
+        try {
+          const bg = await fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' });
+          if (fabricCanvasRef.current !== canvas) return;
+          if (!bg || !bg.width) {
+            toast.error('Failed to load background: invalid image');
+            return;
+          }
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load background');
+          return;
+        }
+      }
+
       // In Option A, ArtifactSlide (Visual Layer) renders the background image.
       // Fabric canvas overlay remains completely transparent.
       canvas.backgroundImage = undefined;

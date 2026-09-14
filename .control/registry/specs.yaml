@@ -1530,6 +1530,51 @@ waves:
         tests:
           - tests/smoke-spec-30.test.mjs
 
+  - id: SPEC-31
+    status: open
+    release: initial-pptx-import-smart-background
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-30]
+    spec_folder: .scratch/SPEC-31-initial-pptx-import-smart-background/
+    spec_reviewed:
+      date: '2026-09-15'
+      sha: 'ed0f42a'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-31-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, pptx, api]
+        tests:
+          - internal/pptximport
+          - tests/smoke-spec-31.test.mjs
+      - id: "SPEC-31-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-31-01"]
+        touches: [artifacts, api]
+        tests:
+          - internal/httpapi
+          - tests/smoke-spec-31.test.mjs
+      - id: "SPEC-31-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-31-02"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-31.test.mjs
+      - id: "SPEC-31-04"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-31-03"]
+        touches: [artifacts, pptx, api]
+        tests:
+          - tests/smoke-spec-31.test.mjs
+
+
 
 
 
