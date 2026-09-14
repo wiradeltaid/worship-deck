@@ -288,11 +288,11 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
   // In Canvas DOM, the 16:9 stage container has overflow: hidden. Any element positioned
   // with negative coordinates (e.g. y = -4.32%) is clipped by the stage border at y = 0.
   // In PowerPoint normal editing view, shapes do not clip outside the slide canvas.
-  // When lineHeight < 1.0, PowerPoint font ascenders protrude ~0.047em above the shape boundary.
+  // When lineHeight < 1.0, PowerPoint font ascenders protrude ~0.105em above the shape boundary.
   // Offsetting clamped targetY by this font ascender margin ensures that top-bleeding text
   // aligns its top glyph ascenders exactly at the slide outline (y = 0) without protruding above it.
   const ascenderMarginInches =
-    effectiveLineHeight < 1.0 ? Math.round(((0.047 * fontSize) / 72) * 10000) / 10000 : 0;
+    effectiveLineHeight < 1.0 ? Math.round(((0.105 * fontSize) / 72) * 10000) / 10000 : 0;
   const resolvedY = valign === 'top' && targetY < 0 ? ascenderMarginInches : targetY;
 
   // When Canvas has already authoritatively partitioned lines (hasAuthoritativeWrap)
@@ -305,11 +305,11 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
 
   // Line spacing normalization:
   // For tight line-heights (< 1.0), PowerPoint textbox line metrics require proportional
-  // pitch (lineHeight * 0.85 = 0.68 for 0.8) so that multi-line text height and bottom glyph
-  // descenders align 1:1 with Canvas DOM without bottom protrusion.
+  // pitch (lineHeight / 1.1) so that multi-line text height and bottom glyph
+  // descenders align 1:1 with Canvas DOM without bottom protrusion or empty bottom gap.
   const lineSpacingMultiple =
     effectiveLineHeight < 1.0
-      ? Math.round(effectiveLineHeight * 0.85 * 10000) / 10000
+      ? Math.round((effectiveLineHeight / 1.1) * 10000) / 10000
       : Math.round((effectiveLineHeight / 1.2) * 10000) / 10000;
 
   slide.addText(textRuns as any, {
