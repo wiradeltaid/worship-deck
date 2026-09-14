@@ -702,6 +702,25 @@ decisions:
       - src/components/admin/ArtifactEditor.tsx
       - src/lib/registry/canvas-utils.ts
       - tests/smoke-spec-28.test.mjs
+  - id: DEC-031
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-14)"
+    title: Autopilot mandate for Canvas Text Whole-Word Wrapping, Box Fidelity & Safe Overflow Alignment (SPEC-29)
+    file: .control/decisions/DEC-031-autopilot-mandate-canvas-text-wrapping-and-box-fidelity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-21'
+    touches:
+      - .control/memlog/autopilot-DEC-031.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-29-canvas-text-wrapping-and-box-fidelity/SPEC.md
+
 
 
 
