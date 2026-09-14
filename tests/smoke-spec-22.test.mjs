@@ -66,7 +66,8 @@ test('T-22-01: PPTX Zero-Margin Source Guard in pptx-draw.ts', () => {
   // Verify renderTextElement passes margin: 0
   const renderTextStart = code.indexOf('function renderTextElement');
   assert.ok(renderTextStart !== -1, 'Must define renderTextElement');
-  const renderTextBody = code.slice(renderTextStart, renderTextStart + 2000);
+  const renderTextEnd = code.indexOf('\nfunction renderImageElement', renderTextStart);
+  const renderTextBody = code.slice(renderTextStart, renderTextEnd !== -1 ? renderTextEnd : renderTextStart + 3500);
 
   assert.ok(
     /^\s*margin:\s*0\b/m.test(renderTextBody),

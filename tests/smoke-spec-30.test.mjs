@@ -61,8 +61,8 @@ test('T-30-01: Shared deterministic token measurement and fallback longest-token
     `Fallback longest-token width must be finite positive, got ${fallbackWidth}`
   );
 
-  // 'international' is 13 chars. At 180px font with 0.55 headless advance: 13 * 180 * 0.55 = 1287px.
-  assert.equal(fallbackWidth, 1287, 'Longest word "international" measures 1287px at 180px font');
+  // 'international' is 13 chars with narrow glyphs (i, t, l, r). Proportional advance: 5.60em * 180 = 1008px.
+  assert.equal(fallbackWidth, 1008, 'Longest word "international" measures 1008px at 180px font');
 
   // 2. Comfortable fixture stays at scale 1, while 180px repro computes scale < 1
   const reproScale = estimateTextFitScale(repro);
@@ -70,7 +70,7 @@ test('T-30-01: Shared deterministic token measurement and fallback longest-token
     reproScale < 1.0,
     `180px reproduction must scale down to fit width, got scale ${reproScale}`
   );
-  assert.equal(reproScale, 0.76, 'Width ratio 980.68 / 1287 quantizes to scale 0.76');
+  assert.equal(reproScale, 0.97, 'Width ratio 980.68 / 1008 quantizes to scale 0.97');
 
   // Comfortable fixture: 50% width box at 32px font
   const comfortable = createReproElement({
@@ -114,7 +114,7 @@ test('T-30-01: Shared deterministic token measurement and fallback longest-token
   });
   assert.equal(
     resolveFallbackLongestTokenWidthPx(staleEl),
-    1287,
+    1008,
     'Mismatched measurement must select deterministic fallback calculation'
   );
 
@@ -333,7 +333,18 @@ test('T-30-05: Real Microsoft PowerPoint COM Automated Open & Slide Export Verif
   const tempPng = path.join(workDir, `repro-${Date.now()}.png`);
 
   try {
-    const repro = createReproElement();
+    // Test with real template parameters: y = -4.32% top-anchored, 180px, lineHeight 0.8
+    const repro = createReproElement({
+      y: -4.32321632191445,
+      style: {
+        fontSize: 180,
+        fontFamily: 'Arial',
+        lineHeight: 0.8,
+        verticalAlign: 'top',
+        textAlign: 'left',
+        fontColor: '#FFFFFF',
+      },
+    });
     const planItem = {
       artifact: {
         runtimeVersion: 1,
@@ -359,8 +370,18 @@ test('T-30-05: Real Microsoft PowerPoint COM Automated Open & Slide Export Verif
         $pres = $ppt.Presentations.Open("${tempPptx.replace(/\\/g, '\\\\')}", [Microsoft.Office.Core.MsoTriState]::msoTrue, [Microsoft.Office.Core.MsoTriState]::msoFalse, [Microsoft.Office.Core.MsoTriState]::msoFalse)
         $slide = $pres.Slides.Item(1)
         $slide.Export("${tempPng.replace(/\\/g, '\\\\')}", "PNG", 1920, 1080)
+
+        $shape = $slide.Shapes.Item(1)
+        $range = $shape.TextFrame.TextRange
+        $lines = $range.Lines()
+        $lineCount = $lines.Count
+        $boundTop = $range.BoundTop
+        $boundHeight = $range.BoundHeight
+        $slideHeight = 405
+        $coverage = $boundHeight / $slideHeight
+
         $pres.Close()
-        Write-Output "SUCCESS"
+        Write-Output ("SUCCESS:LINES=" + $lineCount + ":BOUND_TOP=" + $boundTop + ":COVERAGE=" + $coverage)
       } finally {
         $ppt.Quit()
       }
@@ -372,6 +393,18 @@ test('T-30-05: Real Microsoft PowerPoint COM Automated Open & Slide Export Verif
     });
 
     assert.ok(comRes.includes('SUCCESS'), 'PowerPoint COM export must succeed without crash or repair prompt');
+
+    // Substantive visual conformance assertions:
+    const match = comRes.match(/SUCCESS:LINES=(\d+):BOUND_TOP=([-\d.]+):COVERAGE=([-\d.]+)/);
+    assert.ok(match, `Must extract COM conformance metrics from output: ${comRes}`);
+    const actualLines = parseInt(match[1], 10);
+    const actualBoundTop = parseFloat(match[2]);
+    const actualCoverage = parseFloat(match[3]);
+
+    assert.equal(actualLines, 3, `Must render exactly 3 complete-word lines in PowerPoint, got ${actualLines}`);
+    assert.ok(actualBoundTop >= 0, `Top-anchored text must not poke above slide top border (y >= 0), got ${actualBoundTop}`);
+    assert.ok(actualCoverage >= 0.70, `Text must cover at least 70% of slide height without large empty space, got ${(actualCoverage * 100).toFixed(1)}%`);
+
     assert.ok(fs.existsSync(tempPng), 'Rendered PNG must exist');
     const pngSize = fs.statSync(tempPng).size;
     assert.ok(pngSize > 10000, `Rendered slide image must have valid content (size: ${pngSize} bytes)`);
@@ -405,7 +438,7 @@ test('T-30-06: Executable Absence Guard Proofs for SPEC-30 invariants', async ()
 
   // Production path with resolveFallbackLongestTokenWidthPx prevents this defect:
   const productionWidth = resolveFallbackLongestTokenWidthPx(repro);
-  assert.equal(productionWidth, 1287, 'Production path derives real positive width');
+  assert.equal(productionWidth, 1008, 'Production path derives real positive width');
   const productionScale = resolveTextFitScale({
     contentWidth: productionWidth,
     contentHeight: 144,
@@ -413,7 +446,7 @@ test('T-30-06: Executable Absence Guard Proofs for SPEC-30 invariants', async ()
     boxHeight: 540,
     fontSizePx: 180,
   });
-  assert.equal(productionScale, 0.76, 'Production width properly triggers scale down to 0.76');
+  assert.equal(productionScale, 0.97, 'Production width properly triggers scale down to 0.97');
 
   // Defect Proof 2: Missing fallback partitioning defect proof
   // An unpartitioned single string in DrawingML produces 0 <a:br/> soft breaks, leaving

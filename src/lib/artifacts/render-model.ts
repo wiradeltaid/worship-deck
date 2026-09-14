@@ -180,6 +180,40 @@ export const COLLAPSIBLE_SPACE_REGEX = /[ \t\r\f\v]+/;
 export const TRIM_COLLAPSIBLE_REGEX = /^[ \t\r\f\v]+|[ \t\r\f\v]+$/g;
 
 /**
+ * Estimates token advance in em units for proportional fonts (like Arial / sans-serif)
+ * using standard glyph category advances. Accounts for narrow characters (i, l, t, r, etc.)
+ * and wide characters (m, w, capitals) rather than using a flat 0.55 multiplier.
+ */
+export function estimateTokenAdvanceEm(token: string): number {
+  if (!token) return 0;
+  let totalEm = 0;
+  for (let i = 0; i < token.length; i++) {
+    const ch = token[i];
+    // Very narrow glyphs (~0.28em): i, l, j, I, 1, punctuation, delimiters, NBSP
+    if ('ijlIt1!|:;\',.[]()/-` '.includes(ch)) {
+      totalEm += 0.28;
+    }
+    // Narrow lowercase glyphs (~0.35em): f, r, t
+    else if ('frt'.includes(ch)) {
+      totalEm += 0.35;
+    }
+    // Very wide glyphs (~0.85em): m, w, M, W
+    else if ('mwMW'.includes(ch)) {
+      totalEm += 0.85;
+    }
+    // Standard uppercase (~0.67em): A-Z
+    else if (ch >= 'A' && ch <= 'Z') {
+      totalEm += 0.67;
+    }
+    // Standard lowercase & digits (~0.55em)
+    else {
+      totalEm += 0.55;
+    }
+  }
+  return totalEm;
+}
+
+/**
  * Splits string on collapsible whitespace (ASCII space/tab/returns) while strictly
  * preserving non-breaking spaces ( ) inside tokens.
  */
@@ -227,7 +261,13 @@ export function measureTokenWidthPx(
       }
     } catch {}
   }
-  return token.length * fontSizePx * charAdvanceRatio;
+  // When a calibrated advance ratio is passed from stored measurement, use it:
+  if (charAdvanceRatio !== HEADLESS_CHAR_ADVANCE_RATIO) {
+    return token.length * fontSizePx * charAdvanceRatio;
+  }
+  // Otherwise, use proportional character advance estimation:
+  const tokenAdvanceEm = estimateTokenAdvanceEm(token);
+  return Math.round(tokenAdvanceEm * fontSizePx * 100) / 100;
 }
 
 /**
@@ -994,6 +1034,17 @@ export function resolveElementTextForPptx(
 export function estimateTextFitScale(element: ResolvedElement): number {
   const text = resolveElementText(element);
   if (text === undefined) return 1;
+
+  // SPEC-30: When wrapLines is absent or unvalidated, and stored measurement is invalid,
+  // the coupled fallback layout is the single authoritative source of fit scale.
+  const hasAuthoritativeWrap =
+    Array.isArray(element.wrapLines) &&
+    element.wrapLines.length > 0 &&
+    validateWrapLines(text, element.wrapLines) !== null;
+
+  if (!hasAuthoritativeWrap && !isMeasurementValid(element)) {
+    return resolveFallbackTextLayout(element).scale;
+  }
 
   const em = fontSizePx(element.style);
   const lines = resolveWrapLineCount(element);

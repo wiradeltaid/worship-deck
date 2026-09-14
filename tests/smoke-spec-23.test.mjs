@@ -649,7 +649,7 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
   };
 
   assert.equal(isTextFitScaleMeasured(styleMismatch), false, 'style mismatch is treated as unmeasured');
-  assert.equal(estimateTextFitScale(styleMismatch), 0.37, 'style mismatch uses deterministic fallback width scale');
+  assert.equal(estimateTextFitScale(styleMismatch), 0.47, 'style mismatch uses deterministic fallback width scale');
 
   // Placeholder element is treated as unmeasured
   const placeholderEl = {

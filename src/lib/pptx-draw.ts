@@ -269,9 +269,26 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
       ? Math.round(geometry.fontSize * scale * 100) / 100
       : geometry.fontSize;
 
+  const effectiveLineHeight =
+    typeof style?.lineHeight === 'number' && style.lineHeight > 0
+      ? style.lineHeight
+      : TEXT_LINE_HEIGHT;
+  // Parity with ArtifactSlide.tsx: compensate negative half-leading when lineHeight < 1.0
+  // to prevent top ascender clipping and excessive upward shift in PowerPoint.
+  const topHalfLeadingComp =
+    effectiveLineHeight < 1.0 ? (1.0 - effectiveLineHeight) / 2 : 0;
+  const topShiftInches =
+    valign === 'top' && topHalfLeadingComp > 0
+      ? Math.round(((topHalfLeadingComp * fontSize) / 72) * 10000) / 10000
+      : 0;
+  const targetY = geometry.y + topShiftInches;
+  // Parity with Canvas 16:9 stage overflow:hidden: prevent top-anchored text
+  // from poking above the slide boundary (y < 0) in PowerPoint normal view.
+  const resolvedY = valign === 'top' && targetY < 0 ? 0 : targetY;
+
   slide.addText(textRuns as any, {
     x: geometry.x,
-    y: geometry.y,
+    y: resolvedY,
     w: geometry.w,
     h: geometry.h,
     margin: 0, // SPEC-22: eliminate PowerPoint 0.2" default insets for Canvas/Presenter wrap width parity
@@ -284,10 +301,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     underline: resolveUnderline(style) ? { style: 'sng' } : undefined,
     align: resolveTextAlign(style),
     valign,
-    lineSpacingMultiple:
-      (typeof style?.lineHeight === 'number' && style.lineHeight > 0
-        ? style.lineHeight
-        : TEXT_LINE_HEIGHT) / 1.2,
+    lineSpacingMultiple: (effectiveLineHeight) / 1.2,
     shadow: style?.textShadow
       ? {
           type: 'outer',
