@@ -402,10 +402,14 @@ test('T-30-05: Real Microsoft PowerPoint COM Automated Open & Slide Export Verif
     const actualCoverage = parseFloat(match[3]);
 
     assert.equal(actualLines, 3, `Must render exactly 3 complete-word lines in PowerPoint, got ${actualLines}`);
-    const expectedTopPt = (repro.y / 100) * 405;
+    // With negative half-leading compensation for tight line-height (0.8),
+    // top-anchored bleeding text is offset by topShiftInches = ((1.0 - 0.8)/2 * 130.95) / 72 = +13.10 pt,
+    // so -17.51 pt + 13.10 pt lands the top glyph ascender exactly at the slide top edge (-4.41 pt).
+    const topCompPt = ((1.0 - 0.8) / 2) * 130.95;
+    const expectedTopPt = (repro.y / 100) * 405 + topCompPt;
     assert.ok(
       Math.abs(actualBoundTop - expectedTopPt) < 1.0,
-      `Top-anchored text must preserve authored position (${expectedTopPt.toFixed(2)} pt), got ${actualBoundTop}`
+      `Top-anchored text must preserve compensated leading position (${expectedTopPt.toFixed(2)} pt), got ${actualBoundTop}`
     );
     assert.ok(actualCoverage >= 0.70, `Text must cover at least 70% of slide height without large empty space, got ${(actualCoverage * 100).toFixed(1)}%`);
 

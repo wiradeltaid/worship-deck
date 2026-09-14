@@ -121,11 +121,12 @@ test('T-27-02: Line spacing normalization reflects tight (<1.0) and wide (>1.0) 
   const slide1Xml = await zip.file('ppt/slides/slide1.xml')?.async('string');
 
   assert.ok(slide1Xml, 'ppt/slides/slide1.xml must exist');
-  // Tight line-heights (< 1.0) preserve true font-em pitch: 0.8 * 100000 = 80000,
-  // matching CSS line-height without 20% upward compression in PowerPoint.
+  // Tight line-heights (< 1.0) use calibrated proportional pitch (lineHeight / 1.1):
+  // Math.round((0.8 / 1.1) * 100000) = 72730, matching CSS line-height without
+  // 20% upward compression or excessive gap in PowerPoint.
   assert.ok(
-    slide1Xml.includes('<a:spcPct val="80000"/>'),
-    'slide XML must contain <a:spcPct val="80000"/> for 0.8 line-height'
+    slide1Xml.includes('<a:spcPct val="72730"/>'),
+    'slide XML must contain <a:spcPct val="72730"/> for 0.8 line-height'
   );
 });
 
@@ -303,11 +304,11 @@ test('T-27-08: Absence Guard 1 — un-normalized line spacing bloat detection in
   const code = fs.readFileSync(drawPath, 'utf8');
 
   function scanLineSpacingNormalization(source) {
-    const start = source.indexOf('lineSpacingMultiple:');
+    const start = source.indexOf('lineSpacingMultiple =');
     if (start === -1) {
       throw new Error('ABSENCE GUARD FAILED: lineSpacingMultiple is not defined in pptx-draw.ts');
     }
-    const snippet = source.slice(start, start + 160);
+    const snippet = source.slice(start, start + 250);
     if (!snippet.includes('/ 1.2')) {
       throw new Error('ABSENCE GUARD FAILED: lineSpacingMultiple is not normalized by dividing by 1.2 factor');
     }
@@ -316,8 +317,8 @@ test('T-27-08: Absence Guard 1 — un-normalized line spacing bloat detection in
 
   // 1. Defect injection: removing "/ 1.2" factor fails guard
   const defectiveCode = code.replace(
-    /lineSpacingMultiple:[\s\S]*?\/\s*1\.2,/,
-    'lineSpacingMultiple: style.lineHeight,'
+    /Math\.round\(\(effectiveLineHeight \/ 1\.2\) \* 10000\) \/ 10000;/,
+    'effectiveLineHeight;'
   );
   assert.notEqual(defectiveCode, code, 'Defect replacement must modify code');
   assert.throws(

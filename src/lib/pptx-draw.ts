@@ -274,9 +274,28 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
       ? style.lineHeight
       : TEXT_LINE_HEIGHT;
 
-  // Off-canvas negative Y coordinates survive unclamped for bleeding headlines,
-  // matching toCssGeometry and preventing downward shift of top-positioned text.
-  const resolvedY = geometry.y;
+  // Parity with ArtifactSlide.tsx: compensate negative half-leading when lineHeight < 1.0.
+  // In CSS DOM, paddingTop = (1.0 - lineHeight)/2 em pushes text down into the box.
+  // In PPTX, adding topShift without clamping negative geometry.y ensures that bleeding
+  // titles (e.g. y = -4.32%) have their top glyph ascenders align exactly at the slide top edge (y = 0).
+  const topHalfLeadingComp =
+    effectiveLineHeight < 1.0 ? (1.0 - effectiveLineHeight) / 2 : 0;
+  const topShiftInches =
+    valign === 'top' && topHalfLeadingComp > 0
+      ? Math.round(((topHalfLeadingComp * fontSize) / 72) * 10000) / 10000
+      : 0;
+
+  // Off-canvas negative Y coordinates survive unclamped, combined with leading compensation.
+  const resolvedY = geometry.y + topShiftInches;
+
+  // Line spacing normalization:
+  // For standard line-heights (>= 1.0), PowerPoint single pitch (1.2em) requires dividing by 1.2.
+  // For tight line-heights (< 1.0), PowerPoint text box metrics require proportional calibration
+  // (lineHeight / 1.1) so that multi-line text height and bottom glyph descenders align 1:1 with Canvas DOM.
+  const lineSpacingMultiple =
+    effectiveLineHeight < 1.0
+      ? Math.round((effectiveLineHeight / 1.1) * 10000) / 10000
+      : Math.round((effectiveLineHeight / 1.2) * 10000) / 10000;
 
   slide.addText(textRuns as any, {
     x: geometry.x,
@@ -293,8 +312,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     underline: resolveUnderline(style) ? { style: 'sng' } : undefined,
     align: resolveTextAlign(style),
     valign,
-    lineSpacingMultiple:
-      effectiveLineHeight < 1.0 ? effectiveLineHeight : effectiveLineHeight / 1.2,
+    lineSpacingMultiple: lineSpacingMultiple,
     shadow: style?.textShadow
       ? {
           type: 'outer',
