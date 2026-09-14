@@ -1433,6 +1433,10 @@ waves:
     size: M
     depends_on: [SPEC-27]
     spec_folder: .scratch/SPEC-28-canvas-interaction-and-resize-ux/
+    spec_reviewed:
+      date: '2026-09-14'
+      sha: '03c9ab3'
+      lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-28-01"
         component: registry

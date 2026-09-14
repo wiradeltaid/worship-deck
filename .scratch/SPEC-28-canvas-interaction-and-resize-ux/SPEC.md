@@ -1,66 +1,135 @@
-# SPEC-28 — Canvas Editor Interaction UX, Text Ghosting Elimination & Bounding Box Resize Invariants
+# SPEC-28 — Canvas Editor Interaction UX, Text Ghosting Elimination & Bounding-Box Resize Invariants
+
+> **Independent review applied — 2026-09-14.** This revision incorporates the owner’s raw notes and the as-built Option A implementation. It replaces the original global “disable shrink-to-fit” direction because that would regress SPEC-26’s measured Canvas/Presenter/PPTX parity and runtime overflow safety. The editor and the projected slide have different rendering responsibilities; the distinction is explicit below.
 
 ## 1. Problem Statement
 
-Hand testing by the product owner on 2026-09-14 (`/admin/artifacts`) surfaced two critical interaction and layout UX regressions in the Canvas Editor:
+Hand testing on `/admin/artifacts` exposed two linked Canvas Editor regressions:
 
-### 1.1 Text Ghosting on Interaction / Color Change
-In the Option A Canvas Editor architecture (`ArtifactEditor.tsx`), `<ArtifactSlide>` serves as the underlying visual DOM layer, while Fabric.js operates as an overlay for selection borders and transformation handles.
-When element colors are modified or styling is applied (`handleFontColorChange`, `applyTextStyle`), Fabric text objects can inadvertently render visible text fills (or shadows) instead of remaining 100% transparent. This causes the Fabric canvas layer to paint an opaque text run directly over the HTML DOM text run below, producing a double-text "ghosting" effect with slight antialiasing/subpixel divergence. Furthermore, because the Fabric proxy previously carried stale geometry, this ghost layer was fighting with the DOM layer underneath.
+1. **Ghost text.** The editor has an HTML `<ArtifactSlide>` visual layer and a Fabric interaction layer. A Fabric text proxy becomes visible after style edits when a handler writes a real `fill` or `shadow`; the user then sees a second, anti-aliased text run over the DOM one. The current selection/serialization paths also read style from those Fabric paint properties, which makes the defect recur.
+2. **Ambiguous text-box sizing.** A box drag changes `liveElements`, which changes the DOM box. `ArtifactSlide` then applies its runtime shrink-to-fit policy, so shrinking a box can visually shrink text despite the authored `fontSize` remaining unchanged. Conversely, a font-size increase can leave a box shorter than the text at scale 1. The current Fabric `Textbox` measurements must not become persisted geometry.
 
-### 1.2 Text Bounding Box Resize Invariants & Font Size Coupling
-The relationship between the user-facing Font Size control and the interactive bounding box resize handles exhibits three related defects:
-1. **Unintended Visual Downscaling on Box Shrink**:
-   When the user drags the bounding box resize handles to make the box smaller, the authored font-size number in the toolbar remains unchanged, but the visual text shrinks dramatically via the shrink-to-fit mechanism (`ArtifactSlide` `--artifact-fit-scale`). Reducing the bounding box should wrap and clip text via container `overflow: hidden` rather than automatically collapsing the visual font scale without user intent.
-2. **Dynamic Minimum Height & Bounding Box Adaptation**:
-   When font size is increased via the toolbar, the bounding box height and handles do not automatically expand to accommodate the larger font size. If the font size is increased beyond the existing bounding box height, the text collapses via shrink-to-fit and does not render at full scale until the user manually stretches the handles.
-3. **Asymmetric Box Sizing Boundary Constraints**:
-   The bounding box must enforce an intrinsic lower bound based on the current font-size and single-line/content height in reference-canvas pixels: `minTextHeightRefPx = fontSizePx * effectiveLineHeight`. A user drag cannot shrink the resize handles below this minimum height. Conversely, the upper bound can be freely overridden by the user (expanding the box wider/taller than the single-line minimum). When font size decreases, the existing enlarged box must not collapse; when font size increases, the box height must auto-expand and persist so the text renders immediately without requiring manual handle dragging.
+## 2. Review Conclusions and Non-Negotiable Boundaries
 
----
+### 2.1 Option A remains the architecture
 
-## 2. Solution & Architectural Decisions
+Option A is sound: the DOM `<ArtifactSlide>` is the only visual renderer in the editor, and Fabric is an interaction overlay. Fabric text proxies MAY retain `Textbox` behavior where it is needed for keyboard text editing, but they are not a source of typography, clipping, or persisted geometry.
 
-### 2.1 Complete Ghosting Elimination on Fabric Text Proxy
-Every Fabric text proxy object must remain strictly non-visual for its full lifetime:
-- Enforce 100% transparency on all interactive Fabric Textbox proxy objects (`fill: 'transparent'`, `stroke: 'transparent'`, `shadow: null`) across all canvas lifecycles: mount, selection sync, color changes (`handleFontColorChange`), style application (`applyTextStyle`), and object transformations.
-- Centralize a non-visual proxy invariant rule: toolbar changes update `liveElements` and metadata (`obj.data.fontColor`, `obj.data.authoredFontSize`), but never assign visible `fill`, `stroke`, or shadow rendering to the Fabric object.
+Every editor text proxy is non-visual for its full lifetime:
 
-### 2.2 Shared No-Shrink-on-Resize Policy & Checkpoint Validation
-A user box resize must never change authored font size or visual font scale:
-- In `ArtifactSlide.tsx` and `canvas-utils.ts` (`applyFabricTextFit`), the shrink-to-fit mechanism must not trigger on manual bounding box resizing. An explicit editor-mode / element flag or standard CSS wrapping (`white-space: pre-wrap`) with container clipping (`overflow: hidden`) governs overflow without compromising production runtime safety.
-- **Phased Validation Checkpoint**: Ship Issue 01 first and verify whether eliminating the stale ghost layer resolves the perceived scale lag, before finalizing the runtime shrink-to-fit decoupling in Issue 03.
+```ts
+fill: 'transparent'
+stroke: 'transparent'
+shadow: null
+```
 
-### 2.3 Reference-Canvas Coordinate Alignment & Asymmetric Box Sizing
-- **Coordinate Space**: Compute `minTextHeightRefPx = fontSizePx * effectiveLineHeight` in fixed reference-canvas pixels (`CANVAS_HEIGHT = 540`), converted to persisted percentage `h = pxToPct(minTextHeightRefPx, CANVAS_HEIGHT)`. Screen-space conversions apply only to interactive Fabric control handles, never to stored layout data.
-- **Clamping in `onObjectScaling`**: In `canvas.on('object:scaling')`, ensure the clamp is guarded with `isFabricTextObject(target)` so shapes and images are not affected, clamping `target.height` to `minTextHeightRefPx` before synchronizing into `liveElements` and before normalizing scale in `object:modified`.
-- **Multi-Selection & Auto-Expansion on Font Size Increase**: When font size increases in `handleFontSizeCommit`, loop over all active text objects (`canvas.getActiveObjects()`), compute each object's required single-line minimum height, expand `h` accordingly, update Fabric `height`, and set persistence flags (`userResizedHeight = true`, `authoredHeight = minTextHeightRefPx`).
-- **Asymmetric Retention**: Decreasing font size never shrinks geometry; manually enlarged boxes remain untouched.
+The invariant applies at construction, selection synchronization, every toolbar operation, text mutation, object transformation, duplicate/insert, and remount. Do not use `opacity: 0` as a shortcut if it hides or impairs Fabric controls. The DOM visual layer remains visible; the Fabric object carries hit-testing, controls, and metadata only.
 
----
+`liveElements` is the editor’s visual/style state. A proxy MAY mirror text metadata in `obj.data`, but `syncSelection` and serialization MUST read the style metadata or `liveElements` by `elementId`, never `obj.fill` or `obj.shadow`. In particular, the toolbar must not interpret transparent proxy paint as the selected text color.
 
-## 3. User Stories & Acceptance Criteria
+### 2.2 Runtime fit and editor resize behavior are deliberately different
 
-### User Stories
-1. As an administrator editing a slide, when I change the font color of text, I want only a single clean colored text run to appear without any ghosting or duplicated shadow layers.
-2. As an administrator adjusting text bounding box handles, I want shrinking the box to wrap or clip text according to standard box model rules, rather than unexpectedly shrinking the visual font size.
-3. As an administrator increasing font size in the toolbar, I want the bounding box handles to automatically expand so that the enlarged text renders immediately at full size without requiring me to manually stretch the box.
-4. As an administrator, I want the bounding box to enforce a minimum height matching the font size, preventing accidental collapse of the text box below a readable single-line height.
+`ArtifactSlide` remains the runtime contract used by Presenter, Projector, thumbnails, and the browser side of parity with the PPTX renderer. Its `largestFittingTextScale`, clipping, wrapping, and font-readiness behavior remain unchanged for runtime rendering. `applyFabricTextFit` remains available for non-proxy rendering/parity paths; it MUST NOT be repurposed to mutate an Option A transparent interaction proxy.
 
-### Acceptance Criteria
-1. Changing font color, family, style, shadow, or font size leaves every selected Fabric text proxy non-visual (`fill: 'transparent'`, `stroke: 'transparent'`, `shadow: null`) while the DOM slide renders the selected style cleanly.
-2. Shrinking a text box at a fixed font size does not change its visible fit scale (`fitScale = 1.0`); text wraps at the boundary and clips at `overflow: hidden`.
-3. Increasing font size past the box's current single-line height immediately expands the saved box height for all selected text elements and renders at full scale.
-4. A resize drag below the calculated minimum single-line height clamps to the minimum for text objects while leaving shapes and images unconstrained.
-5. Decreasing font size does not reduce a previously enlarged box.
+The editor visual layer needs an **ephemeral**, editor-only overflow mode:
 
----
+- default/runtime mode: current shrink-to-fit + clipping behavior;
+- editor interaction mode: authored font size (`fitScale = 1`), `white-space: pre-wrap`, and `overflow: hidden` while a layout is being authored.
 
-## 4. Implementation Plan & Issues
+This mode is passed only from `ArtifactEditor` to its visual layer. It MUST NOT be serialized into a template, the runtime contract, a service snapshot, or a PPTX plan. A manually smaller editor box therefore wraps and clips at the box boundary instead of changing its visual font scale; a projected slide remains protected by the existing runtime fit policy.
 
-- **01: Complete Ghosting Elimination on Fabric Text Proxy**:
-  Ensure all text interactions keep the Fabric canvas layer non-visual (`fill: 'transparent'`, `stroke: 'transparent'`, `shadow: null`) and route all visual updates to DOM `<ArtifactSlide>`.
-- **02: Bounding Box Auto-Expansion on Font Size Increase**:
-  Automatically adapt element height in reference-canvas coordinates when font size increases across single and multi-selection, setting persistence flags and updating Fabric proxy height.
-- **03: Minimum Box Height Invariant and Shrink-to-Fit Decoupling**:
-  Enforce minimum height constraints in `onObjectScaling` (text-guarded) based on reference-canvas font size and decouple box resizing from visual scale reduction without compromising runtime slide safety.
+### 2.3 Geometry has one coordinate system and one mutation record
+
+All persisted geometry is reference-canvas geometry: `CANVAS_WIDTH = 960`, `CANVAS_HEIGHT = 540`, then converted to percentages only at the layout boundary. CSS pixels and displayed Fabric canvas pixels are never persisted.
+
+Fabric transforms expose a scaled effective height. The minimum must therefore be applied to the **effective** height, not by assigning a minimum directly to `target.height` while `target.scaleY < 1`:
+
+```ts
+minSingleLineHeightPx = Math.max(
+  fontSizePx,
+  fontSizePx * effectiveLineHeight,
+);
+effectiveHeightPx = target.height * Math.abs(target.scaleY);
+```
+
+When the effective height is below the floor, adjust the transform so the effective height equals the floor, preserve the opposite resize edge, then synchronize clip geometry and `liveElements`. On `object:modified`, normalize the effective reference-pixel dimensions into `width`/`height` with `scaleX = scaleY = 1` before recording the intended geometry change. A clamp that changes raw `height` before scale normalization is incorrect: it can still produce a smaller visible box and can make the active control jump.
+
+The one-line floor is a drag floor, not a promise that arbitrary multiline content fits. A text-box drag may wrap and clip content after reaching that floor.
+
+`userResizedHeight` means exactly that the user resized height. Automatic expansion after a toolbar font-size change MUST NOT set it. Record a separate explicit mutation source, for example `heightChange: 'user-resize' | 'font-size-auto'`, and make serialization persist either intentional source. Record changed axes independently: a horizontal-only drag must not mark height as user-resized. Active selections must apply the clamp and intent to every selected text child, not merely the `ActiveSelection` container.
+
+### 2.4 Font-size increase expands for current editor content
+
+A single-line floor alone cannot meet the owner’s “renders immediately at full scale” requirement for wrapped or multiline text. On a font-size increase, calculate the required scale-1 content height for each selected text element at its current authored width, using the same DOM/CSS line-breaking behavior as the editor visual layer. Then persist only an expansion:
+
+```ts
+requiredHeightPx = max(minSingleLineHeightPx, measuredContentHeightPx)
+nextHeightPx = max(currentEffectiveHeightPx, requiredHeightPx)
+```
+
+This is per selected text element. It handles a multi-selection without copying one element’s dimensions to another. A decrease in font size, family/style change, or a later save MUST NOT shrink an already enlarged box. For unresolved runtime placeholders, this guarantees the currently authored editor text only; runtime values retain the established fit-and-clip safety policy.
+
+## 3. User Stories
+
+1. As an administrator changing text color, family, style, shadow, or font size, I see one clean DOM-rendered text run and never a Fabric duplicate.
+2. As an administrator shrinking a text box at a fixed font size, I keep that authored visual font size in the editor; the text wraps or clips at the new boundary.
+3. As an administrator increasing font size, each selected text box expands only as needed for its current scale-1 content, so its editor preview is immediately readable without manual handle dragging.
+4. As an administrator dragging text controls, I cannot collapse a box below a single readable line; I can still make it arbitrarily larger.
+5. As an operator, I retain the current runtime fit-and-clip behavior on Presenter, Projector, thumbnails, and PPTX output regardless of how a template was edited.
+
+## 4. Acceptance Criteria
+
+1. After every text toolbar mutation, every selected Fabric text proxy has `fill === 'transparent'`, `stroke === 'transparent'`, and `shadow === null`; the visible color, decoration, and shadow are rendered solely by the DOM layer.
+2. Selection synchronization and template serialization preserve the actual text style even though the proxy is transparent and shadowless.
+3. In editor interaction mode, shrinking a text box at a fixed font size leaves the DOM fit scale at `1`, wraps with `pre-wrap`, and clips with `overflow: hidden`. It does not change the persisted font size.
+4. Runtime `ArtifactSlide` behavior and `applyFabricTextFit` parity behavior remain unchanged for non-editor/projection paths; the existing SPEC-26 parity and clipping tests remain green.
+5. A drag cannot lower a text object’s effective reference height below `max(fontSizePx, fontSizePx * effectiveLineHeight)`. Shapes and images are unaffected. The clamp preserves the opposite edge and works for each text object in an active multi-selection.
+6. Increasing font size expands, but never contracts, each selected text box to at least its scale-1 current-content height; the expansion survives save/reload. Decreasing font size preserves that expanded geometry.
+7. A width-only drag does not create a height-resize intent, and a height auto-expansion does not masquerade as a user resize. Fabric-computed `Textbox` dimensions never overwrite authored layout geometry on save.
+
+## 5. Implementation Plan
+
+### 28-01 — Enforce the transparent proxy invariant
+
+**Files:** `src/lib/registry/canvas-utils.ts`, `src/components/admin/ArtifactEditor.tsx`, targeted tests.
+
+- Centralize creation and reassertion of a text proxy’s non-visual paint properties.
+- Remove all toolbar writes of visual `fill`, `stroke`, or `shadow` to Fabric proxies. Write visual style to `liveElements` and proxy metadata instead.
+- Make `syncSelection`, duplication, text style application, and serialization resolve style by `elementId`/metadata rather than Fabric paint properties.
+- Do not run `applyFabricTextFit` as a typography mutation on transparent proxies. Their geometry must be explicit and independent of Fabric’s `Textbox.initDimensions()` width/height recalculation.
+
+### 28-02 — Split editor overflow behavior from runtime fitting
+
+**Files:** `src/components/admin/ArtifactEditor.tsx`, `src/components/artifacts/ArtifactSlide.tsx` or a narrowly scoped visual-layer adapter, targeted tests.
+
+- Add a non-persisted editor-only render mode to the visual layer. It displays text at authored scale 1 and clips/wraps during editing.
+- Keep the current default runtime rendering path unchanged. No new layout field, template JSON field, service-snapshot field, or PPTX worker field is permitted.
+- Verify the editor’s DOM layer reflects `liveElements` immediately through a resize and never has a visible Fabric text layer over it.
+
+### 28-03 — Make height constraints and auto-expansion intentional
+
+**Files:** `ArtifactEditor.tsx`, `canvas-utils.ts`, a small pure geometry helper if it makes the clamp testable, targeted tests.
+
+- Calculate the one-line minimum in reference pixels from the effective style; clamp effective, not raw, scaled height; preserve the opposite edge; normalize only after the drag completes.
+- Track width and height intent separately and add an explicit font-size-auto height mutation source. Update serialization so it persists only user-resize or font-size-auto geometry, never a Fabric measurement.
+- On font-size increase, measure each selected element’s scale-1 current-content height using the editor DOM line-breaking contract, then expand only to the maximum required height. Never contract on a decrease.
+- Include `ActiveSelection` children in drag clamping and in font-size expansion.
+
+## 6. Verification and Required Evidence
+
+Add `tests/smoke-spec-28.test.mjs` to the explicit `npm test` script. The test module must include executable checks for all of the following:
+
+1. Mount/change color, family, bold/italic/underline, shadow on/off/blur, font size, duplicate, and remount. Inspect the real Fabric proxy state after each; all remain transparent/shadowless while the DOM style changes. Prove this absence guard red by injecting a visible `fill`, `stroke`, and `shadow` separately, then revert each injection.
+2. Resize a text box in the actual editor visual layer and assert editor fit scale remains `1`, wrapping/clipping occur at the resized box, and the runtime `ArtifactSlide` fixture still exercises its fit policy. This prevents accidentally disabling runtime safety while fixing authoring UX.
+3. Exercise vertical, horizontal, corner, and active-multiselection drags. Assert effective text height never falls under the floor, the unchanged axis does not gain resize intent, and a shape/image remains unconstrained.
+4. Increase font size for a single-line and a wrapping multiline text element; assert each expands to its own required scale-1 height, persists through serialize/save/reload, and does not contract after a font-size decrease.
+5. Retain a save-without-edit regression fixture proving Fabric measurement cannot rewrite authored width or height (SPEC-26 / BUG-35).
+
+The source-scan tests in this repository are useful guards but cannot prove visual interaction. Add a browser-harness human/visual smoke deliverable: at `/admin/artifacts`, change the listed styles, shrink and re-expand both a one-line and multiline box, adjust font size up/down, save/reload, and compare the editor against Presenter/Projector. Record the tested template identifiers and viewport in the implementation evidence.
+
+## 7. Out of Scope
+
+- Altering the 16:9 stage wrapper or container-query letterboxing validated by SPEC-26.
+- Persisting an editor-specific fit/overflow preference.
+- Changing PPTX geometry or the production runtime text-fit policy.
+- Replacing the DOM visual layer with Fabric rendering.
