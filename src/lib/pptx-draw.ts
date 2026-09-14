@@ -305,11 +305,11 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
 
   // Line spacing normalization:
   // For tight line-heights (< 1.0), PowerPoint textbox line metrics require proportional
-  // pitch (lineHeight / 1.1) so that multi-line text height and bottom glyph
-  // descenders align 1:1 with Canvas DOM without bottom protrusion or empty bottom gap.
+  // pitch (lineHeight * 0.875 = 0.70 for 0.8) so that multi-line text height and bottom glyph
+  // descenders align 1:1 with Canvas DOM and remain strictly inside the slide boundary (y <= 405pt).
   const lineSpacingMultiple =
     effectiveLineHeight < 1.0
-      ? Math.round((effectiveLineHeight / 1.1) * 10000) / 10000
+      ? Math.round(effectiveLineHeight * 0.875 * 10000) / 10000
       : Math.round((effectiveLineHeight / 1.2) * 10000) / 10000;
 
   slide.addText(textRuns as any, {

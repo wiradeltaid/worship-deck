@@ -121,12 +121,12 @@ test('T-27-02: Line spacing normalization reflects tight (<1.0) and wide (>1.0) 
   const slide1Xml = await zip.file('ppt/slides/slide1.xml')?.async('string');
 
   assert.ok(slide1Xml, 'ppt/slides/slide1.xml must exist');
-  // Tight line-heights (< 1.0) use calibrated proportional pitch (lineHeight / 1.1):
-  // Math.round((0.8 / 1.1) * 100000) = 72730, matching CSS line-height without
-  // upward compression or excessive gap in PowerPoint.
+  // Tight line-heights (< 1.0) use calibrated proportional pitch (lineHeight * 0.875):
+  // Math.round((0.8 * 0.875) * 100000) = 70000, matching CSS line-height and keeping
+  // bottom descenders strictly within slide boundaries in PowerPoint.
   assert.ok(
-    slide1Xml.includes('<a:spcPct val="72730"/>'),
-    'slide XML must contain <a:spcPct val="72730"/> for 0.8 line-height'
+    slide1Xml.includes('<a:spcPct val="70000"/>'),
+    'slide XML must contain <a:spcPct val="70000"/> for 0.8 line-height'
   );
 });
 
