@@ -1425,5 +1425,37 @@ waves:
           - tests/smoke-spec-27.test.mjs
           - tests/pptx-conformance.test.mjs
 
+  - id: SPEC-28
+    status: open
+    release: canvas-interaction-and-resize-ux
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-27]
+    spec_folder: .scratch/SPEC-28-canvas-interaction-and-resize-ux/
+    tickets:
+      - id: "SPEC-28-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-28.test.mjs
+      - id: "SPEC-28-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-28-01"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-28.test.mjs
+      - id: "SPEC-28-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-28-02"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-28.test.mjs
+
+
 
 
