@@ -1,6 +1,6 @@
 # SPEC-29-01 — Trusted Whole-Word Wrap Snapshots
 
-**Status:** ready-for-agent
+**Status:** closed
 
 ## What to build
 

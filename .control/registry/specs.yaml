@@ -1461,7 +1461,7 @@ waves:
           - tests/smoke-spec-28.test.mjs
 
   - id: SPEC-29
-    status: open
+    status: closed
     release: canvas-text-wrapping-and-box-fidelity
     prd: [offline-deck]
     fr: [FR-20]

@@ -14,6 +14,7 @@ import {
   extractInlineTokens,
   findUnknownPredefinedFieldTokens,
 } from './placeholder-catalog';
+import { validateWrapLines } from '@/lib/artifacts/render-model';
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
 export const KEBAB_ID = /^[a-z][a-z0-9-]*$/;
@@ -290,7 +291,18 @@ function parseElement(raw: unknown, label: string): CanvasElement {
     ) {
       throw new RegistryValidationError(`${label}.wrapLines must be an array of strings`);
     }
-    if (obj.wrapLines.length > 0) {
+    const isPlaceholder =
+      Boolean(obj.placeholderKey) ||
+      (typeof obj.content === 'string' && /\{[a-zA-Z0-9_]+\}/.test(obj.content));
+    if (!isPlaceholder && typeof obj.content === 'string' && obj.content.trim() !== '') {
+      const valid = validateWrapLines(obj.content, obj.wrapLines);
+      if (valid === null) {
+        throw new RegistryValidationError(
+          `${label}.wrapLines must be a valid whole-word wrap partition of content`
+        );
+      }
+      element.wrapLines = valid;
+    } else if (obj.wrapLines.length > 0) {
       element.wrapLines = [...obj.wrapLines];
     }
   }

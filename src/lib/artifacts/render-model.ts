@@ -15,6 +15,8 @@ import {
   type ResolvedElement,
   type ResolvedStyle,
 } from './runtime-contract';
+
+export { REFERENCE_CANVAS };
 import type { CanvasElement } from '@/lib/registry/types';
 import { DEFAULT_FONT_FAMILY, resolveCatalogFontFamily } from '@/lib/registry/font-catalog';
 
@@ -353,23 +355,111 @@ export function largestFittingTextScale(
 }
 
 /**
+ * SPEC-29-01: Validates that a candidate `wrapLines` array is a lossless,
+ * whole-word partition of the source `text` preserving explicit paragraph boundaries.
+ *
+ * Invariants:
+ * - Each non-empty candidate line consists of consecutive complete whitespace-delimited tokens from one original paragraph.
+ * - Concatenating candidate tokens with normalized single spaces reproduces that paragraph's normalized token sequence exactly.
+ * - Candidate lines may not cross an explicit newline boundary.
+ * - Empty original paragraphs remain explicit paragraph breaks; the validator does not collapse them.
+ * - Rejects character fragments (e.g. ['Band', 'ung'] for 'Bandung'), reordered words, missing words, and duplicate words.
+ *
+ * Returns the normalized string array on success, or `null` if invalid.
+ */
+export function validateWrapLines(
+  text: string | undefined,
+  candidateLines: unknown
+): string[] | null {
+  if (typeof text !== 'string' || text.trim() === '') return null;
+  if (!Array.isArray(candidateLines) || candidateLines.length === 0) return null;
+
+  for (let i = 0; i < candidateLines.length; i++) {
+    const line = candidateLines[i];
+    if (typeof line !== 'string') return null;
+    if (line.includes('\n') || line.includes('\r')) return null;
+  }
+
+  const paragraphs = text.split('\n');
+  let candIdx = 0;
+  const normalizedLines: string[] = [];
+
+  for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+    const para = paragraphs[pIdx];
+    const paraWords = para.trim().split(/\s+/).filter(Boolean);
+
+    if (paraWords.length === 0) {
+      if (candIdx < candidateLines.length && candidateLines[candIdx].trim() === '') {
+        normalizedLines.push('');
+        candIdx++;
+      } else {
+        return null;
+      }
+      continue;
+    }
+
+    let wordsCollected = 0;
+    while (candIdx < candidateLines.length && wordsCollected < paraWords.length) {
+      const line = candidateLines[candIdx];
+      if (line.trim() === '') {
+        return null;
+      }
+      const lineWords = line.trim().split(/\s+/).filter(Boolean);
+      if (lineWords.length === 0) {
+        return null;
+      }
+
+      if (wordsCollected + lineWords.length > paraWords.length) {
+        return null;
+      }
+
+      for (let w = 0; w < lineWords.length; w++) {
+        if (lineWords[w] !== paraWords[wordsCollected + w]) {
+          return null;
+        }
+      }
+
+      normalizedLines.push(lineWords.join(' '));
+      wordsCollected += lineWords.length;
+      candIdx++;
+    }
+
+    if (wordsCollected !== paraWords.length) {
+      return null;
+    }
+  }
+
+  if (candIdx !== candidateLines.length) {
+    return null;
+  }
+
+  return normalizedLines;
+}
+
+export function isValidWrapLines(
+  text: string | undefined,
+  candidateLines: unknown
+): candidateLines is string[] {
+  return validateWrapLines(text, candidateLines) !== null;
+}
+
+/**
  * Resolves the effective line count for text-fit scaling.
  * SPEC-22: Prefers authoritative `wrapLines` from Canvas if present, non-empty,
  * and coherent with resolved text; otherwise counts explicit newlines in `element.text`.
+ * SPEC-29-01: Validates wrapLines through validateWrapLines before accepting.
  */
 export function resolveWrapLineCount(element: ResolvedElement): number {
   const text = resolveElementText(element);
   if (text === undefined) return 0;
 
   if (Array.isArray(element.wrapLines) && element.wrapLines.length > 0) {
-    const flatWrap = element.wrapLines.join(' ').replace(/\s+/g, ' ').trim();
-    const flatText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    if (flatWrap === flatText) {
-      return element.wrapLines.length;
-    } else {
-      // SPEC-23-05: Coherence guard rejected incoherent wrapLines, log visibility
-      console.warn(`[render-model] wrapLines rejected for element ${element.id}: coherence mismatch ("${flatWrap}" vs "${flatText}")`);
+    const validLines = validateWrapLines(text, element.wrapLines);
+    if (validLines !== null) {
+      return validLines.length;
     }
+    // SPEC-23-05 / SPEC-29-01: Coherence guard rejected invalid wrapLines, log visibility
+    console.warn(`[render-model] wrapLines rejected for element ${element.id}: whole-word wrap validation failed`);
   }
 
   // SPEC-23-02: When wrapLines is absent but longestWordPx is valid, estimate line count
@@ -398,6 +488,7 @@ export type PptxTextRun = {
  *   intermediate paragraph carries `breakLine: true` (ending the <a:p>).
  * - When `wrapLines` is absent or incoherent:
  *   Returns the plain string `text`, emitting standard <a:p> elements per operator newline.
+ * SPEC-29-01: Validates wrapLines through validateWrapLines before accepting.
  */
 export function resolveTextRunsForPptx(
   element: ResolvedElement
@@ -413,9 +504,8 @@ export function resolveTextRunsForPptx(
     return text;
   }
 
-  const flatWrap = element.wrapLines.join(' ').replace(/\s+/g, ' ').trim();
-  const flatText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-  if (flatWrap !== flatText) {
+  const validLines = validateWrapLines(text, element.wrapLines);
+  if (validLines === null) {
     return text;
   }
 
@@ -426,9 +516,12 @@ export function resolveTextRunsForPptx(
   for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
     const para = paragraphs[pIdx];
     const isLastPara = pIdx === paragraphs.length - 1;
-    const paraWords = para.split(/\s+/).filter(Boolean);
+    const paraWords = para.trim().split(/\s+/).filter(Boolean);
 
     if (paraWords.length === 0) {
+      if (wrapIndex < validLines.length && validLines[wrapIndex] === '') {
+        wrapIndex++;
+      }
       runs.push({
         text: '',
         options: { breakLine: !isLastPara },
@@ -439,13 +532,9 @@ export function resolveTextRunsForPptx(
     const paraLines: string[] = [];
     let wordsCollected = 0;
 
-    while (wrapIndex < element.wrapLines.length && wordsCollected < paraWords.length) {
-      const candidate = element.wrapLines[wrapIndex];
-      const cWords = candidate.split(/\s+/).filter(Boolean).length;
-      if (cWords === 0) {
-        wrapIndex++;
-        continue;
-      }
+    while (wrapIndex < validLines.length && wordsCollected < paraWords.length) {
+      const candidate = validLines[wrapIndex];
+      const cWords = candidate.trim().split(/\s+/).filter(Boolean).length;
       if (wordsCollected + cWords <= paraWords.length) {
         paraLines.push(candidate);
         wordsCollected += cWords;
@@ -487,6 +576,7 @@ export function resolveTextRunsForPptx(
  * Includes coherence guard: only uses `wrapLines` when flattened wrap text matches
  * the resolved element text, safely falling back to resolved text for dynamically
  * substituted placeholder tokens (e.g. `{sermon_title}` substituted with weekly title).
+ * SPEC-29-01: Validates wrapLines through validateWrapLines before accepting.
  */
 export function resolveElementTextForPptx(
   element: ResolvedElement
@@ -496,10 +586,9 @@ export function resolveElementTextForPptx(
   if (text === undefined) return undefined;
 
   if (Array.isArray(element.wrapLines) && element.wrapLines.length > 0) {
-    const flatWrap = element.wrapLines.join(' ').replace(/\s+/g, ' ').trim();
-    const flatText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    if (flatWrap === flatText) {
-      const joined = element.wrapLines.join('\n');
+    const validLines = validateWrapLines(text, element.wrapLines);
+    if (validLines !== null) {
+      const joined = validLines.join('\n');
       if (joined.trim()) return joined;
     }
   }
@@ -590,6 +679,41 @@ export function resolveVerticalAlign(
     return style.verticalAlign;
   }
   return DEFAULT_VERTICAL_ALIGN;
+}
+
+/**
+ * SPEC-29-03: Resolves vertical alignment for PPTX generation.
+ * Retains authored vertical alignment (top/middle/bottom) when estimated content fits.
+ * When estimated text scale reaches MIN_TEXT_FIT_SCALE and still exceeds the box height,
+ * chooses 'top' anchoring so the first visible line is whole and never clipped symmetrically.
+ */
+export function resolvePptxVerticalAlign(
+  element: ResolvedElement
+): 'top' | 'middle' | 'bottom' {
+  const style = element.style;
+  const authoredAlign = resolveVerticalAlign(style);
+  if (element.type !== 'text') return authoredAlign;
+
+  const text = resolveElementText(element);
+  if (!text) return authoredAlign;
+
+  const scale = estimateTextFitScale(element);
+  if (scale <= MIN_TEXT_FIT_SCALE) {
+    const lineCount = resolveWrapLineCount(element);
+    const em = fontSizePx(style);
+    const effectiveLineHeight =
+      typeof style?.lineHeight === 'number' && style.lineHeight > 0
+        ? style.lineHeight
+        : TEXT_LINE_HEIGHT;
+    const boxHeightPx = (element.h / 100) * REFERENCE_CANVAS.height;
+    const requiredHeightPx = lineCount * (scale * em) * effectiveLineHeight;
+
+    if (requiredHeightPx > boxHeightPx) {
+      return 'top';
+    }
+  }
+
+  return authoredAlign;
 }
 
 /** `fontWeight` is free-form in the registry: accept `bold` and 600+ numerics. */
