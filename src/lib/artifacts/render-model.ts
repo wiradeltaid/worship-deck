@@ -189,17 +189,21 @@ export function estimateTokenAdvanceEm(token: string): number {
   let totalEm = 0;
   for (let i = 0; i < token.length; i++) {
     const ch = token[i];
-    // Very narrow glyphs (~0.28em): i, l, j, I, 1, punctuation, delimiters, NBSP
-    if ('ijlIt1!|:;\',.[]()/-` '.includes(ch)) {
+    // Very narrow glyphs (~0.23em): i, j, l, I, 1, punctuation, delimiters, NBSP
+    if ('ijlI1!|:;\',.[]()/-` '.includes(ch)) {
+      totalEm += 0.23;
+    }
+    // Narrow lowercase glyphs (~0.28em): f, t
+    else if ('ft'.includes(ch)) {
       totalEm += 0.28;
     }
-    // Narrow lowercase glyphs (~0.35em): f, r, t
-    else if ('frt'.includes(ch)) {
-      totalEm += 0.35;
+    // Medium-narrow lowercase (~0.34em): r
+    else if ('r'.includes(ch)) {
+      totalEm += 0.34;
     }
-    // Very wide glyphs (~0.85em): m, w, M, W
+    // Very wide glyphs (~0.80em): m, w, M, W
     else if ('mwMW'.includes(ch)) {
-      totalEm += 0.85;
+      totalEm += 0.80;
     }
     // Standard uppercase (~0.67em): A-Z
     else if (ch >= 'A' && ch <= 'Z') {

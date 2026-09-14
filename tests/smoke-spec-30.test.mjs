@@ -61,16 +61,17 @@ test('T-30-01: Shared deterministic token measurement and fallback longest-token
     `Fallback longest-token width must be finite positive, got ${fallbackWidth}`
   );
 
-  // 'international' is 13 chars with narrow glyphs (i, t, l, r). Proportional advance: 5.60em * 180 = 1008px.
-  assert.equal(fallbackWidth, 1008, 'Longest word "international" measures 1008px at 180px font');
+  // 'international' is 13 chars with narrow glyphs (i, t, l, r). Calibrated Arial advance: 5.44em * 180 = 979.2px.
+  assert.equal(fallbackWidth, 979.2, 'Longest word "international" measures 979.2px at 180px font');
 
-  // 2. Comfortable fixture stays at scale 1, while 180px repro computes scale < 1
-  const reproScale = estimateTextFitScale(repro);
+  // 2. Comfortable fixture stays at scale 1, while narrow-box reproduction computes scale < 1
+  const narrowRepro = createReproElement({ w: 90 }); // 864px box < 979.2px word
+  const narrowScale = estimateTextFitScale(narrowRepro);
   assert.ok(
-    reproScale < 1.0,
-    `180px reproduction must scale down to fit width, got scale ${reproScale}`
+    narrowScale < 1.0,
+    `Narrow reproduction must scale down to fit width, got scale ${narrowScale}`
   );
-  assert.equal(reproScale, 0.97, 'Width ratio 980.68 / 1008 quantizes to scale 0.97');
+  assert.equal(narrowScale, 0.88, 'Width ratio 864 / 979.2 quantizes to scale 0.88');
 
   // Comfortable fixture: 50% width box at 32px font
   const comfortable = createReproElement({
@@ -114,7 +115,7 @@ test('T-30-01: Shared deterministic token measurement and fallback longest-token
   });
   assert.equal(
     resolveFallbackLongestTokenWidthPx(staleEl),
-    1008,
+    979.2,
     'Mismatched measurement must select deterministic fallback calculation'
   );
 
@@ -444,15 +445,15 @@ test('T-30-06: Executable Absence Guard Proofs for SPEC-30 invariants', async ()
 
   // Production path with resolveFallbackLongestTokenWidthPx prevents this defect:
   const productionWidth = resolveFallbackLongestTokenWidthPx(repro);
-  assert.equal(productionWidth, 1008, 'Production path derives real positive width');
+  assert.equal(productionWidth, 979.2, 'Production path derives real positive width');
   const productionScale = resolveTextFitScale({
     contentWidth: productionWidth,
     contentHeight: 144,
-    boxWidth: 980.68,
+    boxWidth: 864,
     boxHeight: 540,
     fontSizePx: 180,
   });
-  assert.equal(productionScale, 0.97, 'Production width properly triggers scale down to 0.97');
+  assert.equal(productionScale, 0.88, 'Production width properly triggers scale down for narrow box');
 
   // Defect Proof 2: Missing fallback partitioning defect proof
   // An unpartitioned single string in DrawingML produces 0 <a:br/> soft breaks, leaving

@@ -629,8 +629,8 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
   const unmeasuredScale = estimateTextFitScale(unmeasuredNoLwp);
 
   // SPEC-30: When unmeasured, contentWidth derives from deterministic fallback longest token width
-  // rather than falling back to 0. Overlong word (686.4px) exceeding box width (192px) shrinks to MIN_TEXT_FIT_SCALE.
-  assert.equal(unmeasuredScale, 0.35, 'unmeasured element scales to fit fallback longest token width');
+  // rather than falling back to 0. Overlong word (522.24px) exceeding box width (192px) shrinks to ~0.36.
+  assert.equal(unmeasuredScale, 0.36, 'unmeasured element scales to fit fallback longest token width');
 
   // Element with style mismatch (e.g. fontSize changed from 96 to 72 without re-measuring)
   const styleMismatch = {
@@ -649,7 +649,7 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
   };
 
   assert.equal(isTextFitScaleMeasured(styleMismatch), false, 'style mismatch is treated as unmeasured');
-  assert.equal(estimateTextFitScale(styleMismatch), 0.47, 'style mismatch uses deterministic fallback width scale');
+  assert.equal(estimateTextFitScale(styleMismatch), 0.49, 'style mismatch uses deterministic fallback width scale');
 
   // Placeholder element is treated as unmeasured
   const placeholderEl = {
@@ -664,7 +664,7 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
     },
   };
   assert.equal(isTextFitScaleMeasured(placeholderEl), false, 'placeholderKey is treated as unmeasured');
-  assert.equal(estimateTextFitScale(placeholderEl), 0.35, 'placeholderKey element uses deterministic fallback width scale');
+  assert.equal(estimateTextFitScale(placeholderEl), 0.36, 'placeholderKey element uses deterministic fallback width scale');
 });
 
 test('SPEC-23-02 Comfortable measured element returns scale 1 without gratuitous shrinking', () => {
