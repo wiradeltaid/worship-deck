@@ -704,7 +704,7 @@ decisions:
       - tests/smoke-spec-28.test.mjs
   - id: DEC-031
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-14)"
     title: Autopilot mandate for Canvas Text Whole-Word Wrapping, Box Fidelity & Safe Overflow Alignment (SPEC-29)
     file: .control/decisions/DEC-031-autopilot-mandate-canvas-text-wrapping-and-box-fidelity.md
