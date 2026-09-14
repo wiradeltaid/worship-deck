@@ -276,11 +276,14 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
 
   // Parity with ArtifactSlide.tsx: compensate negative half-leading when lineHeight < 1.0.
   // In CSS DOM, paddingTop = (1.0 - lineHeight)/2 em pushes text down into the box.
+  // In PowerPoint typography, tight line-heights sit inherently ~0.038em higher than browser CSS DOM;
+  // adding global baseline compensation ensures both top and bottom text layers align identically.
   const topHalfLeadingComp =
     effectiveLineHeight < 1.0 ? (1.0 - effectiveLineHeight) / 2 : 0;
+  const tightBaselineComp = effectiveLineHeight < 1.0 ? 0.038 : 0;
   const topShiftInches =
-    valign === 'top' && topHalfLeadingComp > 0
-      ? Math.round(((topHalfLeadingComp * fontSize) / 72) * 10000) / 10000
+    valign === 'top' && (topHalfLeadingComp > 0 || tightBaselineComp > 0)
+      ? Math.round((((topHalfLeadingComp + tightBaselineComp) * fontSize) / 72) * 10000) / 10000
       : 0;
 
   const targetY = geometry.y + topShiftInches;
@@ -288,11 +291,11 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
   // In Canvas DOM, the 16:9 stage container has overflow: hidden. Any element positioned
   // with negative coordinates (e.g. y = -4.32%) is clipped by the stage border at y = 0.
   // In PowerPoint normal editing view, shapes do not clip outside the slide canvas.
-  // When lineHeight < 1.0, PowerPoint font ascenders protrude ~0.052em above the shape boundary.
-  // Offsetting clamped targetY by this font ascender margin (7.0pt at 135pt) ensures that top-bleeding
+  // When lineHeight < 1.0, PowerPoint font ascenders protrude above the shape boundary.
+  // Offsetting clamped targetY by this font ascender margin ensures that top-bleeding
   // text aligns its top glyph ascenders exactly at the slide outline (y = 0) without protruding above it.
   const ascenderMarginInches =
-    effectiveLineHeight < 1.0 ? Math.round(((0.052 * fontSize) / 72) * 10000) / 10000 : 0;
+    effectiveLineHeight < 1.0 ? Math.round(((0.09 * fontSize) / 72) * 10000) / 10000 : 0;
   const resolvedY = valign === 'top' && targetY < 0 ? ascenderMarginInches : targetY;
 
   // When Canvas has already authoritatively partitioned lines (hasAuthoritativeWrap)
