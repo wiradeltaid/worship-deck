@@ -18,7 +18,7 @@ import {
 
 export { REFERENCE_CANVAS };
 import type { CanvasElement } from '@/lib/registry/types';
-import { DEFAULT_FONT_FAMILY, resolveCatalogFontFamily } from '@/lib/registry/font-catalog';
+import { DEFAULT_FONT_FAMILY, resolveCatalogFontFamily, getFontStack } from '@/lib/registry/font-catalog';
 
 /**
  * Shrink-to-fit policy.
@@ -166,6 +166,366 @@ export function estimateWrappedLineCount(
   const estimated = Math.ceil(totalChars / charsPerLine);
 
   return Math.min(Math.max(estimated, newlineCount), upper);
+}
+
+// ---------------------------------------------------------------------------
+// SPEC-30: Shared Fallback Layout, Measurement & Converged Fit
+// ---------------------------------------------------------------------------
+
+export const MAX_FALLBACK_LAYOUT_ITERATIONS = 5;
+export const HEADLESS_CHAR_ADVANCE_RATIO = 0.55;
+export const HEADLESS_SPACE_ADVANCE_RATIO = 0.3;
+
+export const COLLAPSIBLE_SPACE_REGEX = /[ \t\r\f\v]+/;
+export const TRIM_COLLAPSIBLE_REGEX = /^[ \t\r\f\v]+|[ \t\r\f\v]+$/g;
+
+/**
+ * Splits string on collapsible whitespace (ASCII space/tab/returns) while strictly
+ * preserving non-breaking spaces ( ) inside tokens.
+ */
+export function splitCollapsibleWords(str: string): string[] {
+  const trimmed = str.replace(TRIM_COLLAPSIBLE_REGEX, '');
+  if (!trimmed) return [];
+  return trimmed.split(COLLAPSIBLE_SPACE_REGEX).filter(Boolean);
+}
+
+export interface FallbackTextLayout {
+  scale: number;
+  lineCount: number;
+  lines: string[];
+  paragraphs: string[][];
+  runs: PptxTextRun[];
+  longestTokenWidthPx: number;
+  verticalAlign: 'top' | 'middle' | 'bottom';
+  isMeasured: boolean;
+}
+
+/**
+ * Measures token width in pixels using 2D canvas context when available (browser),
+ * falling back deterministically to character-advance estimation (Node/PPTX).
+ */
+export function measureTokenWidthPx(
+  token: string,
+  fontSizePx: number,
+  fontFamily: string = DEFAULT_FONT_FAMILY,
+  fontWeight: string = 'normal',
+  fontStyle: string = 'normal',
+  charAdvanceRatio: number = HEADLESS_CHAR_ADVANCE_RATIO
+): number {
+  if (!token) return 0;
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const stack = getFontStack(fontFamily);
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${stack}`;
+        const measured = ctx.measureText(token).width;
+        if (Number.isFinite(measured) && measured > 0) {
+          return measured;
+        }
+      }
+    } catch {}
+  }
+  return token.length * fontSizePx * charAdvanceRatio;
+}
+
+/**
+ * Measures ordinary collapsible whitespace width in pixels using 2D canvas context
+ * when available, falling back to space-advance estimation.
+ */
+export function measureSpaceWidthPx(
+  fontSizePx: number,
+  fontFamily: string = DEFAULT_FONT_FAMILY,
+  fontWeight: string = 'normal',
+  fontStyle: string = 'normal',
+  spaceAdvanceRatio: number = HEADLESS_SPACE_ADVANCE_RATIO
+): number {
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const stack = getFontStack(fontFamily);
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSizePx}px ${stack}`;
+        const measured = ctx.measureText(' ').width;
+        if (Number.isFinite(measured) && measured > 0) {
+          return measured;
+        }
+      }
+    } catch {}
+  }
+  return fontSizePx * spaceAdvanceRatio;
+}
+
+/**
+ * Derives the deterministic fallback longest-token width for an element.
+ * Prefers valid stored measurement metadata (`longestWordPx`). Otherwise computes
+ * the maximum token width across all explicit paragraphs at authored font size.
+ * Guarantees a finite, positive width for non-empty text.
+ */
+export function resolveFallbackLongestTokenWidthPx(
+  element: ResolvedElement
+): number {
+  const text = resolveElementText(element);
+  if (!text) return 0;
+
+  const style = element.style ?? {};
+  const em = fontSizePx(style);
+  const fontFamily = resolveFontFamily(style);
+  const fontWeight = (style.fontWeight ?? 'normal').toString();
+  const fontStyle = (style.fontStyle ?? 'normal').toString();
+
+  if (
+    isMeasurementValid(element) &&
+    typeof element.longestWordPx === 'number' &&
+    Number.isFinite(element.longestWordPx) &&
+    element.longestWordPx > 0
+  ) {
+    return element.longestWordPx;
+  }
+
+  const rawParagraphs = text.split('\n');
+  let maxW = 0;
+  for (const rawPara of rawParagraphs) {
+    const tokens = splitCollapsibleWords(rawPara);
+    for (const t of tokens) {
+      const w = measureTokenWidthPx(t, em, fontFamily, fontWeight, fontStyle);
+      if (w > maxW) maxW = w;
+    }
+  }
+
+  return maxW > 0 ? maxW : em * HEADLESS_CHAR_ADVANCE_RATIO;
+}
+
+/**
+ * Partitions tokens within a single paragraph into whole-word lines bounded by available width.
+ * Preserves unbreakable tokens without mid-word splits.
+ */
+export function partitionParagraphTokens(
+  tokens: string[],
+  availableWidthPx: number,
+  fontSizePx: number,
+  fontFamily: string = DEFAULT_FONT_FAMILY,
+  fontWeight: string = 'normal',
+  fontStyle: string = 'normal',
+  charAdvanceRatio: number = HEADLESS_CHAR_ADVANCE_RATIO,
+  spaceAdvanceRatio: number = HEADLESS_SPACE_ADVANCE_RATIO
+): string[] {
+  if (tokens.length === 0) return [''];
+  const spaceWidth = measureSpaceWidthPx(fontSizePx, fontFamily, fontWeight, fontStyle, spaceAdvanceRatio);
+  const lines: string[] = [];
+  let currentLine = '';
+  let currentLineWidth = 0;
+
+  for (const token of tokens) {
+    const tokenWidth = measureTokenWidthPx(token, fontSizePx, fontFamily, fontWeight, fontStyle, charAdvanceRatio);
+    if (currentLine === '') {
+      currentLine = token;
+      currentLineWidth = tokenWidth;
+    } else if (currentLineWidth + spaceWidth + tokenWidth <= availableWidthPx) {
+      currentLine += ' ' + token;
+      currentLineWidth += spaceWidth + tokenWidth;
+    } else {
+      lines.push(currentLine);
+      currentLine = token;
+      currentLineWidth = tokenWidth;
+    }
+  }
+
+  if (currentLine !== '') {
+    lines.push(currentLine);
+  }
+
+  return lines;
+}
+
+/**
+ * Computes the coupled scale-and-wrap fallback layout for a text element.
+ * Bounded by MAX_FALLBACK_LAYOUT_ITERATIONS, reconciling effective font scale and
+ * line count until stable, choosing the smaller scale on oscillation or bound hits.
+ */
+export function resolveFallbackTextLayout(
+  element: ResolvedElement
+): FallbackTextLayout {
+  const text = resolveElementText(element);
+  if (text === undefined || text === '') {
+    return {
+      scale: 1,
+      lineCount: 0,
+      lines: [],
+      paragraphs: [[]],
+      runs: [],
+      longestTokenWidthPx: 0,
+      verticalAlign: resolveVerticalAlign(element.style ?? {}),
+      isMeasured: false,
+    };
+  }
+
+  const style = element.style ?? {};
+  const em = fontSizePx(style);
+  const fontFamily = resolveFontFamily(style);
+  const fontWeight = (style.fontWeight ?? 'normal').toString();
+  const fontStyle = (style.fontStyle ?? 'normal').toString();
+  const lineHeight =
+    typeof style.lineHeight === 'number' && style.lineHeight > 0
+      ? style.lineHeight
+      : TEXT_LINE_HEIGHT;
+
+  const boxWidthPx = Math.max(1, (element.w / 100) * REFERENCE_CANVAS.width);
+  const boxHeightPx = Math.max(1, (element.h / 100) * REFERENCE_CANVAS.height);
+
+  const rawParagraphs = text.split('\n');
+  const paragraphTokens: string[][] = [];
+  let maxTokenLen = 0;
+  for (const rawPara of rawParagraphs) {
+    const tokens = splitCollapsibleWords(rawPara);
+    paragraphTokens.push(tokens);
+    for (const t of tokens) {
+      if (t.length > maxTokenLen) maxTokenLen = t.length;
+    }
+  }
+
+  const hasValidMeasurement =
+    isMeasurementValid(element) &&
+    typeof element.longestWordPx === 'number' &&
+    Number.isFinite(element.longestWordPx) &&
+    element.longestWordPx > 0;
+
+  const longestTokenWidthPx = resolveFallbackLongestTokenWidthPx(element);
+
+  // Calibrate token advance ratio when valid stored measurement is present
+  let charAdvanceRatio = HEADLESS_CHAR_ADVANCE_RATIO;
+  let spaceAdvanceRatio = HEADLESS_SPACE_ADVANCE_RATIO;
+  if (hasValidMeasurement && maxTokenLen > 0) {
+    const calibrated = element.longestWordPx! / (maxTokenLen * em);
+    if (Number.isFinite(calibrated) && calibrated > 0) {
+      charAdvanceRatio = calibrated;
+      spaceAdvanceRatio = calibrated * (HEADLESS_SPACE_ADVANCE_RATIO / HEADLESS_CHAR_ADVANCE_RATIO);
+    }
+  }
+
+  function partitionAll(scale: number) {
+    const currentFontSize = em * scale;
+    const pLines: string[][] = [];
+    const allLines: string[] = [];
+
+    for (const tokens of paragraphTokens) {
+      const lines = partitionParagraphTokens(
+        tokens,
+        boxWidthPx,
+        currentFontSize,
+        fontFamily,
+        fontWeight,
+        fontStyle,
+        charAdvanceRatio,
+        spaceAdvanceRatio
+      );
+      pLines.push(lines);
+      allLines.push(...lines);
+    }
+
+    return { paragraphs: pLines, lines: allLines, lineCount: allLines.length };
+  }
+
+  let currentScale = 1.0;
+  let lastPartition = partitionAll(currentScale);
+  let lastLineCount = lastPartition.lineCount;
+  const visitedScales: number[] = [currentScale];
+  let converged = false;
+
+  for (let iter = 0; iter < MAX_FALLBACK_LAYOUT_ITERATIONS; iter++) {
+    const contentHeight =
+      lineHeight < 1.0
+        ? (lastLineCount * lineHeight + (1.0 - lineHeight)) * em
+        : lastLineCount * lineHeight * em;
+
+    const nextScale = resolveTextFitScale({
+      contentWidth: longestTokenWidthPx,
+      contentHeight,
+      boxWidth: boxWidthPx,
+      boxHeight: boxHeightPx,
+      fontSizePx: em,
+    });
+
+    if (nextScale === currentScale) {
+      converged = true;
+      break;
+    }
+
+    currentScale = nextScale;
+    visitedScales.push(currentScale);
+    const nextPartition = partitionAll(currentScale);
+
+    if (nextPartition.lineCount === lastLineCount) {
+      lastPartition = nextPartition;
+      converged = true;
+      break;
+    }
+
+    lastPartition = nextPartition;
+    lastLineCount = nextPartition.lineCount;
+  }
+
+  // Only on bound hit / oscillation do we choose the smaller scale (safe, non-overflowing)
+  if (!converged) {
+    const minScale = Math.min(...visitedScales);
+    if (minScale !== currentScale) {
+      currentScale = minScale;
+      lastPartition = partitionAll(currentScale);
+      lastLineCount = lastPartition.lineCount;
+    }
+  }
+
+  // Residual vertical overflow top-anchoring
+  const authoredAlign = resolveVerticalAlign(style);
+  let verticalAlign: 'top' | 'middle' | 'bottom' = authoredAlign;
+  if (currentScale <= MIN_TEXT_FIT_SCALE) {
+    const requiredHeightPx = lastLineCount * (currentScale * em) * lineHeight;
+    if (requiredHeightPx > boxHeightPx) {
+      verticalAlign = 'top';
+    }
+  }
+
+  const runs: PptxTextRun[] = [];
+  const numParas = lastPartition.paragraphs.length;
+
+  for (let pIdx = 0; pIdx < numParas; pIdx++) {
+    const isLastPara = pIdx === numParas - 1;
+    const pLines = lastPartition.paragraphs[pIdx];
+
+    if (pLines.length === 1 && pLines[0] === '') {
+      runs.push({
+        text: '',
+        options: { breakLine: !isLastPara },
+      });
+      continue;
+    }
+
+    for (let lIdx = 0; lIdx < pLines.length; lIdx++) {
+      const isFirstInPara = lIdx === 0;
+      const isLastInPara = lIdx === pLines.length - 1;
+
+      runs.push({
+        text: pLines[lIdx],
+        options: {
+          ...(isFirstInPara ? {} : { softBreakBefore: true }),
+          ...(isLastInPara && !isLastPara ? { breakLine: true } : {}),
+        },
+      });
+    }
+  }
+
+  return {
+    scale: currentScale,
+    lineCount: lastLineCount,
+    lines: lastPartition.lines,
+    paragraphs: lastPartition.paragraphs,
+    runs,
+    longestTokenWidthPx,
+    verticalAlign,
+    isMeasured: hasValidMeasurement,
+  };
 }
 
 
@@ -386,7 +746,7 @@ export function validateWrapLines(
 
   for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
     const para = paragraphs[pIdx];
-    const paraWords = para.trim().split(/\s+/).filter(Boolean);
+    const paraWords = splitCollapsibleWords(para);
 
     if (paraWords.length === 0) {
       if (candIdx < candidateLines.length && candidateLines[candIdx].trim() === '') {
@@ -404,7 +764,7 @@ export function validateWrapLines(
       if (line.trim() === '') {
         return null;
       }
-      const lineWords = line.trim().split(/\s+/).filter(Boolean);
+      const lineWords = splitCollapsibleWords(line);
       if (lineWords.length === 0) {
         return null;
       }
@@ -446,8 +806,10 @@ export function isValidWrapLines(
 /**
  * Resolves the effective line count for text-fit scaling.
  * SPEC-22: Prefers authoritative `wrapLines` from Canvas if present, non-empty,
- * and coherent with resolved text; otherwise counts explicit newlines in `element.text`.
+ * and coherent with resolved text.
  * SPEC-29-01: Validates wrapLines through validateWrapLines before accepting.
+ * SPEC-23-02: When wrapLines is absent but longestWordPx is valid, estimates line count.
+ * Otherwise returns explicit newline count.
  */
 export function resolveWrapLineCount(element: ResolvedElement): number {
   const text = resolveElementText(element);
@@ -487,8 +849,10 @@ export type PptxTextRun = {
  *   carry `softBreakBefore: true` (<a:br/> inside one paragraph). The final line of an
  *   intermediate paragraph carries `breakLine: true` (ending the <a:p>).
  * - When `wrapLines` is absent or incoherent:
- *   Returns the plain string `text`, emitting standard <a:p> elements per operator newline.
+ *   Uses the shared fallback layout partition (SPEC-30) emitting complete-token runs
+ *   with softBreakBefore between lines in a paragraph and breakLine on paragraph boundaries.
  * SPEC-29-01: Validates wrapLines through validateWrapLines before accepting.
+ * SPEC-30-02: Fallback whole-token PPTX run partitioning.
  */
 export function resolveTextRunsForPptx(
   element: ResolvedElement
@@ -498,74 +862,86 @@ export function resolveTextRunsForPptx(
   if (text === undefined) return undefined;
 
   if (
-    !Array.isArray(element.wrapLines) ||
-    element.wrapLines.length === 0
+    Array.isArray(element.wrapLines) &&
+    element.wrapLines.length > 0
   ) {
-    return text;
-  }
+    const validLines = validateWrapLines(text, element.wrapLines);
+    if (validLines !== null) {
+      const paragraphs = text.split('\n');
+      let wrapIndex = 0;
+      const runs: PptxTextRun[] = [];
+      let malformed = false;
 
-  const validLines = validateWrapLines(text, element.wrapLines);
-  if (validLines === null) {
-    return text;
-  }
+      for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+        const para = paragraphs[pIdx];
+        const isLastPara = pIdx === paragraphs.length - 1;
+        const paraWords = para.trim().split(/\s+/).filter(Boolean);
 
-  const paragraphs = text.split('\n');
-  let wrapIndex = 0;
-  const runs: PptxTextRun[] = [];
+        if (paraWords.length === 0) {
+          if (wrapIndex < validLines.length && validLines[wrapIndex] === '') {
+            wrapIndex++;
+          }
+          runs.push({
+            text: '',
+            options: { breakLine: !isLastPara },
+          });
+          continue;
+        }
 
-  for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
-    const para = paragraphs[pIdx];
-    const isLastPara = pIdx === paragraphs.length - 1;
-    const paraWords = para.trim().split(/\s+/).filter(Boolean);
+        const paraLines: string[] = [];
+        let wordsCollected = 0;
 
-    if (paraWords.length === 0) {
-      if (wrapIndex < validLines.length && validLines[wrapIndex] === '') {
-        wrapIndex++;
+        while (wrapIndex < validLines.length && wordsCollected < paraWords.length) {
+          const candidate = validLines[wrapIndex];
+          const cWords = candidate.trim().split(/\s+/).filter(Boolean).length;
+          if (wordsCollected + cWords <= paraWords.length) {
+            paraLines.push(candidate);
+            wordsCollected += cWords;
+            wrapIndex++;
+          } else {
+            // Words cross paragraph boundary -> malformed wrapLines, fallback to plain text
+            malformed = true;
+            break;
+          }
+        }
+
+        if (malformed || wordsCollected !== paraWords.length) {
+          malformed = true;
+          break;
+        }
+
+        for (let lIdx = 0; lIdx < paraLines.length; lIdx++) {
+          const lineText = paraLines[lIdx];
+          const isFirstInPara = lIdx === 0;
+          const isLastInPara = lIdx === paraLines.length - 1;
+
+          runs.push({
+            text: lineText,
+            options: {
+              ...(isFirstInPara ? {} : { softBreakBefore: true }),
+              ...(isLastInPara && !isLastPara ? { breakLine: true } : {}),
+            },
+          });
+        }
       }
-      runs.push({
-        text: '',
-        options: { breakLine: !isLastPara },
-      });
-      continue;
-    }
 
-    const paraLines: string[] = [];
-    let wordsCollected = 0;
-
-    while (wrapIndex < validLines.length && wordsCollected < paraWords.length) {
-      const candidate = validLines[wrapIndex];
-      const cWords = candidate.trim().split(/\s+/).filter(Boolean).length;
-      if (wordsCollected + cWords <= paraWords.length) {
-        paraLines.push(candidate);
-        wordsCollected += cWords;
-        wrapIndex++;
-      } else {
-        // Words cross paragraph boundary -> malformed wrapLines, fallback to plain text
-        return text;
+      if (!malformed && runs.length > 0) {
+        return runs;
       }
-    }
-
-    if (wordsCollected !== paraWords.length) {
-      // Could not cleanly partition wrapLines to paragraph -> fallback
-      return text;
-    }
-
-    for (let lIdx = 0; lIdx < paraLines.length; lIdx++) {
-      const lineText = paraLines[lIdx];
-      const isFirstInPara = lIdx === 0;
-      const isLastInPara = lIdx === paraLines.length - 1;
-
-      runs.push({
-        text: lineText,
-        options: {
-          ...(isFirstInPara ? {} : { softBreakBefore: true }),
-          ...(isLastInPara && !isLastPara ? { breakLine: true } : {}),
-        },
-      });
     }
   }
 
-  return runs.length > 0 ? runs : text;
+  // SPEC-30: Fallback whole-token PPTX run partitioning
+  const fallback = resolveFallbackTextLayout(element);
+  if (
+    fallback.runs.length > 1 ||
+    (fallback.runs.length === 1 &&
+      (Boolean(fallback.runs[0].options?.softBreakBefore) || Boolean(fallback.runs[0].options?.breakLine)))
+  ) {
+    return fallback.runs;
+  }
+
+  return text;
 }
 
 /**
@@ -577,6 +953,7 @@ export function resolveTextRunsForPptx(
  * the resolved element text, safely falling back to resolved text for dynamically
  * substituted placeholder tokens (e.g. `{sermon_title}` substituted with weekly title).
  * SPEC-29-01: Validates wrapLines through validateWrapLines before accepting.
+ * SPEC-30: When wrapLines is absent, joins fallback lines when multiple lines are produced.
  */
 export function resolveElementTextForPptx(
   element: ResolvedElement
@@ -592,6 +969,14 @@ export function resolveElementTextForPptx(
       if (joined.trim()) return joined;
     }
   }
+
+  // SPEC-30: Fallback joined lines when fallback has multiple lines
+  const fallback = resolveFallbackTextLayout(element);
+  if (fallback.lines.length > 1) {
+    const joined = fallback.lines.join('\n');
+    if (joined.trim()) return joined;
+  }
+
   return text;
 }
 
@@ -602,9 +987,9 @@ export function resolveElementTextForPptx(
  * SPEC-22: Uses `resolveWrapLineCount` to account for authoritative soft-wrapped
  * lines from Canvas, ensuring multi-line reflowed paragraphs apply proper fit scaling.
  *
- * SPEC-23-02: Gives `estimateTextFitScale` a real `contentWidth` from `element.longestWordPx`
- * when measurements are valid, forcing down-scaling on overlong words so LibreOffice Impress
- * will not break them mid-word. Falls back to `contentWidth: 0` for unmeasured elements.
+ * SPEC-23-02 / SPEC-30-01: Gives `estimateTextFitScale` a real `contentWidth` from
+ * `element.longestWordPx` when measurements are valid, falling back to deterministic
+ * fallback longest-token width (never 0 for non-empty text).
  */
 export function estimateTextFitScale(element: ResolvedElement): number {
   const text = resolveElementText(element);
@@ -614,10 +999,7 @@ export function estimateTextFitScale(element: ResolvedElement): number {
   const lines = resolveWrapLineCount(element);
   if (lines <= 0) return 1;
 
-  const isMeasured = isMeasurementValid(element);
-  const contentWidth = isMeasured && typeof element.longestWordPx === 'number'
-    ? element.longestWordPx
-    : 0;
+  const contentWidth = resolveFallbackLongestTokenWidthPx(element);
 
   const lineHeight =
     typeof element.style?.lineHeight === 'number' && element.style.lineHeight > 0
@@ -696,6 +1078,16 @@ export function resolvePptxVerticalAlign(
 
   const text = resolveElementText(element);
   if (!text) return authoredAlign;
+
+  // SPEC-30: When wrapLines is absent or rejected, fallback layout provides authoritative vertical alignment
+  const hasAuthoritativeWrap =
+    Array.isArray(element.wrapLines) &&
+    element.wrapLines.length > 0 &&
+    validateWrapLines(text, element.wrapLines) !== null;
+
+  if (!hasAuthoritativeWrap) {
+    return resolveFallbackTextLayout(element).verticalAlign;
+  }
 
   const scale = estimateTextFitScale(element);
   if (scale <= MIN_TEXT_FIT_SCALE) {

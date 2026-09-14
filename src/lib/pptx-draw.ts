@@ -35,6 +35,9 @@ import {
   resolveTextAlign,
   resolveVerticalAlign,
   resolvePptxVerticalAlign,
+  resolveFallbackTextLayout,
+  validateWrapLines,
+  type PptxTextRun,
   toPptxColor,
   toPptxGeometry,
   toPptxTransparency,
@@ -229,29 +232,38 @@ function addImageUnavailable(slide: PptxSlide, box: PptxBox): void {
 }
 
 function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
-  const fallbackText = resolveElementTextForPptx(element);
-  if (fallbackText === undefined) return;
-  const textRuns = resolveTextRunsForPptx(element) ?? fallbackText;
+  const text = resolveElementText(element);
+  if (text === undefined) return;
 
   const geometry = toPptxGeometry(element);
   const style = element.style;
 
-  /**
-   * Shared shrink-to-fit policy, so the deck and the browser agree.
-   *
-   * Two halves, because `fit: 'shrink'` alone is not enough: pptxgenjs emits a
-   * bare `<a:normAutofit/>`, and PowerPoint only computes a font scale for it
-   * when the shape is next edited or resized — a freshly generated deck would
-   * still open with the text spilling. So the estimated scale is baked into the
-   * font size here, and `fit` is left on so PowerPoint can refine it further
-   * (under SPEC-22, the estimate accounts for Canvas soft-wrapping via `resolveWrapLineCount`
-   * while `fit` covers remaining metric drift) instead of overriding it.
-   *
-   * The estimate is a total pure function and the guard below re-checks its
-   * result: a fit failure degrades to the authored size, never to a failed
-   * download on Sabbath morning.
-   */
-  const scale = estimateTextFitScale(element);
+  const hasAuthoritativeWrap =
+    Array.isArray(element.wrapLines) &&
+    element.wrapLines.length > 0 &&
+    validateWrapLines(text, element.wrapLines) !== null;
+
+  let textRuns: string | PptxTextRun[];
+  let scale: number;
+  let valign: 'top' | 'middle' | 'bottom';
+
+  if (!hasAuthoritativeWrap) {
+    const fallbackLayout = resolveFallbackTextLayout(element);
+    textRuns =
+      fallbackLayout.runs.length > 1 ||
+      (fallbackLayout.runs.length === 1 &&
+        (Boolean(fallbackLayout.runs[0].options?.softBreakBefore) || Boolean(fallbackLayout.runs[0].options?.breakLine)))
+        ? fallbackLayout.runs
+        : (fallbackLayout.lines.length > 0 ? fallbackLayout.lines.join(' ') : text);
+    scale = fallbackLayout.scale;
+    valign = fallbackLayout.verticalAlign;
+  } else {
+    const fallbackText = resolveElementTextForPptx(element) ?? text;
+    textRuns = resolveTextRunsForPptx(element) ?? fallbackText;
+    scale = estimateTextFitScale(element);
+    valign = resolvePptxVerticalAlign(element);
+  }
+
   const fontSize =
     Number.isFinite(scale) && scale > 0 && scale < 1
       ? Math.round(geometry.fontSize * scale * 100) / 100
@@ -271,7 +283,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     italic: resolveItalic(style),
     underline: resolveUnderline(style) ? { style: 'sng' } : undefined,
     align: resolveTextAlign(style),
-    valign: resolvePptxVerticalAlign(element),
+    valign,
     lineSpacingMultiple:
       (typeof style?.lineHeight === 'number' && style.lineHeight > 0
         ? style.lineHeight
