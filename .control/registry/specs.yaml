@@ -1460,6 +1460,41 @@ waves:
         tests:
           - tests/smoke-spec-28.test.mjs
 
+  - id: SPEC-29
+    status: open
+    release: canvas-text-wrapping-and-box-fidelity
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-28]
+    spec_folder: .scratch/SPEC-29-canvas-text-wrapping-and-box-fidelity/
+    spec_reviewed:
+      date: '2026-09-14'
+      sha: '4af92c2'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-29-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-29.test.mjs
+      - id: "SPEC-29-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-29-01"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-29.test.mjs
+      - id: "SPEC-29-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-29-02"]
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-29.test.mjs
+
 
 
 
