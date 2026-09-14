@@ -21,6 +21,7 @@ import {
   syncTextClipOnScale,
   measureScale1ContentHeightPx,
   computeMinTextHeightRefPx,
+  computeAutoExpandedHeight,
   DEFAULT_FONT_FAMILY,
   TEXT_LINE_HEIGHT,
 } from '../src/lib/registry/canvas-utils.ts';
@@ -422,6 +423,7 @@ test('T-29-02: syncTextClipOnScale bounds clipPath to exact object dimensions', 
     setCoords() {},
   };
 
+  // 1. Fallback without authored dimensions (uses target.width, target.height)
   const target = {
     left: 100,
     top: 150,
@@ -438,6 +440,27 @@ test('T-29-02: syncTextClipOnScale bounds clipPath to exact object dimensions', 
   assert.equal(clip.top, 150);
   assert.equal(clip.width, 300);
   assert.equal(clip.height, 80);
+
+  // 2. Authored dimensions on transparent proxy win over internal Fabric height
+  // e.g. Fabric Textbox height is 470 (multi-line), but authored box is 432x350
+  const proxyTarget = {
+    left: 100,
+    top: 150,
+    width: 500, // Fabric internal width
+    height: 470, // Fabric internal height
+    scaleX: 1,
+    scaleY: 1,
+    clipPath: clip,
+    data: {
+      authoredWidth: 350,
+      authoredHeight: 432,
+    },
+  };
+
+  const proxyRes = syncTextClipOnScale(proxyTarget);
+  assert.equal(proxyRes, true);
+  assert.equal(clip.width, 350, 'Clip width must reflect data.authoredWidth (350), not Fabric width (500)');
+  assert.equal(clip.height, 432, 'Clip height must reflect data.authoredHeight (432), not Fabric height (470)');
 });
 
 // ---------------------------------------------------------------------------
@@ -599,4 +622,113 @@ test('T-29-Absence-Guard: Injected defect forms fail cleanly', () => {
     style: { fontSize: 180, verticalAlign: 'middle' },
   });
   assert.equal(resolvePptxVerticalAlign(el), 'top', 'Guarded resolver anchors top line to prevent ascender clipping');
+});
+
+test('T-29-04: Multi-line Fabric text proxy with small authoredHeight expands correctly on font size commit', () => {
+  // 1. Test computeAutoExpandedHeight directly on live defect case:
+  // Textbox with text 'Bandung International Community', fontSize 160, authored height 160px (14.81%),
+  // but Fabric's internal Textbox height is 470px (calcTextHeight).
+  // When font size is committed to 180, required height is 432px.
+  // The expansion check must compare against authoredHeight (160px), NOT Fabric internal height (470px).
+  const initialTop = 10;
+  const initialW = 98.23;
+  const initialH = 14.8148;
+  const currentAuthoredW = pctToPx(initialW, CANVAS_WIDTH);
+  const currentAuthoredH = pctToPx(initialH, CANVAS_HEIGHT); // ~160px
+  const currentTopPx = pctToPx(initialTop, CANVAS_HEIGHT);
+
+  const textContent = 'Bandung International Community';
+  const newFontSize = 180;
+  const lHeight = 0.8;
+
+  const expansionResult = computeAutoExpandedHeight({
+    textContent,
+    authoredWidthPx: currentAuthoredW,
+    authoredHeightPx: currentAuthoredH,
+    fontSizePx: newFontSize,
+    lineHeight: lHeight,
+    topPx: currentTopPx,
+  });
+
+  assert.equal(expansionResult.shouldExpand, true, 'computeAutoExpandedHeight must signal expansion');
+  assert.equal(
+    expansionResult.boundedRequiredHeight,
+    432,
+    'boundedRequiredHeight must be 432px (calculated for scale 1 content)'
+  );
+
+  // 2. Test strictly bounded remaining canvas height:
+  // e.g. Box placed near bottom: top = 500, canvasHeight = 540 -> remaining = 40px.
+  // minSingleLine = 100, requiredHeight = 120.
+  // boundedRequiredHeight MUST NOT exceed remaining canvas height (40px) or overflow canvas!
+  const constrainedResult = computeAutoExpandedHeight({
+    textContent,
+    authoredWidthPx: currentAuthoredW,
+    authoredHeightPx: 30,
+    fontSizePx: 100,
+    lineHeight: 1.0,
+    topPx: 500,
+    canvasHeight: 540,
+  });
+
+  assert.ok(
+    constrainedResult.boundedRequiredHeight <= 40,
+    `boundedRequiredHeight (${constrainedResult.boundedRequiredHeight}) must not exceed remaining canvas height (40)`
+  );
+  assert.ok(
+    500 + constrainedResult.boundedRequiredHeight <= 540,
+    'Bottom edge of expanded box must strictly stay within canvas'
+  );
+
+  // 3. Test serialization with Fabric Textbox mock with internal height = 470px (multi-line rendered height)
+  // but authoredHeight = boundedRequiredHeight (432)
+  const boundedRequiredH = expansionResult.boundedRequiredHeight;
+  const mockFabricObject = {
+    id: 't-proxy-multiline',
+    type: 'textbox',
+    text: textContent,
+    left: pctToPx(1, CANVAS_WIDTH),
+    top: currentTopPx,
+    width: currentAuthoredW,
+    height: 470, // Fabric internal text height > boundedRequiredH
+    scaleX: 1,
+    scaleY: 1,
+    data: {
+      elementId: 't-proxy-multiline',
+      authoredWidth: currentAuthoredW,
+      authoredHeight: boundedRequiredH,
+      heightChange: 'font-size-auto',
+    },
+  };
+
+  const layout = {
+    aspectRatio: '16:9',
+    backgroundColor: '#000000',
+    elements: [
+      {
+        id: 't-proxy-multiline',
+        type: 'text',
+        x: 1,
+        y: initialTop,
+        w: initialW,
+        h: initialH,
+        content: textContent,
+        style: { fontSize: 160 },
+      },
+    ],
+  };
+
+  const serialized = serializeCanvas(
+    { getObjects: () => [mockFabricObject] },
+    layout,
+    new Map()
+  );
+
+  const updatedEl = serialized.find((e) => e.id === 't-proxy-multiline');
+  assert.ok(updatedEl);
+  assert.equal(
+    updatedEl.h,
+    pxToPct(boundedRequiredH, CANVAS_HEIGHT),
+    'Serialized element height must reflect authoredHeight (boundedRequiredH), not unexpanded initialH'
+  );
 });

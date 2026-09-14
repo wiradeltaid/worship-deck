@@ -376,8 +376,16 @@ export function syncTextClipOnMove(target: any): boolean {
 export function syncTextClipOnScale(target: any): boolean {
   if (!target || !target.clipPath) return false;
   const clip = target.clipPath;
-  const w = (target.width ?? 0) * (target.scaleX ?? 1);
-  const h = (target.height ?? 0) * (target.scaleY ?? 1);
+  const authoredW =
+    typeof target.data?.authoredWidth === 'number' && target.data.authoredWidth > 0
+      ? target.data.authoredWidth
+      : target.width ?? 0;
+  const authoredH =
+    typeof target.data?.authoredHeight === 'number' && target.data.authoredHeight > 0
+      ? target.data.authoredHeight
+      : target.height ?? 0;
+  const w = authoredW * (target.scaleX ?? 1);
+  const h = authoredH * (target.scaleY ?? 1);
   clip.set({
     left: target.left ?? 0,
     top: target.top ?? 0,
@@ -775,6 +783,66 @@ export function measureScale1ContentHeightPx(
   return Math.max(minSingleLine, measuredHeight);
 }
 
+export interface ComputeAutoExpandedHeightParams {
+  textContent: string;
+  authoredWidthPx: number;
+  authoredHeightPx: number;
+  fontSizePx: number;
+  lineHeight?: number;
+  fontFamily?: string;
+  fontWeight?: string;
+  fontStyle?: string;
+  topPx: number;
+  canvasHeight?: number;
+}
+
+/**
+ * SPEC-29-02: Shared pure helper to compute auto-expanded text box height.
+ * Accurately measures scale-1 wrapped text height against authored width and
+ * bounds the expansion strictly within remaining canvas height (CANVAS_HEIGHT - topPx).
+ */
+export function computeAutoExpandedHeight(params: ComputeAutoExpandedHeightParams): {
+  requiredHeight: number;
+  boundedRequiredHeight: number;
+  shouldExpand: boolean;
+} {
+  const {
+    textContent,
+    authoredWidthPx,
+    authoredHeightPx,
+    fontSizePx,
+    lineHeight = TEXT_LINE_HEIGHT,
+    fontFamily = DEFAULT_FONT_FAMILY,
+    fontWeight = 'normal',
+    fontStyle = 'normal',
+    topPx,
+    canvasHeight = CANVAS_HEIGHT,
+  } = params;
+
+  const normFontSize = normalizeFontSize(fontSizePx);
+  const effLineHeight = typeof lineHeight === 'number' && lineHeight > 0 ? lineHeight : TEXT_LINE_HEIGHT;
+  const minSingleLine = computeMinTextHeightRefPx(normFontSize, effLineHeight);
+  const measuredReqH = measureScale1ContentHeightPx(
+    textContent,
+    authoredWidthPx,
+    normFontSize,
+    effLineHeight,
+    fontFamily,
+    fontWeight,
+    fontStyle
+  );
+  const requiredHeight = Math.max(minSingleLine, measuredReqH);
+  const remainingCanvasH = Math.max(0, canvasHeight - Math.max(0, topPx));
+  const boundedRequiredHeight = Math.min(requiredHeight, remainingCanvasH);
+  const shouldExpand = boundedRequiredHeight > authoredHeightPx;
+
+  return {
+    requiredHeight,
+    boundedRequiredHeight,
+    shouldExpand,
+  };
+}
+
 export function serializeTextStyle(
   source: CanvasElement,
   textObj: {
@@ -1018,10 +1086,18 @@ export function serializeCanvas(
     }
 
     // SPEC-23-05 Req 3 / SPEC-26-02 / SPEC-28-03: Preserves authored h on save unless user actively resized height or font size auto-expanded
+    const autoExpandedH =
+      typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
+        ? (obj as any).data.authoredHeight
+        : measuredHeight;
     const h = isHealing
       ? source.h
       : hasAuthoredHeight
-        ? (isUserResizedH || isFontSizeAutoH ? pxToPct(measuredHeight, CANVAS_HEIGHT) : source.h)
+        ? (isUserResizedH
+            ? pxToPct(measuredHeight, CANVAS_HEIGHT)
+            : isFontSizeAutoH
+              ? pxToPct(autoExpandedH, CANVAS_HEIGHT)
+              : source.h)
         : isText
           ? Math.max(source.h, measuredTextHeightPct)
           : isHeightResized

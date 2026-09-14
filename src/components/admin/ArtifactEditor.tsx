@@ -103,6 +103,7 @@ import {
   computeContextMenuCoords,
   computeMinTextHeightRefPx,
   measureScale1ContentHeightPx,
+  computeAutoExpandedHeight,
   elementToFabricObject,
   filterOutBackgroundElements,
   getElementId,
@@ -909,9 +910,67 @@ export default function ArtifactEditor({
           const id = getElementId(target);
           const newText = target.text ?? '';
           if (id) {
-            setLiveElements((prev) =>
-              prev.map((el) => (el.id === id ? { ...el, content: newText } : el))
-            );
+            const liveEl = liveElementsRef.current.find((e) => e.id === id);
+            const fSize = normalizeFontSize(target.fontSize ?? liveEl?.style?.fontSize);
+            const lHeight =
+              typeof target.lineHeight === 'number'
+                ? target.lineHeight
+                : typeof liveEl?.style?.lineHeight === 'number'
+                  ? liveEl.style.lineHeight
+                  : TEXT_LINE_HEIGHT;
+            const currentW =
+              typeof targetData.authoredWidth === 'number' && targetData.authoredWidth > 0
+                ? targetData.authoredWidth
+                : typeof liveEl?.w === 'number'
+                  ? pctToPx(liveEl.w, CANVAS_WIDTH)
+                  : (target.width ?? 100) * Math.abs(target.scaleX ?? 1);
+            const currentH =
+              typeof targetData.authoredHeight === 'number' && targetData.authoredHeight > 0
+                ? targetData.authoredHeight
+                : typeof liveEl?.h === 'number'
+                  ? pctToPx(liveEl.h, CANVAS_HEIGHT)
+                  : (target.height ?? 50) * Math.abs(target.scaleY ?? 1);
+            const currentTopPx =
+              typeof target.top === 'number'
+                ? target.top
+                : liveEl?.y
+                  ? pctToPx(liveEl.y, CANVAS_HEIGHT)
+                  : 0;
+
+            const { boundedRequiredHeight, shouldExpand } = computeAutoExpandedHeight({
+              textContent: newText,
+              authoredWidthPx: currentW,
+              authoredHeightPx: currentH,
+              fontSizePx: fSize,
+              lineHeight: lHeight,
+              fontFamily: liveEl?.style?.fontFamily || target.fontFamily,
+              fontWeight: String(liveEl?.style?.fontWeight || target.fontWeight || 'normal'),
+              fontStyle: String(liveEl?.style?.fontStyle || target.fontStyle || 'normal'),
+              topPx: currentTopPx,
+            });
+
+            if (shouldExpand) {
+              target.set({ height: boundedRequiredHeight, scaleY: 1 });
+              target.setCoords?.();
+              targetData.authoredHeight = boundedRequiredHeight;
+              targetData.heightChange = 'font-size-auto';
+              syncTextClipOnScale(target);
+              setLiveElements((prev) =>
+                prev.map((el) =>
+                  el.id === id
+                    ? {
+                        ...el,
+                        content: newText,
+                        h: pxToPct(boundedRequiredHeight, CANVAS_HEIGHT),
+                      }
+                    : el
+                )
+              );
+            } else {
+              setLiveElements((prev) =>
+                prev.map((el) => (el.id === id ? { ...el, content: newText } : el))
+              );
+            }
           }
           // SPEC-28-01: Transparent proxies must not be mutated by applyFabricTextFit
           if (!targetData.isTransparentProxy) {
@@ -1924,14 +1983,89 @@ export default function ArtifactEditor({
    */
   const handleTextContentChange = (value: string) => {
     setTextContent(value);
-    setLiveElements((prev) =>
-      prev.map((el) => (selectedElementIds.includes(el.id) ? { ...el, content: value } : el))
-    );
     const canvas = fabricCanvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      setLiveElements((prev) =>
+        prev.map((el) => (selectedElementIds.includes(el.id) ? { ...el, content: value } : el))
+      );
+      markDirty();
+      return;
+    }
     const texts = canvas.getActiveObjects().filter(isFabricTextObject);
-    if (texts.length !== 1) return;
-    texts[0].set({ text: value, fill: 'transparent', stroke: 'transparent', shadow: null });
+    if (texts.length !== 1) {
+      setLiveElements((prev) =>
+        prev.map((el) => (selectedElementIds.includes(el.id) ? { ...el, content: value } : el))
+      );
+      markDirty();
+      return;
+    }
+    const textObj = texts[0];
+    textObj.set({ text: value, fill: 'transparent', stroke: 'transparent', shadow: null });
+    const objData = ((textObj as any).data = (textObj as any).data || {});
+    const id = getElementId(textObj);
+    const liveEl = liveElementsRef.current.find((e) => e.id === id);
+
+    const fSize = normalizeFontSize(textObj.fontSize ?? liveEl?.style?.fontSize ?? fontSize);
+    const lHeight =
+      typeof textObj.lineHeight === 'number'
+        ? textObj.lineHeight
+        : typeof liveEl?.style?.lineHeight === 'number'
+          ? liveEl.style.lineHeight
+          : TEXT_LINE_HEIGHT;
+    const currentW =
+      typeof objData.authoredWidth === 'number' && objData.authoredWidth > 0
+        ? objData.authoredWidth
+        : typeof liveEl?.w === 'number'
+          ? pctToPx(liveEl.w, CANVAS_WIDTH)
+          : (textObj.width ?? 100) * Math.abs(textObj.scaleX ?? 1);
+    const currentH =
+      typeof objData.authoredHeight === 'number' && objData.authoredHeight > 0
+        ? objData.authoredHeight
+        : typeof liveEl?.h === 'number'
+          ? pctToPx(liveEl.h, CANVAS_HEIGHT)
+          : (textObj.height ?? 50) * Math.abs(textObj.scaleY ?? 1);
+    const currentTopPx =
+      typeof textObj.top === 'number'
+        ? textObj.top
+        : liveEl?.y
+          ? pctToPx(liveEl.y, CANVAS_HEIGHT)
+          : 0;
+
+    const { boundedRequiredHeight, shouldExpand } = computeAutoExpandedHeight({
+      textContent: value,
+      authoredWidthPx: currentW,
+      authoredHeightPx: currentH,
+      fontSizePx: fSize,
+      lineHeight: lHeight,
+      fontFamily: liveEl?.style?.fontFamily || textObj.fontFamily,
+      fontWeight: String(liveEl?.style?.fontWeight || textObj.fontWeight || 'normal'),
+      fontStyle: String(liveEl?.style?.fontStyle || textObj.fontStyle || 'normal'),
+      topPx: currentTopPx,
+    });
+
+    if (shouldExpand) {
+      textObj.set({ height: boundedRequiredHeight, scaleY: 1 });
+      textObj.setCoords?.();
+      objData.authoredHeight = boundedRequiredHeight;
+      objData.heightChange = 'font-size-auto';
+      syncTextClipOnScale(textObj);
+      setLiveElements((prev) =>
+        prev.map((el) =>
+          el.id === id
+            ? {
+                ...el,
+                content: value,
+                h: pxToPct(boundedRequiredHeight, CANVAS_HEIGHT),
+              }
+            : el
+        )
+      );
+    } else {
+      setLiveElements((prev) =>
+        prev.map((el) => (el.id === id ? { ...el, content: value } : el))
+      );
+    }
+
     canvas.requestRenderAll();
     syncSelection(canvas);
     markDirty();
@@ -1943,7 +2077,6 @@ export default function ArtifactEditor({
 
   const handleFontSizeCommit = () => {
     const result = commitFontSizeFromDraft(fontSizeInput, fontSize);
-    const oldFontSize = fontSize;
     setFontSize(result.fontSize);
     setFontSizeInput(result.inputValue);
     markDirty();
@@ -1966,65 +2099,54 @@ export default function ArtifactEditor({
           : typeof liveEl?.style?.lineHeight === 'number'
             ? liveEl.style.lineHeight
             : TEXT_LINE_HEIGHT;
-      const minSingleLine = computeMinTextHeightRefPx(result.fontSize, lHeight);
-      const currentW = (obj.width ?? 100) * Math.abs(obj.scaleX ?? 1);
-      const currentH = (obj.height ?? 50) * Math.abs(obj.scaleY ?? 1);
+      const currentW =
+        typeof objData.authoredWidth === 'number' && objData.authoredWidth > 0
+          ? objData.authoredWidth
+          : typeof liveEl?.w === 'number'
+            ? pctToPx(liveEl.w, CANVAS_WIDTH)
+            : (obj.width ?? 100) * Math.abs(obj.scaleX ?? 1);
+      const currentH =
+        typeof objData.authoredHeight === 'number' && objData.authoredHeight > 0
+          ? objData.authoredHeight
+          : typeof liveEl?.h === 'number'
+            ? pctToPx(liveEl.h, CANVAS_HEIGHT)
+            : (obj.height ?? 50) * Math.abs(obj.scaleY ?? 1);
+      const currentTopPx =
+        typeof obj.top === 'number'
+          ? obj.top
+          : liveEl?.y
+            ? pctToPx(liveEl.y, CANVAS_HEIGHT)
+            : 0;
 
-      if (result.fontSize > oldFontSize) {
-        const textContent = obj.text ?? liveEl?.content ?? '';
-        const fFamily = liveEl?.style?.fontFamily || obj.fontFamily || DEFAULT_FONT_FAMILY;
-        const fWeight = String(liveEl?.style?.fontWeight || obj.fontWeight || 'normal');
-        const fStyle = String(liveEl?.style?.fontStyle || obj.fontStyle || 'normal');
-        const measuredReqH = measureScale1ContentHeightPx(
-          textContent,
-          currentW,
-          result.fontSize,
-          lHeight,
-          fFamily,
-          fWeight,
-          fStyle
+      const { boundedRequiredHeight, shouldExpand } = computeAutoExpandedHeight({
+        textContent: obj.text ?? liveEl?.content ?? '',
+        authoredWidthPx: currentW,
+        authoredHeightPx: currentH,
+        fontSizePx: result.fontSize,
+        lineHeight: lHeight,
+        fontFamily: liveEl?.style?.fontFamily || obj.fontFamily,
+        fontWeight: String(liveEl?.style?.fontWeight || obj.fontWeight || 'normal'),
+        fontStyle: String(liveEl?.style?.fontStyle || obj.fontStyle || 'normal'),
+        topPx: currentTopPx,
+      });
+
+      if (shouldExpand) {
+        obj.set({ height: boundedRequiredHeight, scaleY: 1 });
+        obj.setCoords?.();
+        objData.authoredHeight = boundedRequiredHeight;
+        objData.heightChange = 'font-size-auto';
+        syncTextClipOnScale(obj);
+        setLiveElements((prev) =>
+          prev.map((el) =>
+            el.id === id
+              ? {
+                  ...el,
+                  h: pxToPct(boundedRequiredHeight, CANVAS_HEIGHT),
+                  style: { ...el.style, fontSize: result.fontSize },
+                }
+              : el
+          )
         );
-        const requiredH = Math.max(minSingleLine, measuredReqH);
-        const currentTopPx =
-          typeof obj.top === 'number'
-            ? obj.top
-            : liveEl?.y
-              ? pctToPx(liveEl.y, CANVAS_HEIGHT)
-              : 0;
-        const maxAvailableH = Math.max(minSingleLine, CANVAS_HEIGHT - currentTopPx);
-        const boundedRequiredH = Math.min(requiredH, maxAvailableH);
-
-        if (boundedRequiredH > currentH) {
-          obj.set({ height: boundedRequiredH, scaleY: 1 });
-          obj.setCoords();
-          objData.authoredHeight = boundedRequiredH;
-          objData.heightChange = 'font-size-auto';
-          syncTextClipOnScale(obj);
-          setLiveElements((prev) =>
-            prev.map((el) =>
-              el.id === id
-                ? {
-                    ...el,
-                    h: pxToPct(boundedRequiredH, CANVAS_HEIGHT),
-                    style: { ...el.style, fontSize: result.fontSize },
-                  }
-                : el
-            )
-          );
-        } else {
-          objData.authoredHeight = currentH;
-          syncTextClipOnScale(obj);
-          setLiveElements((prev) =>
-            prev.map((el) =>
-              el.id === id
-                ? {
-                    ...el,
-                    style: { ...el.style, fontSize: result.fontSize },
-                  }
-                : el
-            )
-          );
-        }
       } else {
         objData.authoredHeight = currentH;
         syncTextClipOnScale(obj);
