@@ -1,7 +1,7 @@
 ---
 type: mandate
 id: DEC-032
-status: accepted
+status: applied
 accepted_by: 'kodesh87 (2026-09-14)'
 touches:
   - .control/memlog/autopilot-DEC-032.md
@@ -11,6 +11,9 @@ touches:
   - src/lib/artifacts/render-model.ts
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-30.test.mjs
+  - tests/smoke-spec-23.test.mjs
+  - tests/pptx-content.test.mjs
+  - package.json
 supersedes: null
 superseded_by: null
 created: '2026-09-14'
