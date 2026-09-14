@@ -683,7 +683,7 @@ decisions:
       - tests/pptx-conformance.test.mjs
   - id: DEC-030
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-14)"
     title: Autopilot mandate for Canvas Editor Interaction UX, Text Ghosting Elimination & Bounding-Box Resize Invariants (SPEC-28)
     file: .control/decisions/DEC-030-autopilot-mandate-canvas-interaction-and-resize-ux.md
