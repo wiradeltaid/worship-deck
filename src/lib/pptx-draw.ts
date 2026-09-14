@@ -616,7 +616,7 @@ export async function generatePptxFromPlan(
   const usedFonts = new Set<string>();
   for (const item of plan) {
     renderArtifactSlide(ctx, item.artifact, item.fade !== false);
-    for (const el of item.artifact.layout.elements) {
+    for (const el of item.artifact.layout.elements ?? []) {
       if (el.type === 'text' && el.style?.fontFamily) {
         usedFonts.add(el.style.fontFamily);
       }
