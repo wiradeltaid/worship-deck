@@ -2073,6 +2073,11 @@ export default function ArtifactEditor({
 
   const handleFontSizeInput = (raw: string) => {
     setFontSizeInput(raw);
+    // SPEC-21-01: Keystroke Isolation.
+    // Updates only the draft input state while typing without modifying the canvas
+    // or clamping the font size mid-keystroke. Actual canvas mutation, scaling,
+    // and persistence flags are strictly deferred until handleFontSizeCommit
+    // is triggered by blur or Enter key press.
   };
 
   const handleFontSizeCommit = () => {

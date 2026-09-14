@@ -1495,6 +1495,41 @@ waves:
         tests:
           - tests/smoke-spec-29.test.mjs
 
+  - id: SPEC-30
+    status: open
+    release: pptx-word-wrap-and-fit-parity
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-29]
+    spec_folder: .scratch/SPEC-30-pptx-word-wrap-and-fit-parity/
+    spec_reviewed:
+      date: '2026-09-14'
+      sha: 'c6fa7c2'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-30-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-30.test.mjs
+      - id: "SPEC-30-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-30-01"]
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-30.test.mjs
+      - id: "SPEC-30-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-30-02"]
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-30.test.mjs
+
 
 
 
