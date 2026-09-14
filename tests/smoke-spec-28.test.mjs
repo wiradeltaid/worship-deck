@@ -425,3 +425,29 @@ test('T-28-05: serializeCanvas on unedited template strictly preserves authored 
     }
   }
 });
+
+test('T-28-06: Absence Guard: ArtifactEditor never assigns opaque canvas.backgroundImage over ArtifactSlide', () => {
+  const sourceCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
+  const checkNoOpaqueCanvasBg = (code) => {
+    // In Option A, ArtifactSlide is the visual authority rendering layout.backgroundImage.
+    // The Fabric interaction overlay must never assign canvas.backgroundImage = bg
+    if (/canvas\.backgroundImage\s*=\s*bg\b/.test(code)) {
+      throw new Error('ABSENCE_GUARD_FAILED: canvas.backgroundImage assigned on Fabric overlay, obscuring ArtifactSlide text');
+    }
+  };
+
+  // 1. Real production code passes cleanly
+  assert.doesNotThrow(() => checkNoOpaqueCanvasBg(sourceCode));
+
+  // 2. Injected defect fails red
+  const defectiveCode = sourceCode.replace(
+    'canvas.backgroundImage = undefined;',
+    'canvas.backgroundImage = bg;'
+  );
+  assert.throws(
+    () => checkNoOpaqueCanvasBg(defectiveCode),
+    /ABSENCE_GUARD_FAILED/,
+    'Injected canvas.backgroundImage = bg must fail absence guard red'
+  );
+});

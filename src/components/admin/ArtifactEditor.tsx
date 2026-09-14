@@ -556,22 +556,10 @@ export default function ArtifactEditor({
         return true;
       };
 
-      if (layout.backgroundImage) {
-        const bg = await fabric.FabricImage.fromURL(layout.backgroundImage, {
-          crossOrigin: 'anonymous',
-        });
-        if (disposeCanvasIfAborted()) return;
-
-        bg.set({
-          left: 0,
-          top: 0,
-          scaleX: CANVAS_WIDTH / (bg.width || CANVAS_WIDTH),
-          scaleY: CANVAS_HEIGHT / (bg.height || CANVAS_HEIGHT),
-          selectable: false,
-          evented: false,
-        });
-        canvas.backgroundImage = bg;
-      }
+      // SPEC-27 / SPEC-28 (Option A): Background image is rendered by ArtifactSlide (Visual Layer)
+      // at the bottom of the stack. Fabric canvas is strictly a transparent interaction overlay
+      // and must NOT set canvas.backgroundImage, which would paint over ArtifactSlide's text elements.
+      canvas.backgroundImage = undefined;
 
       // SPEC-23-03: Await document.fonts.ready before constructing Fabric text objects
       // so layout and text measurements are never computed against fallback fonts.
@@ -1136,34 +1124,9 @@ export default function ArtifactEditor({
       const fabric = await import('fabric');
       if (fabricCanvasRef.current !== canvas) return;
 
-      let bg: any = undefined;
-      if (url) {
-        try {
-          bg = await fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' });
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Failed to load background');
-          return;
-        }
-
-        if (fabricCanvasRef.current !== canvas) return;
-
-        if (!bg || !bg.width) {
-          toast.error('Failed to load background: invalid image');
-          return;
-        }
-
-        bg.set({
-          left: 0,
-          top: 0,
-          scaleX: CANVAS_WIDTH / (bg.width || CANVAS_WIDTH),
-          scaleY: CANVAS_HEIGHT / (bg.height || CANVAS_HEIGHT),
-          selectable: false,
-          evented: false,
-        });
-      }
-
-      // Replace or clear canvas background image
-      canvas.backgroundImage = bg;
+      // In Option A, ArtifactSlide (Visual Layer) renders the background image.
+      // Fabric canvas overlay remains completely transparent.
+      canvas.backgroundImage = undefined;
       if (url) {
         layout.backgroundImage = url;
       } else {
@@ -1179,6 +1142,7 @@ export default function ArtifactEditor({
       }
       layout.elements = filterOutBackgroundElements(layout.elements ?? []);
 
+      setTemplate((prev) => (prev ? { ...prev } : prev));
       canvas.requestRenderAll();
       syncSelection(canvas);
       markDirty();
