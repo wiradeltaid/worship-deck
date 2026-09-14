@@ -1426,7 +1426,7 @@ waves:
           - tests/pptx-conformance.test.mjs
 
   - id: SPEC-28
-    status: open
+    status: closed
     release: canvas-interaction-and-resize-ux
     prd: [offline-deck]
     fr: [FR-20]

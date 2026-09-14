@@ -425,15 +425,32 @@ export function elementToFabricObject(
         const textOpts: any = buildTextFabricOptions(element, { editable, fabric });
         if (isProxy) {
           textOpts.fill = 'transparent';
+          textOpts.stroke = 'transparent';
+          textOpts.shadow = null;
+          textOpts.strokeWidth = 0;
           textOpts.cornerColor = '#2563EB';
           textOpts.borderColor = '#2563EB';
           textOpts.cornerSize = 8;
           textOpts.transparentCorners = false;
         }
         const tb = new fabric.Textbox(element.content ?? '', textOpts);
-        applyFabricTextFit(tb, element, fabric);
         if (isProxy) {
-          tb.fill = 'transparent';
+          tb.set({
+            fill: 'transparent',
+            stroke: 'transparent',
+            shadow: null,
+            strokeWidth: 0,
+          });
+          tb.data = {
+            ...(tb.data || {}),
+            isTransparentProxy: true,
+            elementId: element.id,
+            authoredWidth: width,
+            authoredHeight: height,
+            style: { ...element.style },
+          };
+        } else {
+          applyFabricTextFit(tb, element, fabric);
         }
         return tb;
       } catch {
@@ -460,14 +477,23 @@ export function elementToFabricObject(
       dynamicMinWidth: longestWordPx,
       textLines: words.length > 0 ? [text] : [],
       fill: isProxy ? 'transparent' : (element.style?.fontColor ?? DEFAULT_FONT_COLOR),
+      stroke: isProxy ? 'transparent' : undefined,
       textAlign: element.style?.textAlign ?? DEFAULT_TEXT_ALIGN,
       lineHeight: element.style?.lineHeight ?? TEXT_LINE_HEIGHT,
       underline: element.style?.textDecoration === 'underline',
       shadow: isProxy
-        ? undefined
+        ? null
         : element.style?.textShadow
           ? { blur: typeof element.style.textShadowBlur === 'number' ? element.style.textShadowBlur : 4 }
           : undefined,
+      data: {
+        ...common.data,
+        isTransparentProxy: isProxy,
+        elementId: element.id,
+        authoredWidth: width,
+        authoredHeight: height,
+        style: { ...element.style },
+      },
     };
 
     if (typeof fabric?.Rect === 'function') {
@@ -629,6 +655,8 @@ export type FabricTextLike = {
   fontStyle?: string;
   underline?: unknown;
   textAlign?: string;
+  lineHeight?: unknown;
+  data?: any;
 };
 
 export function isFabricTextObject(
@@ -643,6 +671,108 @@ export function isFabricTextObject(
   );
 }
 
+/**
+ * SPEC-28-03: Computes the intrinsic minimum single-line height for a text element
+ * in reference-canvas pixels: Math.max(fontSizePx, fontSizePx * lineHeight).
+ */
+export function computeMinTextHeightRefPx(
+  fontSizePx: number,
+  lineHeight: number = TEXT_LINE_HEIGHT
+): number {
+  const normFontSize = normalizeFontSize(fontSizePx);
+  const effLineHeight = typeof lineHeight === 'number' && lineHeight > 0 ? lineHeight : TEXT_LINE_HEIGHT;
+  return Number(Math.max(normFontSize, normFontSize * effLineHeight).toFixed(2));
+}
+
+/**
+ * SPEC-28-03: Measures scale-1 content height in reference-canvas pixels.
+ * Uses 2D canvas font measurement when available (browser), falling back to character-advance estimation (headless).
+ * Expands to at least the single-line minimum height.
+ */
+export function measureScale1ContentHeightPx(
+  text: string,
+  boxWidthPx: number,
+  fontSizePx: number,
+  lineHeight: number = TEXT_LINE_HEIGHT,
+  fontFamily: string = DEFAULT_FONT_FAMILY,
+  fontWeight: string = 'normal',
+  fontStyle: string = 'normal'
+): number {
+  const normFontSize = normalizeFontSize(fontSizePx);
+  const effLineHeight = typeof lineHeight === 'number' && lineHeight > 0 ? lineHeight : TEXT_LINE_HEIGHT;
+  const minSingleLine = computeMinTextHeightRefPx(normFontSize, effLineHeight);
+  if (!text || typeof text !== 'string') return minSingleLine;
+
+  const paragraphs = text.split('\n');
+  let totalLines = 0;
+  const safeBoxWidth = Math.max(20, boxWidthPx);
+
+  // When 2D canvas context is available (browser), measure text lines accurately
+  let ctx: CanvasRenderingContext2D | null = null;
+  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+    try {
+      const canvas = document.createElement('canvas');
+      ctx = canvas.getContext('2d');
+      if (ctx) {
+        const stack = getFontStack(fontFamily);
+        ctx.font = `${fontStyle} ${fontWeight} ${normFontSize}px ${stack}`;
+      }
+    } catch {}
+  }
+
+  for (const para of paragraphs) {
+    if (!para.trim()) {
+      totalLines += 1;
+      continue;
+    }
+
+    const words = para.split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      totalLines += 1;
+      continue;
+    }
+
+    if (ctx) {
+      let currentLineWidth = 0;
+      let paraLines = 1;
+      const spaceWidth = ctx.measureText(' ').width;
+      for (const word of words) {
+        const wordWidth = ctx.measureText(word).width;
+        if (currentLineWidth === 0) {
+          currentLineWidth = wordWidth;
+        } else if (currentLineWidth + spaceWidth + wordWidth <= safeBoxWidth) {
+          currentLineWidth += spaceWidth + wordWidth;
+        } else {
+          paraLines += 1;
+          currentLineWidth = wordWidth;
+        }
+      }
+      totalLines += paraLines;
+    } else {
+      // Deterministic fallback for headless / jsdom
+      const charAdvance = normFontSize * 0.55;
+      const estimatedCharsPerLine = Math.max(1, Math.floor(safeBoxWidth / charAdvance));
+      let currentLineChars = 0;
+      let paraLines = 1;
+      for (const word of words) {
+        const wordLen = word.length;
+        if (currentLineChars === 0) {
+          currentLineChars = wordLen;
+        } else if (currentLineChars + 1 + wordLen <= estimatedCharsPerLine) {
+          currentLineChars += 1 + wordLen;
+        } else {
+          paraLines += 1;
+          currentLineChars = wordLen;
+        }
+      }
+      totalLines += paraLines;
+    }
+  }
+
+  const measuredHeight = Number((totalLines * normFontSize * effLineHeight).toFixed(2));
+  return Math.max(minSingleLine, measuredHeight);
+}
+
 export function serializeTextStyle(
   source: CanvasElement,
   textObj: {
@@ -655,9 +785,14 @@ export function serializeTextStyle(
     textAlign?: string;
     lineHeight?: unknown;
     shadow?: unknown;
+    data?: any;
   }
 ): CanvasElement['style'] | undefined {
-  const style: NonNullable<CanvasElement['style']> = { ...source.style };
+  const isProxy =
+    (textObj as any).data?.isTransparentProxy === true ||
+    textObj.fill === 'transparent';
+  const proxyStyle = ((textObj as any).data?.style as CanvasElement['style']) || {};
+  const style: NonNullable<CanvasElement['style']> = { ...source.style, ...proxyStyle };
 
   const setIfMeaningful = <K extends keyof NonNullable<CanvasElement['style']>>(
     key: K,
@@ -669,11 +804,18 @@ export function serializeTextStyle(
     style[key] = current;
   };
 
-  setIfMeaningful(
-    'fontColor',
-    toStrictHexColor(textObj.fill, source.style?.fontColor),
-    DEFAULT_FONT_COLOR
-  );
+  if (!isProxy) {
+    setIfMeaningful(
+      'fontColor',
+      toStrictHexColor(textObj.fill, source.style?.fontColor),
+      DEFAULT_FONT_COLOR
+    );
+  } else if (proxyStyle.fontColor) {
+    setIfMeaningful('fontColor', proxyStyle.fontColor, DEFAULT_FONT_COLOR);
+  } else if (source.style?.fontColor) {
+    setIfMeaningful('fontColor', source.style.fontColor, DEFAULT_FONT_COLOR);
+  }
+
   setIfMeaningful(
     'fontSize',
     typeof textObj.fontSize === 'number' ? textObj.fontSize : undefined,
@@ -702,19 +844,31 @@ export function serializeTextStyle(
   if (typeof textObj.lineHeight === 'number') {
     setIfMeaningful('lineHeight', Number(textObj.lineHeight.toFixed(2)), TEXT_LINE_HEIGHT);
   }
-  if (textObj.shadow) {
-    style.textShadow = true;
-    const blur = (textObj.shadow as { blur?: unknown })?.blur;
-    const numBlur = typeof blur === 'number' && Number.isFinite(blur) ? blur : Number(blur);
-    style.textShadowBlur = Number.isFinite(numBlur)
-      ? Math.max(0, Math.min(20, Math.round(numBlur)))
-      : 4;
-  } else {
-    if (source.style?.textShadow || style.textShadow) {
-      delete style.textShadow;
+  if (!isProxy) {
+    if (textObj.shadow) {
+      style.textShadow = true;
+      const blur = (textObj.shadow as { blur?: unknown })?.blur;
+      const numBlur = typeof blur === 'number' && Number.isFinite(blur) ? blur : Number(blur);
+      style.textShadowBlur = Number.isFinite(numBlur)
+        ? Math.max(0, Math.min(20, Math.round(numBlur)))
+        : 4;
+    } else {
+      if (source.style?.textShadow || style.textShadow) {
+        delete style.textShadow;
+      }
+      if (source.style?.textShadowBlur !== undefined || style.textShadowBlur !== undefined) {
+        delete style.textShadowBlur;
+      }
     }
-    if (source.style?.textShadowBlur !== undefined || style.textShadowBlur !== undefined) {
-      delete style.textShadowBlur;
+  } else {
+    if (proxyStyle.textShadow !== undefined) {
+      if (proxyStyle.textShadow) {
+        style.textShadow = true;
+        style.textShadowBlur = proxyStyle.textShadowBlur ?? 4;
+      } else {
+        delete style.textShadow;
+        delete style.textShadowBlur;
+      }
     }
   }
   setIfMeaningful(
@@ -817,6 +971,7 @@ export function serializeCanvas(
     const hasAuthoredHeight = typeof (obj as any).data?.authoredHeight === 'number';
     const isUserResizedW = (obj as any).data?.userResizedWidth === true;
     const isUserResizedH = (obj as any).data?.userResizedHeight === true;
+    const isFontSizeAutoH = (obj as any).data?.heightChange === 'font-size-auto';
     const isUserMoved = (obj as any).data?.userMoved === true;
 
     const isPlaceholder =
@@ -860,11 +1015,11 @@ export function serializeCanvas(
       }
     }
 
-    // SPEC-23-05 Req 3 / SPEC-26-02: Preserves authored h on save unless user actively resized height
+    // SPEC-23-05 Req 3 / SPEC-26-02 / SPEC-28-03: Preserves authored h on save unless user actively resized height or font size auto-expanded
     const h = isHealing
       ? source.h
       : hasAuthoredHeight
-        ? (isUserResizedH ? pxToPct(measuredHeight, CANVAS_HEIGHT) : source.h)
+        ? (isUserResizedH || isFontSizeAutoH ? pxToPct(measuredHeight, CANVAS_HEIGHT) : source.h)
         : isText
           ? Math.max(source.h, measuredTextHeightPct)
           : isHeightResized

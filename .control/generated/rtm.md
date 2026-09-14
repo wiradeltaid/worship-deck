@@ -1336,10 +1336,10 @@ rtm:
   release: canvas-interaction-and-resize-ux
   test:
   - tests/smoke-spec-28.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1350,10 +1350,10 @@ rtm:
   release: canvas-interaction-and-resize-ux
   test:
   - tests/smoke-spec-28.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1364,10 +1364,10 @@ rtm:
   release: canvas-interaction-and-resize-ux
   test:
   - tests/smoke-spec-28.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -2869,10 +2869,10 @@ rtm:
   release: canvas-interaction-and-resize-ux
   test:
   - tests/smoke-spec-28.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -2883,10 +2883,10 @@ rtm:
   release: canvas-interaction-and-resize-ux
   test:
   - tests/smoke-spec-28.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -2897,10 +2897,10 @@ rtm:
   release: canvas-interaction-and-resize-ux
   test:
   - tests/smoke-spec-28.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
