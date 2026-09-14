@@ -62,7 +62,13 @@ function boxStyle(element: ResolvedElement): CSSProperties {
  * Style is written straight through the refs. Nothing here belongs in React
  * state: the value is derived from layout, not from anything that renders.
  */
-function TextElement({ element }: { element: ResolvedElement }) {
+function TextElement({
+  element,
+  editorMode = false,
+}: {
+  element: ResolvedElement;
+  editorMode?: boolean;
+}) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,6 +77,11 @@ function TextElement({ element }: { element: ResolvedElement }) {
     const content = contentRef.current;
     if (!box || !content) return;
     if (resolveElementText(element) === undefined) return;
+
+    if (editorMode) {
+      content.style.setProperty(FIT_SCALE_VAR, '1');
+      return;
+    }
 
     const applyFit = () => {
       const boxWidth = box.clientWidth;
@@ -226,10 +237,16 @@ function ShapeElement({ element }: { element: ResolvedElement }) {
   );
 }
 
-function ArtifactElement({ element }: { element: ResolvedElement }) {
+function ArtifactElement({
+  element,
+  editorMode,
+}: {
+  element: ResolvedElement;
+  editorMode?: boolean;
+}) {
   switch (element.type) {
     case 'text':
-      return <TextElement element={element} />;
+      return <TextElement element={element} editorMode={editorMode} />;
     case 'image':
     case 'image-placeholder':
       return <ImageElement element={element} />;
@@ -270,12 +287,15 @@ function ArtifactElement({ element }: { element: ResolvedElement }) {
 export default function ArtifactSlide({
   instance,
   backgroundOverride,
+  editorMode,
 }: {
   instance: ArtifactInstance;
   backgroundOverride?: string | null;
+  editorMode?: boolean;
 }) {
   assertRuntimeVersion(instance);
 
+  const isEditor = editorMode ?? Boolean(instance.instanceId?.startsWith('editor-'));
   const { layout } = instance;
   const isVerseOrReff =
     instance.layoutKey === 'verse' ||
@@ -320,7 +340,11 @@ export default function ArtifactSlide({
           }}
         >
           {layout.elements.map((element) => (
-            <ArtifactElement key={element.id} element={element} />
+            <ArtifactElement
+              key={element.id}
+              element={element}
+              editorMode={isEditor}
+            />
           ))}
         </div>
       </div>

@@ -4,8 +4,8 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] In `ArtifactEditor.tsx`, audit all text manipulation paths (`handleFontColorChange`, `applyTextStyle`, `handleFontSizeCommit`, `handleFontFamilyChange`, `handleToggleTextShadow`, `handleShadowBlurChange`) to ensure `fill` on Fabric Textbox is always `'transparent'` and `shadow` is `null`.
-- [ ] Store font color and text styling attributes in `obj.data` so serialization and toolbar selection read them without ever setting an opaque fill or shadow on the Fabric canvas.
-- [ ] Add automated smoke test asserting that changing font color, style, or shadow leaves Fabric text object non-visual.
+- [x] In `ArtifactEditor.tsx`, audit all text manipulation paths (`handleFontColorChange`, `applyTextStyle`, `handleFontSizeCommit`, `handleFontFamilyChange`, `handleToggleTextShadow`, `handleShadowBlurChange`) to ensure `fill` on Fabric Textbox is always `'transparent'` and `shadow` is `null`.
+- [x] Store font color and text styling attributes in `obj.data` so serialization and toolbar selection read them without ever setting an opaque fill or shadow on the Fabric canvas.
+- [x] Add automated smoke test asserting that changing font color, style, or shadow leaves Fabric text object non-visual.
