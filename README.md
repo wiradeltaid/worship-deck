@@ -134,3 +134,20 @@ Contributors: please read [`.constitution/project/private-data.md`](.constitutio
 ## Licence
 
 [MIT](LICENSE) for the code. Third-party content is covered separately in [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+
+## The name and the icon
+
+The MIT licence in [LICENSE](LICENSE) grants broad rights over the code. It says nothing about names
+or logos — so it covers this repository's code, not the name **Worship Presenter Web**, not
+**Wira Digital Indonesia**, and not the icon or wordmark.
+
+You may use those names to refer to this project: "based on Worship Presenter Web", "a fork of it",
+"compatible with it". You may not use them as the name of your own product, or in a way that
+suggests you are this project or endorsed by it.
+
+If you publish a modified build — and adapting this for another tradition is expressly encouraged —
+please give it your own name, so the congregations using it know whom to ask when it breaks. The
+code is yours to take; the name is not.
+
+This is separate from the hymn corpus, which is not ours to license at all. See
+[ATTRIBUTIONS.md](ATTRIBUTIONS.md).
