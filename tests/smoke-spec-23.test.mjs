@@ -628,10 +628,9 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
   assert.equal(isTextFitScaleMeasured(unmeasuredNoLwp), false, 'missing longestWordPx is unmeasured');
   const unmeasuredScale = estimateTextFitScale(unmeasuredNoLwp);
 
-  // When unmeasured, contentWidth falls back to 0, and line count falls back to explicit newlines (1 line)
-  // Height needed = 1 * 1.2 * 96 = 115.2px. Box height = 53.33% of 540 = 287.98px.
-  // 115.2 < 287.98, so unmeasured scale is 1 (blind to width axis!).
-  assert.equal(unmeasuredScale, 1, 'unmeasured element returns pre-SPEC-23 scale 1');
+  // SPEC-30: When unmeasured, contentWidth derives from deterministic fallback longest token width
+  // rather than falling back to 0. Overlong word (686.4px) exceeding box width (192px) shrinks to MIN_TEXT_FIT_SCALE.
+  assert.equal(unmeasuredScale, 0.35, 'unmeasured element scales to fit fallback longest token width');
 
   // Element with style mismatch (e.g. fontSize changed from 96 to 72 without re-measuring)
   const styleMismatch = {
@@ -650,7 +649,7 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
   };
 
   assert.equal(isTextFitScaleMeasured(styleMismatch), false, 'style mismatch is treated as unmeasured');
-  assert.equal(estimateTextFitScale(styleMismatch), 1, 'style mismatch degrades to pre-SPEC-23 scale');
+  assert.equal(estimateTextFitScale(styleMismatch), 0.37, 'style mismatch uses deterministic fallback width scale');
 
   // Placeholder element is treated as unmeasured
   const placeholderEl = {
@@ -665,7 +664,7 @@ test('T-23-05: Unmeasured element degrades gracefully to pre-SPEC-23 behaviour',
     },
   };
   assert.equal(isTextFitScaleMeasured(placeholderEl), false, 'placeholderKey is treated as unmeasured');
-  assert.equal(estimateTextFitScale(placeholderEl), 1, 'placeholderKey element returns unmeasured scale 1');
+  assert.equal(estimateTextFitScale(placeholderEl), 0.35, 'placeholderKey element uses deterministic fallback width scale');
 });
 
 test('SPEC-23-02 Comfortable measured element returns scale 1 without gratuitous shrinking', () => {

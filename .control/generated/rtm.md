@@ -1420,10 +1420,10 @@ rtm:
   release: pptx-word-wrap-and-fit-parity
   test:
   - tests/smoke-spec-30.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1434,10 +1434,10 @@ rtm:
   release: pptx-word-wrap-and-fit-parity
   test:
   - tests/smoke-spec-30.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1448,10 +1448,10 @@ rtm:
   release: pptx-word-wrap-and-fit-parity
   test:
   - tests/smoke-spec-30.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3037,10 +3037,10 @@ rtm:
   release: pptx-word-wrap-and-fit-parity
   test:
   - tests/smoke-spec-30.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3051,10 +3051,10 @@ rtm:
   release: pptx-word-wrap-and-fit-parity
   test:
   - tests/smoke-spec-30.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3065,10 +3065,10 @@ rtm:
   release: pptx-word-wrap-and-fit-parity
   test:
   - tests/smoke-spec-30.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

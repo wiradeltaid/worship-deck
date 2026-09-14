@@ -1496,7 +1496,7 @@ waves:
           - tests/smoke-spec-29.test.mjs
 
   - id: SPEC-30
-    status: open
+    status: closed
     release: pptx-word-wrap-and-fit-parity
     prd: [offline-deck]
     fr: [FR-20]

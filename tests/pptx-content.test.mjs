@@ -99,7 +99,7 @@ function decodeXmlText(value) {
     .replace(/&amp;/g, '&');
 }
 
-/** Visible text runs of one slide part, joined with newlines. */
+/** Visible text runs of one slide part, joined for logical visible text. */
 async function slideText(slideId) {
   const index = plan.findIndex((s) => s.id === slideId);
   assert.ok(index >= 0, `plan has no slide "${slideId}"`);
@@ -108,7 +108,7 @@ async function slideText(slideId) {
   const xml = await file.async('string');
   return [...xml.matchAll(/<a:t>([\s\S]*?)<\/a:t>/g)]
     .map((m) => decodeXmlText(m[1]))
-    .join('\n');
+    .join(' ');
 }
 
 function countOccurrences(haystack, needle) {

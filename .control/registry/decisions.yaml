@@ -728,6 +728,30 @@ decisions:
       - src/lib/pptx-draw.ts
       - tests/smoke-spec-29.test.mjs
       - package.json
+  - id: DEC-032
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-14)"
+    title: Autopilot mandate for PPTX Whole-Word Fallback Wrapping and Fit Parity (SPEC-30)
+    file: .control/decisions/DEC-032-autopilot-mandate-pptx-word-wrap-and-fit-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-21'
+    touches:
+      - .control/memlog/autopilot-DEC-032.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-30-pptx-word-wrap-and-fit-parity/SPEC.md
+      - src/lib/artifacts/render-model.ts
+      - src/lib/pptx-draw.ts
+      - tests/smoke-spec-30.test.mjs
+      - tests/smoke-spec-23.test.mjs
+      - tests/pptx-content.test.mjs
+      - package.json
 
 
 
