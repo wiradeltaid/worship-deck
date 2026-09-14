@@ -1985,18 +1985,27 @@ export default function ArtifactEditor({
           fStyle
         );
         const requiredH = Math.max(minSingleLine, measuredReqH);
+        const currentTopPx =
+          typeof obj.top === 'number'
+            ? obj.top
+            : liveEl?.y
+              ? pctToPx(liveEl.y, CANVAS_HEIGHT)
+              : 0;
+        const maxAvailableH = Math.max(minSingleLine, CANVAS_HEIGHT - currentTopPx);
+        const boundedRequiredH = Math.min(requiredH, maxAvailableH);
 
-        if (requiredH > currentH) {
-          obj.set({ height: requiredH, scaleY: 1 });
+        if (boundedRequiredH > currentH) {
+          obj.set({ height: boundedRequiredH, scaleY: 1 });
           obj.setCoords();
-          objData.authoredHeight = requiredH;
+          objData.authoredHeight = boundedRequiredH;
           objData.heightChange = 'font-size-auto';
+          syncTextClipOnScale(obj);
           setLiveElements((prev) =>
             prev.map((el) =>
               el.id === id
                 ? {
                     ...el,
-                    h: pxToPct(requiredH, CANVAS_HEIGHT),
+                    h: pxToPct(boundedRequiredH, CANVAS_HEIGHT),
                     style: { ...el.style, fontSize: result.fontSize },
                   }
                 : el
@@ -2004,6 +2013,7 @@ export default function ArtifactEditor({
           );
         } else {
           objData.authoredHeight = currentH;
+          syncTextClipOnScale(obj);
           setLiveElements((prev) =>
             prev.map((el) =>
               el.id === id
@@ -2017,6 +2027,7 @@ export default function ArtifactEditor({
         }
       } else {
         objData.authoredHeight = currentH;
+        syncTextClipOnScale(obj);
         setLiveElements((prev) =>
           prev.map((el) =>
             el.id === id

@@ -2,7 +2,7 @@
 
 **Blocked by:** SPEC-29-01
 
-**Status:** ready-for-agent
+**Status:** closed
 
 ## What to build
 

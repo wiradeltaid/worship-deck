@@ -34,6 +34,7 @@ import {
   resolveObjectFit,
   resolveTextAlign,
   resolveVerticalAlign,
+  resolvePptxVerticalAlign,
   toPptxColor,
   toPptxGeometry,
   toPptxTransparency,
@@ -270,7 +271,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     italic: resolveItalic(style),
     underline: resolveUnderline(style) ? { style: 'sng' } : undefined,
     align: resolveTextAlign(style),
-    valign: resolveVerticalAlign(style),
+    valign: resolvePptxVerticalAlign(element),
     lineSpacingMultiple:
       (typeof style?.lineHeight === 'number' && style.lineHeight > 0
         ? style.lineHeight

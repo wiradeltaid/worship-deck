@@ -10,9 +10,11 @@ import {
   largestFittingTextScale,
   textFitRatio,
   MIN_TEXT_FIT_SCALE,
+  validateWrapLines,
+  isValidWrapLines,
 } from '@/lib/artifacts/render-model';
 
-export { TEXT_LINE_HEIGHT };
+export { TEXT_LINE_HEIGHT, validateWrapLines, isValidWrapLines };
 
 export const CANVAS_WIDTH = 960;
 export const CANVAS_HEIGHT = 540;
@@ -1069,11 +1071,15 @@ export function serializeCanvas(
         }
       }
 
-      // SPEC-22-02: Persist canvas soft-wrap lines snapshot from Fabric Textbox (textLines)
-      // Only for fixed authored text; dynamic placeholder tokens rely on runtime substitution
+      // SPEC-22-02 / SPEC-29-01: Persist canvas soft-wrap lines snapshot from Fabric Textbox (textLines)
+      // Only for fixed authored text; dynamic placeholder tokens rely on runtime substitution.
+      // Candidate lines must be validated as a lossless, whole-word partition of the source text.
       const isPlaceholderToken = Boolean(source.placeholderKey) || /\{[a-zA-Z0-9_]+\}/.test(text);
-      if (!isPlaceholderToken && Array.isArray(rawLines) && rawLines.length > 0) {
-        next.wrapLines = rawLines.map(String);
+      const validWrapLines = !isPlaceholderToken && Array.isArray(rawLines)
+        ? validateWrapLines(text, rawLines)
+        : null;
+      if (validWrapLines !== null) {
+        next.wrapLines = validWrapLines;
       } else {
         delete next.wrapLines;
       }

@@ -78,8 +78,19 @@ function TextElement({
     if (!box || !content) return;
     if (resolveElementText(element) === undefined) return;
 
+    const applyVerticalAnchor = () => {
+      const isOverflowing = content.scrollHeight > box.clientHeight;
+      const baseJustify = toCssJustifyContent(element.style);
+      if (isOverflowing) {
+        box.style.justifyContent = 'flex-start';
+      } else {
+        box.style.justifyContent = baseJustify === 'center' ? 'safe center' : baseJustify;
+      }
+    };
+
     if (editorMode) {
       content.style.setProperty(FIT_SCALE_VAR, '1');
+      applyVerticalAnchor();
       return;
     }
 
@@ -108,6 +119,7 @@ function TextElement({
         FIT_SCALE_VAR,
         String(largestFittingTextScale(fitsAt))
       );
+      applyVerticalAnchor();
     };
 
     applyFit();
