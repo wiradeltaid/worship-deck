@@ -143,6 +143,7 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		filename       string
 		contentHash    string
 		data           []byte
+		isRestricted   bool
 		isExisting     bool
 	}
 	stagedFonts := make([]stagedFont, 0, len(parseResult.Fonts))
@@ -153,7 +154,10 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 
 	for _, font := range parseResult.Fonts {
 		var existingID string
-		err := s.DB.QueryRowContext(r.Context(), `SELECT id FROM font_faces WHERE content_hash = ?`, font.ContentHash).Scan(&existingID)
+		err := s.DB.QueryRowContext(r.Context(), `
+			SELECT id FROM font_faces
+			WHERE content_hash = ? OR (family = ? COLLATE NOCASE AND weight = ? COLLATE NOCASE AND style = ? COLLATE NOCASE)
+		`, font.ContentHash, font.Family, font.Weight, font.Style).Scan(&existingID)
 		if err == nil && existingID != "" {
 			stagedFonts = append(stagedFonts, stagedFont{
 				id:          existingID,
@@ -190,6 +194,7 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 			filename:       filename,
 			contentHash:    font.ContentHash,
 			data:           font.Data,
+			isRestricted:   font.Restricted,
 			isExisting:     false,
 		})
 	}
@@ -257,10 +262,15 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		if font.isExisting {
 			continue
 		}
+		restrictedInt := 0
+		if font.isRestricted {
+			restrictedInt = 1
+		}
 		_, err := tx.ExecContext(r.Context(), `
-			INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		`, font.id, font.family, font.sourceTypeface, font.weight, font.style, font.format, font.filename, font.contentHash)
+			INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash, is_restricted)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(family COLLATE NOCASE, weight COLLATE NOCASE, style COLLATE NOCASE) DO NOTHING
+		`, font.id, font.family, font.sourceTypeface, font.weight, font.style, font.format, font.filename, font.contentHash, restrictedInt)
 		if err != nil {
 			log.Printf("Failed to insert font face %s: %v", font.id, err)
 			writeError(w, http.StatusInternalServerError, "Failed to commit imported font faces")

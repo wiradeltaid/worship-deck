@@ -15,6 +15,59 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureArtifactTemplatesPayloadNullable(handle); err != nil {
 		return err
 	}
+	if err := ensureFontFacesColumns(handle); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureFontFacesColumns(handle *sql.DB) error {
+	rows, err := handle.Query(`PRAGMA table_info(font_faces)`)
+	if err != nil {
+		return err
+	}
+	have := map[string]struct{}{}
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, ctype string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			rows.Close()
+			return err
+		}
+		have[name] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	if len(have) == 0 {
+		return nil
+	}
+
+	if _, ok := have["is_restricted"]; !ok {
+		if _, err := handle.Exec(`ALTER TABLE font_faces ADD COLUMN is_restricted INTEGER DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+
+	// SPEC-36-02: Reconcile any pre-existing duplicate family/weight/style entries before creating unique index
+	_, _ = handle.Exec(`
+		DELETE FROM font_faces
+		WHERE id NOT IN (
+			SELECT MIN(id) FROM font_faces
+			GROUP BY family COLLATE NOCASE, weight COLLATE NOCASE, style COLLATE NOCASE
+		)
+	`)
+
+	if _, err := handle.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_font_faces_family_weight_style
+		ON font_faces (family COLLATE NOCASE, weight COLLATE NOCASE, style COLLATE NOCASE)
+	`); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -1,6 +1,6 @@
 # SPEC-36-03 — ECMA-376 Standard PPTX Font Obfuscation, Variant Slot Embedding, and Microsoft PowerPoint Conformance Verification
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-36-02
 
 ## What to build
@@ -44,7 +44,7 @@ Fix PPTX font embedding to achieve strict conformance with the ECMA-376 / ISO/IE
 
 ## Acceptance criteria
 
-- Exported PPTX archives contain font parts under `ppt/fonts/{GUID}.fntdata` with ECMA-376 standard obfuscation.
+- Exported PPTX archives contain font parts under `ppt/fonts/{GUID}.odttf` with ECMA-376 standard obfuscation.
 - `[Content_Types].xml` declares `application/vnd.openxmlformats-officedocument.obfuscatedFont`.
 - `<p:embeddedFont>` accurately declares `<p:regular>`, `<p:bold>`, `<p:italic>`, and `<p:boldItalic>` according to used variants.
 - The exported presentation opens in Microsoft PowerPoint Desktop with embedded fonts active and recognized without fallback.

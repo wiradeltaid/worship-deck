@@ -79,6 +79,7 @@ import {
   resolveCatalogFontFamily,
   registerDynamicFontFace,
   hydrateImportedFonts,
+  ImportedFontFace,
 } from '@/lib/registry/font-catalog';
 import {
   computeRangeSelection,
@@ -266,9 +267,12 @@ export default function ArtifactEditor({
   const [shadowBlur, setShadowBlur] = useState<number>(4);
   const [shapeFill, setShapeFill] = useState('#5C2E16');
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
+  const selectedElementIdsRef = useRef<string[]>(selectedElementIds);
+  selectedElementIdsRef.current = selectedElementIds;
   const [selectedTextCount, setSelectedTextCount] = useState(0);
   const [textContent, setTextContent] = useState('');
   const [fontUploading, setFontUploading] = useState(false);
+  const fontImportInputRef = useRef<HTMLInputElement | null>(null);
   /** Elements authored in this session, not yet persisted. */
   const addedElementsRef = useRef<Map<string, CanvasElement>>(new Map());
   const addedPlaceholdersRef = useRef<Map<string, PlaceholderDefinition>>(
@@ -1829,6 +1833,177 @@ export default function ArtifactEditor({
       markDirty();
     }
   };
+
+  const handleFontUploadBatch = useCallback(
+    async (files: FileList | File[], targetFamily?: string) => {
+      const fileArr = Array.from(files);
+      if (fileArr.length === 0) return;
+
+      setFontUploading(true);
+      const toastId = toast.loading(
+        t('admin.artifacts.importProgress')
+          .replace('{current}', '1')
+          .replace('{total}', String(fileArr.length))
+      );
+
+      const successFaces: ImportedFontFace[] = [];
+      const failed: string[] = [];
+      const initialSelectedIds = [...selectedElementIdsRef.current];
+
+      try {
+        for (let i = 0; i < fileArr.length; i++) {
+          const file = fileArr[i];
+          toast.loading(
+            t('admin.artifacts.importProgress')
+              .replace('{current}', String(i + 1))
+              .replace('{total}', String(fileArr.length)),
+            { id: toastId }
+          );
+
+          const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+          if (ext !== '.ttf' && ext !== '.otf') {
+            failed.push(`${file.name} (unsupported format, must be .ttf or .otf)`);
+            continue;
+          }
+
+          try {
+            const fd = new FormData();
+            fd.append('file', file);
+            if (targetFamily) {
+              fd.append('family', targetFamily);
+            }
+            const res = await fetch('/api/admin/artifacts/fonts', {
+              method: 'POST',
+              body: fd,
+            });
+
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              failed.push(`${file.name} (${errData.error || `status ${res.status}`})`);
+              continue;
+            }
+
+            const face = (await res.json()) as ImportedFontFace;
+            const hydrated = await registerDynamicFontFace(face);
+            if (!hydrated) {
+              failed.push(`${file.name} (failed to load FontFace in browser)`);
+              continue;
+            }
+            successFaces.push(face);
+          } catch (fileErr: any) {
+            failed.push(`${file.name} (${fileErr.message || 'upload error'})`);
+          }
+        }
+
+        if (successFaces.length === 0) {
+          const errorMsg = failed.length > 0 ? failed.join('; ') : 'No valid font faces';
+          toast.error(
+            t('admin.artifacts.importFailed').replace('{error}', errorMsg),
+            { id: toastId }
+          );
+          return;
+        }
+
+        // Case-insensitive family canonicalization
+        const familyMap = new Map<string, string>(); // canonical lowercase -> first observed display name
+        for (const face of successFaces) {
+          const raw = face.family.trim();
+          const canonical = raw.toLowerCase();
+          if (!familyMap.has(canonical)) {
+            familyMap.set(canonical, raw);
+          }
+        }
+
+        const distinctFamilies = Array.from(familyMap.values());
+
+        // One-family selection rule: if all successful files belong to a single family (case-insensitive),
+        // apply that family to the text selection that existed when the batch began.
+        if (familyMap.size === 1) {
+          const displayFamily = distinctFamilies[0];
+          if (initialSelectedIds.length > 0) {
+            // Apply font only to text elements in snapshot selection
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                initialSelectedIds.includes(el.id) && el.type === 'text' && el.style
+                  ? { ...el, style: { ...el.style, fontFamily: displayFamily, fontStatus: 'uploaded' } }
+                  : el
+              )
+            );
+            markDirty();
+
+            // Synchronize toolbar state only if the current selection still matches initial selection
+            const currentSelected = selectedElementIdsRef.current;
+            const selectionStillMatches =
+              initialSelectedIds.length === currentSelected.length &&
+              initialSelectedIds.every((id) => currentSelected.includes(id));
+            if (selectionStillMatches) {
+              setFontFamily(displayFamily);
+            }
+
+            const canvas = fabricCanvasRef.current;
+            if (canvas) {
+              const fabricMod = (window as any).fabric;
+              canvas.getObjects().forEach((obj: any) => {
+                const elId = obj.data?.elementId;
+                if (initialSelectedIds.includes(elId)) {
+                  const activeEl = liveElementsRef.current.find((e) => e.id === elId);
+                  if (activeEl && activeEl.type === 'text') {
+                    obj.set('fontFamily', displayFamily);
+                    if (fabricMod) {
+                      applyFabricTextFit(
+                        obj,
+                        { ...activeEl, style: { ...activeEl.style, fontFamily: displayFamily } },
+                        fabricMod
+                      );
+                    }
+                  }
+                }
+              });
+              canvas.requestRenderAll();
+            }
+          }
+
+          if (failed.length > 0) {
+            toast.warning(
+              t('admin.artifacts.importPartialWarning')
+                .replace('{count}', String(successFaces.length))
+                .replace('{failedCount}', String(failed.length))
+                .replace('{failed}', failed.join('; ')),
+              { id: toastId }
+            );
+          } else {
+            toast.success(
+              t('admin.artifacts.importSingleFamilySuccess')
+                .replace('{count}', String(successFaces.length))
+                .replace('{family}', displayFamily),
+              { id: toastId }
+            );
+          }
+        } else {
+          // Multiple families imported: leave selection unchanged, notify operator
+          if (failed.length > 0) {
+            toast.warning(
+              t('admin.artifacts.importPartialWarning')
+                .replace('{count}', String(successFaces.length))
+                .replace('{failedCount}', String(failed.length))
+                .replace('{failed}', failed.join('; ')),
+              { id: toastId }
+            );
+          } else {
+            toast.success(
+              t('admin.artifacts.importMultiFamilySuccess')
+                .replace('{count}', String(successFaces.length))
+                .replace('{families}', distinctFamilies.join(', ')),
+              { id: toastId }
+            );
+          }
+        }
+      } finally {
+        setFontUploading(false);
+      }
+    },
+    [t, markDirty]
+  );
 
   const handleToggleBold = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -3746,6 +3921,36 @@ export default function ArtifactEditor({
                       </Button>
                     </div>
 
+                    <div>
+                      <input
+                        ref={fontImportInputRef}
+                        type="file"
+                        accept=".ttf,.otf"
+                        multiple
+                        className="hidden"
+                        disabled={busy || fontUploading}
+                        onChange={(e) => {
+                          const files = e.target.files;
+                          if (files && files.length > 0) {
+                            void handleFontUploadBatch(files);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fontImportInputRef.current?.click()}
+                        disabled={busy || fontUploading}
+                        className="text-xs font-medium flex items-center gap-1.5"
+                        title="Import custom font (.ttf, .otf)"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{fontUploading ? t('admin.artifacts.importingFont') : t('admin.artifacts.importFont')}</span>
+                      </Button>
+                    </div>
+
                     <div className="h-4 w-px bg-border mx-1" />
 
                     <Select
@@ -3851,7 +4056,7 @@ export default function ArtifactEditor({
                             sideOffset={4}
                           >
                             <div
-                              className="p-1.5 sticky top-0 bg-popover z-10 border-b border-border"
+                              className="p-1.5 sticky top-0 bg-popover z-10 border-b border-border space-y-1.5"
                               onKeyDown={(e) => {
                                 if (e.key !== 'Escape') e.stopPropagation();
                               }}
@@ -3872,9 +4077,25 @@ export default function ArtifactEditor({
                                 className="h-7 text-xs"
                                 autoFocus
                               />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs h-7 justify-center flex items-center gap-1.5 border-dashed"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  fontImportInputRef.current?.click();
+                                }}
+                                disabled={busy || fontUploading}
+                              >
+                                <Upload className="w-3 h-3" />
+                                <span>{fontUploading ? t('admin.artifacts.importingFont') : t('admin.artifacts.importFont')}</span>
+                              </Button>
                             </div>
                             <div className="overflow-y-auto p-1 flex-1">
-                              {(['system', 'sans', 'serif', 'display', 'script'] as FontCategory[]).map(
+                              {(['custom', 'system', 'sans', 'serif', 'display', 'script'] as FontCategory[]).map(
                                 (category) => {
                                   const query = fontSearchQuery.trim().toLowerCase();
                                   const fonts = FONT_CATALOG.filter(
@@ -3904,7 +4125,26 @@ export default function ArtifactEditor({
                                           )}
                                           style={{ fontFamily: f.family }}
                                         >
-                                          <span>{f.label}</span>
+                                          <span className="flex items-center gap-1.5 truncate">
+                                            <span>{f.label}</span>
+                                            {f.variants && f.variants.length > 0 ? (
+                                              <span className="flex items-center gap-0.5 shrink-0">
+                                                {f.variants.map((v) => {
+                                                  const label =
+                                                    v === 'boldItalic' ? 'BI' : v === 'bold' ? 'B' : v === 'italic' ? 'I' : 'R';
+                                                  return (
+                                                    <span
+                                                      key={v}
+                                                      className="text-[9px] font-mono px-1 py-0.2 rounded bg-muted/90 text-muted-foreground border border-border/70 select-none"
+                                                      title={`Variant: ${v}`}
+                                                    >
+                                                      {label}
+                                                    </span>
+                                                  );
+                                                })}
+                                              </span>
+                                            ) : null}
+                                          </span>
                                           {!isFontExportReady(f.family) && f.pptxSubstitute ? (
                                             <span
                                               className="text-[10px] text-amber-600 dark:text-amber-400 font-sans ml-2 opacity-80"
@@ -3948,68 +4188,15 @@ export default function ArtifactEditor({
                                 id="font-acquire-upload-input"
                                 type="file"
                                 accept=".ttf,.otf"
+                                multiple
                                 className="hidden"
                                 disabled={fontUploading || busy}
                                 onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  setFontUploading(true);
-                                  try {
-                                    const fd = new FormData();
-                                    fd.append('file', file);
-                                    if (fontFamily) {
-                                      fd.append('family', fontFamily);
-                                    }
-                                    const res = await fetch('/api/admin/artifacts/fonts', {
-                                      method: 'POST',
-                                      body: fd,
-                                    });
-                                    if (!res.ok) {
-                                      const errData = await res.json().catch(() => ({}));
-                                      toast.error(errData.error || 'Failed to upload font');
-                                      return;
-                                    }
-                                    const face = await res.json();
-                                    const hydrated = await registerDynamicFontFace(face);
-                                    if (!hydrated) {
-                                      toast.error(`Font binary saved, but browser could not hydrate FontFace ${face.family}`);
-                                      return;
-                                    }
-                                    setLiveElements((prev) =>
-                                      prev.map((el) =>
-                                        selectedElementIds.includes(el.id) && el.style
-                                          ? { ...el, style: { ...el.style, fontFamily: face.family, fontStatus: 'uploaded' } }
-                                          : el
-                                      )
-                                    );
-                                    markDirty();
-                                    // Recalculate text fit on Fabric canvas objects for hydrated font
-                                    const fabricCanvas = fabricCanvasRef.current;
-                                    if (fabricCanvas) {
-                                      const fabricMod = (window as any).fabric;
-                                      fabricCanvas.getObjects().forEach((obj: any) => {
-                                        const elId = obj.data?.elementId;
-                                        if (selectedElementIds.includes(elId)) {
-                                          const activeEl = liveElements.find((e) => e.id === elId);
-                                          if (activeEl && activeEl.type === 'text') {
-                                            obj.set('fontFamily', face.family);
-                                            applyFabricTextFit(
-                                              obj,
-                                              { ...activeEl, style: { ...activeEl.style, fontFamily: face.family } },
-                                              fabricMod
-                                            );
-                                          }
-                                        }
-                                      });
-                                      fabricCanvas.requestRenderAll();
-                                    }
-                                    toast.success(`Font ${face.family} acquired and hydrated!`);
-                                  } catch (err: any) {
-                                    toast.error(err.message || 'Error acquiring font');
-                                  } finally {
-                                    setFontUploading(false);
-                                    e.target.value = '';
+                                  const files = e.target.files;
+                                  if (files && files.length > 0) {
+                                    await handleFontUploadBatch(files, fontFamily);
                                   }
+                                  e.target.value = '';
                                 }}
                               />
                             </div>

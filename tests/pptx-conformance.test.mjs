@@ -70,8 +70,10 @@ test('P-27-01: Exported PPTX archive OOXML conformance & embedded font structure
     'slide1.xml must emit normalized <a:spcPct val="100000"/>'
   );
 
-  // 2. Verify font file existence (filter files ending with .fntdata, not directories)
-  const fontFiles = Object.keys(zip.files).filter((k) => k.endsWith('.fntdata'));
+  // 2. Verify font file existence (filter files ending with .odttf or .fntdata, not directories)
+  const fontFiles = Object.keys(zip.files).filter(
+    (k) => k.startsWith('ppt/fonts/') && (k.endsWith('.odttf') || k.endsWith('.fntdata'))
+  );
   assert.ok(fontFiles.length > 0, 'Must embed at least one font file under ppt/fonts/');
   const fontData = await zip.file(fontFiles[0])?.async('nodebuffer');
   assert.ok(fontData && fontData.length > 50000, 'Font data must be non-empty TrueType file');
@@ -90,8 +92,8 @@ test('P-27-01: Exported PPTX archive OOXML conformance & embedded font structure
   // 4. Verify Content_Types.xml
   const ctXml = await zip.file('[Content_Types].xml')?.async('string');
   assert.ok(
-    ctXml?.includes('Extension="fntdata"'),
-    '[Content_Types].xml must declare Extension="fntdata"'
+    ctXml?.includes('Extension="odttf"') || ctXml?.includes('Extension="fntdata"'),
+    '[Content_Types].xml must declare font Extension'
   );
 });
 
@@ -176,7 +178,7 @@ test('P-27-02: Real Microsoft PowerPoint Desktop COM Rendering & Geometry Compar
     // Run PowerPoint COM export and extract shape bounding box from PowerPoint layout engine
     const psScript = `
       $ppt = New-Object -ComObject PowerPoint.Application
-      $pres = $ppt.Presentations.Open(${JSON.stringify(tempPptx)}, $true, $false, $false)
+      $pres = $ppt.Presentations.Open(${JSON.stringify(tempPptx)}, [Microsoft.Office.Core.MsoTriState]::msoTrue, [Microsoft.Office.Core.MsoTriState]::msoFalse, [Microsoft.Office.Core.MsoTriState]::msoFalse)
       $slide = $pres.Slides.Item(1)
       $shape = $slide.Shapes.Item(1)
 

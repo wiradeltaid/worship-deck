@@ -1698,6 +1698,53 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-36-01
+  spec: SPEC-36
+  release: font-import-variant-association-and-pptx-embedding-parity
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - src/lib/registry/font-catalog.ts
+  - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-36-02
+  spec: SPEC-36
+  release: font-import-variant-association-and-pptx-embedding-parity
+  test:
+  - internal/httpapi
+  - src/lib/registry/font-catalog.ts
+  - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-36-03
+  spec: SPEC-36
+  release: font-import-variant-association-and-pptx-embedding-parity
+  test:
+  - src/lib/fonts/embed-fonts.ts
+  - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3565,6 +3612,53 @@ rtm:
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-32.test.mjs
   - tests/smoke-spec-35.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-36-01
+  spec: SPEC-36
+  release: font-import-variant-association-and-pptx-embedding-parity
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - src/lib/registry/font-catalog.ts
+  - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-36-02
+  spec: SPEC-36
+  release: font-import-variant-association-and-pptx-embedding-parity
+  test:
+  - internal/httpapi
+  - src/lib/registry/font-catalog.ts
+  - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-36-03
+  spec: SPEC-36
+  release: font-import-variant-association-and-pptx-embedding-parity
+  test:
+  - src/lib/fonts/embed-fonts.ts
+  - tests/smoke-spec-36.test.mjs
   status: done
   exempt: false
   green: true

@@ -9,7 +9,9 @@
  * - script: 7 Elegant calligraphy, brush, and handwriting fonts for greetings and personal notes.
  */
 
-export type FontCategory = 'system' | 'sans' | 'serif' | 'display' | 'script';
+export type FontCategory = 'custom' | 'system' | 'sans' | 'serif' | 'display' | 'script';
+
+export type FontVariant = 'regular' | 'bold' | 'italic' | 'boldItalic';
 
 export interface FontDefinition {
   family: string;
@@ -20,9 +22,22 @@ export interface FontDefinition {
   pptxSafe: boolean;
   pptxSubstitute?: string;
   embeddable?: boolean;
+  variants?: FontVariant[];
+}
+
+export function resolveFontVariantKey(weight: string | undefined, style: string | undefined): FontVariant {
+  const w = String(weight ?? '').toLowerCase();
+  const s = String(style ?? '').toLowerCase();
+  const isBold = w === 'bold' || w === '700' || w === '800' || w === '900' || w === '600';
+  const isItalic = s === 'italic' || s === 'oblique';
+  if (isBold && isItalic) return 'boldItalic';
+  if (isBold) return 'bold';
+  if (isItalic) return 'italic';
+  return 'regular';
 }
 
 export const FONT_CATEGORY_LABELS: Record<FontCategory, { en: string; id: string }> = {
+  custom: { en: 'Custom / Uploaded Fonts', id: 'Font Kustom / Diunggah' },
   system: { en: 'System & PowerPoint Safe', id: 'Standar Sistem & PPTX' },
   sans: { en: 'Modern Sans-Serif', id: 'Sans-Serif Modern' },
   serif: { en: 'Dignified Serif', id: 'Serif Klasik & Sakral' },
@@ -160,52 +175,103 @@ export interface ImportedFontFace {
 }
 
 const registeredFaces = new Set<string>();
+const activeVariantUrls = new Map<string, { url: string; faceObj?: any }>();
 
-export async function registerDynamicFontFace(face: ImportedFontFace): Promise<boolean> {
-  const key = `${face.family}-${face.weight}-${face.style}-${face.url}`;
-  if (registeredFaces.has(key)) return true;
-
-  if (typeof document === 'undefined' || !('fonts' in document) || typeof FontFace === 'undefined') {
-    return false;
-  }
-
+export async function registerDynamicFontFace(
+  face: ImportedFontFace,
+  fontFaceLoader?: (family: string, url: string, descriptors: FontFaceDescriptors) => Promise<boolean>
+): Promise<boolean> {
   const family = face.family.trim();
   const descriptors: FontFaceDescriptors = {
     weight: face.weight || 'normal',
     style: face.style || 'normal',
   };
+  const identityKey = `${family.toLowerCase()}-${descriptors.weight}-${descriptors.style}`;
+  const key = `${identityKey}-${face.url}`;
+  if (registeredFaces.has(key)) return true;
 
-  try {
-    for (const f of document.fonts) {
-      if (f.family === family && f.weight === descriptors.weight && f.style === descriptors.style) {
-        registeredFaces.add(key);
-        return true;
+  // Hydrate in browser DOM or using injected fontFaceLoader
+  let loadedFontFace: any = undefined;
+  if (fontFaceLoader) {
+    try {
+      const ok = await fontFaceLoader(family, face.url, descriptors);
+      if (!ok) return false;
+    } catch (e) {
+      console.warn(`[font-catalog] loader failed for ${family}:`, e);
+      return false;
+    }
+  } else if (typeof document !== 'undefined' && 'fonts' in document && typeof FontFace !== 'undefined') {
+    try {
+      // SPEC-36-02: If replacing an existing face with a different URL, retire the old FontFace
+      const existing = activeVariantUrls.get(identityKey);
+      if (existing && existing.url !== face.url) {
+        if (existing.faceObj) {
+          try {
+            (document.fonts as any).delete(existing.faceObj);
+          } catch {}
+        }
+        registeredFaces.delete(`${identityKey}-${existing.url}`);
       }
-    }
-    const font = new FontFace(family, `url("${face.url}")`, descriptors);
-    const loaded = await font.load();
-    document.fonts.add(loaded);
-    registeredFaces.add(key);
 
-    // Register into catalog map if not present
-    if (!FONT_MAP.has(family.toLowerCase())) {
-      const def: FontDefinition = {
-        family,
-        label: family,
-        category: 'sans',
-        fallback: 'sans-serif',
-        pptxSafe: true, // Self-contained embedded font
-        embeddable: true,
-      };
-      FONT_CATALOG.push(def);
-      FONT_MAP.set(family.toLowerCase(), def);
-    }
+      // Also clean up any lingering matching face in document.fonts
+      const toRemove: any[] = [];
+      for (const f of document.fonts) {
+        if (
+          f.family.toLowerCase() === family.toLowerCase() &&
+          f.weight === descriptors.weight &&
+          f.style === descriptors.style
+        ) {
+          toRemove.push(f);
+        }
+      }
+      for (const f of toRemove) {
+        try {
+          (document.fonts as any).delete(f);
+        } catch {}
+      }
 
-    return true;
-  } catch (e) {
-    console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
-    return false;
+      const font = new FontFace(family, `url("${face.url}")`, descriptors);
+      loadedFontFace = await font.load();
+      document.fonts.add(loadedFontFace);
+    } catch (e) {
+      console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
+      return false;
+    }
   }
+
+  // Only reached if FontFace loading succeeded (or running in headless environment)
+  registeredFaces.add(key);
+  activeVariantUrls.set(identityKey, { url: face.url, faceObj: loadedFontFace });
+
+  const variant = resolveFontVariantKey(descriptors.weight, descriptors.style);
+
+  const lowerFamily = family.toLowerCase();
+  let def = FONT_MAP.get(lowerFamily);
+  if (!def) {
+    def = {
+      family,
+      label: family,
+      category: 'custom',
+      fallback: 'sans-serif',
+      pptxSafe: true, // Self-contained embedded font
+      embeddable: true,
+      variants: [variant],
+    };
+    FONT_CATALOG.unshift(def);
+    FONT_MAP.set(lowerFamily, def);
+  } else {
+    // An uploaded face always promotes to 'custom' category and ensures export readiness
+    def.category = 'custom';
+    def.embeddable = true;
+    def.pptxSafe = true;
+    if (!def.variants) {
+      def.variants = [variant];
+    } else if (!def.variants.includes(variant)) {
+      def.variants.push(variant);
+    }
+  }
+
+  return true;
 }
 
 export async function hydrateImportedFonts(): Promise<number> {

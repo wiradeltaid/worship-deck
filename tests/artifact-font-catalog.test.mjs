@@ -61,7 +61,7 @@ test('FONT_CATALOG is distributed across exactly 5 distinct categories', () => {
   const categories = Object.keys(FONT_CATEGORY_LABELS);
   assert.deepEqual(
     categories.sort(),
-    ['display', 'sans', 'script', 'serif', 'system'],
+    ['custom', 'display', 'sans', 'script', 'serif', 'system'],
     'Categories must match defined types'
   );
 });

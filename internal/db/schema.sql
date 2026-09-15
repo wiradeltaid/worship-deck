@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS song_set_inputs (
   FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 );
 
--- SPEC-32-02: Durable imported font faces
+-- SPEC-32-02 / SPEC-36-02: Durable imported font faces with variant identity
 CREATE TABLE IF NOT EXISTS font_faces (
   id TEXT PRIMARY KEY,
   family TEXT NOT NULL,
@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS font_faces (
   format TEXT NOT NULL,
   asset_path TEXT NOT NULL,
   content_hash TEXT NOT NULL UNIQUE,
+  is_restricted INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

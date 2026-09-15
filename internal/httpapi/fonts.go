@@ -26,12 +26,13 @@ type FontFaceResponse struct {
 	Weight         string `json:"weight"`
 	Style          string `json:"style"`
 	Format         string `json:"format"`
+	Restricted     bool   `json:"restricted"`
 	URL            string `json:"url"`
 }
 
 func (s *Server) listFonts(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.DB.QueryContext(r.Context(), `
-		SELECT id, family, source_typeface, weight, style, format
+		SELECT id, family, source_typeface, weight, style, format, is_restricted
 		FROM font_faces
 		ORDER BY family, weight, style
 	`)
@@ -44,10 +45,12 @@ func (s *Server) listFonts(w http.ResponseWriter, r *http.Request) {
 	fonts := make([]FontFaceResponse, 0)
 	for rows.Next() {
 		var f FontFaceResponse
-		if err := rows.Scan(&f.ID, &f.Family, &f.SourceTypeface, &f.Weight, &f.Style, &f.Format); err != nil {
+		var restrictedInt int
+		if err := rows.Scan(&f.ID, &f.Family, &f.SourceTypeface, &f.Weight, &f.Style, &f.Format, &restrictedInt); err != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to read font faces")
 			return
 		}
+		f.Restricted = restrictedInt != 0
 		f.URL = "/api/fonts/" + f.ID
 		fonts = append(fonts, f)
 	}
@@ -111,16 +114,20 @@ func (s *Server) getFont(w http.ResponseWriter, r *http.Request) {
 }
 
 type FontManifestEntry struct {
-	Family string `json:"family"`
-	Weight string `json:"weight"`
-	Style  string `json:"style"`
-	Path   string `json:"path"`
+	ID         string `json:"id"`
+	Family     string `json:"family"`
+	Weight     string `json:"weight"`
+	Style      string `json:"style"`
+	Format     string `json:"format"`
+	Path       string `json:"path"`
+	Restricted bool   `json:"restricted"`
 }
 
 func (s *Server) getFontManifest(ctx context.Context) ([]FontManifestEntry, error) {
 	rows, err := s.DB.QueryContext(ctx, `
-		SELECT family, weight, style, asset_path
+		SELECT id, family, weight, style, format, asset_path, is_restricted
 		FROM font_faces
+		ORDER BY family, weight, style
 	`)
 	if err != nil {
 		return nil, err
@@ -130,15 +137,19 @@ func (s *Server) getFontManifest(ctx context.Context) ([]FontManifestEntry, erro
 	fontsDir := filepath.Join(uploadsDir(), "fonts")
 	var manifest []FontManifestEntry
 	for rows.Next() {
-		var family, weight, style, assetPath string
-		if err := rows.Scan(&family, &weight, &style, &assetPath); err != nil {
+		var id, family, weight, style, format, assetPath string
+		var restrictedInt int
+		if err := rows.Scan(&id, &family, &weight, &style, &format, &assetPath, &restrictedInt); err != nil {
 			continue
 		}
 		manifest = append(manifest, FontManifestEntry{
-			Family: family,
-			Weight: weight,
-			Style:  style,
-			Path:   filepath.Join(fontsDir, filepath.Base(assetPath)),
+			ID:         id,
+			Family:     family,
+			Weight:     weight,
+			Style:      style,
+			Format:     format,
+			Path:       filepath.Join(fontsDir, filepath.Base(assetPath)),
+			Restricted: restrictedInt != 0,
 		})
 	}
 	return manifest, nil
@@ -180,21 +191,28 @@ func (s *Server) uploadFont(w http.ResponseWriter, r *http.Request) {
 
 	// Determine family, weight, style using SFNT name table metadata where available
 	meta, metaErr := pptximport.ParseSFNTMetadata(normalizedData)
+	if metaErr != nil {
+		if strings.Contains(metaErr.Error(), "TTC/OTC") || strings.Contains(metaErr.Error(), "variable fonts") {
+			writeError(w, http.StatusBadRequest, metaErr.Error())
+			return
+		}
+	}
 
 	reqFamily := strings.TrimSpace(r.FormValue("family"))
 	reqWeight := strings.TrimSpace(r.FormValue("weight"))
 	reqStyle := strings.TrimSpace(r.FormValue("style"))
 
-	rawBaseName := strings.TrimSuffix(filepath.Base(header.Filename), filepath.Ext(header.Filename))
-	normalizedFamily, parsedWeight, parsedStyle, _ := pptximport.NormalizeTypeface(rawBaseName, "", "")
-
 	var family, weight, style, sourceTypeface string
-	if metaErr == nil && meta != nil && meta.Family != "" {
+	var isRestricted bool
+	if meta != nil && meta.Family != "" {
 		family = meta.Family
 		weight = meta.Weight
 		style = meta.Style
 		sourceTypeface = meta.SourceTypeface
+		isRestricted = meta.RestrictedEmbedding
 	} else {
+		rawBaseName := strings.TrimSuffix(filepath.Base(header.Filename), filepath.Ext(header.Filename))
+		normalizedFamily, parsedWeight, parsedStyle, _ := pptximport.NormalizeTypeface(rawBaseName, "", "")
 		family = normalizedFamily
 		weight = parsedWeight
 		style = parsedStyle
@@ -212,21 +230,46 @@ func (s *Server) uploadFont(w http.ResponseWriter, r *http.Request) {
 		style = reqStyle
 	}
 
+	family = strings.TrimSpace(family)
+	weight = strings.ToLower(strings.TrimSpace(weight))
+	style = strings.ToLower(strings.TrimSpace(style))
+
 	hash := sha256.Sum256(normalizedData)
 	contentHash := hex.EncodeToString(hash[:])
 	fontID := contentHash[:16]
 	assetFilename := fmt.Sprintf("%s.%s", fontID, format)
 
-	// Check if already present in font_faces
+	// Check if already present in font_faces (idempotent upload)
 	var existing FontFaceResponse
+	var existingRestricted int
 	err = s.DB.QueryRowContext(r.Context(), `
-		SELECT id, family, source_typeface, weight, style, format
+		SELECT id, family, source_typeface, weight, style, format, is_restricted
 		FROM font_faces WHERE content_hash = ?
-	`, contentHash).Scan(&existing.ID, &existing.Family, &existing.SourceTypeface, &existing.Weight, &existing.Style, &existing.Format)
+	`, contentHash).Scan(&existing.ID, &existing.Family, &existing.SourceTypeface, &existing.Weight, &existing.Style, &existing.Format, &existingRestricted)
 	if err == nil {
+		existing.Restricted = existingRestricted != 0
 		existing.URL = "/api/fonts/" + existing.ID
 		writeJSON(w, http.StatusOK, existing)
 		return
+	}
+
+	// SPEC-36-02: Check for (family, weight, style) conflict with different binary
+	var conflictID, conflictHash, oldAssetPath string
+	allowReplace := strings.EqualFold(r.FormValue("replace"), "true") || strings.EqualFold(r.FormValue("overwrite"), "true")
+	err = s.DB.QueryRowContext(r.Context(), `
+		SELECT id, content_hash, asset_path
+		FROM font_faces
+		WHERE family = ? COLLATE NOCASE AND weight = ? COLLATE NOCASE AND style = ? COLLATE NOCASE
+	`, family, weight, style).Scan(&conflictID, &conflictHash, &oldAssetPath)
+	if err == nil && conflictID != "" {
+		if !allowReplace {
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"error":      fmt.Sprintf("A font face for family %q (weight %s, style %s) already exists", family, weight, style),
+				"conflict":   true,
+				"existingId": conflictID,
+			})
+			return
+		}
 	}
 
 	destFontsDir := filepath.Join(uploadsDir(), "fonts")
@@ -247,14 +290,59 @@ func (s *Server) uploadFont(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.DB.ExecContext(r.Context(), `
-		INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, fontID, family, sourceTypeface, weight, style, format, assetFilename, contentHash)
+	restrictedInt := 0
+	if isRestricted {
+		restrictedInt = 1
+	}
+
+	tx, err := s.DB.BeginTx(r.Context(), nil)
 	if err != nil {
 		_ = os.Remove(fullPath)
-		writeError(w, http.StatusInternalServerError, "Failed to record font face in database")
+		writeError(w, http.StatusInternalServerError, "Database transaction error")
 		return
+	}
+	defer tx.Rollback()
+
+	if conflictID != "" && allowReplace {
+		_, err = tx.ExecContext(r.Context(), `
+			UPDATE font_faces
+			SET id = ?, family = ?, source_typeface = ?, weight = ?, style = ?, format = ?, asset_path = ?, content_hash = ?, is_restricted = ?, created_at = CURRENT_TIMESTAMP
+			WHERE id = ?
+		`, fontID, family, sourceTypeface, weight, style, format, assetFilename, contentHash, restrictedInt, conflictID)
+		if err != nil {
+			_ = os.Remove(fullPath)
+			writeError(w, http.StatusInternalServerError, "Failed to update font face in database")
+			return
+		}
+	} else {
+		_, err = tx.ExecContext(r.Context(), `
+			INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash, is_restricted)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, fontID, family, sourceTypeface, weight, style, format, assetFilename, contentHash, restrictedInt)
+		if err != nil {
+			_ = os.Remove(fullPath)
+			// If unique constraint failed concurrently, return 409
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"error":    fmt.Sprintf("A font face for family %q (weight %s, style %s) already exists", family, weight, style),
+					"conflict": true,
+				})
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "Failed to record font face in database")
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		_ = os.Remove(fullPath)
+		writeError(w, http.StatusInternalServerError, "Failed to commit font face transaction")
+		return
+	}
+
+	// Transaction committed: safe to remove retired asset if filename changed
+	if conflictID != "" && allowReplace && oldAssetPath != "" && filepath.Base(oldAssetPath) != assetFilename {
+		_ = os.Remove(filepath.Join(destFontsDir, filepath.Base(oldAssetPath)))
 	}
 
 	resp := FontFaceResponse{
@@ -264,7 +352,12 @@ func (s *Server) uploadFont(w http.ResponseWriter, r *http.Request) {
 		Weight:         weight,
 		Style:          style,
 		Format:         format,
+		Restricted:     isRestricted,
 		URL:            "/api/fonts/" + fontID,
 	}
-	writeJSON(w, http.StatusCreated, resp)
+	if conflictID != "" && allowReplace {
+		writeJSON(w, http.StatusOK, resp)
+	} else {
+		writeJSON(w, http.StatusCreated, resp)
+	}
 }

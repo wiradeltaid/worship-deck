@@ -260,9 +260,9 @@ test('T-27-06: embedPresentationFonts packages TrueType fonts into PPTX archive'
   const embedded = await embedPresentationFonts(testZip, ['Poppins']);
   assert.ok(embedded.includes('Poppins'), 'Poppins must be embedded');
 
-  // Check fonts directory in zip
-  const fontFile = testZip.file('ppt/fonts/font1.fntdata');
-  assert.ok(fontFile, 'ppt/fonts/font1.fntdata must exist in archive');
+  // Check fonts directory in zip has .odttf part
+  const fontFiles = Object.keys(testZip.files).filter((k) => k.startsWith('ppt/fonts/') && k.endsWith('.odttf'));
+  assert.ok(fontFiles.length > 0, 'ppt/fonts/*.odttf must exist in archive');
 
   // Check presentation.xml injection
   const presXml = await testZip.file('ppt/presentation.xml').async('string');
@@ -279,8 +279,9 @@ test('T-27-06: embedPresentationFonts packages TrueType fonts into PPTX archive'
   // Check Content_Types
   const ctXml = await testZip.file('[Content_Types].xml').async('string');
   assert.ok(
-    ctXml.includes('Extension="fntdata"') && ctXml.includes('ContentType="application/x-fontdata"'),
-    'Content_Types must declare application/x-fontdata for fntdata'
+    ctXml.includes('Extension="odttf"') &&
+      ctXml.includes('ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"'),
+    'Content_Types must declare application/vnd.openxmlformats-officedocument.obfuscatedFont for odttf'
   );
 });
 
@@ -292,7 +293,8 @@ test('T-27-07: Universal system fonts (Arial, Calibri) skip font embedding', asy
 
   const embedded = await embedPresentationFonts(testZip, ['Arial', 'Calibri', 'Times New Roman']);
   assert.equal(embedded.length, 0, 'Universal system fonts must not be embedded');
-  assert.ok(!testZip.file('ppt/fonts/font1.fntdata'), 'No font files should be added for system fonts');
+  const fontFiles = Object.keys(testZip.files).filter((k) => k.startsWith('ppt/fonts/'));
+  assert.equal(fontFiles.length, 0, 'No font files should be added for system fonts');
 });
 
 // --------------------------------------------------------------------------
@@ -377,7 +379,9 @@ test('T-27-10: Absence Guard 3 — Google Fonts embedding detection in exported 
     if (!presXml || !presXml.includes(`<p:font typeface="${expectedFont}"/>`)) {
       throw new Error(`ABSENCE GUARD FAILED: Font ${expectedFont} is not embedded in ppt/presentation.xml`);
     }
-    const fontFiles = Object.keys(zip.files).filter((k) => k.endsWith('.fntdata'));
+    const fontFiles = Object.keys(zip.files).filter(
+      (k) => k.startsWith('ppt/fonts/') && (k.endsWith('.odttf') || k.endsWith('.fntdata'))
+    );
     if (fontFiles.length === 0) {
       throw new Error(`ABSENCE GUARD FAILED: No font data files found under ppt/fonts/`);
     }

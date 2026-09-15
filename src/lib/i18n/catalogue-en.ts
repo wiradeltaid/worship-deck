@@ -373,6 +373,16 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.artifacts.fontColor': 'Font color',
   'admin.artifacts.fontSize': 'Font size',
   'admin.artifacts.searchFonts': 'Search fonts...',
+  'admin.artifacts.importFont': '+ Import Font',
+  'admin.artifacts.importingFont': 'Importing font…',
+  'admin.artifacts.importProgress': 'Importing font ({current}/{total})…',
+  'admin.artifacts.importSingleFamilySuccess':
+    'Imported {count} font face(s) for "{family}" successfully!',
+  'admin.artifacts.importMultiFamilySuccess':
+    'Imported {count} font face(s) across families: {families}',
+  'admin.artifacts.importPartialWarning':
+    'Imported {count} face(s). Failed ({failedCount}): {failed}',
+  'admin.artifacts.importFailed': 'Failed to import fonts: {error}',
   'admin.artifacts.applyStyle': 'Apply to selection',
   'admin.artifacts.styleHint':
     'Colour and size need “Apply to selection”; text applies as you type. Nothing is stored until you Save.',

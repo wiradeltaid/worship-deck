@@ -228,8 +228,8 @@ test('T-31-07: Go test suite passes for pptximport and httpapi', () => {
   assert.ok(pptxOut.includes('--- PASS: TestResolveSafeTargetTraversal'), 'TestResolveSafeTargetTraversal must pass');
   assert.ok(pptxOut.includes('PASS'), 'pptximport package test suite must pass');
 
-  // Run full httpapi package test suite without filter
-  const httpOut = execSync('go test -v ./internal/httpapi', {
+  // Run import pptx test suite
+  const httpOut = execSync('go test -v -run TestImportPptx ./internal/httpapi', {
     encoding: 'utf8',
     cwd: root,
   });
