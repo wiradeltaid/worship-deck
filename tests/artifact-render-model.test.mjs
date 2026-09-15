@@ -63,10 +63,10 @@ const element = (overrides = {}) => ({
   ...overrides,
 });
 
-test('slide constants match pptxgenjs LAYOUT_16x9 and the 960x540 reference', () => {
-  assert.equal(PPTX_SLIDE_WIDTH_IN, 10);
-  assert.equal(PPTX_SLIDE_HEIGHT_IN, 5.625);
-  assert.equal(PX_TO_PT, 0.75);
+test('slide constants match pptxgenjs LAYOUT_WIDE and the 960x540 reference', () => {
+  assert.equal(PPTX_SLIDE_WIDTH_IN, 960 / 72);
+  assert.equal(PPTX_SLIDE_HEIGHT_IN, 7.5);
+  assert.equal(PX_TO_PT, 1);
   assert.equal(DEFAULT_FONT_SIZE_PX, 32);
   assert.equal(DEFAULT_FONT_FAMILY, 'Arial');
 });
@@ -83,11 +83,11 @@ test('text primitive converts to both native unit systems', () => {
   });
 
   assert.deepEqual(toPptxGeometry(el), {
-    x: 0.563,
-    y: 3.1286,
-    w: 5.642,
-    h: 1.4327,
-    fontSize: 114.4725,
+    x: 0.7507,
+    y: 4.1715,
+    w: 7.5227,
+    h: 1.9102,
+    fontSize: 152.63,
   });
   assert.deepEqual(toCssGeometry(el), {
     left: '5.63%',
@@ -113,11 +113,11 @@ test('image primitive converts and exposes its url', () => {
   });
 
   assert.deepEqual(toPptxGeometry(el), {
-    x: 2.5,
-    y: 0.5625,
-    w: 5,
-    h: 4.5,
-    fontSize: 24,
+    x: 3.3333,
+    y: 0.75,
+    w: 6.6667,
+    h: 6,
+    fontSize: 32,
   });
   assert.deepEqual(toCssGeometry(el), {
     left: '25%',
@@ -136,11 +136,11 @@ test('unfilled image-placeholder resolves to nothing but still has geometry', ()
   assert.equal(resolveElementImage(el), undefined);
   assert.equal(resolveElementText(el), undefined);
   assert.deepEqual(toPptxGeometry(el), {
-    x: 1,
-    y: 1.125,
-    w: 3,
-    h: 2.25,
-    fontSize: 24,
+    x: 1.3333,
+    y: 1.5,
+    w: 4,
+    h: 3,
+    fontSize: 32,
   });
   assert.deepEqual(toCssGeometry(el), {
     left: '10%',
@@ -167,10 +167,10 @@ test('shape primitive converts geometry and fill opacity', () => {
 
   assert.deepEqual(toPptxGeometry(el), {
     x: 0,
-    y: 3.7502,
-    w: 10,
-    h: 1.8748,
-    fontSize: 24,
+    y: 5.0003,
+    w: 13.3333,
+    h: 2.4997,
+    fontSize: 32,
   });
   assert.deepEqual(toCssGeometry(el), {
     left: '0%',
@@ -188,8 +188,8 @@ test('negative coordinates survive unclamped in both conversions', () => {
   const el = element({ x: -14.44, y: -8.5, w: 40, h: 20 });
 
   const pptx = toPptxGeometry(el);
-  assert.equal(pptx.x, -1.444);
-  assert.equal(pptx.y, -0.4781);
+  assert.equal(pptx.x, -1.9253);
+  assert.equal(pptx.y, -0.6375);
   assert.ok(pptx.x < 0 && pptx.y < 0);
 
   const css = toCssGeometry(el);
@@ -201,11 +201,11 @@ test('coordinates above 100 survive unclamped in both conversions', () => {
   const el = element({ x: 105, y: 101.25, w: 120, h: 130 });
 
   assert.deepEqual(toPptxGeometry(el), {
-    x: 10.5,
-    y: 5.6953,
-    w: 12,
-    h: 7.3125,
-    fontSize: 24,
+    x: 14,
+    y: 7.5938,
+    w: 16,
+    h: 9.75,
+    fontSize: 32,
   });
   assert.deepEqual(toCssGeometry(el), {
     left: '105%',
@@ -218,18 +218,21 @@ test('coordinates above 100 survive unclamped in both conversions', () => {
 
 test('font size converts px -> pt and px -> cqh', () => {
   const big = element({ style: { fontSize: 152.63 } });
-  assert.equal(toPptxGeometry(big).fontSize, 114.4725);
+  assert.equal(toPptxGeometry(big).fontSize, 152.63);
   assert.equal(toCssGeometry(big).fontSize, '28.2648cqh');
 
   const small = element({ style: { fontSize: 24 } });
-  assert.equal(toPptxGeometry(small).fontSize, 18);
+  assert.equal(toPptxGeometry(small).fontSize, 24);
   assert.equal(toCssGeometry(small).fontSize, '4.4444cqh');
+
+  const font12 = element({ style: { fontSize: 12 } });
+  assert.equal(toPptxGeometry(font12).fontSize, 12);
 });
 
 test('missing font size falls back to the 32px default', () => {
   const el = element({ style: {} });
   assert.equal(toPptxGeometry(el).fontSize, DEFAULT_FONT_SIZE_PX * PX_TO_PT);
-  assert.equal(toPptxGeometry(el).fontSize, 24);
+  assert.equal(toPptxGeometry(el).fontSize, 32);
   assert.equal(toCssGeometry(el).fontSize, '5.9259cqh');
   assert.equal(resolveFontFamily(el.style), 'Arial');
 });
@@ -568,4 +571,75 @@ test('SPEC-22: estimateTextFitScale soft-wrap fixture accounts for soft-wrapped 
   const scale = estimateTextFitScale(elTight);
   assert.ok(scale < 1.0, `Tight box with 3 soft-wrapped lines must scale down, got ${scale}`);
 });
+
+test('SPEC-35-01: modern widescreen geometry, font 12/24 parity, and generated slide dimensions', async () => {
+  // 1. Proportional mapping across 0%, 50%, 100% and off-canvas
+  const geom0 = toPptxGeometry(element({ x: 0, y: 0, w: 50, h: 50 }));
+  assert.equal(geom0.x, 0);
+  assert.equal(geom0.y, 0);
+  assert.equal(geom0.w, 6.6667);
+  assert.equal(geom0.h, 3.75);
+
+  const geom100 = toPptxGeometry(element({ x: 100, y: 100, w: 100, h: 100 }));
+  assert.equal(geom100.x, 13.3333);
+  assert.equal(geom100.y, 7.5);
+  assert.equal(geom100.w, 13.3333);
+  assert.equal(geom100.h, 7.5);
+
+  const geomOff = toPptxGeometry(element({ x: -20, y: 120, w: 150, h: 80 }));
+  assert.ok(geomOff.x < 0, 'Negative x must survive');
+  assert.ok(geomOff.y > 7.5, 'y > 100% must survive');
+
+  // 2. Base geometry font size 12 and 24
+  assert.equal(toPptxGeometry(element({ style: { fontSize: 12 } })).fontSize, 12);
+  assert.equal(toPptxGeometry(element({ style: { fontSize: 24 } })).fontSize, 24);
+
+  // 3. Exported PPTX archive declares LAYOUT_WIDE dimensions: cx="12192000" cy="6858000"
+  const { generatePptxFromPlan } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'pptx-draw.ts')).href
+  );
+  const JSZip = (await import('jszip')).default;
+
+  const plan = [
+    {
+      artifact: {
+        runtimeVersion: 1,
+        instanceId: 'test-wide-1',
+        templateId: 'test-tmpl-1',
+        label: 'Wide Test Slide',
+        baseType: 'general',
+        layoutKey: 'default',
+        layout: {
+          aspectRatio: '16:9',
+          elements: [
+            {
+              id: 'title',
+              type: 'text',
+              x: 10,
+              y: 10,
+              w: 80,
+              h: 40,
+              text: 'Modern Widescreen Parity',
+              style: { fontSize: 12, fontFamily: 'Arial' },
+            },
+          ],
+        },
+      },
+    },
+  ];
+
+  const buffer = await generatePptxFromPlan('2026-09-15', plan, 'none');
+  const zip = await JSZip.loadAsync(buffer);
+  const presXml = await zip.file('ppt/presentation.xml').async('string');
+
+  assert.ok(
+    presXml.includes('cx="12192000"') && presXml.includes('cy="6858000"'),
+    `presentation.xml must declare 12192000 x 6858000 EMU (LAYOUT_WIDE), got: ${presXml}`
+  );
+  assert.ok(
+    !presXml.includes('cx="9144000"') && !presXml.includes('cy="5143500"'),
+    'presentation.xml must not declare legacy 9144000 x 5143500 EMU'
+  );
+});
+
 

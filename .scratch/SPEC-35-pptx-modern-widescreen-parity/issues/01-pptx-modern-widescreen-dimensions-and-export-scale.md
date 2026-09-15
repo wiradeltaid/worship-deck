@@ -1,6 +1,6 @@
 # SPEC-35-01 — PPTX Modern Widescreen Dimensions, Exact Export Constants, and Percentage Geometry
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build
