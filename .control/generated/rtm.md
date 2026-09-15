@@ -1775,6 +1775,39 @@ rtm:
   FR: FR-21
   DEC: []
   UC: UC-15
+  ticket: SPEC-34-01
+  spec: SPEC-34
+  release: deck-sequence-multi-select-and-bulk-delete
+  test:
+  - src/lib/registry/slide-selection.ts
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/slide-selection.test.mjs
+  - tests/smoke-spec-34.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-34-02
+  spec: SPEC-34
+  release: deck-sequence-multi-select-and-bulk-delete
+  test:
+  - src/lib/registry/slide-selection.ts
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-34.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
   ticket: W1-1-1
   spec: W1
   release: registry-order

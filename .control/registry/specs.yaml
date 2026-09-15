@@ -1675,6 +1675,10 @@ waves:
     size: S
     depends_on: [SPEC-33]
     spec_folder: .scratch/SPEC-34-deck-sequence-multi-select-and-bulk-delete/
+    spec_reviewed:
+      date: '2026-09-15'
+      sha: 'db9d123'
+      lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-34-01"
         component: registry
