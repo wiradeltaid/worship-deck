@@ -828,6 +828,28 @@ decisions:
       - src/components/artifacts/ArtifactSlide.tsx
       - src/lib/fonts/embed-fonts.ts
       - src/lib/pptx-draw.ts
+  - id: DEC-036
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-15)"
+    title: Autopilot mandate for Deck Sequence Multi-Select and Bulk Delete (SPEC-34)
+    file: .control/decisions/DEC-036-autopilot-mandate-deck-sequence-multi-select-bulk-delete.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-22'
+    touches:
+      - .control/memlog/autopilot-DEC-036.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-34-deck-sequence-multi-select-and-bulk-delete/SPEC.md
+      - src/lib/registry/slide-selection.ts
+      - src/components/admin/ArtifactEditor.tsx
+      - tests/slide-selection.test.mjs
+      - tests/smoke-spec-34.test.mjs
 
 
 
