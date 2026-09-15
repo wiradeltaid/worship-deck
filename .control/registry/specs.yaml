@@ -1740,6 +1740,46 @@ waves:
           - tests/smoke-spec-32.test.mjs
           - tests/smoke-spec-35.test.mjs
 
+  - id: SPEC-36
+    status: open
+    release: font-import-variant-association-and-pptx-embedding-parity
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-35]
+    spec_folder: .scratch/SPEC-36-font-import-variant-association-and-pptx-embedding-parity/
+    spec_reviewed:
+      date: '2026-09-15'
+      sha: 'b402b4243877cfefcf7a1e8b73c86c1c1a51f36c'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-36-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, typography]
+        tests:
+          - src/components/admin/ArtifactEditor.tsx
+          - src/lib/registry/font-catalog.ts
+          - tests/smoke-spec-36.test.mjs
+      - id: "SPEC-36-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-36-01"]
+        touches: [artifacts, typography]
+        tests:
+          - internal/httpapi
+          - src/lib/registry/font-catalog.ts
+          - tests/smoke-spec-36.test.mjs
+      - id: "SPEC-36-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-36-02"]
+        touches: [artifacts, pptx]
+        tests:
+          - src/lib/fonts/embed-fonts.ts
+          - tests/smoke-spec-36.test.mjs
+
 
 
 

@@ -876,6 +876,31 @@ decisions:
       - tests/smoke-spec-32.test.mjs
       - tests/smoke-spec-35.test.mjs
       - package.json
+  - id: DEC-038
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-15)"
+    title: Autopilot mandate for Font Import UX, Variant Association, and PPTX Microsoft OpenXML Embedding Parity (SPEC-36)
+    file: .control/decisions/DEC-038-autopilot-mandate-font-import-variant-association-pptx-embedding.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-22'
+    touches:
+      - .control/memlog/autopilot-DEC-038.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-36-font-import-variant-association-and-pptx-embedding-parity/SPEC.md
+      - src/components/admin/ArtifactEditor.tsx
+      - src/lib/registry/font-catalog.ts
+      - src/lib/fonts/embed-fonts.ts
+      - internal/httpapi/fonts.go
+      - internal/pptximport/font_extract.go
+      - tests/smoke-spec-36.test.mjs
+      - package.json
 
 
 
