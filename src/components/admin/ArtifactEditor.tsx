@@ -18,6 +18,7 @@ import {
   Trash2,
   Type,
   Underline,
+  Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ArtifactSlide from '@/components/artifacts/ArtifactSlide';
@@ -1123,6 +1124,20 @@ export default function ArtifactEditor({
 
       const fabric = await import('fabric');
       if (fabricCanvasRef.current !== canvas) return;
+
+      if (url) {
+        try {
+          const bg = await fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' });
+          if (fabricCanvasRef.current !== canvas) return;
+          if (!bg || !bg.width) {
+            toast.error('Failed to load background: invalid image');
+            return;
+          }
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to load background');
+          return;
+        }
+      }
 
       // In Option A, ArtifactSlide (Visual Layer) renders the background image.
       // Fabric canvas overlay remains completely transparent.
@@ -2379,6 +2394,65 @@ export default function ArtifactEditor({
     }
   };
 
+  const pptxFileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImportPptx = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      event.target.value = '';
+
+      if (!file.name.toLowerCase().endsWith('.pptx')) {
+        toast.error('Please select a valid .pptx file');
+        return;
+      }
+
+      const editable = template ? isCanvasAuthorable(template.baseType) : false;
+      const proceed = mayDiscard(
+        isDirty && editable,
+        DISCARD_ON_SWITCH_CONFIRMATION,
+        (msg) => window.confirm(msg)
+      );
+      if (!proceed) return;
+
+      setIsImporting(true);
+      const toastId = toast.loading('Importing presentation slides...');
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/admin/artifacts/import-pptx', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || 'Failed to import PPTX');
+        }
+
+        toast.success(`Imported ${data.importedCount} slide(s) successfully`, { id: toastId });
+
+        await loadList();
+
+        if (data.firstTemplate?.id) {
+          setSelectedId(data.firstTemplate.id);
+          setTemplate(data.firstTemplate);
+          setDraftLabel(typeof data.firstTemplate.label === 'string' ? data.firstTemplate.label : '');
+          setIsDirty(false);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to import presentation', { id: toastId });
+      } finally {
+        setIsImporting(false);
+      }
+    },
+    [template, isDirty, loadList, setSelectedId, setTemplate, setIsDirty]
+  );
+
   const handleRename = async () => {
     if (!template) return;
     const label = draftLabel.trim();
@@ -2872,6 +2946,27 @@ export default function ArtifactEditor({
                 </Button>
               </div>
             )}
+            <div className="pt-2 border-t border-border/50">
+              <input
+                ref={pptxFileInputRef}
+                type="file"
+                accept=".pptx"
+                className="hidden"
+                onChange={handleImportPptx}
+                disabled={busy || isImporting}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => pptxFileInputRef.current?.click()}
+                disabled={busy || isImporting}
+                className="w-full text-xs h-8 border-dashed"
+              >
+                <Upload className="w-3.5 h-3.5 mr-1.5" />
+                {isImporting ? 'Importing PPTX...' : 'Import PPTX'}
+              </Button>
+            </div>
           </div>
 
           {/* LIST TEMPLATES (POIN 3: HOVER ACTIONS & DND REORDER) */}
@@ -3117,6 +3212,16 @@ export default function ArtifactEditor({
                       {t('admin.artifacts.reset')}
                     </Button>
                   ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => pptxFileInputRef.current?.click()}
+                    disabled={busy || isImporting}
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    {isImporting ? 'Importing...' : 'Import PPTX'}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"

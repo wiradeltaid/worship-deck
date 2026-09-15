@@ -752,6 +752,29 @@ decisions:
       - tests/smoke-spec-23.test.mjs
       - tests/pptx-content.test.mjs
       - package.json
+  - id: DEC-033
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-15)"
+    title: Autopilot mandate for Initial PPTX Import and Smart Background Detection (SPEC-31)
+    file: .control/decisions/DEC-033-autopilot-mandate-initial-pptx-import.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-22'
+    touches:
+      - .control/memlog/autopilot-DEC-033.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-31-initial-pptx-import-smart-background/SPEC.md
+      - internal/pptximport
+      - internal/httpapi
+      - src/components/admin/ArtifactEditor.tsx
+      - tests/smoke-spec-31.test.mjs
+
 
 
 
