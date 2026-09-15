@@ -43,6 +43,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/upload", s.postUpload)
 	mux.HandleFunc("POST /api/upload/from-url", s.postUploadFromURL)
 	mux.HandleFunc("GET /api/uploads/{filename}", s.getUpload)
+	mux.HandleFunc("GET /api/fonts", s.listFonts)
+	mux.HandleFunc("GET /api/fonts/{id}", s.getFont)
 	mux.HandleFunc("GET /api/admin/accounts", s.listAccounts)
 	mux.HandleFunc("POST /api/admin/accounts", s.createAccount)
 	mux.HandleFunc("PATCH /api/admin/accounts/{id}", s.patchAccount)
@@ -185,10 +187,14 @@ func (s *Server) getPptx(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	fontManifest, _ := s.getFontManifest(r.Context())
+
 	payload, err := json.Marshal(map[string]interface{}{
 		"serviceDate": date,
 		"transition":  transition,
 		"plan":        items,
+		"fonts":       fontManifest,
 	})
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

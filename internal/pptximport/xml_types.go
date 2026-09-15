@@ -28,9 +28,39 @@ type XMLRelationship struct {
 
 // Presentation (ppt/presentation.xml)
 type XMLPresentation struct {
-	XMLName xml.Name      `xml:"presentation"`
-	SldSz   XMLSlideSize  `xml:"sldSz"`
-	SldIdLst XMLSlideIdList `xml:"sldIdLst"`
+	XMLName         xml.Name            `xml:"presentation"`
+	SldSz           XMLSlideSize        `xml:"sldSz"`
+	SldIdLst        XMLSlideIdList      `xml:"sldIdLst"`
+	EmbeddedFontLst *XMLEmbeddedFontList `xml:"embeddedFontLst"`
+}
+
+type XMLEmbeddedFontList struct {
+	Fonts []XMLEmbeddedFont `xml:"embeddedFont"`
+}
+
+type XMLEmbeddedFont struct {
+	Font       XMLFontInfo    `xml:"font"`
+	Regular    *XMLFontRelRef `xml:"regular"`
+	Bold       *XMLFontRelRef `xml:"bold"`
+	Italic     *XMLFontRelRef `xml:"italic"`
+	BoldItalic *XMLFontRelRef `xml:"boldItalic"`
+}
+
+type XMLFontInfo struct {
+	Typeface string `xml:"typeface,attr"`
+}
+
+type XMLFontRelRef struct {
+	ID string
+}
+
+func (f *XMLFontRelRef) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	for _, attr := range start.Attr {
+		if attr.Name.Local == "id" {
+			f.ID = attr.Value
+		}
+	}
+	return d.Skip()
 }
 
 type XMLSlideSize struct {
@@ -171,16 +201,18 @@ type XMLTextBody struct {
 }
 
 type XMLParagraph struct {
-	PPr  *XMLParagraphProperties `xml:"pPr"`
-	Runs []XMLRun                `xml:"r"`
-	Brs  []XMLBreak              `xml:"br"`
+	PPr        *XMLParagraphProperties `xml:"pPr"`
+	Runs       []XMLRun                `xml:"r"`
+	Brs        []XMLBreak              `xml:"br"`
+	EndParaRPr *XMLRunProperties       `xml:"endParaRPr"`
 	// In DrawingML, runs and br elements are interspersed in document order.
 	// We handle sequence parsing via a custom unmarshaler or token scanner.
 }
 
 type XMLParagraphProperties struct {
-	Algn  string           `xml:"algn,attr"` // l, ctr, r, just
-	LnSpc *XMLLineSpacing  `xml:"lnSpc"`
+	Algn   string            `xml:"algn,attr"` // l, ctr, r, just
+	LnSpc  *XMLLineSpacing   `xml:"lnSpc"`
+	DefRPr *XMLRunProperties `xml:"defRPr"`
 }
 
 type XMLLineSpacing struct {
@@ -210,6 +242,7 @@ type XMLRunProperties struct {
 	B         string        `xml:"b,attr"`  // "1" or "0"
 	I         string        `xml:"i,attr"`  // "1" or "0"
 	U         string        `xml:"u,attr"`  // "sng", "none"
+	Spc       *int          `xml:"spc,attr"` // character tracking in hundredths of a pt
 	SolidFill *XMLSolidFill `xml:"solidFill"`
 	Latin     *XMLLatinFont `xml:"latin"`
 }

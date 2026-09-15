@@ -76,6 +76,8 @@ export type TextStyle = {
   lineHeight?: number;
   textShadow?: boolean;
   textShadowBlur?: number;
+  letterSpacing?: number;
+  pptxTypeface?: string;
 };
 
 export type ImageStyle = {

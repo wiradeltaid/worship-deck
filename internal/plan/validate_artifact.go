@@ -53,6 +53,7 @@ var (
 		"fontFamily": {}, "fontSize": {}, "fontColor": {}, "fontWeight": {}, "fontStyle": {}, "textDecoration": {},
 		"textAlign": {}, "verticalAlign": {}, "objectFit": {}, "fillColor": {}, "opacity": {},
 		"lineHeight": {}, "textShadow": {}, "textShadowBlur": {},
+		"letterSpacing": {}, "pptxTypeface": {},
 	}
 	entryKeys = map[string]struct{}{"general": {}, "song-set": {}, "song-set-entry": {}, "ann-set-marker": {}, "announcement": {}}
 )
@@ -168,18 +169,40 @@ func parseStyle(raw any, label string) (map[string]any, error) {
 		style["fontColor"] = s
 	}
 	if v, ok := obj["fontWeight"]; ok {
-		s, _ := v.(string)
-		if s != "normal" && s != "bold" {
+		var s string
+		switch val := v.(type) {
+		case string:
+			s = val
+		case float64:
+			if val >= 100 && val <= 900 && int(val)%100 == 0 {
+				s = fmt.Sprintf("%d", int(val))
+			}
+		}
+		if !isValidFontWeight(s) {
 			return nil, failf("%s.fontWeight is invalid", label)
 		}
 		style["fontWeight"] = s
 	}
 	if v, ok := obj["fontStyle"]; ok {
 		s, _ := v.(string)
-		if s != "normal" && s != "italic" {
+		if s != "normal" && s != "italic" && s != "oblique" {
 			return nil, failf("%s.fontStyle is invalid", label)
 		}
 		style["fontStyle"] = s
+	}
+	if v, ok := obj["letterSpacing"]; ok {
+		n, err := asNumber(v, label+".letterSpacing")
+		if err != nil {
+			return nil, err
+		}
+		style["letterSpacing"] = n
+	}
+	if v, ok := obj["pptxTypeface"]; ok {
+		s, ok := v.(string)
+		if !ok || strings.TrimSpace(s) == "" {
+			return nil, failf("%s.pptxTypeface is invalid", label)
+		}
+		style["pptxTypeface"] = s
 	}
 	if v, ok := obj["textDecoration"]; ok {
 		s, _ := v.(string)
@@ -254,6 +277,15 @@ func parseStyle(raw any, label string) (map[string]any, error) {
 		return nil, nil
 	}
 	return style, nil
+}
+
+func isValidFontWeight(s string) bool {
+	switch s {
+	case "normal", "bold", "100", "200", "300", "400", "500", "600", "700", "800", "900":
+		return true
+	default:
+		return false
+	}
 }
 
 func parseElement(raw any, label, repoRoot string) (CanvasElement, error) {

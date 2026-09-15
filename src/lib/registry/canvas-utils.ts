@@ -215,6 +215,9 @@ export function buildTextFabricOptions(
     ...(style?.fontWeight !== undefined ? { fontWeight: style.fontWeight } : {}),
     ...(style?.fontStyle !== undefined ? { fontStyle: style.fontStyle } : {}),
     ...(style?.textDecoration === 'underline' ? { underline: true } : {}),
+    ...(typeof style?.letterSpacing === 'number' && Number.isFinite(style.letterSpacing)
+      ? { charSpacing: (style.letterSpacing / normalizeFontSize(style?.fontSize)) * 1000 }
+      : {}),
     ...(shadow ? { shadow } : {}),
     textAlign: style?.textAlign ?? DEFAULT_TEXT_ALIGN,
     splitByGrapheme: false,
@@ -950,6 +953,35 @@ export function serializeTextStyle(
       : undefined,
     DEFAULT_TEXT_ALIGN
   );
+
+  // SPEC-32-03: letterSpacing preservation
+  if (typeof (textObj as any).charSpacing === 'number' && Number.isFinite((textObj as any).charSpacing)) {
+    const fs = typeof textObj.fontSize === 'number' ? textObj.fontSize : DEFAULT_FONT_SIZE;
+    style.letterSpacing = Number((((textObj as any).charSpacing / 1000) * fs).toFixed(4));
+  } else if (typeof proxyStyle.letterSpacing === 'number') {
+    style.letterSpacing = proxyStyle.letterSpacing;
+  } else if (typeof source.style?.letterSpacing === 'number') {
+    style.letterSpacing = source.style.letterSpacing;
+  }
+
+  // SPEC-32-03: Invalidate pptxTypeface when font family, weight, or style is edited
+  const prevFamily = source.style?.fontFamily;
+  const prevWeight = source.style?.fontWeight;
+  const prevStyle = source.style?.fontStyle;
+  const currentFamily = style.fontFamily;
+  const currentWeight = style.fontWeight;
+  const currentStyle = style.fontStyle;
+
+  const typographyChanged =
+    (currentFamily !== undefined && prevFamily !== undefined && currentFamily !== prevFamily) ||
+    (currentWeight !== undefined && prevWeight !== undefined && currentWeight !== prevWeight) ||
+    (currentStyle !== undefined && prevStyle !== undefined && currentStyle !== prevStyle);
+
+  if (source.style?.pptxTypeface && !typographyChanged) {
+    style.pptxTypeface = source.style.pptxTypeface;
+  } else {
+    delete style.pptxTypeface;
+  }
 
   return Object.keys(style).length > 0 ? style : undefined;
 }

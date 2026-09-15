@@ -329,7 +329,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     wrap: shouldWrap,
     fontFace: resolveFontFamily(style),
     color: toPptxColor(style.fontColor) ?? 'FFFFFF',
-    bold: resolveBold(style),
+    bold: style?.pptxTypeface ? false : resolveBold(style),
     italic: resolveItalic(style),
     underline: resolveUnderline(style) ? { style: 'sng' } : undefined,
     align: resolveTextAlign(style),
@@ -576,11 +576,78 @@ async function patchAutofitFontScale(zip: JSZip): Promise<void> {
 }
 
 /**
+ * SPEC-32-03: Post-process generated PPTX OOXML deterministically, setting
+ * a:rPr/@spc = round(letterSpacing * 75) only on runs belonging to the mapped artifact element.
+ * Absent or zero letter-spacing emits no spc attribute.
+ */
+async function patchCharacterSpacing(zip: JSZip, plan: DrawPlanItem[]): Promise<void> {
+  for (let sIdx = 0; sIdx < plan.length; sIdx++) {
+    const item = plan[sIdx];
+    const slideFileName = `ppt/slides/slide${sIdx + 1}.xml`;
+    const file = zip.file(slideFileName);
+    if (!file) continue;
+
+    const elements = item.artifact?.layout?.elements ?? [];
+    const textElements = elements.filter((el) => el.type === 'text');
+    if (textElements.length === 0) continue;
+
+    let xml = await file.async('string');
+    let changed = false;
+
+    // Split XML by <p:sp> to isolate individual shape blocks in sequential order
+    const shapeParts = xml.split('<p:sp>');
+    let textShapeCount = 0;
+
+    for (let partIdx = 1; partIdx < shapeParts.length; partIdx++) {
+      const part = shapeParts[partIdx];
+      const endSpIdx = part.indexOf('</p:sp>');
+      if (endSpIdx === -1) continue;
+
+      const shapeContent = part.substring(0, endSpIdx);
+      if (!shapeContent.includes('<p:txBody>') && !shapeContent.includes('txBody>')) {
+        continue;
+      }
+
+      if (textShapeCount < textElements.length) {
+        const el = textElements[textShapeCount];
+        textShapeCount++;
+
+        const targetSpc =
+          typeof el.style?.letterSpacing === 'number' && Number.isFinite(el.style.letterSpacing)
+            ? Math.round(el.style.letterSpacing * 75)
+            : 0;
+
+        // Replace or strip spc on every <a:rPr> in this shape
+        const updatedShape = shapeContent.replace(/<a:rPr(\s+[^>]*)?>/g, (match) => {
+          // Strip any existing spc
+          let cleaned = match.replace(/\s+spc="[^"]*"/g, '');
+          if (targetSpc !== 0) {
+            if (cleaned.endsWith('/>')) {
+              return cleaned.slice(0, -2) + ` spc="${targetSpc}"/>`;
+            }
+            return cleaned.slice(0, -1) + ` spc="${targetSpc}">`;
+          }
+          return cleaned;
+        });
+
+        if (updatedShape !== shapeContent) {
+          shapeParts[partIdx] = updatedShape + part.substring(endSpIdx);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      zip.file(slideFileName, shapeParts.join('<p:sp>'));
+    }
+  }
+}
+
+/**
  * Single post-processing pass over the written archive.
  *
- * Dedup, transition injection, and autofit patch share one JSZip instance and one re-emit. The
- * re-emit uses DEFLATE — pptxgenjs writes with the JSZip default (STORE), so
- * every previous round-trip shipped the archive uncompressed.
+ * Dedup, transition injection, autofit patch, font embedding, and character tracking
+ * share one JSZip instance and one re-emit.
  *
  * Every stage is defensive: a failure anywhere returns the buffer we already
  * have rather than failing the download.
@@ -589,7 +656,9 @@ async function postProcessArchive(
   buffer: Buffer,
   slideIndexes: Set<number>,
   transition: SlideTransition,
-  usedFonts?: Set<string>
+  usedFonts?: Set<string>,
+  fontManifest?: Array<{ family: string; weight?: string; style?: string; path: string }>,
+  plan?: DrawPlanItem[]
 ): Promise<Buffer> {
   try {
     const zip = await JSZip.loadAsync(buffer);
@@ -613,9 +682,17 @@ async function postProcessArchive(
       console.error('[pptx] autofit fontScale patch skipped:', error);
     }
 
+    if (plan && plan.length > 0) {
+      try {
+        await patchCharacterSpacing(zip, plan);
+      } catch (error) {
+        console.error('[pptx] character spacing patch skipped:', error);
+      }
+    }
+
     if (usedFonts && usedFonts.size > 0) {
       try {
-        await embedPresentationFonts(zip, usedFonts);
+        await embedPresentationFonts(zip, usedFonts, fontManifest);
       } catch (error) {
         console.error('[pptx] font embedding skipped:', error);
       }
@@ -636,7 +713,8 @@ async function postProcessArchive(
 export async function generatePptxFromPlan(
   serviceDate: string,
   plan: DrawPlanItem[],
-  transition: SlideTransition
+  transition: SlideTransition,
+  fontManifest?: Array<{ family: string; weight?: string; style?: string; path: string }>
 ): Promise<Buffer> {
   const style = transition;
   const embedded = await embedPlanImages(plan);
@@ -664,5 +742,5 @@ export async function generatePptxFromPlan(
   }
 
   const buffer = (await pres.write({ outputType: 'nodebuffer' })) as Buffer;
-  return postProcessArchive(buffer, ctx.transitionIndexes, style, usedFonts);
+  return postProcessArchive(buffer, ctx.transitionIndexes, style, usedFonts, fontManifest, plan);
 }

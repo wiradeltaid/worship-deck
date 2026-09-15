@@ -1575,7 +1575,7 @@ waves:
           - tests/smoke-spec-31.test.mjs
 
   - id: SPEC-32
-    status: open
+    status: closed
     release: pptx-import-font-adoption-and-letter-spacing
     prd: [offline-deck]
     fr: [FR-20]

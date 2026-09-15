@@ -1090,7 +1090,10 @@ export function toCssColor(color: string | undefined): string | undefined {
 }
 
 export function resolveFontFamily(style: ResolvedStyle): string {
-  const family = style.fontFamily;
+  if (typeof style?.pptxTypeface === 'string' && style.pptxTypeface.trim()) {
+    return style.pptxTypeface.trim();
+  }
+  const family = style?.fontFamily;
   return typeof family === 'string' && family.trim()
     ? family
     : DEFAULT_FONT_FAMILY;

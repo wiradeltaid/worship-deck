@@ -62,16 +62,36 @@ export async function getFontData(fontFamily: string): Promise<Buffer | null> {
  */
 export async function embedPresentationFonts(
   zip: JSZip,
-  usedFontFamilies: Iterable<string>
+  usedFontFamilies: Iterable<string>,
+  fontManifest?: Array<{ family: string; weight?: string; style?: string; path: string }>
 ): Promise<string[]> {
   const embeddedFonts: string[] = [];
   const fontsToEmbed: { family: string; buffer: Buffer }[] = [];
+
+  const manifestMap = new Map<string, string>();
+  if (Array.isArray(fontManifest)) {
+    for (const entry of fontManifest) {
+      if (entry.family && entry.path) {
+        manifestMap.set(entry.family.trim().toLowerCase(), entry.path);
+      }
+    }
+  }
 
   const seen = new Set<string>();
   for (const raw of usedFontFamilies) {
     const family = resolveCatalogFontFamily(raw);
     if (seen.has(family)) continue;
     seen.add(family);
+
+    // Check local font manifest first (AD-30 / SPEC-32-02: zero network calls)
+    const localPath = manifestMap.get(family.trim().toLowerCase()) || manifestMap.get(raw.trim().toLowerCase());
+    if (localPath && fs.existsSync(localPath)) {
+      try {
+        const buf = fs.readFileSync(localPath);
+        fontsToEmbed.push({ family, buffer: buf });
+        continue;
+      } catch {}
+    }
 
     const def = getFontDefinition(family);
     // Universal system fonts (Arial, Calibri, etc.) are already installed on all PowerPoint machines
