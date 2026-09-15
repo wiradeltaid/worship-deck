@@ -1,0 +1,635 @@
+asof: '2026-09-15'
+capabilities:
+- id: CAP-1
+  text: Intake a Rundown into a weekly payload from the Hub form
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-2
+    text: Validate and resolve hymns by Song Book number, at the API
+    tickets:
+    - W10-01
+    - W10-02
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-27
+    text: Create a new Service from the Hub form
+    tickets:
+    - W10-02
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-3
+    text: Manage the announcement list that persists across weeks
+    tickets:
+    - W9-04
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-10
+  text: Several Bible translations, several Song Books, two language axes
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-22
+    text: Read verses from the selected translation, default KJV
+    tickets:
+    - W7-03
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-23
+    text: Resolve hymns from the selected Song Book, default SDAH
+    tickets:
+    - W9-05
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-24
+    text: Browse installed corpora by language; the default filters the display, not the data
+    tickets:
+    - W9-05
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-25
+    text: Display the Operator interface in the Operator's language
+    tickets:
+    - W9-02
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-11
+  text: Intake a Rundown from Telegram via picoclaw
+  size: ''
+  priority: must
+  owner: ''
+  target_release: later
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-1
+    text: Ingest a Rundown from Telegram into a structured weekly payload
+    tickets:
+    - W10-01
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-12
+    text: Send a correction via Telegram to an existing Service
+    tickets:
+    - W10-03
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-2
+  text: Assemble a Deck from the fixed frame plus the weekly payload
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-08-21'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-4
+    text: Assemble a Deck from the fixed frame plus the weekly payload
+    tickets:
+    - W3-2
+    - W4-1
+    actual_start: '2026-08-21'
+    actual_end: '2026-08-21'
+    state: done
+  - id: FR-5
+    text: Render a song block into readable lyric slides
+    tickets:
+    - W3-2
+    - W4-1
+    actual_start: '2026-08-21'
+    actual_end: '2026-08-21'
+    state: done
+  - id: FR-6
+    text: Render non-song variable content onto its slide kinds
+    tickets:
+    - W3-2
+    - W4-1
+    actual_start: '2026-08-21'
+    actual_end: '2026-08-21'
+    state: done
+  - id: FR-7
+    text: Apply one elegant transition chosen by Admin
+    tickets:
+    - W9-03
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-3
+  text: Hub Service list, preview, delete, PPTX retention
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-10
+    text: Manually delete a Service and its assets, including local files in UPLOADS_DIR
+    tickets:
+    - W8-05
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-8
+    text: List Services by date
+    tickets:
+    - W8-01
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-9
+    text: Preview a Service per slide in the browser
+    tickets:
+    - W8-06
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-4
+  text: Edit Service fields and regenerate in place
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: ''
+  delta_days: null
+  state: in-progress
+  children:
+  - id: FR-11
+    text: Edit Service fields through the Hub form
+    tickets:
+    - W8-03
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-13
+    text: Regenerate this Service's Deck in place
+    tickets:
+    - SPEC-22-01
+    - SPEC-22-03
+    - SPEC-23-02
+    - SPEC-23-03
+    - SPEC-23-04
+    - SPEC-23-05
+    - SPEC-23-07
+    - W8-04
+    actual_start: '2026-09-07'
+    actual_end: ''
+    state: in-progress
+  - id: FR-28
+    text: First save wins when edits collide
+    tickets:
+    - W8-07
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-32
+    text: Weekly song inputs on the Hub form match the configured song-set list
+    tickets:
+    - W8-08
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-34
+    text: Operator edits a song's lyrics for this Service only, with an explicit action to save them back
+      to the Song Book
+    tickets:
+    - W10-04
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-5
+  text: Download a PPTX that presents without a network
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-08-19'
+  actual_end: '2026-08-19'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-14
+    text: Download a PPTX that presents fully offline
+    tickets:
+    - W2-2-1
+    - W2-2-2
+    - W2-2-3
+    actual_start: '2026-08-19'
+    actual_end: '2026-08-19'
+    state: done
+  - id: FR-26
+    text: Auto-delete only PPTX files that have expired under the retention policy
+    tickets: []
+    actual_start: ''
+    actual_end: ''
+    state: not-started
+  waiting_on: []
+- id: CAP-6
+  text: Present in the browser — slideshow, presenter, on-demand verse
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-08-22'
+  actual_end: ''
+  delta_days: null
+  state: in-progress
+  children:
+  - id: FR-15
+    text: Present a Service as a fullscreen slideshow in the browser
+    tickets:
+    - SPEC-19-05
+    - W7-01
+    actual_start: '2026-09-07'
+    actual_end: ''
+    state: in-progress
+  - id: FR-16
+    text: Two-screen presenter view in the browser
+    tickets:
+    - W7-02
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-19
+    text: Search and display an on-demand verse in Presenter
+    tickets:
+    - W7-03
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-33
+    text: Operator changes the live Verse/Reff background during the service
+    tickets:
+    - W7-04
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  - id: FR-35
+    text: Operator controls the presenting laptop from a second signed-in device
+    tickets:
+    - W5-5-1
+    - W5-5-2
+    - W5-5-3
+    actual_start: '2026-08-22'
+    actual_end: '2026-08-22'
+    state: done
+  waiting_on: []
+- id: CAP-7
+  text: Run-Sheet of the full worship order
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-17
+    text: Display the full worship order as a Run-Sheet
+    tickets:
+    - W8-02
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-8
+  text: Per-person accounts and two Roles
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-09-07'
+  actual_end: '2026-09-07'
+  delta_days: null
+  state: done
+  children:
+  - id: FR-18
+    text: Per-person authentication with Admin and Operator Roles
+    tickets:
+    - W9-01
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+- id: CAP-9
+  text: Artifact Registry — Deck layout and order
+  size: ''
+  priority: must
+  owner: ''
+  target_release: as-built
+  planned_start: ''
+  planned_end: ''
+  estimate_mandays: 0
+  actual_start: '2026-08-19'
+  actual_end: ''
+  delta_days: null
+  state: in-progress
+  children:
+  - id: FR-20
+    text: Admin changes a slide's layout through the Artifact Registry
+    tickets:
+    - SPEC-12-01
+    - SPEC-12-02
+    - SPEC-12-03
+    - SPEC-12-04
+    - SPEC-12-05
+    - SPEC-12-06
+    - SPEC-12-08
+    - SPEC-13-02
+    - SPEC-13-03
+    - SPEC-13-04
+    - SPEC-13-07
+    - SPEC-13-08
+    - SPEC-13-09
+    - SPEC-13-10
+    - SPEC-13-12
+    - SPEC-14-01
+    - SPEC-14-02
+    - SPEC-14-03
+    - SPEC-14-05
+    - SPEC-14-07
+    - SPEC-14-08
+    - SPEC-14-09
+    - SPEC-15-01
+    - SPEC-15-02
+    - SPEC-15-03
+    - SPEC-16-01
+    - SPEC-17-01
+    - SPEC-17-02
+    - SPEC-17-03
+    - SPEC-18-01
+    - SPEC-18-02
+    - SPEC-18-03
+    - SPEC-19-01
+    - SPEC-19-02
+    - SPEC-19-03
+    - SPEC-19-04
+    - SPEC-20-01
+    - SPEC-20-02
+    - SPEC-20-03
+    - SPEC-20-04
+    - SPEC-21-01
+    - SPEC-21-02
+    - SPEC-21-03
+    - SPEC-21-04
+    - SPEC-22-01
+    - SPEC-22-02
+    - SPEC-22-03
+    - SPEC-22-04
+    - SPEC-23-01
+    - SPEC-23-02
+    - SPEC-23-03
+    - SPEC-23-05
+    - SPEC-23-06
+    - SPEC-23-07
+    - SPEC-24-01
+    - SPEC-24-02
+    - SPEC-24-03
+    - SPEC-24-04
+    - SPEC-25-01
+    - SPEC-25-02
+    - SPEC-25-03
+    - SPEC-26-01
+    - SPEC-26-02
+    - SPEC-26-03
+    - SPEC-27-01
+    - SPEC-27-02
+    - SPEC-27-03
+    - SPEC-27-04
+    - SPEC-28-01
+    - SPEC-28-02
+    - SPEC-28-03
+    - SPEC-29-01
+    - SPEC-29-02
+    - SPEC-29-03
+    - SPEC-30-01
+    - SPEC-30-02
+    - SPEC-30-03
+    - SPEC-31-01
+    - SPEC-31-02
+    - SPEC-31-03
+    - SPEC-31-04
+    - SPEC-32-01
+    - SPEC-32-02
+    - SPEC-32-03
+    - SPEC-32-04
+    - SPEC-33-01
+    - SPEC-33-02
+    - SPEC-33-03
+    - SPEC-33-04
+    - W11-02
+    - W11-03
+    - W11-06
+    - W3-1
+    actual_start: '2026-08-21'
+    actual_end: ''
+    state: in-progress
+  - id: FR-21
+    text: Admin changes slide order and membership in the Artifact Registry
+    tickets:
+    - SPEC-12-02
+    - SPEC-12-08
+    - SPEC-13-01
+    - SPEC-13-08
+    - SPEC-14-03
+    - SPEC-34-01
+    - SPEC-34-02
+    - W1-1-1
+    - W1-1-2
+    - W11-01
+    - W11-04
+    - W3-3
+    actual_start: '2026-08-19'
+    actual_end: ''
+    state: in-progress
+  - id: FR-29
+    text: Admin configures the song-set list in the Artifact Registry, not a fixed four
+    tickets:
+    - SPEC-12-07
+    - SPEC-13-05
+    - SPEC-13-06
+    - SPEC-13-07
+    - SPEC-13-11
+    - SPEC-13-13
+    - SPEC-14-04
+    - SPEC-14-06
+    - SPEC-15-04
+    - SPEC-16-02
+    - W11-05
+    - W6-01
+    actual_start: '2026-09-07'
+    actual_end: ''
+    state: in-progress
+  - id: FR-30
+    text: An unrecognised predefined-field token never blocks Deck generation
+    tickets:
+    - SPEC-12-01
+    - SPEC-12-02
+    - SPEC-12-03
+    - SPEC-12-04
+    - SPEC-12-05
+    - SPEC-12-06
+    - SPEC-12-08
+    - SPEC-13-02
+    - SPEC-13-03
+    - SPEC-13-04
+    - SPEC-13-07
+    - SPEC-13-08
+    - SPEC-13-09
+    - SPEC-13-10
+    - SPEC-13-12
+    - SPEC-14-01
+    - SPEC-14-02
+    - SPEC-14-03
+    - SPEC-14-05
+    - SPEC-14-07
+    - SPEC-14-08
+    - SPEC-14-09
+    - SPEC-15-01
+    - SPEC-15-02
+    - SPEC-15-03
+    - SPEC-16-01
+    - SPEC-17-01
+    - SPEC-17-02
+    - SPEC-17-03
+    - SPEC-18-01
+    - SPEC-18-02
+    - SPEC-18-03
+    - SPEC-19-01
+    - SPEC-19-02
+    - SPEC-19-03
+    - SPEC-19-04
+    - SPEC-20-01
+    - SPEC-20-02
+    - SPEC-20-03
+    - SPEC-20-04
+    - SPEC-21-01
+    - SPEC-21-02
+    - SPEC-21-03
+    - SPEC-21-04
+    - SPEC-22-01
+    - SPEC-22-02
+    - SPEC-22-03
+    - SPEC-22-04
+    - SPEC-23-01
+    - SPEC-23-02
+    - SPEC-23-03
+    - SPEC-23-05
+    - SPEC-23-06
+    - SPEC-23-07
+    - SPEC-24-01
+    - SPEC-24-02
+    - SPEC-24-03
+    - SPEC-24-04
+    - SPEC-25-01
+    - SPEC-25-02
+    - SPEC-25-03
+    - SPEC-26-01
+    - SPEC-26-02
+    - SPEC-26-03
+    - SPEC-27-01
+    - SPEC-27-02
+    - SPEC-27-03
+    - SPEC-27-04
+    - SPEC-28-01
+    - SPEC-28-02
+    - SPEC-28-03
+    - SPEC-29-01
+    - SPEC-29-02
+    - SPEC-29-03
+    - SPEC-30-01
+    - SPEC-30-02
+    - SPEC-30-03
+    - SPEC-31-01
+    - SPEC-31-02
+    - SPEC-31-03
+    - SPEC-31-04
+    - SPEC-32-01
+    - SPEC-32-02
+    - SPEC-32-03
+    - SPEC-32-04
+    - SPEC-33-01
+    - SPEC-33-02
+    - SPEC-33-03
+    - SPEC-33-04
+    - W11-02
+    - W11-03
+    - W11-06
+    - W3-1
+    actual_start: '2026-08-21'
+    actual_end: ''
+    state: in-progress
+  - id: FR-31
+    text: Admin maintains an image-only background library and a global default background for Verse/Reff
+    tickets:
+    - W6-02
+    actual_start: '2026-09-07'
+    actual_end: '2026-09-07'
+    state: done
+  waiting_on: []
+uncommitted_tickets: []
