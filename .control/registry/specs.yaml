@@ -1574,6 +1574,51 @@ waves:
         tests:
           - tests/smoke-spec-31.test.mjs
 
+  - id: SPEC-32
+    status: open
+    release: pptx-import-font-adoption-and-letter-spacing
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-31]
+    spec_folder: .scratch/SPEC-32-pptx-import-font-adoption-and-letter-spacing/
+    spec_reviewed:
+      date: '2026-09-15'
+      sha: '454ff518547895b67c0b747cc4072641bb924d5b'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-32-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, pptx, uploads]
+        tests:
+          - internal/pptximport
+          - tests/smoke-spec-32.test.mjs
+      - id: "SPEC-32-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-32-01"]
+        touches: [artifacts, pptx, uploads]
+        tests:
+          - internal/pptximport
+          - internal/httpapi
+          - tests/smoke-spec-32.test.mjs
+      - id: "SPEC-32-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-32-02"]
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-32.test.mjs
+      - id: "SPEC-32-04"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-32-03"]
+        touches: [artifacts, pptx]
+        tests:
+          - tests/smoke-spec-32.test.mjs
+
 
 
 

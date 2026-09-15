@@ -30,6 +30,7 @@ playwright-report/
 .DS_Store
 *.pem
 .commandcode/
+.kiro/
 
 # Python bytecode from BMad skill scripts
 __pycache__/

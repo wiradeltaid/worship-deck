@@ -449,13 +449,7 @@ export default function ArtifactEditor({
   useEffect(() => {
     loadList()
       .then((summaries) => {
-        setSelectedId((current) => {
-          const next = resolveInitialSelectedId(current, initialSelectedId, summaries);
-          if (!next) {
-            setStatus('idle');
-          }
-          return next;
-        });
+        setSelectedId((current) => resolveInitialSelectedId(current, initialSelectedId, summaries));
       })
       .catch((err) => {
         setStatus('error');
