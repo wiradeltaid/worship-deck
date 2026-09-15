@@ -116,3 +116,80 @@ export function getGoogleFontsStylesheetUrl(): string {
     .join('&');
   return `https://fonts.googleapis.com/css2?${families}&display=swap`;
 }
+
+export interface ImportedFontFace {
+  id: string;
+  family: string;
+  sourceTypeface: string;
+  weight: string;
+  style: string;
+  format: string;
+  url: string;
+}
+
+const registeredFaces = new Set<string>();
+
+export async function registerDynamicFontFace(face: ImportedFontFace): Promise<boolean> {
+  const key = `${face.family}-${face.weight}-${face.style}-${face.url}`;
+  if (registeredFaces.has(key)) return true;
+
+  if (typeof document === 'undefined' || !('fonts' in document) || typeof FontFace === 'undefined') {
+    return false;
+  }
+
+  const family = face.family.trim();
+  const descriptors: FontFaceDescriptors = {
+    weight: face.weight || 'normal',
+    style: face.style || 'normal',
+  };
+
+  try {
+    for (const f of document.fonts) {
+      if (f.family === family && f.weight === descriptors.weight && f.style === descriptors.style) {
+        registeredFaces.add(key);
+        return true;
+      }
+    }
+    const font = new FontFace(family, `url("${face.url}")`, descriptors);
+    const loaded = await font.load();
+    document.fonts.add(loaded);
+    registeredFaces.add(key);
+
+    // Register into catalog map if not present
+    if (!FONT_MAP.has(family.toLowerCase())) {
+      const def: FontDefinition = {
+        family,
+        label: family,
+        category: 'sans',
+        fallback: 'sans-serif',
+        pptxSafe: true, // Self-contained embedded font
+      };
+      FONT_CATALOG.push(def);
+      FONT_MAP.set(family.toLowerCase(), def);
+    }
+
+    return true;
+  } catch (e) {
+    console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
+    return false;
+  }
+}
+
+export async function hydrateImportedFonts(): Promise<number> {
+  if (typeof fetch === 'undefined') return 0;
+  try {
+    const res = await fetch('/api/fonts');
+    if (!res.ok) return 0;
+    const fonts = (await res.json()) as ImportedFontFace[];
+    if (!Array.isArray(fonts)) return 0;
+    let registered = 0;
+    for (const font of fonts) {
+      const ok = await registerDynamicFontFace(font);
+      if (ok) registered++;
+    }
+    return registered;
+  } catch {
+    return 0;
+  }
+}
+

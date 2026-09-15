@@ -185,8 +185,23 @@ function TextElement({
         textAlign: resolveTextAlign(style),
         fontFamily: getFontStack(style.fontFamily),
         color: toCssColor(style.fontColor) ?? '#FFFFFF',
-        fontWeight: resolveBold(style) ? 700 : 400,
-        fontStyle: resolveItalic(style) ? 'italic' : 'normal',
+        fontWeight:
+          typeof style?.fontWeight === 'string' && /^[1-9]00$/.test(style.fontWeight)
+            ? Number(style.fontWeight)
+            : resolveBold(style)
+              ? 700
+              : 400,
+        fontStyle:
+          typeof style?.fontStyle === 'string' &&
+          (style.fontStyle === 'italic' || style.fontStyle === 'oblique')
+            ? style.fontStyle
+            : resolveItalic(style)
+              ? 'italic'
+              : 'normal',
+        letterSpacing:
+          typeof style?.letterSpacing === 'number' && Number.isFinite(style.letterSpacing)
+            ? `${style.letterSpacing / (typeof style.fontSize === 'number' && style.fontSize > 0 ? style.fontSize : 32)}em`
+            : undefined,
         textDecoration: resolveUnderline(style) ? 'underline' : 'none',
       }}
     >

@@ -76,6 +76,7 @@ import {
   getFontDefinition,
   getFontStack,
   resolveCatalogFontFamily,
+  hydrateImportedFonts,
 } from '@/lib/registry/font-catalog';
 
 const FONT_ITEMS_MAP: Record<string, string> = Object.fromEntries(
@@ -242,6 +243,8 @@ export default function ArtifactEditor({
   const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('normal');
   const [fontStyle, setFontStyle] = useState<'normal' | 'italic'>('normal');
   const [underline, setUnderline] = useState(false);
+  const [letterSpacing, setLetterSpacing] = useState<number | undefined>(undefined);
+  const [letterSpacingInput, setLetterSpacingInput] = useState<string>('0');
   const [lineHeight, setLineHeight] = useState<number>(TEXT_LINE_HEIGHT);
   const [textShadow, setTextShadow] = useState(false);
   const [shadowBlur, setShadowBlur] = useState<number>(4);
@@ -417,6 +420,13 @@ export default function ArtifactEditor({
       } else {
         setShadowBlur(4);
       }
+      if (typeof effectiveStyle?.letterSpacing === 'number' && Number.isFinite(effectiveStyle.letterSpacing)) {
+        setLetterSpacing(effectiveStyle.letterSpacing);
+        setLetterSpacingInput(String(effectiveStyle.letterSpacing));
+      } else {
+        setLetterSpacing(undefined);
+        setLetterSpacingInput('0');
+      }
     }
     const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef);
     if (shapes.length > 0) {
@@ -458,6 +468,7 @@ export default function ArtifactEditor({
     void fetchAvailableSongSets().then(setAvailableSongSets);
     void fetchAvailableAnnouncementSets().then(setAvailableAnnSets);
     void fetchBackgroundLibrary().then(setBgLibrary);
+    void hydrateImportedFonts();
     const handleWindowClick = () => setContextMenu(null);
     window.addEventListener('click', handleWindowClick);
     return () => window.removeEventListener('click', handleWindowClick);
@@ -1763,13 +1774,21 @@ export default function ArtifactEditor({
       } catch {}
     }
     if (fabricCanvasRef.current !== canvas) return;
-    setLiveElements((p) => p.map((e) => selectedElementIds.includes(e.id) ? { ...e, style: { ...e.style, fontFamily: family } } : e));
+    setLiveElements((p) =>
+      p.map((e) => {
+        if (!selectedElementIds.includes(e.id)) return e;
+        const newStyle = { ...e.style, fontFamily: family };
+        delete newStyle.pptxTypeface;
+        return { ...e, style: newStyle };
+      })
+    );
     let updated = false;
     for (const obj of canvas.getActiveObjects()) {
       if (!isFabricTextObject(obj)) continue;
       obj.set({ fontFamily: getFontStack(family), fill: 'transparent', stroke: 'transparent', shadow: null });
       const d = ((obj as any).data = (obj as any).data || {});
       d.style = { ...(d.style || {}), fontFamily: family };
+      delete d.style?.pptxTypeface;
       d.authoredHeight = (obj.height ?? 0) * (obj.scaleY ?? 1);
       updated = true;
     }
@@ -1789,19 +1808,16 @@ export default function ArtifactEditor({
     setLiveElements((prev) =>
       prev.map((el) => {
         if (!selectedElementIds.includes(el.id)) return el;
-        return {
-          ...el,
-          style: {
-            ...el.style,
-            fontWeight: nextWeight,
-          },
-        };
+        const newStyle = { ...el.style, fontWeight: nextWeight };
+        delete newStyle.pptxTypeface;
+        return { ...el, style: newStyle };
       })
     );
     for (const obj of texts) {
       obj.set({ fontWeight: nextWeight, fill: 'transparent', stroke: 'transparent', shadow: null });
       const d = ((obj as any).data = (obj as any).data || {});
       d.style = { ...(d.style || {}), fontWeight: nextWeight };
+      delete d.style?.pptxTypeface;
     }
     canvas.requestRenderAll();
     markDirty();
@@ -1817,23 +1833,68 @@ export default function ArtifactEditor({
     setLiveElements((prev) =>
       prev.map((el) => {
         if (!selectedElementIds.includes(el.id)) return el;
-        return {
-          ...el,
-          style: {
-            ...el.style,
-            fontStyle: nextStyle,
-          },
-        };
+        const newStyle = { ...el.style, fontStyle: nextStyle };
+        delete newStyle.pptxTypeface;
+        return { ...el, style: newStyle };
       })
     );
     for (const obj of texts) {
       obj.set({ fontStyle: nextStyle, fill: 'transparent', stroke: 'transparent', shadow: null });
       const d = ((obj as any).data = (obj as any).data || {});
       d.style = { ...(d.style || {}), fontStyle: nextStyle };
+      delete d.style?.pptxTypeface;
     }
     canvas.requestRenderAll();
     markDirty();
   }, [fontStyle, selectedElementIds, markDirty]);
+
+  const handleLetterSpacingChange = useCallback(
+    (valStr: string) => {
+      setLetterSpacingInput(valStr);
+      const parsed = parseFloat(valStr);
+      const newSpacing = Number.isFinite(parsed) ? parsed : undefined;
+      setLetterSpacing(newSpacing);
+
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          const newStyle = { ...el.style };
+          if (newSpacing !== undefined) {
+            newStyle.letterSpacing = newSpacing;
+          } else {
+            delete newStyle.letterSpacing;
+          }
+          return { ...el, style: newStyle };
+        })
+      );
+
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      let updated = false;
+      for (const obj of canvas.getActiveObjects()) {
+        if (!isFabricTextObject(obj)) continue;
+        const fs = typeof (obj as any).fontSize === 'number' ? (obj as any).fontSize : DEFAULT_FONT_SIZE;
+        (obj as any).set({
+          charSpacing: newSpacing !== undefined ? (newSpacing / fs) * 1000 : 0,
+        });
+        const d = ((obj as any).data = (obj as any).data || {});
+        d.style = {
+          ...(d.style || {}),
+        };
+        if (newSpacing !== undefined) {
+          d.style.letterSpacing = newSpacing;
+        } else {
+          delete d.style.letterSpacing;
+        }
+        updated = true;
+      }
+      if (updated) {
+        canvas.requestRenderAll();
+        markDirty();
+      }
+    },
+    [selectedElementIds, markDirty]
+  );
 
   const handleToggleUnderline = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -3634,6 +3695,18 @@ export default function ArtifactEditor({
                         >
                           <Underline className="w-3.5 h-3.5" />
                         </Button>
+                        <div className="flex items-center gap-1 shrink-0" title="Letter Spacing / Tracking (px, step 0.5)">
+                          <span className="text-[10px] text-muted-foreground font-mono">AV</span>
+                          <Input
+                            data-testid="letter-spacing"
+                            type="number"
+                            step="0.5"
+                            value={letterSpacingInput}
+                            onChange={(e) => handleLetterSpacingChange(e.target.value)}
+                            className="w-16 h-7 text-xs text-center px-1"
+                            title="Letter Spacing (px)"
+                          />
+                        </div>
                         <div className="h-4 w-px bg-border mx-1 shrink-0" />
                         <Button
                           type="button"

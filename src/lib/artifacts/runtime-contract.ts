@@ -47,6 +47,8 @@ export type ResolvedStyle = {
   lineHeight?: number;
   textShadow?: boolean;
   textShadowBlur?: number;
+  letterSpacing?: number;
+  pptxTypeface?: string;
 };
 
 export type ResolvedElement = {

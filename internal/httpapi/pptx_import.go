@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -96,7 +97,7 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. Stage extracted images into an isolated temporary staging directory
+	// 3. Stage extracted images and fonts into an isolated temporary staging directory
 	stagingDir, err := os.MkdirTemp("", "pptx-staging-*")
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -131,6 +132,68 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		imageURLMap[img.PartPath] = "/api/uploads/" + filename
 	}
 
+	// 3b. Stage extracted fonts (SPEC-32-02)
+	type stagedFont struct {
+		id             string
+		family         string
+		sourceTypeface string
+		weight         string
+		style          string
+		format         string
+		filename       string
+		contentHash    string
+		data           []byte
+		isExisting     bool
+	}
+	stagedFonts := make([]stagedFont, 0, len(parseResult.Fonts))
+	stagingFontsDir := filepath.Join(stagingDir, "fonts")
+	if len(parseResult.Fonts) > 0 {
+		_ = os.MkdirAll(stagingFontsDir, 0o755)
+	}
+
+	for _, font := range parseResult.Fonts {
+		var existingID string
+		err := s.DB.QueryRowContext(r.Context(), `SELECT id FROM font_faces WHERE content_hash = ?`, font.ContentHash).Scan(&existingID)
+		if err == nil && existingID != "" {
+			stagedFonts = append(stagedFonts, stagedFont{
+				id:          existingID,
+				contentHash: font.ContentHash,
+				isExisting:  true,
+			})
+			continue
+		} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Failed to query font deduplication: %v", err)
+			writeError(w, http.StatusInternalServerError, "Database error during font deduplication")
+			return
+		}
+
+		b := make([]byte, 16)
+		if _, err := rand.Read(b); err != nil {
+			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		fontID := hex.EncodeToString(b)
+		filename := fontID + "." + font.Format
+		stagePath := filepath.Join(stagingFontsDir, filename)
+		if err := os.WriteFile(stagePath, font.Data, 0o644); err != nil {
+			log.Printf("Failed to write staged font %s: %v", filename, err)
+			writeError(w, http.StatusInternalServerError, "Failed to stage extracted font faces")
+			return
+		}
+		stagedFonts = append(stagedFonts, stagedFont{
+			id:             fontID,
+			family:         font.Family,
+			sourceTypeface: font.SourceTypeface,
+			weight:         font.Weight,
+			style:          font.Style,
+			format:         font.Format,
+			filename:       filename,
+			contentHash:    font.ContentHash,
+			data:           font.Data,
+			isExisting:     false,
+		})
+	}
+
 	// 4. Validate and construct all templates before starting SQLite transaction
 	type stagedTemplate struct {
 		ID      string
@@ -161,7 +224,7 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// 5. Commit all templates atomically in a single SQLite transaction
+	// 5. Commit all templates and font records atomically in a single SQLite transaction
 	tx, err := s.DB.BeginTx(r.Context(), nil)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -189,6 +252,22 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Insert new font face records into font_faces
+	for _, font := range stagedFonts {
+		if font.isExisting {
+			continue
+		}
+		_, err := tx.ExecContext(r.Context(), `
+			INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`, font.id, font.family, font.sourceTypeface, font.weight, font.style, font.format, font.filename, font.contentHash)
+		if err != nil {
+			log.Printf("Failed to insert font face %s: %v", font.id, err)
+			writeError(w, http.StatusInternalServerError, "Failed to commit imported font faces")
+			return
+		}
+	}
+
 	// 6. Before commit: promote all staged files to permanent uploadsDir()
 	destUploadsDir := uploadsDir()
 	if err := os.MkdirAll(destUploadsDir, 0o755); err != nil {
@@ -197,10 +276,23 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	destFontsDir := filepath.Join(destUploadsDir, "fonts")
+	if len(stagedFonts) > 0 {
+		if err := os.MkdirAll(destFontsDir, 0o755); err != nil {
+			log.Printf("Failed to create fonts directory: %v", err)
+			writeError(w, http.StatusInternalServerError, "Failed to access font storage")
+			return
+		}
+	}
+
 	var promotedFiles []string
-	rollbackPromotedFiles := func() {
+	var promotedFonts []string
+	rollbackAll := func() {
 		for _, f := range promotedFiles {
 			_ = os.Remove(filepath.Join(destUploadsDir, f))
+		}
+		for _, f := range promotedFonts {
+			_ = os.Remove(filepath.Join(destFontsDir, f))
 		}
 	}
 
@@ -208,27 +300,60 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 	for _, img := range stagedImages {
 		src := filepath.Join(stagingDir, img.filename)
 		dst := filepath.Join(destUploadsDir, img.filename)
+		tmpDst := dst + ".tmp"
 		data, err := os.ReadFile(src)
 		if err != nil {
 			promotionFailed = true
 			break
 		}
-		if err := testHookWriteFile(dst, data, 0o644); err != nil {
-			_ = os.Remove(dst)
+		if err := testHookWriteFile(tmpDst, data, 0o644); err != nil {
+			_ = os.Remove(tmpDst)
+			promotionFailed = true
+			break
+		}
+		if err := os.Rename(tmpDst, dst); err != nil {
+			_ = os.Remove(tmpDst)
 			promotionFailed = true
 			break
 		}
 		promotedFiles = append(promotedFiles, img.filename)
 	}
 
+	if !promotionFailed {
+		for _, font := range stagedFonts {
+			if font.isExisting {
+				continue
+			}
+			src := filepath.Join(stagingFontsDir, font.filename)
+			dst := filepath.Join(destFontsDir, font.filename)
+			tmpDst := dst + ".tmp"
+			data, err := os.ReadFile(src)
+			if err != nil {
+				promotionFailed = true
+				break
+			}
+			if err := testHookWriteFile(tmpDst, data, 0o644); err != nil {
+				_ = os.Remove(tmpDst)
+				promotionFailed = true
+				break
+			}
+			if err := os.Rename(tmpDst, dst); err != nil {
+				_ = os.Remove(tmpDst)
+				promotionFailed = true
+				break
+			}
+			promotedFonts = append(promotedFonts, font.filename)
+		}
+	}
+
 	if promotionFailed {
-		rollbackPromotedFiles()
-		writeError(w, http.StatusInternalServerError, "Failed to promote slide images to permanent storage")
+		rollbackAll()
+		writeError(w, http.StatusInternalServerError, "Failed to promote slide assets to permanent storage")
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		rollbackPromotedFiles()
+		rollbackAll()
 		log.Printf("Transaction commit failed: %v", err)
 		writeError(w, http.StatusInternalServerError, "Failed to commit imported templates")
 		return
@@ -262,5 +387,6 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		"importedCount": len(staged),
 		"templates":     createdSummaries,
 		"firstTemplate": firstTemplate,
+		"importedFonts": len(stagedFonts),
 	})
 }

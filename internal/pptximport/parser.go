@@ -279,5 +279,10 @@ func ParsePresentation(r io.ReaderAt, size int64) (*PresentationParseResult, err
 		result.Images = append(result.Images, img)
 	}
 
+	// 4. Extract embedded presentation fonts (SPEC-32-02)
+	fonts, fontWarnings := pr.ExtractEmbeddedFonts(&pres, presRels)
+	result.Fonts = fonts
+	result.Warnings = append(result.Warnings, fontWarnings...)
+
 	return result, nil
 }

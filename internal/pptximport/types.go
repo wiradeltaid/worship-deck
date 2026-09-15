@@ -12,6 +12,8 @@ const (
 	MaxTotalUncompressedSize int64 = 250 * 1024 * 1024 // 250 MiB
 	MaxSlideCount                  = 200
 	MaxExtractedImageSize    int64 = 16 * 1024 * 1024 // 16 MiB
+	MaxExtractedFontSize     int64 = 16 * 1024 * 1024 // 16 MiB per face
+	MaxTotalExtractedFontBytes int64 = 64 * 1024 * 1024 // 64 MiB total accepted fonts
 )
 
 var (
@@ -25,8 +27,23 @@ var (
 	ErrNot16x9             = errors.New("presentation aspect ratio is not 16:9 (within 0.1% tolerance)")
 	ErrUnsupportedImage    = errors.New("unsupported image format (must be JPEG, PNG, GIF, or WebP)")
 	ErrImageTooLarge       = errors.New("extracted image exceeds size limit (16 MiB)")
+	ErrFontTooLarge        = errors.New("extracted font exceeds size limit (16 MiB)")
+	ErrTotalFontsTooLarge  = errors.New("cumulative extracted fonts exceed size limit (64 MiB)")
 	ErrNoSlides            = errors.New("presentation contains no slides")
 )
+
+// ExtractedFont represents an embedded font face extracted from the PPTX package.
+type ExtractedFont struct {
+	ID             string // Opaque ID generated upon storage
+	Family         string // Canonical CSS font family (e.g. "Montserrat")
+	SourceTypeface string // Raw DrawingML typeface name (e.g. "Montserrat Bold")
+	Weight         string // CSS font weight (e.g. "700", "normal", "bold")
+	Style          string // CSS font style (e.g. "normal", "italic", "oblique")
+	Format         string // "ttf", "otf", "woff", "woff2"
+	Data           []byte
+	ContentHash    string // SHA-256 hex string for deduplication
+	PartPath       string // ZIP internal path
+}
 
 // ExtractedImage represents an image file extracted from the PPTX package.
 type ExtractedImage struct {
@@ -68,6 +85,7 @@ type PresentationParseResult struct {
 	SlideHeightEMU int64
 	Slides         []*ParsedSlide
 	Images         []*ExtractedImage
+	Fonts          []*ExtractedFont
 	Warnings       []string
 }
 

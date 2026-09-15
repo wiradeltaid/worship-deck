@@ -39,8 +39,10 @@ if (!plan) {
   process.exit(1);
 }
 
+const fonts = Array.isArray(body.fonts) ? body.fonts : undefined;
+
 try {
-  const buffer = await generatePptxFromPlan(serviceDate, plan, transition);
+  const buffer = await generatePptxFromPlan(serviceDate, plan, transition, fonts);
   process.stdout.write(buffer);
 } catch (error) {
   console.error('[pptx-worker] draw failed:', error);

@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**33 decisions** — applied: 33.
+**34 decisions** — applied: 34.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -41,3 +41,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-031` | Autopilot mandate for Canvas Text Whole-Word Wrapping, Box Fidelity & Safe Overflow Alignment (SPEC-29) | `applied` | mandate | `.control/memlog/autopilot-DEC-031.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-29-canvas-text-wrapping-and-box-fidelity/SPEC.md`, `src/lib/artifacts/render-model.ts`, `src/lib/registry/canvas-utils.ts`, `src/lib/registry/validate.ts`, `src/components/admin/ArtifactEditor.tsx`, `src/components/artifacts/ArtifactSlide.tsx`, `src/lib/pptx-draw.ts`, `tests/smoke-spec-29.test.mjs`, `package.json` | `.control/decisions/DEC-031-autopilot-mandate-canvas-text-wrapping-and-box-fidelity.md` |
 | `DEC-032` | Autopilot mandate for PPTX Whole-Word Fallback Wrapping and Fit Parity (SPEC-30) | `applied` | mandate | `.control/memlog/autopilot-DEC-032.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-30-pptx-word-wrap-and-fit-parity/SPEC.md`, `src/lib/artifacts/render-model.ts`, `src/lib/pptx-draw.ts`, `tests/smoke-spec-30.test.mjs`, `tests/smoke-spec-23.test.mjs`, `tests/pptx-content.test.mjs`, `package.json` | `.control/decisions/DEC-032-autopilot-mandate-pptx-word-wrap-and-fit-parity.md` |
 | `DEC-033` | Autopilot mandate for Initial PPTX Import and Smart Background Detection (SPEC-31) | `applied` | mandate | `.control/memlog/autopilot-DEC-033.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-31-initial-pptx-import-smart-background/SPEC.md`, `internal/pptximport`, `internal/httpapi`, `src/components/admin/ArtifactEditor.tsx`, `tests/smoke-spec-31.test.mjs` | `.control/decisions/DEC-033-autopilot-mandate-initial-pptx-import.md` |
+| `DEC-034` | Autopilot mandate for PPTX Import Typography Parity, Embedded Font Adoption, and Letter Spacing (SPEC-32) | `applied` | mandate | `.control/memlog/autopilot-DEC-034.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-32-pptx-import-font-adoption-and-letter-spacing/SPEC.md`, `internal/pptximport`, `internal/httpapi`, `internal/plan`, `src/lib/registry/font-catalog.ts`, `src/lib/registry/canvas-utils.ts`, `src/components/artifacts/ArtifactSlide.tsx`, `src/components/admin/ArtifactEditor.tsx`, `src/lib/pptx-draw.ts`, `tests/smoke-spec-32.test.mjs` | `.control/decisions/DEC-034-autopilot-mandate-pptx-import-font-adoption-letter-spacing.md` |

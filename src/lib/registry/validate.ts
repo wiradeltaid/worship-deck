@@ -82,6 +82,8 @@ const ALLOWED_STYLE_KEYS = new Set([
   'lineHeight',
   'textShadow',
   'textShadowBlur',
+  'letterSpacing',
+  'pptxTypeface',
 ]);
 
 export class RegistryValidationError extends Error {
@@ -169,13 +171,31 @@ function parseStyle(value: unknown, label: string) {
     style.fontColor = obj.fontColor;
   }
   if (obj.fontWeight !== undefined) {
-    if (typeof obj.fontWeight !== 'string') {
+    let weightStr = String(obj.fontWeight).trim().toLowerCase();
+    const validWeights = new Set([
+      'normal',
+      'bold',
+      '100',
+      '200',
+      '300',
+      '400',
+      '500',
+      '600',
+      '700',
+      '800',
+      '900',
+    ]);
+    if (!validWeights.has(weightStr)) {
       throw new RegistryValidationError(`${label}.fontWeight is invalid`);
     }
-    style.fontWeight = obj.fontWeight;
+    style.fontWeight = weightStr;
   }
   if (obj.fontStyle !== undefined) {
-    if (typeof obj.fontStyle !== 'string') {
+    if (
+      obj.fontStyle !== 'normal' &&
+      obj.fontStyle !== 'italic' &&
+      obj.fontStyle !== 'oblique'
+    ) {
       throw new RegistryValidationError(`${label}.fontStyle is invalid`);
     }
     style.fontStyle = obj.fontStyle;
@@ -244,6 +264,15 @@ function parseStyle(value: unknown, label: string) {
       throw new RegistryValidationError(`${label}.textShadowBlur must be 0..20`);
     }
     style.textShadowBlur = Math.round(blur);
+  }
+  if (obj.letterSpacing !== undefined) {
+    style.letterSpacing = parseFiniteNumber(obj.letterSpacing, `${label}.letterSpacing`);
+  }
+  if (obj.pptxTypeface !== undefined) {
+    if (typeof obj.pptxTypeface !== 'string' || !obj.pptxTypeface.trim()) {
+      throw new RegistryValidationError(`${label}.pptxTypeface is invalid`);
+    }
+    style.pptxTypeface = obj.pptxTypeface.trim();
   }
   return style;
 }

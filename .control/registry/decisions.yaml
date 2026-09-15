@@ -774,6 +774,33 @@ decisions:
       - internal/httpapi
       - src/components/admin/ArtifactEditor.tsx
       - tests/smoke-spec-31.test.mjs
+  - id: DEC-034
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-15)"
+    title: Autopilot mandate for PPTX Import Typography Parity, Embedded Font Adoption, and Letter Spacing (SPEC-32)
+    file: .control/decisions/DEC-034-autopilot-mandate-pptx-import-font-adoption-letter-spacing.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-22'
+    touches:
+      - .control/memlog/autopilot-DEC-034.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-32-pptx-import-font-adoption-and-letter-spacing/SPEC.md
+      - internal/pptximport
+      - internal/httpapi
+      - internal/plan
+      - src/lib/registry/font-catalog.ts
+      - src/lib/registry/canvas-utils.ts
+      - src/components/artifacts/ArtifactSlide.tsx
+      - src/components/admin/ArtifactEditor.tsx
+      - src/lib/pptx-draw.ts
+      - tests/smoke-spec-32.test.mjs
 
 
 

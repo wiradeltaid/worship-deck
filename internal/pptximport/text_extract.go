@@ -81,18 +81,21 @@ func extractElementFromNode(
 				hPct = 1.0
 			}
 
-			style := extractTextStyle(node.Shape.TxBody)
+			elID := fmt.Sprintf("el-text-%d", elementIdx)
+			style, styleWarnings := extractTextStyleWithWarnings(node.Shape.TxBody, elID)
+			warnings = append(warnings, styleWarnings...)
 
 			el := ParsedElement{
-				ID:      fmt.Sprintf("el-text-%d", elementIdx),
-				Type:    "text",
-				X:       xPct,
-				Y:       yPct,
-				W:       wPct,
-				H:       hPct,
-				ZIndex:  elementIdx - 1,
-				Content: &text,
-				Style:   style,
+				ID:       elID,
+				Type:     "text",
+				X:        xPct,
+				Y:        yPct,
+				W:        wPct,
+				H:        hPct,
+				ZIndex:   elementIdx - 1,
+				Content:  &text,
+				Style:    style,
+				Warnings: styleWarnings,
 			}
 			return el, true, warnings
 		}
@@ -186,6 +189,49 @@ func extractElementFromNode(
 }
 
 func extractTextStyle(txBody *XMLTextBody) map[string]any {
+	style, _ := extractTextStyleWithWarnings(txBody, "")
+	return style
+}
+
+func resolveEffectiveRunProperties(rPr *XMLRunProperties, defRPr *XMLRunProperties, endParaRPr *XMLRunProperties) *XMLRunProperties {
+	merged := &XMLRunProperties{}
+	apply := func(src *XMLRunProperties) {
+		if src == nil {
+			return
+		}
+		if src.Sz > 0 {
+			merged.Sz = src.Sz
+		}
+		if src.B != "" {
+			merged.B = src.B
+		}
+		if src.I != "" {
+			merged.I = src.I
+		}
+		if src.U != "" {
+			merged.U = src.U
+		}
+		if src.Spc != nil {
+			merged.Spc = src.Spc
+		}
+		if src.SolidFill != nil && src.SolidFill.SrgbClr != nil {
+			merged.SolidFill = src.SolidFill
+		}
+		if src.Latin != nil && src.Latin.Typeface != "" {
+			merged.Latin = src.Latin
+		}
+	}
+	apply(defRPr)
+	apply(endParaRPr)
+	apply(rPr)
+
+	if merged.Sz == 0 && merged.B == "" && merged.I == "" && merged.U == "" && merged.Spc == nil && merged.SolidFill == nil && merged.Latin == nil {
+		return nil
+	}
+	return merged
+}
+
+func extractTextStyleWithWarnings(txBody *XMLTextBody, elID string) (map[string]any, []string) {
 	style := map[string]any{
 		"fontFamily":     DefaultFontFamily,
 		"fontSize":       DefaultFontSizePx,
@@ -196,9 +242,10 @@ func extractTextStyle(txBody *XMLTextBody) map[string]any {
 		"textAlign":      "left",
 		"lineHeight":     DefaultLineHeight,
 	}
+	var warnings []string
 
 	if txBody == nil || len(txBody.Paragraphs) == 0 {
-		return style
+		return style, warnings
 	}
 
 	firstP := txBody.Paragraphs[0]
@@ -220,32 +267,105 @@ func extractTextStyle(txBody *XMLTextBody) map[string]any {
 		}
 	}
 
-	// Extract styling from first run with formatting
+	// Find effective run properties with DrawingML inheritance (defRPr -> endParaRPr -> rPr)
+	var effectiveRPr *XMLRunProperties
+	var resolvedRunsWithText []*XMLRunProperties
+
 	for _, p := range txBody.Paragraphs {
+		var defRPr *XMLRunProperties
+		if p.PPr != nil {
+			defRPr = p.PPr.DefRPr
+		}
 		for _, r := range p.Runs {
-			if r.RPr != nil {
-				if r.RPr.Sz > 0 {
-					style["fontSize"] = DrawingMLSzToPx(r.RPr.Sz)
-				}
-				if r.RPr.SolidFill != nil && r.RPr.SolidFill.SrgbClr != nil && hexColorRegex.MatchString(r.RPr.SolidFill.SrgbClr.Val) {
-					style["fontColor"] = "#" + strings.ToUpper(r.RPr.SolidFill.SrgbClr.Val)
-				}
-				if r.RPr.Latin != nil && strings.TrimSpace(r.RPr.Latin.Typeface) != "" {
-					style["fontFamily"] = strings.TrimSpace(r.RPr.Latin.Typeface)
-				}
-				if r.RPr.B == "1" {
-					style["fontWeight"] = "bold"
-				}
-				if r.RPr.I == "1" {
-					style["fontStyle"] = "italic"
-				}
-				if r.RPr.U == "sng" {
-					style["textDecoration"] = "underline"
-				}
-				return style
+			eff := resolveEffectiveRunProperties(r.RPr, defRPr, p.EndParaRPr)
+			if strings.TrimSpace(r.T) != "" {
+				resolvedRunsWithText = append(resolvedRunsWithText, eff)
+			}
+			if effectiveRPr == nil && eff != nil {
+				effectiveRPr = eff
+			}
+		}
+		if effectiveRPr == nil {
+			if effDef := resolveEffectiveRunProperties(nil, defRPr, p.EndParaRPr); effDef != nil {
+				effectiveRPr = effDef
 			}
 		}
 	}
 
-	return style
+	// Apply formatting from the effective run properties source
+	if effectiveRPr != nil {
+		if effectiveRPr.Sz > 0 {
+			style["fontSize"] = DrawingMLSzToPx(effectiveRPr.Sz)
+		}
+		if effectiveRPr.SolidFill != nil && effectiveRPr.SolidFill.SrgbClr != nil && hexColorRegex.MatchString(effectiveRPr.SolidFill.SrgbClr.Val) {
+			style["fontColor"] = "#" + strings.ToUpper(effectiveRPr.SolidFill.SrgbClr.Val)
+		}
+
+		rawTypeface := DefaultFontFamily
+		if effectiveRPr.Latin != nil && strings.TrimSpace(effectiveRPr.Latin.Typeface) != "" {
+			rawTypeface = strings.TrimSpace(effectiveRPr.Latin.Typeface)
+		}
+
+		family, weight, fontStyle, pptxTypeface := NormalizeTypeface(rawTypeface, effectiveRPr.B, effectiveRPr.I)
+		style["fontFamily"] = family
+		style["fontWeight"] = weight
+		style["fontStyle"] = fontStyle
+		style["pptxTypeface"] = pptxTypeface
+
+		if effectiveRPr.U == "sng" {
+			style["textDecoration"] = "underline"
+		}
+		if effectiveRPr.Spc != nil {
+			style["letterSpacing"] = DrawingMLSpcToPx(*effectiveRPr.Spc)
+		}
+	}
+
+	// Check for mixed run typography across runs that carry text
+	if len(resolvedRunsWithText) > 1 && effectiveRPr != nil {
+		hasMixed := false
+		effFace := ""
+		if effectiveRPr.Latin != nil {
+			effFace = strings.TrimSpace(effectiveRPr.Latin.Typeface)
+		}
+		effSz := effectiveRPr.Sz
+		effB := effectiveRPr.B
+		effI := effectiveRPr.I
+		var effSpcVal *int = effectiveRPr.Spc
+
+		for _, r := range resolvedRunsWithText {
+			if r == nil {
+				continue
+			}
+			rFace := ""
+			if r.Latin != nil {
+				rFace = strings.TrimSpace(r.Latin.Typeface)
+			}
+			if rFace != "" && effFace != "" && !strings.EqualFold(rFace, effFace) {
+				hasMixed = true
+				break
+			}
+			if r.Sz > 0 && effSz > 0 && math.Abs(float64(r.Sz-effSz)) > 50 {
+				hasMixed = true
+				break
+			}
+			if r.B != effB || r.I != effI {
+				hasMixed = true
+				break
+			}
+			if (r.Spc == nil && effSpcVal != nil) || (r.Spc != nil && effSpcVal == nil) {
+				hasMixed = true
+				break
+			}
+			if r.Spc != nil && effSpcVal != nil && *r.Spc != *effSpcVal {
+				hasMixed = true
+				break
+			}
+		}
+
+		if hasMixed && elID != "" {
+			warnings = append(warnings, fmt.Sprintf("element %s contains mixed run typography; imported using first run style", elID))
+		}
+	}
+
+	return style, warnings
 }

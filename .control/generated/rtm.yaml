@@ -1510,6 +1510,65 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-32-01
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-02
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - internal/pptximport
+  - internal/httpapi
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-03
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-04
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3176,6 +3235,65 @@ rtm:
   release: initial-pptx-import-smart-background
   test:
   - tests/smoke-spec-31.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-01
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-02
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - internal/pptximport
+  - internal/httpapi
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-03
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-32-04
+  spec: SPEC-32
+  release: pptx-import-font-adoption-and-letter-spacing
+  test:
+  - tests/smoke-spec-32.test.mjs
   status: done
   exempt: false
   green: true
