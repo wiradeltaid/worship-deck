@@ -2429,9 +2429,21 @@ export default function ArtifactEditor({
           body: formData,
         });
 
-        const data = await response.json();
+        let data: any = null;
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          try {
+            data = await response.json();
+          } catch {
+            // ignore malformed json
+          }
+        }
+
         if (!response.ok) {
-          throw new Error(data?.error || 'Failed to import PPTX');
+          if (response.status === 413) {
+            throw new Error('File exceeds upload limit (max 100 MiB)');
+          }
+          throw new Error(data?.error || `Failed to import PPTX (status ${response.status})`);
         }
 
         toast.success(`Imported ${data.importedCount} slide(s) successfully`, { id: toastId });
