@@ -68,19 +68,20 @@ assert.ok(fs.existsSync(typographyGoPath), 'internal/pptximport/typography.go mu
 // --------------------------------------------------------------------------
 
 test('T-32-01: DrawingML spc to CSS letterSpacing px formula parity', () => {
-  // Formula: letterSpacing px = spc / 75.0; spc = round(letterSpacing * 75)
+  // Formula: letterSpacing px = (spc / 100) / pxToPt. In 540pt modern widescreen (pxToPt = 1.0):
+  // letterSpacing px = spc / 100.0; spc = round(letterSpacing * 100)
   const cases = [
-    { spc: 150, expectedPx: 2.0 },
-    { spc: -75, expectedPx: -1.0 },
-    { spc: 75, expectedPx: 1.0 },
+    { spc: 150, expectedPx: 1.5 },
+    { spc: -50, expectedPx: -0.5 },
+    { spc: 100, expectedPx: 1.0 },
     { spc: 0, expectedPx: 0.0 },
-    { spc: 1, expectedPx: 1 / 75 },
-    { spc: -1, expectedPx: -1 / 75 },
+    { spc: 1, expectedPx: 1 / 100 },
+    { spc: -1, expectedPx: -1 / 100 },
   ];
 
   for (const c of cases) {
-    const px = c.spc / 75.0;
-    const roundSpc = Math.round(px * 75);
+    const px = c.spc / 100.0;
+    const roundSpc = Math.round(px * 100);
     assert.equal(roundSpc, c.spc, `spc roundtrip failed for ${c.spc}`);
   }
 });
@@ -199,7 +200,7 @@ test('T-32-05: PPTX generation patches spc on mapped text runs and omits for abs
                 fontFamily: 'Montserrat',
                 fontSize: 32,
                 fontColor: '#FFFFFF',
-                letterSpacing: 2.0, // 2.0 * 75 = 150
+                letterSpacing: 1.5, // 1.5 * 100 = 150
               },
             },
             {
@@ -233,7 +234,7 @@ test('T-32-05: PPTX generation patches spc on mapped text runs and omits for abs
 
   const xml = await slide1File.async('string');
 
-  // Positive spacing (2.0px -> spc="150") must be present
+  // Positive spacing (1.5px -> spc="150") must be present
   assert.ok(
     xml.includes('spc="150"'),
     'slide1.xml must contain spc="150" on mapped runs'
@@ -273,7 +274,7 @@ test('T-32-05: PPTX generation patches spc on mapped text runs and omits for abs
               h: 20,
               zIndex: 0,
               text: 'Identical Chorus Line',
-              style: { fontFamily: 'Montserrat', fontSize: 32, letterSpacing: 1.0 }, // 1.0 * 75 = 75
+              style: { fontFamily: 'Montserrat', fontSize: 32, letterSpacing: 1.0 }, // 1.0 * 100 = 100
             },
             {
               id: 'el-text-dup-2',
@@ -284,7 +285,7 @@ test('T-32-05: PPTX generation patches spc on mapped text runs and omits for abs
               h: 20,
               zIndex: 1,
               text: 'Identical Chorus Line',
-              style: { fontFamily: 'Montserrat', fontSize: 32, letterSpacing: -1.0 }, // -1.0 * 75 = -75
+              style: { fontFamily: 'Montserrat', fontSize: 32, letterSpacing: -1.0 }, // -1.0 * 100 = -100
             },
           ],
         },
@@ -298,8 +299,8 @@ test('T-32-05: PPTX generation patches spc on mapped text runs and omits for abs
 
   const dupShapes = dupXml.split('<p:sp>').filter((s) => s.includes('<p:txBody>'));
   assert.equal(dupShapes.length, 2, 'must have exactly 2 text shapes');
-  assert.ok(dupShapes[0].includes('spc="75"'), 'first duplicate shape must carry spc="75"');
-  assert.ok(dupShapes[1].includes('spc="-75"'), 'second duplicate shape must carry spc="-75"');
+  assert.ok(dupShapes[0].includes('spc="100"'), 'first duplicate shape must carry spc="100"');
+  assert.ok(dupShapes[1].includes('spc="-100"'), 'second duplicate shape must carry spc="-100"');
 });
 
 // --------------------------------------------------------------------------
@@ -496,7 +497,7 @@ test('T-32-08: Live Go API server end-to-end smoke test (FR-20 proof-of-done exe
     assert.ok(textEl, 'imported template must contain a text element');
     assert.equal(textEl.style.fontFamily, 'Montserrat', 'canonical family must be Montserrat');
     assert.equal(textEl.style.fontWeight, '300', 'numeric weight must be 300');
-    assert.equal(textEl.style.letterSpacing, 2.0, 'letterSpacing must be 2.0px (150 / 75)');
+    assert.equal(textEl.style.letterSpacing, 1.5, 'letterSpacing must be 1.5px (150 / 100 in modern 540pt widescreen)');
     assert.equal(textEl.style.pptxTypeface, 'Montserrat Light', 'pptxTypeface must be Montserrat Light');
 
     // 4. Verify font routes: GET /api/fonts and GET /api/fonts/{id}

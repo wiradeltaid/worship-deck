@@ -176,10 +176,10 @@ rtm:
   test:
   - internal/pptximport
   - tests/smoke-spec-31.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-13
@@ -1658,10 +1658,10 @@ rtm:
   - src/lib/artifacts/render-model.ts
   - src/lib/pptx-draw.ts
   - tests/artifact-render-model.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1673,10 +1673,10 @@ rtm:
   test:
   - internal/pptximport
   - tests/smoke-spec-31.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1689,10 +1689,10 @@ rtm:
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-32.test.mjs
   - tests/smoke-spec-35.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3534,10 +3534,10 @@ rtm:
   - src/lib/artifacts/render-model.ts
   - src/lib/pptx-draw.ts
   - tests/artifact-render-model.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3549,10 +3549,10 @@ rtm:
   test:
   - internal/pptximport
   - tests/smoke-spec-31.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3565,10 +3565,10 @@ rtm:
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-32.test.mjs
   - tests/smoke-spec-35.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

@@ -41,21 +41,22 @@ assert.ok(fs.existsSync(smartBgGoPath), 'internal/pptximport/smart_background.go
 // --------------------------------------------------------------------------
 
 test('T-31-01: DrawingML font size formula and TS PX_TO_PT cross-boundary parity', () => {
-  // Go formula: DrawingMLSzToPx = (sz / 100) / PxToPt
+  // Go formula: DrawingMLSzToPx = (sz / 100) / pxToPt
   // TS formula: ptToPx = pt / PX_TO_PT where pt = sz / 100
-  assert.equal(PX_TO_PT, 0.75, 'PX_TO_PT in render-model.ts must be 0.75');
+  // Modern 540 pt widescreen layout: PX_TO_PT = 1.0 (540 / 540)
+  assert.equal(PX_TO_PT, 1.0, 'PX_TO_PT in render-model.ts must be 1.0 for modern widescreen layout');
 
   const testCases = [
-    { sz: 4000, pt: 40, expectedPx: 40 / 0.75 },
-    { sz: 3200, pt: 32, expectedPx: 32 / 0.75 },
-    { sz: 2400, pt: 24, expectedPx: 24 / 0.75 },
-    { sz: 1800, pt: 18, expectedPx: 18 / 0.75 },
-    { sz: 1200, pt: 12, expectedPx: 12 / 0.75 },
+    { sz: 4000, pt: 40, expectedPx: 40 / 1.0 },
+    { sz: 3200, pt: 32, expectedPx: 32 / 1.0 },
+    { sz: 2400, pt: 24, expectedPx: 24 / 1.0 },
+    { sz: 1800, pt: 18, expectedPx: 18 / 1.0 },
+    { sz: 1200, pt: 12, expectedPx: 12 / 1.0 },
   ];
 
   for (const tc of testCases) {
     const tsDerivedPx = tc.pt / PX_TO_PT;
-    const goDerivedPx = (tc.sz / 100) / 0.75;
+    const goDerivedPx = (tc.sz / 100) / 1.0;
     assert.ok(
       Math.abs(tsDerivedPx - goDerivedPx) < 0.0001,
       `Font size parity failed for sz=${tc.sz}`

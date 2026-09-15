@@ -1,6 +1,6 @@
 # SPEC-35-03 — Character Spacing Parity, Registered Conformance Suite, and Executable Absence Guards
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-35-02
 
 ## What to build

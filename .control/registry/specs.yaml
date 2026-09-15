@@ -1701,7 +1701,7 @@ waves:
           - tests/smoke-spec-34.test.mjs
 
   - id: SPEC-35
-    status: open
+    status: closed
     release: pptx-modern-widescreen-parity
     prd: [offline-deck]
     fr: [FR-20]

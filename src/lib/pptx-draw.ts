@@ -577,10 +577,26 @@ async function patchAutofitFontScale(zip: JSZip): Promise<void> {
 
 /**
  * SPEC-32-03: Post-process generated PPTX OOXML deterministically, setting
- * a:rPr/@spc = round(letterSpacing * 75) only on runs belonging to the mapped artifact element.
+ * a:rPr/@spc = round(letterSpacing * 100) only on runs belonging to the mapped artifact element.
+ * (hundredths of a point in 1:1 conversion with 540pt widescreen).
  * Absent or zero letter-spacing emits no spc attribute.
  */
 async function patchCharacterSpacing(zip: JSZip, plan: DrawPlanItem[]): Promise<void> {
+  const extractShapeText = (content: string): string => {
+    const matches = content.match(/<a:t>([\s\S]*?)<\/a:t>/g);
+    if (!matches) return '';
+    return matches
+      .map((m) => m.slice(5, -6))
+      .join(' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   for (let sIdx = 0; sIdx < plan.length; sIdx++) {
     const item = plan[sIdx];
     const slideFileName = `ppt/slides/slide${sIdx + 1}.xml`;
@@ -588,8 +604,11 @@ async function patchCharacterSpacing(zip: JSZip, plan: DrawPlanItem[]): Promise<
     if (!file) continue;
 
     const elements = item.artifact?.layout?.elements ?? [];
-    const textElements = elements.filter((el) => el.type === 'text');
-    if (textElements.length === 0) continue;
+    // Only elements that actually draw text produce a <p:sp> with <p:txBody>
+    const renderableTextElements = elements.filter(
+      (el) => el.type === 'text' && resolveElementText(el) !== undefined
+    );
+    if (renderableTextElements.length === 0) continue;
 
     let xml = await file.async('string');
     let changed = false;
@@ -608,13 +627,22 @@ async function patchCharacterSpacing(zip: JSZip, plan: DrawPlanItem[]): Promise<
         continue;
       }
 
-      if (textShapeCount < textElements.length) {
-        const el = textElements[textShapeCount];
+      // Skip "Image unavailable" fallback shapes rendered by failed/unresolved images
+      const shapeText = extractShapeText(shapeContent);
+      const isImageFallback =
+        shapeText === 'Image unavailable' &&
+        !renderableTextElements.some((el) => (resolveElementText(el) ?? '').trim() === 'Image unavailable');
+      if (isImageFallback) {
+        continue;
+      }
+
+      if (textShapeCount < renderableTextElements.length) {
+        const el = renderableTextElements[textShapeCount];
         textShapeCount++;
 
         const targetSpc =
           typeof el.style?.letterSpacing === 'number' && Number.isFinite(el.style.letterSpacing)
-            ? Math.round(el.style.letterSpacing * 75)
+            ? Math.round(el.style.letterSpacing * 100)
             : 0;
 
         // Replace or strip spc on every <a:rPr> in this shape
