@@ -1,6 +1,7 @@
 package pptximport
 
 import (
+	"math"
 	"strings"
 )
 
@@ -209,9 +210,13 @@ func NormalizeTypeface(typeface string, explicitB, explicitI string) (family, we
 }
 
 // DrawingMLSpcToPx converts DrawingML spc (hundredths of a point) to CSS px.
-// Formula: px = (spc / 100) / PxToPt = spc / 75.0
-func DrawingMLSpcToPx(spc int) float64 {
-	return float64(spc) / 75.0
+// Formula: px = (spc / 100) / pxToPt
+func DrawingMLSpcToPx(spc int, pxToPt float64) float64 {
+	scale := pxToPt
+	if math.IsNaN(scale) || math.IsInf(scale, 0) || scale <= 0 {
+		scale = 1.0
+	}
+	return (float64(spc) / 100.0) / scale
 }
 
 var StandardSystemFonts = map[string]struct{}{
