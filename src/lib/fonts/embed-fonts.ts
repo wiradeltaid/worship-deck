@@ -270,12 +270,11 @@ export async function embedPresentationFonts(
 
   for (const face of facesToEmbed) {
     const rId = `rId${++maxId}`;
-    const rawUuid = crypto.randomUUID();
-    const guidFormatted = `{${rawUuid.toUpperCase()}}`;
-    const fontFileName = `${guidFormatted}.odttf`;
+    const rawUuid = crypto.randomUUID().toUpperCase();
+    const fontFileName = `${rawUuid}.odttf`;
     const target = `fonts/${fontFileName}`;
 
-    const key = deriveObfuscationKey(guidFormatted);
+    const key = deriveObfuscationKey(rawUuid);
     if (!key) {
       continue;
     }
