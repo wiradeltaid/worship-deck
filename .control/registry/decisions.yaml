@@ -803,7 +803,7 @@ decisions:
       - tests/smoke-spec-32.test.mjs
   - id: DEC-035
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-15)"
     title: Autopilot mandate for PPTX Typography Fidelity, Font Safety Parity, and Missing Font Acquisition (SPEC-33)
     file: .control/decisions/DEC-035-autopilot-mandate-pptx-typography-fidelity-and-font-acquisition.md
