@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import JSZip from 'jszip';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -26,6 +27,14 @@ const {
   resolveFontVariantKey,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'font-catalog.ts')).href
+);
+
+const {
+  embedPresentationFonts,
+  deriveObfuscationKey,
+  obfuscateFont,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'fonts', 'embed-fonts.ts')).href
 );
 
 const artifactEditorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
@@ -435,4 +444,267 @@ test('T-36-Absence-Guard 5: Go backend checks family, weight, and style case-ins
     () => validateUniquenessQuery(defectQuery),
     /ABSENCE_DEFECT: fonts\.go lacks case-insensitive \(family, weight, style\) conflict query/
   );
+});
+
+// --------------------------------------------------------------------------
+// SPEC-36-03: ECMA-376 PPTX Font Obfuscation & Slot Packaging Tests
+// --------------------------------------------------------------------------
+
+test('T-36-03: deriveObfuscationKey parses GUID and reverses bytes in first 3 parts', () => {
+  const guid = '{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}';
+  const key = deriveObfuscationKey(guid);
+  assert.ok(key && key.length === 16, 'Key must be exactly 16 bytes');
+
+  // Part 1: A1 B2 C3 D4 -> D4 C3 B2 A1
+  assert.equal(key[0], 0xd4);
+  assert.equal(key[1], 0xc3);
+  assert.equal(key[2], 0xb2);
+  assert.equal(key[3], 0xa1);
+
+  // Part 2: E5 F6 -> F6 E5
+  assert.equal(key[4], 0xf6);
+  assert.equal(key[5], 0xe5);
+
+  // Part 3: 78 90 -> 90 78
+  assert.equal(key[6], 0x90);
+  assert.equal(key[7], 0x78);
+
+  // Part 4 & 5: 12 34 56 78 9A BC DE F0
+  assert.equal(key[8], 0x12);
+  assert.equal(key[9], 0x34);
+  assert.equal(key[10], 0x56);
+  assert.equal(key[11], 0x78);
+  assert.equal(key[12], 0x9a);
+  assert.equal(key[13], 0xbc);
+  assert.equal(key[14], 0xde);
+  assert.equal(key[15], 0xf0);
+});
+
+test('T-36-03: obfuscateFont XORs first 32 bytes and round-trips symmetrically', () => {
+  const dummyFont = Buffer.alloc(64);
+  for (let i = 0; i < 64; i++) {
+    dummyFont[i] = i & 0xff;
+  }
+  const key = Buffer.from('0123456789ABCDEF', 'utf8');
+
+  // 1. Obfuscate
+  const obfuscated = obfuscateFont(dummyFont, key);
+  assert.equal(obfuscated.length, dummyFont.length);
+  assert.notDeepEqual(obfuscated.subarray(0, 32), dummyFont.subarray(0, 32));
+  assert.deepEqual(obfuscated.subarray(32), dummyFont.subarray(32), 'Bytes past 32 must remain untouched');
+
+  // 2. Symmetric de-obfuscation
+  const deobfuscated = obfuscateFont(obfuscated, key);
+  assert.deepEqual(deobfuscated, dummyFont, 'De-obfuscating must yield identical source buffer');
+});
+
+test('T-36-03: embedPresentationFonts packages .odttf, MIME type, and grouped variant slots', async () => {
+  const testZip = new JSZip();
+  testZip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>'
+  );
+  testZip.file(
+    'ppt/presentation.xml',
+    '<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:notesSz cx="5143500" cy="9144000"/><p:defaultTextStyle/></p:presentation>'
+  );
+  testZip.file(
+    'ppt/_rels/presentation.xml.rels',
+    '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="sample" Target="sample"/></Relationships>'
+  );
+
+  // Valid SFNT TrueType font fixture (with head table and 1.0 version)
+  const validTtfHeader = Buffer.from([
+    0x00, 0x01, 0x00, 0x00, // sfnt version 1.0 (TrueType)
+    0x00, 0x01,             // numTables = 1
+    0x00, 0x10,             // searchRange
+    0x00, 0x00,             // entrySelector
+    0x00, 0x00,             // rangeShift
+    0x68, 0x65, 0x61, 0x64, // 'head' tag
+    0x00, 0x00, 0x00, 0x00, // checkSum
+    0x00, 0x00, 0x00, 0x1c, // offset = 28
+    0x00, 0x00, 0x00, 0x14, // length = 20
+    // head table data (20 bytes)
+    0x00, 0x01, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x5F, 0x0F, 0x3C, 0xF5, // magic number
+    0x00, 0x03,
+    0x08, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  ]);
+
+  const tempDir = fs.mkdtempSync(path.join(root, 'tests', '.tmp-font-'));
+  const regPath = path.join(tempDir, 'custom-reg.ttf');
+  const boldPath = path.join(tempDir, 'custom-bold.ttf');
+
+  fs.writeFileSync(regPath, validTtfHeader);
+  fs.writeFileSync(boldPath, validTtfHeader);
+
+  try {
+    const fontManifest = [
+      { family: 'CustomBrand', weight: 'normal', style: 'normal', path: regPath },
+      { family: 'CustomBrand', weight: '700', style: 'normal', path: boldPath },
+    ];
+
+    const used = [
+      { family: 'CustomBrand', weight: 'normal', style: 'normal' },
+      { family: 'CustomBrand', weight: '700', style: 'normal' },
+    ];
+
+    const embedded = await embedPresentationFonts(testZip, used, fontManifest);
+    assert.ok(embedded.includes('CustomBrand'));
+
+    // 1. Check .odttf parts in archive
+    const odttfFiles = Object.keys(testZip.files).filter(
+      (k) => k.startsWith('ppt/fonts/') && k.endsWith('.odttf')
+    );
+    assert.equal(odttfFiles.length, 2, 'Must contain 2 obfuscated font parts');
+
+    // 2. Verify ECMA-376 deobfuscation roundtrip for each generated .odttf part
+    for (const odttfPath of odttfFiles) {
+      const obfData = await testZip.file(odttfPath).async('nodebuffer');
+      assert.equal(obfData.length, validTtfHeader.length);
+      assert.notDeepEqual(obfData.subarray(0, 32), validTtfHeader.subarray(0, 32));
+
+      const filename = path.basename(odttfPath, '.odttf'); // {GUID}
+      const key = deriveObfuscationKey(filename);
+      assert.ok(key, `Must derive valid key from ${filename}`);
+      const deobfuscated = obfuscateFont(obfData, key);
+      assert.deepEqual(
+        deobfuscated,
+        validTtfHeader,
+        'De-obfuscating archive bytes must reproduce exact valid SFNT font header'
+      );
+    }
+
+    // 3. Check [Content_Types].xml MIME type
+    const ctXml = await testZip.file('[Content_Types].xml').async('string');
+    assert.ok(
+      ctXml.includes('Extension="odttf"') &&
+        ctXml.includes('ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"'),
+      '[Content_Types].xml must register application/vnd.openxmlformats-officedocument.obfuscatedFont for odttf'
+    );
+
+    // 4. Check presentation.xml grouping and schema sequence
+    const presXml = await testZip.file('ppt/presentation.xml').async('string');
+    assert.ok(presXml.includes('<p:embeddedFontLst>'), 'Must include <p:embeddedFontLst>');
+
+    const notesSzIdx = presXml.indexOf('notesSz');
+    const fontLstIdx = presXml.indexOf('embeddedFontLst');
+    const defStyleIdx = presXml.indexOf('defaultTextStyle');
+    assert.ok(
+      notesSzIdx !== -1 && fontLstIdx !== -1 && defStyleIdx !== -1,
+      'notesSz, embeddedFontLst, and defaultTextStyle must all exist'
+    );
+    assert.ok(
+      notesSzIdx < fontLstIdx && fontLstIdx < defStyleIdx,
+      `Schema sequence must be notesSz < embeddedFontLst < defaultTextStyle (got ${notesSzIdx}, ${fontLstIdx}, ${defStyleIdx})`
+    );
+
+    const fontLstMatch = presXml.match(/<p:embeddedFontLst>([\s\S]*?)<\/p:embeddedFontLst>/);
+    assert.ok(fontLstMatch, 'Must find embeddedFontLst block');
+    const innerXml = fontLstMatch[1];
+
+    // Single <p:embeddedFont> element for CustomBrand containing both regular and bold slots
+    const familyBlocks = innerXml.match(/<p:embeddedFont>[\s\S]*?<\/p:embeddedFont>/g) || [];
+    assert.equal(familyBlocks.length, 1, 'Both variants must be grouped in a single <p:embeddedFont>');
+    assert.ok(familyBlocks[0].includes('<p:regular r:id='), 'Must declare regular slot');
+    assert.ok(familyBlocks[0].includes('<p:bold r:id='), 'Must declare bold slot');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('T-36-03: Fonts flagged as restricted in manifest are omitted from embedded PPTX', async () => {
+  const testZip = new JSZip();
+  testZip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>'
+  );
+  testZip.file(
+    'ppt/presentation.xml',
+    '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>'
+  );
+  testZip.file(
+    'ppt/_rels/presentation.xml.rels',
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>'
+  );
+
+  const fontManifest = [
+    {
+      family: 'RestrictedFont',
+      weight: 'normal',
+      style: 'normal',
+      path: '/dev/null',
+      restricted: true,
+    },
+  ];
+
+  const embedded = await embedPresentationFonts(testZip, ['RestrictedFont'], fontManifest);
+  assert.equal(embedded.length, 0, 'Restricted fonts must not be embedded');
+  const odttfFiles = Object.keys(testZip.files).filter((k) => k.endsWith('.odttf'));
+  assert.equal(odttfFiles.length, 0, 'No font files should be embedded for restricted fonts');
+});
+
+test('T-36-Absence-Guard 6: [Content_Types].xml must declare obfuscatedFont MIME type (real-file defect injection proof)', () => {
+  const embedFontsPath = path.join(root, 'src', 'lib', 'fonts', 'embed-fonts.ts');
+  assert.ok(fs.existsSync(embedFontsPath), 'embed-fonts.ts must exist');
+  const originalCode = fs.readFileSync(embedFontsPath, 'utf8');
+
+  function scanMimeType(filePath) {
+    const code = fs.readFileSync(filePath, 'utf8');
+    if (
+      !code.includes('application/vnd.openxmlformats-officedocument.obfuscatedFont') ||
+      !code.includes('Extension="odttf"')
+    ) {
+      throw new Error('ABSENCE_DEFECT: embed-fonts.ts does not register obfuscatedFont MIME type');
+    }
+    return true;
+  }
+
+  // 1. Real production file passes green
+  assert.ok(scanMimeType(embedFontsPath), 'Real embed-fonts.ts must pass MIME type guard');
+
+  // 2. Real-file defect injection with guaranteed restoration
+  try {
+    const defective = originalCode.replaceAll(
+      'application/vnd.openxmlformats-officedocument.obfuscatedFont',
+      'application/x-fontdata'
+    );
+    fs.writeFileSync(embedFontsPath, defective, 'utf8');
+    assert.throws(
+      () => scanMimeType(embedFontsPath),
+      /ABSENCE_DEFECT: embed-fonts\.ts does not register obfuscatedFont MIME type/
+    );
+  } finally {
+    fs.writeFileSync(embedFontsPath, originalCode, 'utf8');
+  }
+});
+
+test('T-36-Absence-Guard 7: Font parts must use .odttf extension and ECMA-376 key obfuscation (real-file defect injection proof)', () => {
+  const embedFontsPath = path.join(root, 'src', 'lib', 'fonts', 'embed-fonts.ts');
+  const originalCode = fs.readFileSync(embedFontsPath, 'utf8');
+
+  function scanObfuscation(filePath) {
+    const code = fs.readFileSync(filePath, 'utf8');
+    if (!code.includes('.odttf') || !code.includes('deriveObfuscationKey')) {
+      throw new Error('ABSENCE_DEFECT: embed-fonts.ts lacks .odttf naming or key obfuscation');
+    }
+    return true;
+  }
+
+  // 1. Real production file passes green
+  assert.ok(scanObfuscation(embedFontsPath), 'Real code must pass obfuscation guard');
+
+  // 2. Real-file defect injection with guaranteed restoration
+  try {
+    const defective = originalCode.replaceAll('.odttf', '.fntdata');
+    fs.writeFileSync(embedFontsPath, defective, 'utf8');
+    assert.throws(
+      () => scanObfuscation(embedFontsPath),
+      /ABSENCE_DEFECT: embed-fonts\.ts lacks \.odttf naming or key obfuscation/
+    );
+  } finally {
+    fs.writeFileSync(embedFontsPath, originalCode, 'utf8');
+  }
 });

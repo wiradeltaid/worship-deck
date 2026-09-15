@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/wiradigitalid/worship-presenter-web/internal/auth"
+	"github.com/wiradigitalid/worship-presenter-web/internal/pptximport"
 )
 
 func TestFontRoutesAndSecurity(t *testing.T) {
@@ -453,5 +454,37 @@ func TestFontVariantAssociationAndConflictRules(t *testing.T) {
 	}
 	if len(manifest) < 2 {
 		t.Errorf("expected at least 2 font faces in manifest, got %d", len(manifest))
+	}
+}
+
+func TestObfuscatedFontDeobfuscationRoundTrip(t *testing.T) {
+	validTTF := []byte{
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+		'h', 'e', 'a', 'd', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+		0x01, 0x02, 0x03, 0x04,
+	}
+	guid := "{A1B2C3D4-E5F6-7890-1234-56789ABCDEF0}"
+	key, ok := pptximport.ParseObfuscationKey(guid)
+	if !ok || len(key) != 16 {
+		t.Fatalf("ParseObfuscationKey failed on valid GUID %s", guid)
+	}
+
+	obfuscated := make([]byte, len(validTTF))
+	copy(obfuscated, validTTF)
+	for i := 0; i < 32 && i < len(obfuscated); i++ {
+		obfuscated[i] ^= key[i%16]
+	}
+
+	// Deobfuscate via ValidateAndDeobfuscateFont using GUID filename
+	filename := guid + ".odttf"
+	deobf, format, err := pptximport.ValidateAndDeobfuscateFont(obfuscated, filename)
+	if err != nil {
+		t.Fatalf("ValidateAndDeobfuscateFont failed on obfuscated font: %v", err)
+	}
+	if format != "ttf" {
+		t.Errorf("expected format ttf, got %s", format)
+	}
+	if !bytes.Equal(deobf, validTTF) {
+		t.Errorf("deobfuscated bytes do not match original valid TTF")
 	}
 }

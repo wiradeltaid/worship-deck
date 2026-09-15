@@ -878,7 +878,7 @@ decisions:
       - package.json
   - id: DEC-038
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-15)"
     title: Autopilot mandate for Font Import UX, Variant Association, and PPTX Microsoft OpenXML Embedding Parity (SPEC-36)
     file: .control/decisions/DEC-038-autopilot-mandate-font-import-variant-association-pptx-embedding.md

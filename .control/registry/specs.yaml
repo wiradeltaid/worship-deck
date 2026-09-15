@@ -1741,7 +1741,7 @@ waves:
           - tests/smoke-spec-35.test.mjs
 
   - id: SPEC-36
-    status: open
+    status: closed
     release: font-import-variant-association-and-pptx-embedding-parity
     prd: [offline-deck]
     fr: [FR-20]
@@ -1757,7 +1757,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: []
-        touches: [artifacts, typography]
+        touches: [artifacts]
         tests:
           - src/components/admin/ArtifactEditor.tsx
           - src/lib/registry/font-catalog.ts
@@ -1766,7 +1766,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: ["SPEC-36-01"]
-        touches: [artifacts, typography]
+        touches: [artifacts, uploads]
         tests:
           - internal/httpapi
           - src/lib/registry/font-catalog.ts

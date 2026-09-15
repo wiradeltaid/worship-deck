@@ -1705,10 +1705,10 @@ rtm:
   - src/components/admin/ArtifactEditor.tsx
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1721,10 +1721,10 @@ rtm:
   - internal/httpapi
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1736,10 +1736,10 @@ rtm:
   test:
   - src/lib/fonts/embed-fonts.ts
   - tests/smoke-spec-36.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3628,10 +3628,10 @@ rtm:
   - src/components/admin/ArtifactEditor.tsx
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3644,10 +3644,10 @@ rtm:
   - internal/httpapi
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3659,10 +3659,10 @@ rtm:
   test:
   - src/lib/fonts/embed-fonts.ts
   - tests/smoke-spec-36.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

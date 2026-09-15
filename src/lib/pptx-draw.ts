@@ -11,7 +11,7 @@ import {
   MAX_IMAGE_BYTES,
 } from './remote-image';
 import { slideTransitionXml, type SlideTransition } from './transitions';
-import { embedPresentationFonts } from './fonts/embed-fonts';
+import { embedPresentationFonts, type FontUsageItem } from './fonts/embed-fonts';
 import { isBundledAssetRef } from '@/lib/registry/asset-safety';
 import {
   assertRuntimeVersion,
@@ -684,7 +684,7 @@ async function postProcessArchive(
   buffer: Buffer,
   slideIndexes: Set<number>,
   transition: SlideTransition,
-  usedFonts?: Set<string>,
+  usedFonts?: Iterable<string | FontUsageItem>,
   fontManifest?: Array<{ family: string; weight?: string; style?: string; path: string }>,
   plan?: DrawPlanItem[]
 ): Promise<Buffer> {
@@ -718,7 +718,7 @@ async function postProcessArchive(
       }
     }
 
-    if (usedFonts && usedFonts.size > 0) {
+    if (usedFonts) {
       try {
         await embedPresentationFonts(zip, usedFonts, fontManifest);
       } catch (error) {
@@ -760,16 +760,22 @@ export async function generatePptxFromPlan(
     count: 0,
   };
 
-  const usedFonts = new Set<string>();
+  const usedFonts = new Map<string, FontUsageItem>();
   for (const item of plan) {
     renderArtifactSlide(ctx, item.artifact, item.fade !== false);
     for (const el of item.artifact.layout.elements ?? []) {
       if (el.type === 'text' && el.style?.fontFamily) {
-        usedFonts.add(el.style.fontFamily);
+        const fam = el.style.fontFamily;
+        const weight = String(el.style.fontWeight ?? 'normal');
+        const style = String(el.style.fontStyle ?? 'normal');
+        const key = `${fam.toLowerCase()}::${weight.toLowerCase()}::${style.toLowerCase()}`;
+        if (!usedFonts.has(key)) {
+          usedFonts.set(key, { family: fam, weight, style });
+        }
       }
     }
   }
 
   const buffer = (await pres.write({ outputType: 'nodebuffer' })) as Buffer;
-  return postProcessArchive(buffer, ctx.transitionIndexes, style, usedFonts, fontManifest, plan);
+  return postProcessArchive(buffer, ctx.transitionIndexes, style, Array.from(usedFonts.values()), fontManifest, plan);
 }
