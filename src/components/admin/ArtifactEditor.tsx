@@ -74,8 +74,10 @@ import {
   FONT_CATEGORY_LABELS,
   FontCategory,
   getFontDefinition,
+  isFontExportReady,
   getFontStack,
   resolveCatalogFontFamily,
+  registerDynamicFontFace,
   hydrateImportedFonts,
 } from '@/lib/registry/font-catalog';
 
@@ -252,6 +254,7 @@ export default function ArtifactEditor({
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [selectedTextCount, setSelectedTextCount] = useState(0);
   const [textContent, setTextContent] = useState('');
+  const [fontUploading, setFontUploading] = useState(false);
   /** Elements authored in this session, not yet persisted. */
   const addedElementsRef = useRef<Map<string, CanvasElement>>(new Map());
   const addedPlaceholdersRef = useRef<Map<string, PlaceholderDefinition>>(
@@ -3543,7 +3546,7 @@ export default function ArtifactEditor({
                           <PopoverTrigger
                             className="w-[180px] h-7 text-xs border border-input rounded-lg flex items-center justify-between px-2 bg-transparent hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
                             title={
-                              !getFontDefinition(fontFamily)?.pptxSafe && getFontDefinition(fontFamily)?.pptxSubstitute
+                              !isFontExportReady(fontFamily) && getFontDefinition(fontFamily)?.pptxSubstitute
                                 ? `${FONT_ITEMS_MAP[fontFamily] ?? fontFamily} (${t('admin.artifacts.fontUnsafeWarning')}: ${getFontDefinition(fontFamily)?.pptxSubstitute})`
                                 : FONT_ITEMS_MAP[fontFamily] ?? fontFamily
                             }
@@ -3552,7 +3555,7 @@ export default function ArtifactEditor({
                           >
                             <span className="truncate flex items-center gap-1 min-w-0" style={{ fontFamily }}>
                               <span className="truncate">{FONT_ITEMS_MAP[fontFamily] ?? fontFamily}</span>
-                              {!getFontDefinition(fontFamily)?.pptxSafe && getFontDefinition(fontFamily)?.pptxSubstitute ? (
+                              {!isFontExportReady(fontFamily) && getFontDefinition(fontFamily)?.pptxSubstitute ? (
                                 <span
                                   className="text-[10px] text-amber-600 dark:text-amber-400 font-sans opacity-90 shrink-0"
                                   title={`${t('admin.artifacts.fontUnsafeWarning')}: ${getFontDefinition(fontFamily)?.pptxSubstitute}`}
@@ -3624,7 +3627,7 @@ export default function ArtifactEditor({
                                           style={{ fontFamily: f.family }}
                                         >
                                           <span>{f.label}</span>
-                                          {!f.pptxSafe && f.pptxSubstitute ? (
+                                          {!isFontExportReady(f.family) && f.pptxSubstitute ? (
                                             <span
                                               className="text-[10px] text-amber-600 dark:text-amber-400 font-sans ml-2 opacity-80"
                                               title={`${t('admin.artifacts.fontUnsafeWarning')}: ${f.pptxSubstitute}`}
@@ -3641,6 +3644,99 @@ export default function ArtifactEditor({
                             </div>
                           </PopoverContent>
                         </Popover>
+
+                        {/* SPEC-33-03: Unacquired Font Indicator and Acquisition Upload Button */}
+                        {(() => {
+                          const activeEl = liveElements.find((el) => selectedElementIds.includes(el.id));
+                          const isUnacquired =
+                            activeEl?.style?.fontStatus === 'unresolved' ||
+                            (!isFontExportReady(fontFamily) && !getFontDefinition(fontFamily));
+                          if (!isUnacquired) return null;
+                          return (
+                            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-0.5 shrink-0">
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap">
+                                Unacquired Font
+                              </span>
+                              <label
+                                htmlFor="font-acquire-upload-input"
+                                className={`text-[10px] bg-amber-600 hover:bg-amber-700 text-white px-1.5 py-0.5 rounded cursor-pointer transition-colors whitespace-nowrap ${
+                                  fontUploading || busy ? 'opacity-50 pointer-events-none' : ''
+                                }`}
+                                title="Upload .ttf or .otf font binary to hydrate slide typography"
+                              >
+                                {fontUploading ? 'Uploading...' : 'Acquire Font'}
+                              </label>
+                              <input
+                                id="font-acquire-upload-input"
+                                type="file"
+                                accept=".ttf,.otf"
+                                className="hidden"
+                                disabled={fontUploading || busy}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setFontUploading(true);
+                                  try {
+                                    const fd = new FormData();
+                                    fd.append('file', file);
+                                    if (fontFamily) {
+                                      fd.append('family', fontFamily);
+                                    }
+                                    const res = await fetch('/api/admin/artifacts/fonts', {
+                                      method: 'POST',
+                                      body: fd,
+                                    });
+                                    if (!res.ok) {
+                                      const errData = await res.json().catch(() => ({}));
+                                      toast.error(errData.error || 'Failed to upload font');
+                                      return;
+                                    }
+                                    const face = await res.json();
+                                    const hydrated = await registerDynamicFontFace(face);
+                                    if (!hydrated) {
+                                      toast.error(`Font binary saved, but browser could not hydrate FontFace ${face.family}`);
+                                      return;
+                                    }
+                                    setLiveElements((prev) =>
+                                      prev.map((el) =>
+                                        selectedElementIds.includes(el.id) && el.style
+                                          ? { ...el, style: { ...el.style, fontFamily: face.family, fontStatus: 'uploaded' } }
+                                          : el
+                                      )
+                                    );
+                                    markDirty();
+                                    // Recalculate text fit on Fabric canvas objects for hydrated font
+                                    const fabricCanvas = fabricCanvasRef.current;
+                                    if (fabricCanvas) {
+                                      const fabricMod = (window as any).fabric;
+                                      fabricCanvas.getObjects().forEach((obj: any) => {
+                                        const elId = obj.data?.elementId;
+                                        if (selectedElementIds.includes(elId)) {
+                                          const activeEl = liveElements.find((e) => e.id === elId);
+                                          if (activeEl && activeEl.type === 'text') {
+                                            obj.set('fontFamily', face.family);
+                                            applyFabricTextFit(
+                                              obj,
+                                              { ...activeEl, style: { ...activeEl.style, fontFamily: face.family } },
+                                              fabricMod
+                                            );
+                                          }
+                                        }
+                                      });
+                                      fabricCanvas.requestRenderAll();
+                                    }
+                                    toast.success(`Font ${face.family} acquired and hydrated!`);
+                                  } catch (err: any) {
+                                    toast.error(err.message || 'Error acquiring font');
+                                  } finally {
+                                    setFontUploading(false);
+                                    e.target.value = '';
+                                  }
+                                }}
+                              />
+                            </div>
+                          );
+                        })()}
 
                         <input
                           type="color"

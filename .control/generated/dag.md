@@ -240,6 +240,16 @@ dag:
     - SPEC-32-03
   - parallel:
     - SPEC-32-04
+- spec: SPEC-33
+  order:
+  - parallel:
+    - SPEC-33-01
+  - parallel:
+    - SPEC-33-02
+  - parallel:
+    - SPEC-33-03
+  - parallel:
+    - SPEC-33-04
 - spec: W1
   order:
   - parallel:

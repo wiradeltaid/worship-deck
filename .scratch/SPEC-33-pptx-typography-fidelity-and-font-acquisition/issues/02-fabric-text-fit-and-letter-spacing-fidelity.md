@@ -1,6 +1,6 @@
 # SPEC-33-02 — Tracking-Aware Proportional Text Fit and Wrap Parity
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-33-01
 
 ## What to build

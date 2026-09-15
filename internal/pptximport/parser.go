@@ -245,7 +245,22 @@ func ParsePresentation(r io.ReaderAt, size int64) (*PresentationParseResult, err
 		Warnings:       make([]string, 0),
 	}
 
-	// 3. Process each slide
+	// 3. Extract embedded presentation fonts (SPEC-32-02)
+	fonts, fontWarnings := pr.ExtractEmbeddedFonts(&pres, presRels)
+	result.Fonts = fonts
+	result.Warnings = append(result.Warnings, fontWarnings...)
+
+	embeddedFontMap := make(map[string]bool)
+	for _, ef := range fonts {
+		if ef.Family != "" {
+			embeddedFontMap[strings.ToLower(strings.TrimSpace(ef.Family))] = true
+		}
+		if ef.SourceTypeface != "" {
+			embeddedFontMap[strings.ToLower(strings.TrimSpace(ef.SourceTypeface))] = true
+		}
+	}
+
+	// 4. Process each slide
 	for i, sldId := range pres.SldIdLst.SlideIDs {
 		rel, ok := presRels[sldId.RID]
 		if !ok {
@@ -260,6 +275,36 @@ func ParsePresentation(r io.ReaderAt, size int64) (*PresentationParseResult, err
 		if err != nil {
 			return nil, fmt.Errorf("error processing slide %d (%s): %w", i+1, slidePartPath, err)
 		}
+
+		// SPEC-33-03: Tag fontStatus and detect unacquired custom fonts
+		for j := range slide.Elements {
+			el := &slide.Elements[j]
+			if el.Type == "text" && el.Style != nil {
+				family, _ := el.Style["fontFamily"].(string)
+				pptxTypeface, _ := el.Style["pptxTypeface"].(string)
+				famLower := strings.ToLower(strings.TrimSpace(family))
+				rawLower := strings.ToLower(strings.TrimSpace(pptxTypeface))
+
+				if _, ok := StandardSystemFonts[famLower]; ok {
+					el.Style["fontStatus"] = "system"
+				} else if _, ok := StandardSystemFonts[rawLower]; ok {
+					el.Style["fontStatus"] = "system"
+				} else if embeddedFontMap[famLower] || embeddedFontMap[rawLower] {
+					el.Style["fontStatus"] = "embedded"
+				} else if _, ok := CuratedCatalogFonts[famLower]; ok {
+					el.Style["fontStatus"] = "catalog"
+				} else if _, ok := CuratedCatalogFonts[rawLower]; ok {
+					el.Style["fontStatus"] = "catalog"
+				} else {
+					el.Style["fontStatus"] = "unresolved"
+					warn := fmt.Sprintf("Custom font '%s' is not embedded in the PPTX package and will require acquisition or fallback.", family)
+					el.Warnings = append(el.Warnings, warn)
+					slide.Warnings = append(slide.Warnings, warn)
+					result.Warnings = append(result.Warnings, warn)
+				}
+			}
+		}
+
 		result.Slides = append(result.Slides, slide)
 	}
 
@@ -278,11 +323,6 @@ func ParsePresentation(r io.ReaderAt, size int64) (*PresentationParseResult, err
 	for _, img := range imageMap {
 		result.Images = append(result.Images, img)
 	}
-
-	// 4. Extract embedded presentation fonts (SPEC-32-02)
-	fonts, fontWarnings := pr.ExtractEmbeddedFonts(&pres, presRels)
-	result.Fonts = fonts
-	result.Warnings = append(result.Warnings, fontWarnings...)
 
 	return result, nil
 }

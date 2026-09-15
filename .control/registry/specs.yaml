@@ -1620,7 +1620,7 @@ waves:
           - tests/smoke-spec-32.test.mjs
 
   - id: SPEC-33
-    status: open
+    status: closed
     release: pptx-typography-fidelity-and-font-acquisition
     prd: [offline-deck]
     fr: [FR-20]
@@ -1653,7 +1653,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: ["SPEC-33-02"]
-        touches: [artifacts, api, uploads]
+        touches: [artifacts, pptx, uploads]
         tests:
           - internal/httpapi
           - src/components/admin/ArtifactEditor.tsx

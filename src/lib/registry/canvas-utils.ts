@@ -260,6 +260,11 @@ export function applyFabricTextFit(
 ): void {
   const text = element.content ?? '';
   const baseFontSize = normalizeFontSize(element.style?.fontSize);
+  const baseLetterSpacing =
+    typeof element.style?.letterSpacing === 'number' &&
+    Number.isFinite(element.style.letterSpacing)
+      ? element.style.letterSpacing
+      : 0;
   const boxWidth = pctToPx(element.w, CANVAS_WIDTH);
   const boxHeight = pctToPx(element.h, CANVAS_HEIGHT);
   const roundedBoxW = Math.round(boxWidth);
@@ -276,12 +281,18 @@ export function applyFabricTextFit(
       inner.style.lineHeight = String(typeof element.style?.lineHeight === 'number' ? element.style.lineHeight : TEXT_LINE_HEIGHT);
       inner.style.fontWeight = element.style?.fontWeight ? String(element.style.fontWeight) : 'normal';
       inner.style.fontStyle = element.style?.fontStyle ?? 'normal';
+      if (baseLetterSpacing !== 0) {
+        inner.style.letterSpacing = `${baseLetterSpacing}px`;
+      }
       inner.textContent = text;
       outer.appendChild(inner);
       document.body.appendChild(outer);
 
       const fitsAt = (scale: number): boolean => {
         inner.style.fontSize = `${baseFontSize * scale}px`;
+        if (baseLetterSpacing !== 0) {
+          inner.style.letterSpacing = `${baseLetterSpacing * scale}px`;
+        }
         return (
           textFitRatio({
             contentWidth: inner.scrollWidth,

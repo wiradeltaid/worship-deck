@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/wiradigitalid/worship-presenter-web/internal/auth"
 )
 
 func TestFontRoutesAndSecurity(t *testing.T) {
@@ -222,5 +224,100 @@ func TestImportPptxFontPromotionRollback(t *testing.T) {
 	entries, _ := os.ReadDir(destFontsDir)
 	if len(entries) != 0 {
 		t.Errorf("expected 0 files in fonts directory after rollback, found %d", len(entries))
+	}
+}
+
+func TestUploadFontRoute(t *testing.T) {
+	t.Setenv("AUTH_SECRET", "test-secret-12345678901234567890")
+	srv, adminSess, opSess := setupTestServer(t)
+	_, _ = srv.DB.Exec("INSERT OR REPLACE INTO accounts (id, username, password_hash, role, token_version) VALUES (1, 'admin', 'hash', 'admin', 1), (2, 'operator', 'hash', 'operator', 1)")
+
+	validTTF := []byte{
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+		'h', 'e', 'a', 'd', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+		0x01, 0x02, 0x03, 0x04,
+	}
+
+	// 1. Successful upload with family name
+	req, _ := makeMultipartRequest(t, "TheYoungest.ttf", validTTF)
+	req.URL.Path = "/api/admin/fonts"
+	req = withSession(req, adminSess)
+	rec := httptest.NewRecorder()
+	srv.uploadFont(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created on font upload, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp FontFaceResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Family != "TheYoungest" && resp.Family != "The Youngest" {
+		t.Errorf("unexpected family: %s", resp.Family)
+	}
+	if resp.Format != "ttf" {
+		t.Errorf("expected format ttf, got %s", resp.Format)
+	}
+	if resp.URL != "/api/fonts/"+resp.ID {
+		t.Errorf("expected URL /api/fonts/%s, got %s", resp.ID, resp.URL)
+	}
+
+	// 2. Deduplication upload returns 200 OK with identical ID
+	req2, _ := makeMultipartRequest(t, "TheYoungest.ttf", validTTF)
+	req2.URL.Path = "/api/admin/fonts"
+	req2 = withSession(req2, adminSess)
+	rec2 := httptest.NewRecorder()
+	srv.uploadFont(rec2, req2)
+
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK on duplicate font upload, got %d: %s", rec2.Code, rec2.Body.String())
+	}
+	var resp2 FontFaceResponse
+	_ = json.Unmarshal(rec2.Body.Bytes(), &resp2)
+	if resp2.ID != resp.ID {
+		t.Errorf("expected duplicate font to return existing ID %s, got %s", resp.ID, resp2.ID)
+	}
+
+	// 3. Integration Gate test via srv.Handler(): anonymous request must be 401
+	reqAnon, _ := makeMultipartRequest(t, "TheYoungest.ttf", validTTF)
+	reqAnon.URL.Path = "/api/admin/fonts"
+	recAnon := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(recAnon, reqAnon)
+	if recAnon.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 Unauthorized for anonymous font upload, got %d", recAnon.Code)
+	}
+
+	// 4. Integration Gate test via srv.Handler(): operator request must be 403
+	opToken, _ := auth.SignPayload(*opSess)
+	reqOp, _ := makeMultipartRequest(t, "TheYoungest.ttf", validTTF)
+	reqOp.URL.Path = "/api/admin/fonts"
+	reqOp.AddCookie(&http.Cookie{Name: auth.CookieName, Value: opToken})
+	recOp := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(recOp, reqOp)
+	if recOp.Code != http.StatusForbidden {
+		t.Errorf("expected 403 Forbidden for operator font upload, got %d", recOp.Code)
+	}
+
+	// 5. Reject non-font extension
+	reqBadExt, _ := makeMultipartRequest(t, "font.txt", validTTF)
+	reqBadExt.URL.Path = "/api/admin/fonts"
+	reqBadExt = withSession(reqBadExt, adminSess)
+	recBadExt := httptest.NewRecorder()
+	srv.uploadFont(recBadExt, reqBadExt)
+
+	if recBadExt.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request on .txt font, got %d", recBadExt.Code)
+	}
+
+	// 6. Reject malformed binary
+	reqBadData, _ := makeMultipartRequest(t, "corrupted.ttf", []byte("not a font binary header"))
+	reqBadData.URL.Path = "/api/admin/fonts"
+	reqBadData = withSession(reqBadData, adminSess)
+	recBadData := httptest.NewRecorder()
+	srv.uploadFont(recBadData, reqBadData)
+
+	if recBadData.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request on corrupted font binary, got %d", recBadData.Code)
 	}
 }

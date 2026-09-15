@@ -54,6 +54,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/artifacts", s.listArtifacts)
 	mux.HandleFunc("POST /api/admin/artifacts", s.createArtifact)
 	mux.HandleFunc("POST /api/admin/artifacts/import-pptx", s.importPptx)
+	mux.HandleFunc("POST /api/admin/fonts", s.uploadFont)
+	mux.HandleFunc("POST /api/admin/artifacts/fonts", s.uploadFont)
 	mux.HandleFunc("GET /api/admin/artifacts/{id}", s.getArtifact)
 	mux.HandleFunc("PUT /api/admin/artifacts/{id}", s.putArtifact)
 	mux.HandleFunc("PATCH /api/admin/artifacts/{id}", s.patchArtifact)

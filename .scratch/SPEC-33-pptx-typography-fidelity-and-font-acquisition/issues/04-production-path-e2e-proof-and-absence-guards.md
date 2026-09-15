@@ -1,6 +1,6 @@
 # SPEC-33-04 — Production-Path Import-to-Acquisition End-to-End Demo and Absence Guards
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-33-03
 
 ## What to build

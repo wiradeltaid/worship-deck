@@ -1,6 +1,6 @@
 # SPEC-33-01 — Font Safety Parity and Verified Export Readiness
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build

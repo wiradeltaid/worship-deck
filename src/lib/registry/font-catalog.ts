@@ -19,6 +19,7 @@ export interface FontDefinition {
   googleFont?: string;
   pptxSafe: boolean;
   pptxSubstitute?: string;
+  embeddable?: boolean;
 }
 
 export const FONT_CATEGORY_LABELS: Record<FontCategory, { en: string; id: string }> = {
@@ -31,59 +32,59 @@ export const FONT_CATEGORY_LABELS: Record<FontCategory, { en: string; id: string
 
 export const FONT_CATALOG: FontDefinition[] = [
   // 1. System Safe / PPTX Universal (10 fonts)
-  { family: 'Arial', label: 'Arial', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Calibri', label: 'Calibri', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Aptos', label: 'Aptos', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Segoe UI', label: 'Segoe UI', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Verdana', label: 'Verdana', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Trebuchet MS', label: 'Trebuchet MS', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Tahoma', label: 'Tahoma', category: 'system', fallback: 'sans-serif', pptxSafe: true },
-  { family: 'Georgia', label: 'Georgia', category: 'system', fallback: 'serif', pptxSafe: true },
-  { family: 'Times New Roman', label: 'Times New Roman', category: 'system', fallback: 'serif', pptxSafe: true },
-  { family: 'Garamond', label: 'Garamond', category: 'system', fallback: 'serif', pptxSafe: true },
+  { family: 'Arial', label: 'Arial', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Calibri', label: 'Calibri', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Aptos', label: 'Aptos', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Segoe UI', label: 'Segoe UI', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Verdana', label: 'Verdana', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Trebuchet MS', label: 'Trebuchet MS', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Tahoma', label: 'Tahoma', category: 'system', fallback: 'sans-serif', pptxSafe: true, embeddable: false },
+  { family: 'Georgia', label: 'Georgia', category: 'system', fallback: 'serif', pptxSafe: true, embeddable: false },
+  { family: 'Times New Roman', label: 'Times New Roman', category: 'system', fallback: 'serif', pptxSafe: true, embeddable: false },
+  { family: 'Garamond', label: 'Garamond', category: 'system', fallback: 'serif', pptxSafe: true, embeddable: false },
 
   // 2. Modern Sans-Serif (12 fonts)
-  { family: 'Inter', label: 'Inter', category: 'sans', fallback: 'sans-serif', googleFont: 'Inter:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Roboto', label: 'Roboto', category: 'sans', fallback: 'sans-serif', googleFont: 'Roboto:wght@400;500;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Open Sans', label: 'Open Sans', category: 'sans', fallback: 'sans-serif', googleFont: 'Open+Sans:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Lato', label: 'Lato', category: 'sans', fallback: 'sans-serif', googleFont: 'Lato:wght@400;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Montserrat', label: 'Montserrat', category: 'sans', fallback: 'sans-serif', googleFont: 'Montserrat:wght@400;600;700;800', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Poppins', label: 'Poppins', category: 'sans', fallback: 'sans-serif', googleFont: 'Poppins:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Nunito', label: 'Nunito', category: 'sans', fallback: 'sans-serif', googleFont: 'Nunito:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Raleway', label: 'Raleway', category: 'sans', fallback: 'sans-serif', googleFont: 'Raleway:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Oswald', label: 'Oswald', category: 'sans', fallback: 'sans-serif', googleFont: 'Oswald:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Barlow Condensed', label: 'Barlow Condensed', category: 'sans', fallback: 'sans-serif', googleFont: 'Barlow+Condensed:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'DM Sans', label: 'DM Sans', category: 'sans', fallback: 'sans-serif', googleFont: 'DM+Sans:wght@400;500;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Work Sans', label: 'Work Sans', category: 'sans', fallback: 'sans-serif', googleFont: 'Work+Sans:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
+  { family: 'Inter', label: 'Inter', category: 'sans', fallback: 'sans-serif', googleFont: 'Inter:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Roboto', label: 'Roboto', category: 'sans', fallback: 'sans-serif', googleFont: 'Roboto:wght@400;500;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Open Sans', label: 'Open Sans', category: 'sans', fallback: 'sans-serif', googleFont: 'Open+Sans:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Lato', label: 'Lato', category: 'sans', fallback: 'sans-serif', googleFont: 'Lato:wght@400;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Montserrat', label: 'Montserrat', category: 'sans', fallback: 'sans-serif', googleFont: 'Montserrat:wght@400;600;700;800', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Poppins', label: 'Poppins', category: 'sans', fallback: 'sans-serif', googleFont: 'Poppins:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Nunito', label: 'Nunito', category: 'sans', fallback: 'sans-serif', googleFont: 'Nunito:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Raleway', label: 'Raleway', category: 'sans', fallback: 'sans-serif', googleFont: 'Raleway:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Oswald', label: 'Oswald', category: 'sans', fallback: 'sans-serif', googleFont: 'Oswald:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Barlow Condensed', label: 'Barlow Condensed', category: 'sans', fallback: 'sans-serif', googleFont: 'Barlow+Condensed:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'DM Sans', label: 'DM Sans', category: 'sans', fallback: 'sans-serif', googleFont: 'DM+Sans:wght@400;500;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Work Sans', label: 'Work Sans', category: 'sans', fallback: 'sans-serif', googleFont: 'Work+Sans:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
 
   // 3. Dignified Serif (8 fonts)
-  { family: 'Merriweather', label: 'Merriweather', category: 'serif', fallback: 'serif', googleFont: 'Merriweather:wght@400;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'Playfair Display', label: 'Playfair Display', category: 'serif', fallback: 'serif', googleFont: 'Playfair+Display:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'Lora', label: 'Lora', category: 'serif', fallback: 'serif', googleFont: 'Lora:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'Cinzel', label: 'Cinzel', category: 'serif', fallback: 'serif', googleFont: 'Cinzel:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'Cormorant Garamond', label: 'Cormorant Garamond', category: 'serif', fallback: 'serif', googleFont: 'Cormorant+Garamond:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'PT Serif', label: 'PT Serif', category: 'serif', fallback: 'serif', googleFont: 'PT+Serif:wght@400;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'EB Garamond', label: 'EB Garamond', category: 'serif', fallback: 'serif', googleFont: 'EB+Garamond:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
-  { family: 'Baskervville', label: 'Baskervville', category: 'serif', fallback: 'serif', googleFont: 'Baskervville:ital@0;1', pptxSafe: false, pptxSubstitute: 'Times New Roman' },
+  { family: 'Merriweather', label: 'Merriweather', category: 'serif', fallback: 'serif', googleFont: 'Merriweather:wght@400;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Playfair Display', label: 'Playfair Display', category: 'serif', fallback: 'serif', googleFont: 'Playfair+Display:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Lora', label: 'Lora', category: 'serif', fallback: 'serif', googleFont: 'Lora:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Cinzel', label: 'Cinzel', category: 'serif', fallback: 'serif', googleFont: 'Cinzel:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Cormorant Garamond', label: 'Cormorant Garamond', category: 'serif', fallback: 'serif', googleFont: 'Cormorant+Garamond:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'PT Serif', label: 'PT Serif', category: 'serif', fallback: 'serif', googleFont: 'PT+Serif:wght@400;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'EB Garamond', label: 'EB Garamond', category: 'serif', fallback: 'serif', googleFont: 'EB+Garamond:wght@400;600;700', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Baskervville', label: 'Baskervville', category: 'serif', fallback: 'serif', googleFont: 'Baskervville:ital@0;1', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
 
   // 4. Bold Display & Title Impact (8 fonts)
-  { family: 'Bebas Neue', label: 'Bebas Neue', category: 'display', fallback: 'sans-serif', googleFont: 'Bebas+Neue', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Anton', label: 'Anton', category: 'display', fallback: 'sans-serif', googleFont: 'Anton', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'League Spartan', label: 'League Spartan', category: 'display', fallback: 'sans-serif', googleFont: 'League+Spartan:wght@600;700;800', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Righteous', label: 'Righteous', category: 'display', fallback: 'sans-serif', googleFont: 'Righteous', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Teko', label: 'Teko', category: 'display', fallback: 'sans-serif', googleFont: 'Teko:wght@500;600;700', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Abril Fatface', label: 'Abril Fatface', category: 'display', fallback: 'serif', googleFont: 'Abril+Fatface', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Alfa Slab One', label: 'Alfa Slab One', category: 'display', fallback: 'serif', googleFont: 'Alfa+Slab+One', pptxSafe: false, pptxSubstitute: 'Arial' },
-  { family: 'Russo One', label: 'Russo One', category: 'display', fallback: 'sans-serif', googleFont: 'Russo+One', pptxSafe: false, pptxSubstitute: 'Arial' },
+  { family: 'Bebas Neue', label: 'Bebas Neue', category: 'display', fallback: 'sans-serif', googleFont: 'Bebas+Neue', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Anton', label: 'Anton', category: 'display', fallback: 'sans-serif', googleFont: 'Anton', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'League Spartan', label: 'League Spartan', category: 'display', fallback: 'sans-serif', googleFont: 'League+Spartan:wght@600;700;800', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Righteous', label: 'Righteous', category: 'display', fallback: 'sans-serif', googleFont: 'Righteous', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Teko', label: 'Teko', category: 'display', fallback: 'sans-serif', googleFont: 'Teko:wght@500;600;700', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Abril Fatface', label: 'Abril Fatface', category: 'display', fallback: 'serif', googleFont: 'Abril+Fatface', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Alfa Slab One', label: 'Alfa Slab One', category: 'display', fallback: 'serif', googleFont: 'Alfa+Slab+One', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Russo One', label: 'Russo One', category: 'display', fallback: 'sans-serif', googleFont: 'Russo+One', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
 
   // 5. Script & Handwriting (7 fonts)
-  { family: 'Great Vibes', label: 'Great Vibes', category: 'script', fallback: 'cursive', googleFont: 'Great+Vibes', pptxSafe: false, pptxSubstitute: 'Georgia' },
-  { family: 'Pacifico', label: 'Pacifico', category: 'script', fallback: 'cursive', googleFont: 'Pacifico', pptxSafe: false, pptxSubstitute: 'Georgia' },
-  { family: 'Caveat', label: 'Caveat', category: 'script', fallback: 'cursive', googleFont: 'Caveat:wght@600;700', pptxSafe: false, pptxSubstitute: 'Georgia' },
-  { family: 'Dancing Script', label: 'Dancing Script', category: 'script', fallback: 'cursive', googleFont: 'Dancing+Script:wght@600;700', pptxSafe: false, pptxSubstitute: 'Georgia' },
-  { family: 'Sacramento', label: 'Sacramento', category: 'script', fallback: 'cursive', googleFont: 'Sacramento', pptxSafe: false, pptxSubstitute: 'Georgia' },
-  { family: 'Shadows Into Light', label: 'Shadows Into Light', category: 'script', fallback: 'cursive', googleFont: 'Shadows+Into+Light', pptxSafe: false, pptxSubstitute: 'Georgia' },
-  { family: 'Satisfy', label: 'Satisfy', category: 'script', fallback: 'cursive', googleFont: 'Satisfy', pptxSafe: false, pptxSubstitute: 'Georgia' },
+  { family: 'Great Vibes', label: 'Great Vibes', category: 'script', fallback: 'cursive', googleFont: 'Great+Vibes', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Pacifico', label: 'Pacifico', category: 'script', fallback: 'cursive', googleFont: 'Pacifico', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Caveat', label: 'Caveat', category: 'script', fallback: 'cursive', googleFont: 'Caveat:wght@600;700', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Dancing Script', label: 'Dancing Script', category: 'script', fallback: 'cursive', googleFont: 'Dancing+Script:wght@600;700', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Sacramento', label: 'Sacramento', category: 'script', fallback: 'cursive', googleFont: 'Sacramento', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Shadows Into Light', label: 'Shadows Into Light', category: 'script', fallback: 'cursive', googleFont: 'Shadows+Into+Light', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Satisfy', label: 'Satisfy', category: 'script', fallback: 'cursive', googleFont: 'Satisfy', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
 ];
 
 export const DEFAULT_FONT_FAMILY = 'Arial';
@@ -97,9 +98,40 @@ export function getFontDefinition(family: string | undefined): FontDefinition | 
   return FONT_MAP.get(family.trim().toLowerCase());
 }
 
+/**
+ * SPEC-33-01: Decouples universal system fonts from embeddable TrueType fonts.
+ * A font is considered export-ready if:
+ * 1) It is a universal system font installed across all PowerPoint machines (category === 'system');
+ * 2) It is a catalog font with confirmed export embedding support (embeddable === true);
+ * 3) It has been dynamically hydrated and registered into the font catalog.
+ */
+export function isFontExportReady(family: string | undefined): boolean {
+  if (!family) return true;
+  const def = getFontDefinition(family);
+  if (!def) return false;
+  return def.category === 'system' || def.embeddable === true;
+}
+
 export function getFontStack(family: string | undefined): string {
   const def = getFontDefinition(family);
-  if (!def) return `"${DEFAULT_FONT_FAMILY}", sans-serif`;
+  if (!def) {
+    if (family) {
+      const clean = family.trim();
+      const lower = clean.toLowerCase();
+      // SPEC-33-03: Heuristic fallback for unacquired script / handwriting / calligraphy fonts
+      if (
+        lower.includes('script') ||
+        lower.includes('hand') ||
+        lower.includes('calligraphy') ||
+        lower.includes('brush') ||
+        lower.includes('youngest')
+      ) {
+        return `"${clean}", cursive, sans-serif`;
+      }
+      return `"${clean}", "${DEFAULT_FONT_FAMILY}", sans-serif`;
+    }
+    return `"${DEFAULT_FONT_FAMILY}", sans-serif`;
+  }
   return `"${def.family}", ${def.fallback}`;
 }
 
@@ -163,6 +195,7 @@ export async function registerDynamicFontFace(face: ImportedFontFace): Promise<b
         category: 'sans',
         fallback: 'sans-serif',
         pptxSafe: true, // Self-contained embedded font
+        embeddable: true,
       };
       FONT_CATALOG.push(def);
       FONT_MAP.set(family.toLowerCase(), def);

@@ -94,8 +94,9 @@ export async function embedPresentationFonts(
     }
 
     const def = getFontDefinition(family);
-    // Universal system fonts (Arial, Calibri, etc.) are already installed on all PowerPoint machines
-    if (!def || def.pptxSafe) continue;
+    // Universal system fonts (Arial, Calibri, etc.) are already installed on all PowerPoint machines.
+    // Embed any non-system font that is marked embeddable or curated.
+    if (!def || def.category === 'system' || def.embeddable === false) continue;
 
     const buf = await getFontData(family);
     if (buf) {
