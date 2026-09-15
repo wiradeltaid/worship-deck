@@ -1668,7 +1668,7 @@ waves:
           - tests/public-repo-guard.test.mjs
 
   - id: SPEC-34
-    status: open
+    status: closed
     release: deck-sequence-multi-select-and-bulk-delete
     prd: [offline-deck]
     fr: [FR-21]

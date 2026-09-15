@@ -830,7 +830,7 @@ decisions:
       - src/lib/pptx-draw.ts
   - id: DEC-036
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-15)"
     title: Autopilot mandate for Deck Sequence Multi-Select and Bulk Delete (SPEC-34)
     file: .control/decisions/DEC-036-autopilot-mandate-deck-sequence-multi-select-bulk-delete.md
