@@ -1,6 +1,6 @@
 # SPEC-31-03 — Artifact Editor Integration
 
-**Status:** open
+**Status:** closed
 **Blocked by:** 02
 
 ## What to build

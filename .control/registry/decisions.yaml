@@ -754,7 +754,7 @@ decisions:
       - package.json
   - id: DEC-033
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-15)"
     title: Autopilot mandate for Initial PPTX Import and Smart Background Detection (SPEC-31)
     file: .control/decisions/DEC-033-autopilot-mandate-initial-pptx-import.md

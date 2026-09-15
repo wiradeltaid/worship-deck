@@ -1,6 +1,6 @@
 # SPEC-31-02 — API Uploads and Atomic Registry Write
 
-**Status:** open
+**Status:** closed
 **Blocked by:** 01
 
 ## What to build

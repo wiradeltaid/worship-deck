@@ -1,6 +1,6 @@
 # SPEC-31-04 — Automated Test Suite and Absence Guards
 
-**Status:** open
+**Status:** closed
 **Blocked by:** 03
 
 ## What to build

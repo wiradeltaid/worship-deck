@@ -1531,7 +1531,7 @@ waves:
           - tests/smoke-spec-30.test.mjs
 
   - id: SPEC-31
-    status: open
+    status: closed
     release: initial-pptx-import-smart-background
     prd: [offline-deck]
     fr: [FR-20]
@@ -1547,7 +1547,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: []
-        touches: [artifacts, pptx, api]
+        touches: [artifacts, pptx]
         tests:
           - internal/pptximport
           - tests/smoke-spec-31.test.mjs
@@ -1555,7 +1555,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: ["SPEC-31-01"]
-        touches: [artifacts, api]
+        touches: [artifacts, uploads]
         tests:
           - internal/httpapi
           - tests/smoke-spec-31.test.mjs
@@ -1570,7 +1570,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: ["SPEC-31-03"]
-        touches: [artifacts, pptx, api]
+        touches: [artifacts, pptx, uploads]
         tests:
           - tests/smoke-spec-31.test.mjs
 

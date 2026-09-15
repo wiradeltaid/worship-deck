@@ -1,6 +1,6 @@
 # SPEC-31-01 — Go Parser and Smart Background Engine
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build
