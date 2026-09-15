@@ -292,6 +292,9 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.artifacts.delete': 'Delete',
   'admin.artifacts.readOnly': 'read-only',
   'admin.artifacts.selectHint': 'Select a template to edit.',
+  'admin.artifacts.emptySequenceTitle': 'No slides in Deck Sequence',
+  'admin.artifacts.emptySequenceDesc':
+    'Import a PowerPoint presentation (.pptx) to populate the slide sequence automatically, or add new slides manually using the New Slide panel on the left.',
   'admin.artifacts.save': 'Save',
   'admin.artifacts.reset': 'Reset',
   'admin.artifacts.remeasureAll': 'Re-measure all',

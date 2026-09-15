@@ -259,6 +259,8 @@ export const I18N_KEYS = [
   'admin.artifacts.delete',
   'admin.artifacts.readOnly',
   'admin.artifacts.selectHint',
+  'admin.artifacts.emptySequenceTitle',
+  'admin.artifacts.emptySequenceDesc',
   'admin.artifacts.save',
   'admin.artifacts.reset',
   'admin.artifacts.remeasureAll',

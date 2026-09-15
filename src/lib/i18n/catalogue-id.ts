@@ -294,6 +294,9 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.artifacts.delete': 'Hapus',
   'admin.artifacts.readOnly': 'hanya baca',
   'admin.artifacts.selectHint': 'Pilih templat untuk disunting.',
+  'admin.artifacts.emptySequenceTitle': 'Belum ada slide di Deck Sequence',
+  'admin.artifacts.emptySequenceDesc':
+    'Impor presentasi PowerPoint (.pptx) untuk mengisi urutan slide secara otomatis, atau tambahkan slide baru secara manual melalui panel New Slide di sebelah kiri.',
   'admin.artifacts.save': 'Simpan',
   'admin.artifacts.reset': 'Reset',
   'admin.artifacts.remeasureAll': 'Ukur ulang semua',

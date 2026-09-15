@@ -449,7 +449,13 @@ export default function ArtifactEditor({
   useEffect(() => {
     loadList()
       .then((summaries) => {
-        setSelectedId((current) => resolveInitialSelectedId(current, initialSelectedId, summaries));
+        setSelectedId((current) => {
+          const next = resolveInitialSelectedId(current, initialSelectedId, summaries);
+          if (!next) {
+            setStatus('idle');
+          }
+          return next;
+        });
       })
       .catch((err) => {
         setStatus('error');
@@ -506,12 +512,15 @@ export default function ArtifactEditor({
   }, [initialSelectedId]);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId) {
+      setStatus((current) => (current === 'loading' ? 'idle' : current));
+      return;
+    }
     loadTemplate(selectedId).catch((err) => {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : t('admin.artifacts.loadOneFailed'));
     });
-  }, [selectedId, loadTemplate]);
+  }, [selectedId, loadTemplate, t]);
 
   useEffect(() => {
     let disposed = false;
@@ -2703,6 +2712,7 @@ export default function ArtifactEditor({
       setSelectedId(null);
       setTemplate(null);
       setIsDirty((current) => nextDirtyState(current, 'template-changed'));
+      setStatus('idle');
       return;
     }
     // A delete/reorder refreshes every remaining row's concurrency token. Keep
@@ -3130,7 +3140,34 @@ export default function ArtifactEditor({
                 </p>
               ) : null}
             </div>
-            <p className="text-sm text-muted-foreground">{t('admin.artifacts.selectHint')}</p>
+            {templates.length === 0 ? (
+              <div className="aspect-video w-full max-h-[calc(100vh-310px)] min-h-[320px] rounded-xl border border-dashed border-border bg-card/50 flex flex-col items-center justify-center p-8 text-center shadow-sm relative overflow-hidden">
+                <div className="max-w-md flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-1">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {t('admin.artifacts.emptySequenceTitle')}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {t('admin.artifacts.emptySequenceDesc')}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    onClick={() => pptxFileInputRef.current?.click()}
+                    disabled={busy || isImporting}
+                    className="mt-2 font-semibold"
+                  >
+                    <Upload className="w-4 h-4 mr-1.5" />
+                    {isImporting ? 'Importing PPTX...' : 'Import PPTX'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('admin.artifacts.selectHint')}</p>
+            )}
           </>
         ) : (
           <>
