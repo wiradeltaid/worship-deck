@@ -80,6 +80,15 @@ import {
   registerDynamicFontFace,
   hydrateImportedFonts,
 } from '@/lib/registry/font-catalog';
+import {
+  computeRangeSelection,
+  moveSelectedBlock,
+  reconcileSlideSelection,
+  resolveMultiSelectClick,
+  resolveNextActiveSlide,
+  runBulkDelete,
+  selectAllSlides,
+} from '@/lib/registry/slide-selection';
 
 const FONT_ITEMS_MAP: Record<string, string> = Object.fromEntries(
   FONT_CATALOG.map((f) => [f.family, f.label])
@@ -227,6 +236,11 @@ export default function ArtifactEditor({
   const fabricCanvasRef = useRef<import('fabric').Canvas | null>(null);
   const [templates, setTemplates] = useState<ArtifactTemplateSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(initialSelectedId ? [initialSelectedId] : [])
+  );
+  const [anchorId, setAnchorId] = useState<string | null>(initialSelectedId ?? null);
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false);
   const [template, setTemplate] = useState<StoredArtifactTemplate | null>(null);
   const [draftLabel, setDraftLabel] = useState('');
   const [newLabel, setNewLabel] = useState('');
@@ -518,6 +532,21 @@ export default function ArtifactEditor({
       setSelectedId(initialSelectedId);
     }
   }, [initialSelectedId]);
+
+  useEffect(() => {
+    if (selectedId) {
+      setSelectedIds((current) => {
+        if (!current.has(selectedId)) {
+          return new Set([...current, selectedId]);
+        }
+        return current;
+      });
+      setAnchorId((current) => current ?? selectedId);
+    } else if (templates.length === 0) {
+      setSelectedIds(new Set());
+      setAnchorId(null);
+    }
+  }, [selectedId, templates.length]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -2275,6 +2304,8 @@ export default function ArtifactEditor({
 
       await loadList();
       setSelectedId(data.id);
+      setSelectedIds(new Set([data.id]));
+      setAnchorId(data.id);
       setStatus('success');
       toast(t('admin.artifacts.created').replace('{label}', activeCopiedSlidePayload.label));
     } catch (err) {
@@ -2373,6 +2404,8 @@ export default function ArtifactEditor({
 
       await loadList();
       setSelectedId(created.id);
+      setSelectedIds(new Set([created.id]));
+      setAnchorId(created.id);
       toast(t('admin.artifacts.created').replace('{label}', newLabel));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to clone slide');
@@ -2380,6 +2413,10 @@ export default function ArtifactEditor({
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (busy || isDeletingSelected) {
+      e.preventDefault();
+      return;
+    }
     dragSourceIndexRef.current = index;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -2406,15 +2443,25 @@ export default function ArtifactEditor({
     setDraggedIndex(null);
     if (
       sourceIndex === null ||
-      sourceIndex === targetIndex ||
       sourceIndex < 0 ||
-      sourceIndex >= templates.length
+      sourceIndex >= templates.length ||
+      targetIndex < 0 ||
+      targetIndex >= templates.length
     ) {
       return;
     }
-    const next = [...templates];
-    const [moved] = next.splice(sourceIndex, 1);
-    next.splice(targetIndex, 0, moved);
+    const draggedItem = templates[sourceIndex];
+    if (!draggedItem) return;
+
+    const next = moveSelectedBlock({
+      orderedItems: templates,
+      selectedIds,
+      draggedId: draggedItem.id,
+      targetIndex,
+    });
+    if (next === templates || next.every((item, i) => item.id === templates[i].id)) {
+      return;
+    }
     setTemplates(next);
     await handleReorderTemplates(next);
   };
@@ -2450,6 +2497,8 @@ export default function ArtifactEditor({
       setNewLabel('');
       await loadList();
       setSelectedId(data.id);
+      setSelectedIds(new Set([data.id]));
+      setAnchorId(data.id);
       setStatus('success');
       setMessage(
         t('admin.artifacts.created').replace('{label}', data.label || label)
@@ -2519,6 +2568,8 @@ export default function ArtifactEditor({
 
         if (data.firstTemplate?.id) {
           setSelectedId(data.firstTemplate.id);
+          setSelectedIds(new Set([data.firstTemplate.id]));
+          setAnchorId(data.firstTemplate.id);
           setTemplate(data.firstTemplate);
           setDraftLabel(typeof data.firstTemplate.label === 'string' ? data.firstTemplate.label : '');
           setIsDirty(false);
@@ -2764,8 +2815,21 @@ export default function ArtifactEditor({
   const reconcileSelectedTemplate = async (
     summaries: ArtifactTemplateSummary[]
   ) => {
-    if (!selectedId) return;
-    const summary = summaries.find((item) => item.id === selectedId);
+    const nextSelection = reconcileSlideSelection(
+      selectedIds,
+      anchorId,
+      selectedId,
+      summaries.map((s) => s.id)
+    );
+    setSelectedIds(new Set(nextSelection.selectedIds));
+    setAnchorId(nextSelection.anchorId);
+
+    const activeToUse = nextSelection.activeId;
+    if (activeToUse !== selectedId) {
+      setSelectedId(activeToUse);
+    }
+
+    const summary = activeToUse ? summaries.find((item) => item.id === activeToUse) : null;
     if (!summary) {
       setSelectedId(null);
       setTemplate(null);
@@ -2782,61 +2846,202 @@ export default function ArtifactEditor({
       );
       return;
     }
-    await loadTemplate(selectedId);
+    await loadTemplate(summary.id);
   };
 
-  const handleDeleteTemplate = async (item: ArtifactTemplateSummary) => {
-    const deletingSelected = item.id === selectedId;
-    const warning =
-      deletingSelected && isDirty && isEditable
-        ? t('admin.artifacts.confirmDeleteDirty').replace('{label}', item.label)
-        : t('admin.artifacts.confirmDelete').replace('{label}', item.label);
+  const handleDeleteSelectedTemplates = async (singleItem?: ArtifactTemplateSummary) => {
+    let targetIds: string[];
+    if (singleItem) {
+      if (selectedIds.has(singleItem.id) && selectedIds.size > 1) {
+        targetIds = templates.filter((t) => selectedIds.has(t.id)).map((t) => t.id);
+      } else {
+        targetIds = [singleItem.id];
+      }
+    } else {
+      targetIds = templates.filter((t) => selectedIds.has(t.id)).map((t) => t.id);
+    }
+
+    if (targetIds.length === 0) return;
+
+    const containsActive = selectedId !== null && targetIds.includes(selectedId);
+    let warning: string;
+
+    if (targetIds.length === 1) {
+      const item = templates.find((t) => t.id === targetIds[0]) ?? singleItem;
+      const label = item?.label ?? '';
+      warning =
+        containsActive && isDirty && isEditable
+          ? t('admin.artifacts.confirmDeleteDirty').replace('{label}', label)
+          : t('admin.artifacts.confirmDelete').replace('{label}', label);
+    } else {
+      warning =
+        containsActive && isDirty && isEditable
+          ? t('admin.artifacts.confirmDeleteBulkDirty').replace('{count}', String(targetIds.length))
+          : t('admin.artifacts.confirmDeleteBulk').replace('{count}', String(targetIds.length));
+    }
+
     if (!window.confirm(warning)) return;
 
     setStatus('deleting');
+    setIsDeletingSelected(true);
     setMessage(null);
+
     try {
-      const res = await adapter.delete(item.id, item.updatedAt);
-      if (res.status === 409) {
-        const summaries = await loadList();
-        await reconcileSelectedTemplate(summaries);
-        setStatus('conflict');
-        setMessage(
-          t('admin.artifacts.deleteConflict').replace(
-            '{error}',
-            res.error || t('admin.artifacts.modifiedElsewhere')
-          )
-        );
-        return;
+      const result = await runBulkDelete({
+        selectedIds: targetIds,
+        orderedSummaries: templates,
+        deleteFn: (id, updatedAt) => adapter.delete(id, updatedAt),
+        listFn: () => loadList(),
+      });
+
+      setTemplates(result.survivors);
+
+      const nextActiveId = resolveNextActiveSlide(result.deletedIds, selectedId, templates);
+      if (result.deletedIds.includes(selectedId ?? '')) {
+        if (!nextActiveId) {
+          setSelectedId(null);
+          setTemplate(null);
+          setIsDirty((current) => nextDirtyState(current, 'template-changed'));
+        } else {
+          setSelectedId(nextActiveId);
+        }
+      } else if (selectedId) {
+        // Active slide survived: update in-memory updatedAt from survivors without remounting canvas
+        const survivor = result.survivors.find((s) => s.id === selectedId);
+        if (survivor) {
+          setTemplate((curr) => (curr ? { ...curr, updatedAt: survivor.updatedAt } : null));
+        }
       }
-      if (res.status === 404) {
-        const summaries = await loadList();
-        await reconcileSelectedTemplate(summaries);
-        setStatus('conflict');
-        setMessage(
-          t('admin.artifacts.deleteMissing').replace(
-            '{error}',
-            res.error || t('admin.artifacts.loadOneFailed')
-          )
-        );
-        return;
+
+      // Reconcile selection: remove deleted IDs, ensure active replacement is selected
+      const survivingSelected = Array.from(selectedIds).filter((id) => !result.deletedIds.includes(id));
+      const finalSelectedCandidates =
+        nextActiveId && !survivingSelected.includes(nextActiveId)
+          ? [nextActiveId, ...survivingSelected]
+          : survivingSelected;
+
+      const nextSelection = reconcileSlideSelection(
+        finalSelectedCandidates,
+        anchorId,
+        nextActiveId,
+        result.survivors.map((s) => s.id)
+      );
+      setSelectedIds(new Set(nextSelection.selectedIds));
+      setAnchorId(nextSelection.anchorId);
+      if (nextSelection.activeId !== nextActiveId) {
+        setSelectedId(nextSelection.activeId);
       }
-      if (!res.ok) throw new Error(res.error || t('admin.artifacts.deleteFailed'));
-      const summaries = res.templates ?? (await loadList());
-      setTemplates(summaries);
-      if (deletingSelected) {
-        setSelectedId(null);
-        setTemplate(null);
-        setIsDirty((current) => nextDirtyState(current, 'template-changed'));
+
+      if (!result.completed) {
+        setStatus('conflict');
+        const partialMsg = t('admin.artifacts.deletedBulkPartial')
+          .replace('{deleted}', String(result.deletedCount))
+          .replace('{total}', String(targetIds.length));
+        setMessage(partialMsg);
+        toast(partialMsg);
       } else {
-        await reconcileSelectedTemplate(summaries);
+        setStatus('success');
+        const successMsg =
+          targetIds.length === 1
+            ? t('admin.artifacts.deleted').replace('{label}', templates.find((t) => t.id === targetIds[0])?.label ?? '')
+            : t('admin.artifacts.deletedBulk').replace('{count}', String(result.deletedCount));
+        setMessage(successMsg);
+        toast(successMsg);
       }
-      setStatus('success');
-      setMessage(t('admin.artifacts.deleted').replace('{label}', item.label));
-      toast(t('admin.artifacts.deleted').replace('{label}', item.label));
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : t('admin.artifacts.deleteFailed'));
+    } finally {
+      setIsDeletingSelected(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (item: ArtifactTemplateSummary) => {
+    await handleDeleteSelectedTemplates(item);
+  };
+
+  const handleDeckSequenceKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    if (e.defaultPrevented) return;
+    if ((e.nativeEvent as any)?.isComposing || (e as any).isComposing) return;
+    const target = e.target as HTMLElement | null;
+    const tagName = target?.tagName?.toLowerCase();
+    if (
+      tagName === 'input' ||
+      tagName === 'textarea' ||
+      tagName === 'select' ||
+      target?.isContentEditable ||
+      target?.closest('button')
+    ) {
+      return;
+    }
+    if (busy || isDeletingSelected) return;
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      const allIds = selectAllSlides(templates.map((t) => t.id));
+      setSelectedIds(new Set(allIds));
+      if (!selectedId && allIds.length > 0) {
+        setSelectedId(allIds[0]);
+      }
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (selectedId) {
+        setSelectedIds(new Set([selectedId]));
+        setAnchorId(selectedId);
+      } else {
+        setSelectedIds(new Set());
+        setAnchorId(null);
+        setTemplate(null);
+        setIsDirty((current) => nextDirtyState(current, 'template-changed'));
+      }
+      return;
+    }
+
+    if ((e.key === 'Delete' || e.key === 'Backspace') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      void handleDeleteSelectedTemplates();
+      return;
+    }
+  };
+
+  const handleSlideClick = (
+    e: React.MouseEvent | React.KeyboardEvent,
+    item: ArtifactTemplateSummary
+  ) => {
+    const isCtrlOrCmd = 'ctrlKey' in e && (e.ctrlKey || e.metaKey);
+    const isShift = 'shiftKey' in e && e.shiftKey;
+    const orderedIds = templates.map((t) => t.id);
+
+    const result = resolveMultiSelectClick({
+      clickedId: item.id,
+      isCtrlOrCmd,
+      isShift,
+      currentSelectedIds: selectedIds,
+      currentAnchorId: anchorId,
+      currentActiveId: selectedId,
+      orderedIds,
+    });
+
+    if (result.requiresDiscardConfirmation) {
+      const proceed = mayDiscard(
+        isDirty && isEditable,
+        DISCARD_ON_SWITCH_CONFIRMATION,
+        (message) => window.confirm(message)
+      );
+      if (!proceed) return;
+    }
+
+    setSelectedIds(new Set(result.selectedIds));
+    setAnchorId(result.anchorId);
+    if (result.activeId !== selectedId) {
+      setSelectedId(result.activeId);
+      if (!result.activeId) {
+        setTemplate(null);
+        setIsDirty((current) => nextDirtyState(current, 'template-changed'));
+      }
     }
   };
 
@@ -2873,12 +3078,18 @@ export default function ArtifactEditor({
   };
 
   const handleMoveTemplate = async (item: ArtifactTemplateSummary, direction: -1 | 1) => {
+    if (busy || isDeletingSelected) return;
     const index = templates.findIndex((candidate) => candidate.id === item.id);
     const target = index + direction;
     if (index < 0 || target < 0 || target >= templates.length) return;
 
-    const desired = [...templates];
-    [desired[index], desired[target]] = [desired[target], desired[index]];
+    const desired = moveSelectedBlock({
+      orderedItems: templates,
+      selectedIds,
+      draggedId: item.id,
+      targetIndex: target,
+    });
+    if (desired === templates || desired.every((t, i) => t.id === templates[i].id)) return;
     await handleReorderTemplates(desired);
   };
 
@@ -3051,17 +3262,67 @@ export default function ArtifactEditor({
 
           {/* LIST TEMPLATES (POIN 3: HOVER ACTIONS & DND REORDER) */}
           <div className="rounded-xl border border-border bg-card p-3.5 space-y-3 shadow-sm flex flex-col flex-1 min-h-[220px] max-h-[calc(100vh-380px)] lg:max-h-full">
-            <div className="flex items-center justify-between shrink-0">
-              <span className="text-xs font-semibold text-foreground">Deck Sequence</span>
-              <span className="text-[11px] text-muted-foreground font-mono">{templates.length} slides</span>
+            <div className="flex items-center justify-between shrink-0 gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-foreground truncate">Deck Sequence</span>
+                {selectedIds.size > 1 ? (
+                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 shrink-0">
+                    {t('admin.artifacts.selectedCount').replace('{count}', String(selectedIds.size))}
+                  </span>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {selectedIds.size > 1 ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (selectedId) {
+                          setSelectedIds(new Set([selectedId]));
+                          setAnchorId(selectedId);
+                        } else {
+                          setSelectedIds(new Set());
+                          setAnchorId(null);
+                        }
+                      }}
+                      disabled={busy || isDeletingSelected}
+                      className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      {t('admin.artifacts.deselect')}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => void handleDeleteSelectedTemplates()}
+                      disabled={busy || isDeletingSelected}
+                      className="h-6 px-2 text-[11px] font-medium flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>{t('admin.artifacts.deleteSelected')} ({selectedIds.size})</span>
+                    </Button>
+                  </>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground font-mono">{templates.length} slides</span>
+                )}
+              </div>
             </div>
-            <ul className="space-y-1.5 overflow-y-auto pr-1 flex-1 min-h-0">
+            <ul
+              tabIndex={0}
+              onKeyDown={handleDeckSequenceKeyDown}
+              className="space-y-1.5 overflow-y-auto pr-1 flex-1 min-h-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 rounded-lg"
+            >
               {templates.map((item, index) => {
-                const isSelected = selectedId === item.id;
+                const isActive = selectedId === item.id;
+                const isCoSelected = selectedIds.has(item.id) && !isActive;
+                const isSelected = selectedIds.has(item.id);
+
                 return (
                   <li
                     key={item.id}
-                    draggable={!busy}
+                    draggable={!busy && !isDeletingSelected}
                     onDragStart={(e) => handleDragStart(e, index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragLeave={() => {
@@ -3079,32 +3340,49 @@ export default function ArtifactEditor({
                     <div
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        if (item.id === selectedId) return;
-                        const proceed = mayDiscard(
-                          isDirty && isEditable,
-                          DISCARD_ON_SWITCH_CONFIRMATION,
-                          (message) => window.confirm(message)
-                        );
-                        if (!proceed) return;
-                        setSelectedId(item.id);
+                      aria-selected={isSelected}
+                      onClick={(e) => {
+                        const isModifier = e.ctrlKey || e.metaKey || e.shiftKey;
+                        if (!isModifier) {
+                          if (item.id === selectedId) return;
+                          const proceed = mayDiscard(
+                            isDirty && isEditable,
+                            DISCARD_ON_SWITCH_CONFIRMATION,
+                            (message) => window.confirm(message)
+                          );
+                          if (!proceed) return;
+                          setSelectedId(item.id);
+                          setSelectedIds(new Set([item.id]));
+                          setAnchorId(item.id);
+                          return;
+                        }
+                        handleSlideClick(e, item);
                       }}
                       onKeyDown={(event) => {
                         if (event.key !== 'Enter' && event.key !== ' ') return;
                         event.preventDefault();
-                        if (item.id === selectedId) return;
-                        const proceed = mayDiscard(
-                          isDirty && isEditable,
-                          DISCARD_ON_SWITCH_CONFIRMATION,
-                          (message) => window.confirm(message)
-                        );
-                        if (!proceed) return;
-                        setSelectedId(item.id);
+                        const isModifier = event.ctrlKey || event.metaKey || event.shiftKey;
+                        if (!isModifier) {
+                          if (item.id === selectedId) return;
+                          const proceed = mayDiscard(
+                            isDirty && isEditable,
+                            DISCARD_ON_SWITCH_CONFIRMATION,
+                            (message) => window.confirm(message)
+                          );
+                          if (!proceed) return;
+                          setSelectedId(item.id);
+                          setSelectedIds(new Set([item.id]));
+                          setAnchorId(item.id);
+                          return;
+                        }
+                        handleSlideClick(event as any, item);
                       }}
                       className={`flex items-center justify-between p-2 rounded-lg border cursor-grab active:cursor-grabbing select-none transition-all ${
-                        isSelected
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border/60 bg-muted/30 hover:bg-muted/70 hover:border-border'
+                        isActive
+                          ? 'border-primary bg-primary/20 ring-1 ring-primary/40 font-semibold text-foreground'
+                          : isCoSelected
+                            ? 'border-primary/60 bg-primary/10 ring-1 ring-primary/20 text-foreground'
+                            : 'border-border/60 bg-muted/30 hover:bg-muted/70 hover:border-border'
                       }`}
                     >
                       <div className="min-w-0 pr-2">
@@ -3123,7 +3401,7 @@ export default function ArtifactEditor({
                             e.stopPropagation();
                             void handleMoveTemplate(item, -1);
                           }}
-                          disabled={busy || index === 0}
+                          disabled={busy || isDeletingSelected || index === 0}
                           className="h-7 w-7 p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
                         >
                           <ArrowUp className="w-3.5 h-3.5" />
@@ -3137,7 +3415,7 @@ export default function ArtifactEditor({
                             e.stopPropagation();
                             void handleMoveTemplate(item, 1);
                           }}
-                          disabled={busy || index === templates.length - 1}
+                          disabled={busy || isDeletingSelected || index === templates.length - 1}
                           className="h-7 w-7 p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
                         >
                           <ArrowDown className="w-3.5 h-3.5" />
@@ -3151,7 +3429,7 @@ export default function ArtifactEditor({
                             e.stopPropagation();
                             void handleCloneTemplate(item);
                           }}
-                          disabled={busy}
+                          disabled={busy || isDeletingSelected}
                           className="h-7 w-7 p-1 text-muted-foreground hover:text-foreground"
                         >
                           <Copy className="w-3.5 h-3.5" />
@@ -3165,7 +3443,7 @@ export default function ArtifactEditor({
                             e.stopPropagation();
                             void handleDeleteTemplate(item);
                           }}
-                          disabled={busy}
+                          disabled={busy || isDeletingSelected}
                           className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

@@ -347,6 +347,14 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.artifacts.placeholder.youth_name': 'Nama pemuda',
   'admin.artifacts.placeholder.family_photo': 'Foto keluarga',
   'admin.artifacts.placeholder.youth_photo': 'Foto pemuda',
+  'admin.artifacts.selectedCount': '{count} dipilih',
+  'admin.artifacts.deselect': 'Batal pilih',
+  'admin.artifacts.confirmDeleteBulk': 'Hapus {count} slide yang dipilih?',
+  'admin.artifacts.confirmDeleteBulkDirty':
+    'Hapus {count} slide yang dipilih? Perubahan yang belum disimpan pada slide aktif akan dibuang.',
+  'admin.artifacts.deletedBulk': 'Berhasil menghapus {count} slide',
+  'admin.artifacts.deletedBulkPartial':
+    'Berhasil menghapus {deleted} dari {total} slide karena konflik atau data hilang',
   'admin.artifacts.deleteSelected': 'Hapus yang dipilih',
   'admin.artifacts.duplicateSelected': 'Duplikasi / Salin',
   'admin.artifacts.copySlide': 'Salin slide',
