@@ -1,6 +1,6 @@
 # SPEC-33-03 — Typed Unresolved-Font Contract and Admin Acquisition API
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-33-02
 
 ## What to build

@@ -84,6 +84,7 @@ const ALLOWED_STYLE_KEYS = new Set([
   'textShadowBlur',
   'letterSpacing',
   'pptxTypeface',
+  'fontStatus',
 ]);
 
 export class RegistryValidationError extends Error {
@@ -273,6 +274,18 @@ function parseStyle(value: unknown, label: string) {
       throw new RegistryValidationError(`${label}.pptxTypeface is invalid`);
     }
     style.pptxTypeface = obj.pptxTypeface.trim();
+  }
+  if (obj.fontStatus !== undefined) {
+    if (
+      obj.fontStatus !== 'system' &&
+      obj.fontStatus !== 'catalog' &&
+      obj.fontStatus !== 'embedded' &&
+      obj.fontStatus !== 'uploaded' &&
+      obj.fontStatus !== 'unresolved'
+    ) {
+      throw new RegistryValidationError(`${label}.fontStatus is invalid`);
+    }
+    style.fontStatus = obj.fontStatus;
   }
   return style;
 }

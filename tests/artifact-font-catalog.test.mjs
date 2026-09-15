@@ -18,6 +18,7 @@ const {
   FONT_CATEGORY_LABELS,
   DEFAULT_FONT_FAMILY,
   getFontDefinition,
+  isFontExportReady,
   getFontStack,
   getGoogleFontsStylesheetUrl,
 } = await import(srcUrl('lib', 'registry', 'font-catalog.ts'));
@@ -101,8 +102,29 @@ test('getFontStack returns appropriate CSS font stack', () => {
   assert.equal(getFontStack('Inter'), '"Inter", sans-serif');
   assert.equal(getFontStack('Playfair Display'), '"Playfair Display", serif');
   assert.equal(getFontStack('Pacifico'), '"Pacifico", cursive');
-  assert.equal(getFontStack('UnknownFont'), '"Arial", sans-serif');
+  assert.equal(getFontStack('UnknownFont'), '"UnknownFont", "Arial", sans-serif');
+  assert.equal(getFontStack('The Youngest'), '"The Youngest", cursive, sans-serif');
+  assert.equal(getFontStack('Custom Script MT'), '"Custom Script MT", cursive, sans-serif');
   assert.equal(getFontStack(undefined), '"Arial", sans-serif');
+});
+
+test('SPEC-33-01: isFontExportReady decouples system fonts and embeddable web fonts', () => {
+  // System fonts are universally export-ready without font embedding
+  const systemFonts = ['Arial', 'Calibri', 'Times New Roman', 'Georgia', 'Verdana'];
+  for (const f of systemFonts) {
+    assert.equal(isFontExportReady(f), true, `System font ${f} must be export ready`);
+  }
+
+  // Curated Google Fonts are export-ready via TrueType embedding
+  const googleFonts = ['Montserrat', 'Roboto', 'Inter', 'Lora', 'Playfair Display', 'Caveat'];
+  for (const f of googleFonts) {
+    assert.equal(isFontExportReady(f), true, `Curated Google Font ${f} must be export ready`);
+  }
+
+  // Unacquired custom fonts without catalog or font_faces registration are NOT export-ready
+  assert.equal(isFontExportReady('The Youngest'), false, 'Unacquired font must not be export ready');
+  assert.equal(isFontExportReady('NonExistentFont123'), false, 'Unknown font must not be export ready');
+  assert.equal(isFontExportReady(undefined), true, 'Empty / undefined font defaults to safe');
 });
 
 test('DEFAULT_FONT_FAMILY is canonical Arial and deduplicated across modules', () => {

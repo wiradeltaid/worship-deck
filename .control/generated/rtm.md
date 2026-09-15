@@ -1574,6 +1574,68 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-33-01
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - src/lib/registry/font-catalog.ts
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/artifact-font-catalog.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-02
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - src/lib/registry/canvas-utils.ts
+  - tests/smoke-spec-33.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-03
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - internal/httpapi
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-33.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-04
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - tests/smoke-spec-33.test.mjs
+  - tests/public-repo-guard.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3299,6 +3361,68 @@ rtm:
   release: pptx-import-font-adoption-and-letter-spacing
   test:
   - tests/smoke-spec-32.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-01
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - src/lib/registry/font-catalog.ts
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/artifact-font-catalog.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-02
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - src/lib/registry/canvas-utils.ts
+  - tests/smoke-spec-33.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-03
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - internal/httpapi
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-33.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-33-04
+  spec: SPEC-33
+  release: pptx-typography-fidelity-and-font-acquisition
+  test:
+  - tests/smoke-spec-33.test.mjs
+  - tests/public-repo-guard.test.mjs
   status: done
   exempt: false
   green: true

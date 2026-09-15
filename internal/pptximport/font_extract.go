@@ -191,6 +191,135 @@ func validateFontStructure(data []byte, format string) error {
 	return nil
 }
 
+type ParsedFontMetadata struct {
+	Family         string
+	Subfamily      string
+	SourceTypeface string
+	Weight         string
+	Style          string
+}
+
+func decodeUTF16BE(b []byte) string {
+	if len(b)%2 != 0 {
+		b = b[:len(b)-1]
+	}
+	u16 := make([]uint16, len(b)/2)
+	for i := range u16 {
+		u16[i] = binary.BigEndian.Uint16(b[i*2 : i*2+2])
+	}
+	var runes []rune
+	for _, r := range u16 {
+		runes = append(runes, rune(r))
+	}
+	return string(runes)
+}
+
+// ParseSFNTMetadata reads the standard OpenType/TrueType 'name' table and extracts
+// family, subfamily, and full font metadata.
+func ParseSFNTMetadata(data []byte) (*ParsedFontMetadata, error) {
+	if len(data) < 12 {
+		return nil, fmt.Errorf("font data too short")
+	}
+	numTables := int(binary.BigEndian.Uint16(data[4:6]))
+	if numTables == 0 || 12+numTables*16 > len(data) {
+		return nil, fmt.Errorf("invalid table count")
+	}
+
+	var nameOffset, nameLength uint32
+	var foundName bool
+
+	for i := 0; i < numTables; i++ {
+		recOffset := 12 + i*16
+		tag := string(data[recOffset : recOffset+4])
+		if tag == "name" {
+			nameOffset = binary.BigEndian.Uint32(data[recOffset+8 : recOffset+12])
+			nameLength = binary.BigEndian.Uint32(data[recOffset+12 : recOffset+16])
+			foundName = true
+			break
+		}
+	}
+
+	if !foundName || uint64(nameOffset)+uint64(nameLength) > uint64(len(data)) {
+		return nil, fmt.Errorf("missing or invalid 'name' table")
+	}
+
+	nameData := data[nameOffset : nameOffset+nameLength]
+	if len(nameData) < 6 {
+		return nil, fmt.Errorf("name table too short")
+	}
+
+	count := int(binary.BigEndian.Uint16(nameData[2:4]))
+	stringOffset := binary.BigEndian.Uint16(nameData[4:6])
+	if 6+count*12 > len(nameData) {
+		return nil, fmt.Errorf("name record directory exceeds table size")
+	}
+
+	names := make(map[uint16]string)
+
+	for i := 0; i < count; i++ {
+		recOff := 6 + i*12
+		platformID := binary.BigEndian.Uint16(nameData[recOff : recOff+2])
+		encodingID := binary.BigEndian.Uint16(nameData[recOff+2 : recOff+4])
+		nameID := binary.BigEndian.Uint16(nameData[recOff+6 : recOff+8])
+		length := binary.BigEndian.Uint16(nameData[recOff+8 : recOff+10])
+		offset := binary.BigEndian.Uint16(nameData[recOff+10 : recOff+12])
+
+		strStart := int(stringOffset) + int(offset)
+		strEnd := strStart + int(length)
+		if strStart < 0 || strEnd > len(nameData) {
+			continue
+		}
+
+		rawBytes := nameData[strStart:strEnd]
+		var val string
+		if platformID == 0 || (platformID == 3 && (encodingID == 1 || encodingID == 10)) {
+			val = decodeUTF16BE(rawBytes)
+		} else {
+			val = string(rawBytes)
+		}
+		val = strings.TrimSpace(val)
+		if val != "" {
+			if platformID == 3 || platformID == 0 || names[nameID] == "" {
+				names[nameID] = val
+			}
+		}
+	}
+
+	family := names[16]
+	if family == "" {
+		family = names[1]
+	}
+	subfamily := names[17]
+	if subfamily == "" {
+		subfamily = names[2]
+	}
+	fullName := names[4]
+	if fullName == "" {
+		if subfamily != "" {
+			fullName = family + " " + subfamily
+		} else {
+			fullName = family
+		}
+	}
+
+	if family == "" {
+		return nil, fmt.Errorf("could not extract font family from name table")
+	}
+
+	normFamily, weight, style, _ := NormalizeTypeface(fullName, "", "")
+	if normFamily == "" {
+		normFamily = family
+	}
+
+	return &ParsedFontMetadata{
+		Family:         normFamily,
+		Subfamily:      subfamily,
+		SourceTypeface: fullName,
+		Weight:         weight,
+		Style:          style,
+	}, nil
+}
+
 // ExtractEmbeddedFonts scans presentation.xml for <p:embeddedFontLst> and extracts font faces.
 func (pr *PackageReader) ExtractEmbeddedFonts(pres *XMLPresentation, presRels map[string]XMLRelationship) ([]*ExtractedFont, []string) {
 	var extracted []*ExtractedFont

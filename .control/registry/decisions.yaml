@@ -801,7 +801,33 @@ decisions:
       - src/components/admin/ArtifactEditor.tsx
       - src/lib/pptx-draw.ts
       - tests/smoke-spec-32.test.mjs
-
+  - id: DEC-035
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-15)"
+    title: Autopilot mandate for PPTX Typography Fidelity, Font Safety Parity, and Missing Font Acquisition (SPEC-33)
+    file: .control/decisions/DEC-035-autopilot-mandate-pptx-typography-fidelity-and-font-acquisition.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-22'
+    touches:
+      - .control/memlog/autopilot-DEC-035.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-33-pptx-typography-fidelity-and-font-acquisition/SPEC.md
+      - internal/httpapi
+      - internal/pptximport
+      - internal/plan
+      - src/lib/registry/font-catalog.ts
+      - src/lib/registry/canvas-utils.ts
+      - src/components/admin/ArtifactEditor.tsx
+      - src/components/artifacts/ArtifactSlide.tsx
+      - src/lib/fonts/embed-fonts.ts
+      - src/lib/pptx-draw.ts
 
 
 

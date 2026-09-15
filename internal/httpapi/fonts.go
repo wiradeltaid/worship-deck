@@ -2,13 +2,19 @@ package httpapi
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/wiradigitalid/worship-presenter-web/internal/pptximport"
 )
 
 var fontIDRegex = regexp.MustCompile(`(?i)^[a-f0-9]{8,64}(\.(ttf|otf|woff2?))?$`)
@@ -138,3 +144,127 @@ func (s *Server) getFontManifest(ctx context.Context) ([]FontManifestEntry, erro
 	return manifest, nil
 }
 
+const maxFontUploadSizeBytes = 16 * 1024 * 1024 // 16 MiB (SPEC-33-03)
+
+func (s *Server) uploadFont(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxFontUploadSizeBytes)
+	if err := r.ParseMultipartForm(maxFontUploadSizeBytes); err != nil {
+		writeError(w, http.StatusBadRequest, "File exceeds maximum size of 16 MiB or malformed form")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Missing required 'file' in multipart form")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if ext != ".ttf" && ext != ".otf" {
+		writeError(w, http.StatusBadRequest, "Only .ttf and .otf font files are supported")
+		return
+	}
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Failed to read font upload data")
+		return
+	}
+
+	normalizedData, format, err := pptximport.ValidateAndDeobfuscateFont(data, header.Filename)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid font file: %v", err))
+		return
+	}
+
+	// Determine family, weight, style using SFNT name table metadata where available
+	meta, metaErr := pptximport.ParseSFNTMetadata(normalizedData)
+
+	reqFamily := strings.TrimSpace(r.FormValue("family"))
+	reqWeight := strings.TrimSpace(r.FormValue("weight"))
+	reqStyle := strings.TrimSpace(r.FormValue("style"))
+
+	rawBaseName := strings.TrimSuffix(filepath.Base(header.Filename), filepath.Ext(header.Filename))
+	normalizedFamily, parsedWeight, parsedStyle, _ := pptximport.NormalizeTypeface(rawBaseName, "", "")
+
+	var family, weight, style, sourceTypeface string
+	if metaErr == nil && meta != nil && meta.Family != "" {
+		family = meta.Family
+		weight = meta.Weight
+		style = meta.Style
+		sourceTypeface = meta.SourceTypeface
+	} else {
+		family = normalizedFamily
+		weight = parsedWeight
+		style = parsedStyle
+		sourceTypeface = rawBaseName
+	}
+
+	if reqFamily != "" {
+		family = reqFamily
+		sourceTypeface = reqFamily
+	}
+	if reqWeight != "" {
+		weight = reqWeight
+	}
+	if reqStyle != "" {
+		style = reqStyle
+	}
+
+	hash := sha256.Sum256(normalizedData)
+	contentHash := hex.EncodeToString(hash[:])
+	fontID := contentHash[:16]
+	assetFilename := fmt.Sprintf("%s.%s", fontID, format)
+
+	// Check if already present in font_faces
+	var existing FontFaceResponse
+	err = s.DB.QueryRowContext(r.Context(), `
+		SELECT id, family, source_typeface, weight, style, format
+		FROM font_faces WHERE content_hash = ?
+	`, contentHash).Scan(&existing.ID, &existing.Family, &existing.SourceTypeface, &existing.Weight, &existing.Style, &existing.Format)
+	if err == nil {
+		existing.URL = "/api/fonts/" + existing.ID
+		writeJSON(w, http.StatusOK, existing)
+		return
+	}
+
+	destFontsDir := filepath.Join(uploadsDir(), "fonts")
+	if err := os.MkdirAll(destFontsDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to access font storage directory")
+		return
+	}
+
+	fullPath := filepath.Join(destFontsDir, assetFilename)
+	tmpPath := fullPath + ".tmp"
+	if err := testHookWriteFile(tmpPath, normalizedData, 0o644); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to save font file")
+		return
+	}
+	if err := os.Rename(tmpPath, fullPath); err != nil {
+		_ = os.Remove(tmpPath)
+		writeError(w, http.StatusInternalServerError, "Failed to commit font file")
+		return
+	}
+
+	_, err = s.DB.ExecContext(r.Context(), `
+		INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, fontID, family, sourceTypeface, weight, style, format, assetFilename, contentHash)
+	if err != nil {
+		_ = os.Remove(fullPath)
+		writeError(w, http.StatusInternalServerError, "Failed to record font face in database")
+		return
+	}
+
+	resp := FontFaceResponse{
+		ID:             fontID,
+		Family:         family,
+		SourceTypeface: sourceTypeface,
+		Weight:         weight,
+		Style:          style,
+		Format:         format,
+		URL:            "/api/fonts/" + fontID,
+	}
+	writeJSON(w, http.StatusCreated, resp)
+}

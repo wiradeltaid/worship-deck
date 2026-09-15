@@ -78,6 +78,7 @@ export type TextStyle = {
   textShadowBlur?: number;
   letterSpacing?: number;
   pptxTypeface?: string;
+  fontStatus?: 'system' | 'catalog' | 'embedded' | 'uploaded' | 'unresolved';
 };
 
 export type ImageStyle = {

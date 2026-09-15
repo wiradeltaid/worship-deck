@@ -53,7 +53,7 @@ var (
 		"fontFamily": {}, "fontSize": {}, "fontColor": {}, "fontWeight": {}, "fontStyle": {}, "textDecoration": {},
 		"textAlign": {}, "verticalAlign": {}, "objectFit": {}, "fillColor": {}, "opacity": {},
 		"lineHeight": {}, "textShadow": {}, "textShadowBlur": {},
-		"letterSpacing": {}, "pptxTypeface": {},
+		"letterSpacing": {}, "pptxTypeface": {}, "fontStatus": {},
 	}
 	entryKeys = map[string]struct{}{"general": {}, "song-set": {}, "song-set-entry": {}, "ann-set-marker": {}, "announcement": {}}
 )
@@ -203,6 +203,13 @@ func parseStyle(raw any, label string) (map[string]any, error) {
 			return nil, failf("%s.pptxTypeface is invalid", label)
 		}
 		style["pptxTypeface"] = s
+	}
+	if v, ok := obj["fontStatus"]; ok {
+		s, _ := v.(string)
+		if s != "system" && s != "catalog" && s != "embedded" && s != "uploaded" && s != "unresolved" {
+			return nil, failf("%s.fontStatus is invalid", label)
+		}
+		style["fontStatus"] = s
 	}
 	if v, ok := obj["textDecoration"]; ok {
 		s, _ := v.(string)

@@ -388,5 +388,6 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		"templates":     createdSummaries,
 		"firstTemplate": firstTemplate,
 		"importedFonts": len(stagedFonts),
+		"warnings":      parseResult.Warnings,
 	})
 }

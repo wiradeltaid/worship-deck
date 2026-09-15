@@ -1,6 +1,6 @@
 # SPEC-33 — PPTX Typography Fidelity, Font Safety Parity, and Missing Font Acquisition
 
-> **Status:** Draft / Open — refined with reviewer feedback from Terra (gpt-5.6-terra).
+> **Status:** Closed — implemented, dual-reviewed, and verified under DEC-035.
 > **Review:** 2026-09-15 · baseline `5f130ca` · lenses: structure, prose, edge-case-hunter.
 > **Component:** hub, registry, pptx (`internal/pptximport`, `internal/httpapi`, `internal/plan`, `src/lib/registry/font-catalog.ts`, `src/lib/registry/canvas-utils.ts`, `src/components/artifacts/ArtifactSlide.tsx`, `src/components/admin/ArtifactEditor.tsx`, `src/lib/fonts/embed-fonts.ts`, `src/lib/pptx-draw.ts`)
 > **Touches:** artifacts, admin, pptx, api, uploads
