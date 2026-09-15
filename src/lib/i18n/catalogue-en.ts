@@ -345,6 +345,14 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.artifacts.placeholder.youth_name': 'Youth name',
   'admin.artifacts.placeholder.family_photo': 'Family photo',
   'admin.artifacts.placeholder.youth_photo': 'Youth photo',
+  'admin.artifacts.selectedCount': '{count} selected',
+  'admin.artifacts.deselect': 'Deselect',
+  'admin.artifacts.confirmDeleteBulk': 'Delete {count} selected slides?',
+  'admin.artifacts.confirmDeleteBulkDirty':
+    'Delete {count} selected slides? Unsaved changes on the active slide will be discarded.',
+  'admin.artifacts.deletedBulk': 'Deleted {count} slides',
+  'admin.artifacts.deletedBulkPartial':
+    'Deleted {deleted} of {total} slides due to a conflict or missing item',
   'admin.artifacts.deleteSelected': 'Delete selected',
   'admin.artifacts.duplicateSelected': 'Duplicate / Copy',
   'admin.artifacts.copySlide': 'Copy slide',
