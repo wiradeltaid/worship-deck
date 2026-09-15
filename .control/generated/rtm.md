@@ -170,6 +170,21 @@ rtm:
   FR: FR-13
   DEC: []
   UC: UC-6
+  ticket: SPEC-35-02
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-13
+  DEC: []
+  UC: UC-6
   ticket: W8-04
   spec: W8
   release: hub-service-ops
@@ -1631,6 +1646,53 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-35-01
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - src/lib/artifacts/render-model.ts
+  - src/lib/pptx-draw.ts
+  - tests/artifact-render-model.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-35-02
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-35-03
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-32.test.mjs
+  - tests/smoke-spec-35.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3460,6 +3522,53 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-35-01
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - src/lib/artifacts/render-model.ts
+  - src/lib/pptx-draw.ts
+  - tests/artifact-render-model.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-35-02
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - internal/pptximport
+  - tests/smoke-spec-31.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-35-03
+  spec: SPEC-35
+  release: pptx-modern-widescreen-parity
+  test:
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-32.test.mjs
+  - tests/smoke-spec-35.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

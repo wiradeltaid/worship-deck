@@ -850,6 +850,33 @@ decisions:
       - src/components/admin/ArtifactEditor.tsx
       - tests/slide-selection.test.mjs
       - tests/smoke-spec-34.test.mjs
+  - id: DEC-037
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-15)"
+    title: Autopilot mandate for PPTX Modern 16:9 Widescreen Parity (SPEC-35)
+    file: .control/decisions/DEC-037-autopilot-mandate-pptx-modern-widescreen-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-22'
+    touches:
+      - .control/memlog/autopilot-DEC-037.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-35-pptx-modern-widescreen-parity/SPEC.md
+      - src/lib/artifacts/render-model.ts
+      - src/lib/pptx-draw.ts
+      - internal/pptximport
+      - tests/artifact-render-model.test.mjs
+      - tests/smoke-spec-31.test.mjs
+      - tests/smoke-spec-32.test.mjs
+      - tests/smoke-spec-35.test.mjs
+      - package.json
+
 
 
 
