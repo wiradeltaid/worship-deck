@@ -1619,6 +1619,54 @@ waves:
         tests:
           - tests/smoke-spec-32.test.mjs
 
+  - id: SPEC-33
+    status: open
+    release: pptx-typography-fidelity-and-font-acquisition
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-32]
+    spec_folder: .scratch/SPEC-33-pptx-typography-fidelity-and-font-acquisition/
+    spec_reviewed:
+      date: '2026-09-15'
+      sha: '5f130ca'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-33-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, pptx]
+        tests:
+          - src/lib/registry/font-catalog.ts
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/artifact-font-catalog.test.mjs
+      - id: "SPEC-33-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-33-01"]
+        touches: [artifacts, pptx]
+        tests:
+          - src/lib/registry/canvas-utils.ts
+          - tests/smoke-spec-33.test.mjs
+      - id: "SPEC-33-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-33-02"]
+        touches: [artifacts, api, uploads]
+        tests:
+          - internal/httpapi
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/smoke-spec-33.test.mjs
+      - id: "SPEC-33-04"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-33-03"]
+        touches: [artifacts, pptx, uploads]
+        tests:
+          - tests/smoke-spec-33.test.mjs
+          - tests/public-repo-guard.test.mjs
+
 
 
 
