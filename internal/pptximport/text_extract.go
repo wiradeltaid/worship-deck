@@ -15,15 +15,16 @@ const (
 	DefaultLineHeight = 1.2
 )
 
-// PxToPt is 405 / 540 = 0.75
-const PxToPt = 0.75
-
-// DrawingML sz hundredths of a point to CSS Px: (sz / 100) / PxToPt
-func DrawingMLSzToPx(sz int) float64 {
+// DrawingML sz hundredths of a point to CSS Px: (sz / 100) / pxToPt
+func DrawingMLSzToPx(sz int, pxToPt float64) float64 {
 	if sz <= 0 {
 		return DefaultFontSizePx
 	}
-	px := (float64(sz) / 100.0) / PxToPt
+	scale := pxToPt
+	if math.IsNaN(scale) || math.IsInf(scale, 0) || scale <= 0 {
+		scale = 1.0
+	}
+	px := (float64(sz) / 100.0) / scale
 	return math.Round(px*10000.0) / 10000.0
 }
 
@@ -56,6 +57,7 @@ func extractElementFromNode(
 	slideWidthEMU, slideHeightEMU int64,
 	elementIdx int,
 	pr *PackageReader,
+	pxToPt float64,
 ) (ParsedElement, bool, []string) {
 	var warnings []string
 
@@ -82,7 +84,7 @@ func extractElementFromNode(
 			}
 
 			elID := fmt.Sprintf("el-text-%d", elementIdx)
-			style, styleWarnings := extractTextStyleWithWarnings(node.Shape.TxBody, elID)
+			style, styleWarnings := extractTextStyleWithWarnings(node.Shape.TxBody, elID, pxToPt)
 			warnings = append(warnings, styleWarnings...)
 
 			el := ParsedElement{
@@ -188,8 +190,8 @@ func extractElementFromNode(
 	return ParsedElement{}, false, warnings
 }
 
-func extractTextStyle(txBody *XMLTextBody) map[string]any {
-	style, _ := extractTextStyleWithWarnings(txBody, "")
+func extractTextStyle(txBody *XMLTextBody, pxToPt float64) map[string]any {
+	style, _ := extractTextStyleWithWarnings(txBody, "", pxToPt)
 	return style
 }
 
@@ -231,7 +233,7 @@ func resolveEffectiveRunProperties(rPr *XMLRunProperties, defRPr *XMLRunProperti
 	return merged
 }
 
-func extractTextStyleWithWarnings(txBody *XMLTextBody, elID string) (map[string]any, []string) {
+func extractTextStyleWithWarnings(txBody *XMLTextBody, elID string, pxToPt float64) (map[string]any, []string) {
 	style := map[string]any{
 		"fontFamily":     DefaultFontFamily,
 		"fontSize":       DefaultFontSizePx,
@@ -295,7 +297,7 @@ func extractTextStyleWithWarnings(txBody *XMLTextBody, elID string) (map[string]
 	// Apply formatting from the effective run properties source
 	if effectiveRPr != nil {
 		if effectiveRPr.Sz > 0 {
-			style["fontSize"] = DrawingMLSzToPx(effectiveRPr.Sz)
+			style["fontSize"] = DrawingMLSzToPx(effectiveRPr.Sz, pxToPt)
 		}
 		if effectiveRPr.SolidFill != nil && effectiveRPr.SolidFill.SrgbClr != nil && hexColorRegex.MatchString(effectiveRPr.SolidFill.SrgbClr.Val) {
 			style["fontColor"] = "#" + strings.ToUpper(effectiveRPr.SolidFill.SrgbClr.Val)
@@ -316,7 +318,7 @@ func extractTextStyleWithWarnings(txBody *XMLTextBody, elID string) (map[string]
 			style["textDecoration"] = "underline"
 		}
 		if effectiveRPr.Spc != nil {
-			style["letterSpacing"] = DrawingMLSpcToPx(*effectiveRPr.Spc)
+			style["letterSpacing"] = DrawingMLSpcToPx(*effectiveRPr.Spc, pxToPt)
 		}
 	}
 

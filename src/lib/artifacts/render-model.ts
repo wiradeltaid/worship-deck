@@ -597,12 +597,16 @@ export type TextFitMeasurement = {
   fontSizePx: number;
 };
 
-/** pptxgenjs `LAYOUT_16x9` measures 10in x 5.625in (= 720pt x 405pt). */
-export const PPTX_SLIDE_WIDTH_IN = 10;
-export const PPTX_SLIDE_HEIGHT_IN = 5.625;
-const PPTX_SLIDE_HEIGHT_PT = 405;
+/**
+ * Modern PowerPoint 16:9 widescreen layout measures 13.333in x 7.5in (= 960pt x 540pt / 12,192,000 x 6,858,000 EMU).
+ * PptxGenJS provides this layout as LAYOUT_WIDE.
+ * PPTX_SLIDE_WIDTH_IN is the exact expression 960 / 72, not the rounded literal 13.3333.
+ */
+export const PPTX_SLIDE_WIDTH_IN = 960 / 72;
+export const PPTX_SLIDE_HEIGHT_IN = 540 / 72;
+const PPTX_SLIDE_HEIGHT_PT = 540;
 
-/** 405pt of slide height over 540px of reference canvas height (= 0.75). */
+/** 540pt of slide height over 540px of reference canvas height (= 1.0). Numeric conversion parity. */
 export const PX_TO_PT = PPTX_SLIDE_HEIGHT_PT / REFERENCE_CANVAS.height;
 
 /** Used whenever an element carries no explicit `style.fontSize`. */

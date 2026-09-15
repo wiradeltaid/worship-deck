@@ -84,8 +84,8 @@ var syntheticPNG = []byte{
 }
 
 func TestDrawingMLSzToPxParity(t *testing.T) {
-	// Formula: (sz / 100) / 0.75
-	testCases := []struct {
+	// Legacy formula with pxToPt = 0.75: (sz / 100) / 0.75
+	testCasesLegacy := []struct {
 		sz       int
 		expected float64
 	}{
@@ -96,11 +96,128 @@ func TestDrawingMLSzToPxParity(t *testing.T) {
 		{3600, 48.0},
 	}
 
-	for _, tc := range testCases {
-		got := DrawingMLSzToPx(tc.sz)
+	for _, tc := range testCasesLegacy {
+		got := DrawingMLSzToPx(tc.sz, 0.75)
 		if math.Abs(got-tc.expected) > 0.001 {
-			t.Errorf("DrawingMLSzToPx(%d) = %v, want %v", tc.sz, got, tc.expected)
+			t.Errorf("DrawingMLSzToPx(%d, 0.75) = %v, want %v", tc.sz, got, tc.expected)
 		}
+	}
+
+	// Modern formula with pxToPt = 1.0: (sz / 100) / 1.0 (1:1 numeric parity)
+	testCasesModern := []struct {
+		sz       int
+		expected float64
+	}{
+		{4000, 40.0},
+		{2400, 24.0},
+		{1800, 18.0},
+		{1200, 12.0},
+		{3600, 36.0},
+	}
+
+	for _, tc := range testCasesModern {
+		got := DrawingMLSzToPx(tc.sz, 1.0)
+		if math.Abs(got-tc.expected) > 0.001 {
+			t.Errorf("DrawingMLSzToPx(%d, 1.0) = %v, want %v", tc.sz, got, tc.expected)
+		}
+	}
+
+	// Defensive fallback for <= 0 scale
+	if got := DrawingMLSzToPx(1200, 0); got != 12.0 {
+		t.Errorf("DrawingMLSzToPx(1200, 0 fallback) = %v, want 12.0", got)
+	}
+}
+
+func TestDynamicSlideDimensionsAndTypographyScaling(t *testing.T) {
+	// Slide XML with a text run having sz="1200" (12pt) and spc="150" (1.5pt tracking)
+	slideXmlWithText := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:grpSpPr/></p:nvGrpSpPr>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="Title"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="5000000" cy="2000000"/></a:xfrm>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:p>
+            <a:r>
+              <a:rPr sz="1200" spc="150"/>
+              <a:t>Widescreen Parity Test</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+</p:sld>`
+
+	// 1. Modern 16:9: 12192000 x 6858000 EMU (540 pt height -> pxToPt = 1.0)
+	modernPptx := createTestPptx(t, 12192000, 6858000, map[string]string{
+		"ppt/slides/slide1.xml": slideXmlWithText,
+	}, nil)
+
+	resModern, err := ParsePresentation(bytes.NewReader(modernPptx), int64(len(modernPptx)))
+	if err != nil {
+		t.Fatalf("ParsePresentation failed for modern 16:9: %v", err)
+	}
+	if len(resModern.Slides) != 1 || len(resModern.Slides[0].Elements) != 1 {
+		t.Fatalf("expected 1 element in modern slide, got %v", resModern.Slides[0].Elements)
+	}
+	elModern := resModern.Slides[0].Elements[0]
+	if elModern.Style["fontSize"] != 12.0 {
+		t.Errorf("modern 16:9 font size: got %v, want 12.0", elModern.Style["fontSize"])
+	}
+	if elModern.Style["letterSpacing"] != 1.5 {
+		t.Errorf("modern 16:9 letter spacing: got %v, want 1.5", elModern.Style["letterSpacing"])
+	}
+
+	// 2. Legacy 16:9: 9144000 x 5143500 EMU (405 pt height -> pxToPt = 0.75)
+	legacyPptx := createTestPptx(t, 9144000, 5143500, map[string]string{
+		"ppt/slides/slide1.xml": slideXmlWithText,
+	}, nil)
+
+	resLegacy, err := ParsePresentation(bytes.NewReader(legacyPptx), int64(len(legacyPptx)))
+	if err != nil {
+		t.Fatalf("ParsePresentation failed for legacy 16:9: %v", err)
+	}
+	if len(resLegacy.Slides) != 1 || len(resLegacy.Slides[0].Elements) != 1 {
+		t.Fatalf("expected 1 element in legacy slide, got %v", resLegacy.Slides[0].Elements)
+	}
+	elLegacy := resLegacy.Slides[0].Elements[0]
+	if elLegacy.Style["fontSize"] != 16.0 {
+		t.Errorf("legacy 16:9 font size: got %v, want 16.0", elLegacy.Style["fontSize"])
+	}
+	if elLegacy.Style["letterSpacing"] != 2.0 {
+		t.Errorf("legacy 16:9 letter spacing: got %v, want 2.0", elLegacy.Style["letterSpacing"])
+	}
+
+	// 3. Dynamic non-standard 16:9: 24384000 x 13716000 EMU (1080 pt height -> pxToPt = 2.0)
+	doublePptx := createTestPptx(t, 24384000, 13716000, map[string]string{
+		"ppt/slides/slide1.xml": slideXmlWithText,
+	}, nil)
+
+	resDouble, err := ParsePresentation(bytes.NewReader(doublePptx), int64(len(doublePptx)))
+	if err != nil {
+		t.Fatalf("ParsePresentation failed for 1080pt 16:9: %v", err)
+	}
+	elDouble := resDouble.Slides[0].Elements[0]
+	if elDouble.Style["fontSize"] != 6.0 {
+		t.Errorf("1080pt 16:9 font size: got %v, want 6.0", elDouble.Style["fontSize"])
+	}
+	if elDouble.Style["letterSpacing"] != 0.75 {
+		t.Errorf("1080pt 16:9 letter spacing: got %v, want 0.75", elDouble.Style["letterSpacing"])
+	}
+
+	// 4. Zero or missing dimensions must be rejected
+	zeroCY := createTestPptx(t, 12192000, 0, map[string]string{
+		"ppt/slides/slide1.xml": slideXmlWithText,
+	}, nil)
+	_, err = ParsePresentation(bytes.NewReader(zeroCY), int64(len(zeroCY)))
+	if err == nil || !strings.Contains(err.Error(), "invalid slide dimensions") {
+		t.Errorf("expected invalid slide dimensions error for cy=0, got %v", err)
 	}
 }
 

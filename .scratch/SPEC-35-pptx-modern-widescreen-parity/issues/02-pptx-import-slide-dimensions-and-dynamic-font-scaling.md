@@ -1,6 +1,6 @@
 # SPEC-35-02 — Validated Dynamic PPTX Import Scale and 1:1 Modern Typography Ingestion
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-35-01
 
 ## What to build

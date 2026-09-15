@@ -225,6 +225,9 @@ func ParsePresentation(r io.ReaderAt, size int64) (*PresentationParseResult, err
 		return nil, fmt.Errorf("%w: aspect ratio %.4f vs expected 16:9 (1.7778)", ErrNot16x9, aspectRatio)
 	}
 
+	slideHeightPt := float64(cy) / 12700.0 // 1 pt = 12,700 EMU
+	pxToPt := slideHeightPt / 540.0        // reference Canvas height (540px)
+
 	presRels, err := pr.ReadRelationships(presPath)
 	if err != nil {
 		return nil, err
@@ -271,7 +274,7 @@ func ParsePresentation(r io.ReaderAt, size int64) (*PresentationParseResult, err
 		if err != nil {
 			return nil, fmt.Errorf("invalid slide relationship for slide %d: %w", i+1, err)
 		}
-		slide, err := parseSlide(pr, slidePartPath, i+1, cx, cy)
+		slide, err := parseSlide(pr, slidePartPath, i+1, cx, cy, pxToPt)
 		if err != nil {
 			return nil, fmt.Errorf("error processing slide %d (%s): %w", i+1, slidePartPath, err)
 		}

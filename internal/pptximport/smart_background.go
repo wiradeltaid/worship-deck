@@ -80,7 +80,7 @@ func parseShapeTreeSequentially(decoder *xml.Decoder) ([]RawShapeNode, []string,
 	return nodes, warnings, nil
 }
 
-func parseSlide(pr *PackageReader, slidePartPath string, slideNum int, slideWidthEMU, slideHeightEMU int64) (*ParsedSlide, error) {
+func parseSlide(pr *PackageReader, slidePartPath string, slideNum int, slideWidthEMU, slideHeightEMU int64, pxToPt float64) (*ParsedSlide, error) {
 	slideBytes, err := pr.ReadEntry(slidePartPath)
 	if err != nil {
 		return nil, err
@@ -235,7 +235,7 @@ func parseSlide(pr *PackageReader, slidePartPath string, slideNum int, slideWidt
 			continue // Skip detected background image shape
 		}
 
-		el, ok, elWarnings := extractElementFromNode(node, slideRels, slidePartPath, slideWidthEMU, slideHeightEMU, elementIdx, pr)
+		el, ok, elWarnings := extractElementFromNode(node, slideRels, slidePartPath, slideWidthEMU, slideHeightEMU, elementIdx, pr, pxToPt)
 		parsed.Warnings = append(parsed.Warnings, elWarnings...)
 		if ok {
 			parsed.Elements = append(parsed.Elements, el)

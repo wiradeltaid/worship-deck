@@ -49,7 +49,9 @@ func TestTypographyNormalizationExactPrecedence(t *testing.T) {
 }
 
 func TestCharacterSpacingExtraction(t *testing.T) {
-	// spc = 150 -> 2.0px, spc = -75 -> -1.0px, spc = 0 -> 0.0px
+	// spc = 150 -> 2.0px (legacy 0.75), 1.5px (modern 1.0)
+	// spc = -75 -> -1.0px (legacy 0.75), -0.75px (modern 1.0)
+	// spc = 0 -> 0.0px
 	val150 := 150
 	valNeg75 := -75
 	val0 := 0
@@ -59,15 +61,30 @@ func TestCharacterSpacingExtraction(t *testing.T) {
 	r3 := XMLRunProperties{Spc: &val0}
 	r4 := XMLRunProperties{Spc: nil}
 
-	if got := DrawingMLSpcToPx(*r1.Spc); got != 2.0 {
-		t.Errorf("spc=150: got %f, want 2.0", got)
+	// Legacy 405 pt scale (0.75)
+	if got := DrawingMLSpcToPx(*r1.Spc, 0.75); got != 2.0 {
+		t.Errorf("spc=150 (scale 0.75): got %f, want 2.0", got)
 	}
-	if got := DrawingMLSpcToPx(*r2.Spc); got != -1.0 {
-		t.Errorf("spc=-75: got %f, want -1.0", got)
+	if got := DrawingMLSpcToPx(*r2.Spc, 0.75); got != -1.0 {
+		t.Errorf("spc=-75 (scale 0.75): got %f, want -1.0", got)
 	}
-	if got := DrawingMLSpcToPx(*r3.Spc); got != 0.0 {
-		t.Errorf("spc=0: got %f, want 0.0", got)
+	if got := DrawingMLSpcToPx(*r3.Spc, 0.75); got != 0.0 {
+		t.Errorf("spc=0 (scale 0.75): got %f, want 0.0", got)
 	}
+
+	// Modern 540 pt scale (1.0)
+	if got := DrawingMLSpcToPx(*r1.Spc, 1.0); got != 1.5 {
+		t.Errorf("spc=150 (scale 1.0): got %f, want 1.5", got)
+	}
+	if got := DrawingMLSpcToPx(*r2.Spc, 1.0); got != -0.75 {
+		t.Errorf("spc=-75 (scale 1.0): got %f, want -0.75", got)
+	}
+
+	// Defensive fallback with <= 0 scale
+	if got := DrawingMLSpcToPx(*r1.Spc, 0); got != 1.5 {
+		t.Errorf("spc=150 (scale 0 fallback): got %f, want 1.5", got)
+	}
+
 	if r4.Spc != nil {
 		t.Errorf("r4.Spc should be nil")
 	}
@@ -97,7 +114,7 @@ func TestMixedRunTypographyWarning(t *testing.T) {
 		},
 	}
 
-	style, warnings := extractTextStyleWithWarnings(txBody, "el-test-1")
+	style, warnings := extractTextStyleWithWarnings(txBody, "el-test-1", 1.0)
 	if style["fontFamily"] != "Montserrat" {
 		t.Errorf("expected family Montserrat, got %v", style["fontFamily"])
 	}
