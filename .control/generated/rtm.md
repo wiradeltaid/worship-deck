@@ -1721,7 +1721,7 @@ rtm:
   - internal/httpapi
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3644,7 +3644,7 @@ rtm:
   - internal/httpapi
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

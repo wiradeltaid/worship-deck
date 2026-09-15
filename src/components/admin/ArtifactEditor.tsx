@@ -4125,7 +4125,26 @@ export default function ArtifactEditor({
                                           )}
                                           style={{ fontFamily: f.family }}
                                         >
-                                          <span>{f.label}</span>
+                                          <span className="flex items-center gap-1.5 truncate">
+                                            <span>{f.label}</span>
+                                            {f.variants && f.variants.length > 0 ? (
+                                              <span className="flex items-center gap-0.5 shrink-0">
+                                                {f.variants.map((v) => {
+                                                  const label =
+                                                    v === 'boldItalic' ? 'BI' : v === 'bold' ? 'B' : v === 'italic' ? 'I' : 'R';
+                                                  return (
+                                                    <span
+                                                      key={v}
+                                                      className="text-[9px] font-mono px-1 py-0.2 rounded bg-muted/90 text-muted-foreground border border-border/70 select-none"
+                                                      title={`Variant: ${v}`}
+                                                    >
+                                                      {label}
+                                                    </span>
+                                                  );
+                                                })}
+                                              </span>
+                                            ) : null}
+                                          </span>
                                           {!isFontExportReady(f.family) && f.pptxSubstitute ? (
                                             <span
                                               className="text-[10px] text-amber-600 dark:text-amber-400 font-sans ml-2 opacity-80"

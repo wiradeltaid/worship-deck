@@ -192,11 +192,14 @@ func validateFontStructure(data []byte, format string) error {
 }
 
 type ParsedFontMetadata struct {
-	Family         string
-	Subfamily      string
-	SourceTypeface string
-	Weight         string
-	Style          string
+	Family              string
+	Subfamily           string
+	SourceTypeface      string
+	Weight              string
+	Style               string
+	UsWeightClass       uint16
+	FsType              uint16
+	RestrictedEmbedding bool
 }
 
 func decodeUTF16BE(b []byte) string {
@@ -214,12 +217,18 @@ func decodeUTF16BE(b []byte) string {
 	return string(runes)
 }
 
-// ParseSFNTMetadata reads the standard OpenType/TrueType 'name' table and extracts
-// family, subfamily, and full font metadata.
+// ParseSFNTMetadata reads standard OpenType/TrueType 'name' and 'OS/2' tables and extracts
+// family, subfamily, typographic descriptors, and embedding safety flags.
 func ParseSFNTMetadata(data []byte) (*ParsedFontMetadata, error) {
 	if len(data) < 12 {
 		return nil, fmt.Errorf("font data too short")
 	}
+
+	// SPEC-36-02: Reject TTC/OTC font collections
+	if len(data) >= 4 && string(data[:4]) == "ttcf" {
+		return nil, fmt.Errorf("TTC/OTC font collections are not supported; please upload individual .ttf or .otf files")
+	}
+
 	numTables := int(binary.BigEndian.Uint16(data[4:6]))
 	if numTables == 0 || 12+numTables*16 > len(data) {
 		return nil, fmt.Errorf("invalid table count")
@@ -227,20 +236,48 @@ func ParseSFNTMetadata(data []byte) (*ParsedFontMetadata, error) {
 
 	var nameOffset, nameLength uint32
 	var foundName bool
+	var os2Offset, os2Length uint32
+	var foundOS2 bool
 
 	for i := 0; i < numTables; i++ {
 		recOffset := 12 + i*16
 		tag := string(data[recOffset : recOffset+4])
+
+		// SPEC-36-02: Reject variable fonts with variation axes
+		if tag == "fvar" || tag == "gvar" || tag == "CFF2" {
+			return nil, fmt.Errorf("variable fonts with variation axes are not supported; please upload static face instances")
+		}
+
 		if tag == "name" {
 			nameOffset = binary.BigEndian.Uint32(data[recOffset+8 : recOffset+12])
 			nameLength = binary.BigEndian.Uint32(data[recOffset+12 : recOffset+16])
 			foundName = true
-			break
+		} else if tag == "OS/2" {
+			os2Offset = binary.BigEndian.Uint32(data[recOffset+8 : recOffset+12])
+			os2Length = binary.BigEndian.Uint32(data[recOffset+12 : recOffset+16])
+			foundOS2 = true
 		}
 	}
 
 	if !foundName || uint64(nameOffset)+uint64(nameLength) > uint64(len(data)) {
 		return nil, fmt.Errorf("missing or invalid 'name' table")
+	}
+
+	var usWeightClass uint16 = 400
+	var fsType uint16
+	var fsSelection uint16
+	var restrictedEmbedding bool
+
+	if foundOS2 && uint64(os2Offset)+uint64(os2Length) <= uint64(len(data)) && os2Length >= 10 {
+		os2Data := data[os2Offset : os2Offset+os2Length]
+		usWeightClass = binary.BigEndian.Uint16(os2Data[4:6])
+		fsType = binary.BigEndian.Uint16(os2Data[8:10])
+		if (fsType & 0x0002) != 0 {
+			restrictedEmbedding = true
+		}
+		if os2Length >= 64 {
+			fsSelection = binary.BigEndian.Uint16(os2Data[62:64])
+		}
 	}
 
 	nameData := data[nameOffset : nameOffset+nameLength]
@@ -311,12 +348,29 @@ func ParseSFNTMetadata(data []byte) (*ParsedFontMetadata, error) {
 		normFamily = family
 	}
 
+	// SPEC-36-02: If OS/2 table was present, prefer authoritative weight and style
+	if foundOS2 {
+		if usWeightClass >= 600 || (fsSelection&0x20) != 0 {
+			weight = "700"
+		} else {
+			weight = "normal"
+		}
+		if (fsSelection&0x01) != 0 || strings.Contains(strings.ToLower(subfamily), "italic") || strings.Contains(strings.ToLower(subfamily), "oblique") {
+			style = "italic"
+		} else {
+			style = "normal"
+		}
+	}
+
 	return &ParsedFontMetadata{
-		Family:         normFamily,
-		Subfamily:      subfamily,
-		SourceTypeface: fullName,
-		Weight:         weight,
-		Style:          style,
+		Family:              normFamily,
+		Subfamily:           subfamily,
+		SourceTypeface:      fullName,
+		Weight:              weight,
+		Style:               style,
+		UsWeightClass:       usWeightClass,
+		FsType:              fsType,
+		RestrictedEmbedding: restrictedEmbedding,
 	}, nil
 }
 
@@ -414,6 +468,20 @@ func (pr *PackageReader) ExtractEmbeddedFonts(pres *XMLPresentation, presRels ma
 				sourceTypeface = fmt.Sprintf("%s %s", rawTypeface, fe.suffix)
 			}
 
+			meta, metaErr := ParseSFNTMetadata(fontData)
+			isRestricted := metaErr == nil && meta != nil && meta.RestrictedEmbedding
+			if metaErr == nil && meta != nil {
+				if meta.Family != "" && (canonicalFamily == "" || canonicalFamily == rawTypeface) {
+					canonicalFamily = meta.Family
+				}
+				if meta.Weight != "" {
+					fe.weight = meta.Weight
+				}
+				if meta.Style != "" {
+					fe.style = meta.Style
+				}
+			}
+
 			extracted = append(extracted, &ExtractedFont{
 				Family:         canonicalFamily,
 				SourceTypeface: sourceTypeface,
@@ -423,6 +491,7 @@ func (pr *PackageReader) ExtractEmbeddedFonts(pres *XMLPresentation, presRels ma
 				Data:           fontData,
 				ContentHash:    hashHex,
 				PartPath:       fontPartPath,
+				Restricted:     isRestricted,
 			})
 		}
 	}

@@ -1,6 +1,6 @@
 # SPEC-36-02 — Font Family & Variant Association (Regular, Bold, Italic) across Backend, Database, and Browser FontFace
 
-**Status:** open
+**Status:** closed
 **Blocked by:** SPEC-36-01
 
 ## What to build

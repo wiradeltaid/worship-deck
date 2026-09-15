@@ -23,6 +23,7 @@ const {
   FONT_CATEGORY_LABELS,
   registerDynamicFontFace,
   getFontDefinition,
+  resolveFontVariantKey,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'font-catalog.ts')).href
 );
@@ -285,5 +286,153 @@ test('T-36-Absence-Guard 4: Batch apply must strictly protect non-text elements 
   assert.throws(
     () => validateTextOnlyApply(defectWithoutTextGuard),
     /ABSENCE_DEFECT: batch apply does not guard el.type === "text"/
+  );
+});
+
+// --------------------------------------------------------------------------
+// SPEC-36-02: Font Family & Variant Association Tests
+// --------------------------------------------------------------------------
+
+test('T-36-02: resolveFontVariantKey correctly categorizes standard weight and style permutations', () => {
+  assert.equal(resolveFontVariantKey('normal', 'normal'), 'regular');
+  assert.equal(resolveFontVariantKey('400', 'normal'), 'regular');
+  assert.equal(resolveFontVariantKey('700', 'normal'), 'bold');
+  assert.equal(resolveFontVariantKey('bold', 'normal'), 'bold');
+  assert.equal(resolveFontVariantKey('normal', 'italic'), 'italic');
+  assert.equal(resolveFontVariantKey('400', 'italic'), 'italic');
+  assert.equal(resolveFontVariantKey('700', 'italic'), 'boldItalic');
+  assert.equal(resolveFontVariantKey('bold', 'italic'), 'boldItalic');
+});
+
+test('T-36-02: Multiple faces under same family register distinct variants without overwriting each other', async () => {
+  const family = 'Spec36FamilyGroupingTest';
+
+  // 1. Register regular variant
+  await registerDynamicFontFace({
+    id: 'f-reg-1',
+    family,
+    sourceTypeface: `${family}-Regular`,
+    weight: 'normal',
+    style: 'normal',
+    format: 'ttf',
+    url: '/api/fonts/f-reg-1',
+  });
+
+  // 2. Register bold variant
+  await registerDynamicFontFace({
+    id: 'f-bold-2',
+    family,
+    sourceTypeface: `${family}-Bold`,
+    weight: '700',
+    style: 'normal',
+    format: 'ttf',
+    url: '/api/fonts/f-bold-2',
+  });
+
+  // 3. Register italic variant
+  await registerDynamicFontFace({
+    id: 'f-ital-3',
+    family,
+    sourceTypeface: `${family}-Italic`,
+    weight: 'normal',
+    style: 'italic',
+    format: 'ttf',
+    url: '/api/fonts/f-ital-3',
+  });
+
+  const def = getFontDefinition(family);
+  assert.ok(def, 'Family definition must exist in catalog');
+  assert.equal(def.category, 'custom', 'Family must be in custom category');
+  assert.ok(Array.isArray(def.variants), 'def.variants must be an array');
+  assert.ok(def.variants.includes('regular'), 'Must include regular variant');
+  assert.ok(def.variants.includes('bold'), 'Must include bold variant');
+  assert.ok(def.variants.includes('italic'), 'Must include italic variant');
+  assert.equal(def.variants.length, 3, 'Must contain exactly 3 unique variants');
+});
+
+test('T-36-02: ArtifactEditor Popover items render variant badges for custom fonts', () => {
+  // Check that variant badges markup is present in ArtifactEditor popover
+  assert.ok(
+    editorCode.includes('f.variants && f.variants.length > 0'),
+    'ArtifactEditor must inspect f.variants to render badges'
+  );
+  assert.ok(
+    editorCode.includes("v === 'boldItalic' ? 'BI' : v === 'bold' ? 'B' : v === 'italic' ? 'I' : 'R'"),
+    'ArtifactEditor must render standard compact badge labels (R, B, I, BI)'
+  );
+});
+
+test('T-36-02: Replacement of existing face with new URL refreshes active registration', async () => {
+  const family = 'Spec36ReplacementUrlTest';
+  const loadedUrls = [];
+
+  const mockLoader = async (fam, url, descriptors) => {
+    loadedUrls.push(url);
+    return true;
+  };
+
+  // 1. Initial registration
+  const ok1 = await registerDynamicFontFace(
+    {
+      id: 'f-init-1',
+      family,
+      sourceTypeface: `${family}-Regular`,
+      weight: 'normal',
+      style: 'normal',
+      format: 'ttf',
+      url: '/api/fonts/f-init-1',
+    },
+    mockLoader
+  );
+  assert.equal(ok1, true, 'Initial registration must succeed');
+  assert.equal(loadedUrls.length, 1);
+  assert.equal(loadedUrls[0], '/api/fonts/f-init-1');
+
+  // 2. Replacement registration with new URL for same (family, weight, style)
+  const ok2 = await registerDynamicFontFace(
+    {
+      id: 'f-init-2',
+      family,
+      sourceTypeface: `${family}-Regular`,
+      weight: 'normal',
+      style: 'normal',
+      format: 'ttf',
+      url: '/api/fonts/f-init-2',
+    },
+    mockLoader
+  );
+  assert.equal(ok2, true, 'Replacement registration must succeed');
+  assert.equal(loadedUrls.length, 2, 'New URL must be loaded upon replacement');
+  assert.equal(loadedUrls[1], '/api/fonts/f-init-2');
+});
+
+test('T-36-Absence-Guard 5: Go backend checks family, weight, and style case-insensitively (defect injection proof)', () => {
+  const fontsGoPath = path.join(root, 'internal', 'httpapi', 'fonts.go');
+  assert.ok(fs.existsSync(fontsGoPath), 'fonts.go must exist');
+  const fontsGoCode = fs.readFileSync(fontsGoPath, 'utf8');
+
+  function validateUniquenessQuery(code) {
+    const hasConflictQuery = code.includes(
+      'family = ? COLLATE NOCASE AND weight = ? COLLATE NOCASE AND style = ? COLLATE NOCASE'
+    );
+    if (!hasConflictQuery) {
+      throw new Error(
+        'ABSENCE_DEFECT: fonts.go lacks case-insensitive (family, weight, style) conflict query'
+      );
+    }
+    return true;
+  }
+
+  // Real code passes
+  assert.ok(validateUniquenessQuery(fontsGoCode), 'Real Go code must pass uniqueness validation');
+
+  // Defect 5: omitting COLLATE NOCASE on weight or style
+  const defectQuery = fontsGoCode.replace(
+    'family = ? COLLATE NOCASE AND weight = ? COLLATE NOCASE AND style = ? COLLATE NOCASE',
+    'family = ? COLLATE NOCASE AND weight = ? AND style = ?'
+  );
+  assert.throws(
+    () => validateUniquenessQuery(defectQuery),
+    /ABSENCE_DEFECT: fonts\.go lacks case-insensitive \(family, weight, style\) conflict query/
   );
 });

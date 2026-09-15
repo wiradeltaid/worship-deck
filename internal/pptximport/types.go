@@ -43,6 +43,7 @@ type ExtractedFont struct {
 	Data           []byte
 	ContentHash    string // SHA-256 hex string for deduplication
 	PartPath       string // ZIP internal path
+	Restricted     bool
 }
 
 // ExtractedImage represents an image file extracted from the PPTX package.

@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -319,5 +321,137 @@ func TestUploadFontRoute(t *testing.T) {
 
 	if recBadData.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request on corrupted font binary, got %d", recBadData.Code)
+	}
+}
+
+func makeFontMultipartRequest(t *testing.T, filename string, content []byte, fields map[string]string) *http.Request {
+	t.Helper()
+	body := new(bytes.Buffer)
+	mw := multipart.NewWriter(body)
+
+	for k, v := range fields {
+		if err := mw.WriteField(k, v); err != nil {
+			t.Fatalf("failed to write field %s: %v", k, err)
+		}
+	}
+
+	part, err := mw.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatalf("failed to create form file: %v", err)
+	}
+	if _, err := io.Copy(part, bytes.NewReader(content)); err != nil {
+		t.Fatalf("failed to copy content: %v", err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatalf("failed to close multipart writer: %v", err)
+	}
+
+	req := httptest.NewRequest("POST", "/api/admin/fonts", body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	return req
+}
+
+func TestFontVariantAssociationAndConflictRules(t *testing.T) {
+	t.Setenv("AUTH_SECRET", "test-secret-12345678901234567890")
+	srv, adminSess, _ := setupTestServer(t)
+
+	// Valid TTF binary with head table
+	regularTTF := []byte{
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+		'h', 'e', 'a', 'd', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+		0x01, 0x02, 0x03, 0x04,
+	}
+	boldTTF := []byte{
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+		'h', 'e', 'a', 'd', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+		0x05, 0x06, 0x07, 0x08,
+	}
+	replacementRegularTTF := []byte{
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+		'h', 'e', 'a', 'd', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+		0x09, 0x0A, 0x0B, 0x0C,
+	}
+
+	// 1. Upload Regular variant of "TheYoungest"
+	reqReg := makeFontMultipartRequest(t, "TheYoungest-Regular.ttf", regularTTF, nil)
+	reqReg = withSession(reqReg, adminSess)
+	recReg := httptest.NewRecorder()
+	srv.uploadFont(recReg, reqReg)
+	if recReg.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for Regular variant, got %d: %s", recReg.Code, recReg.Body.String())
+	}
+
+	// 2. Upload Bold variant of "TheYoungest"
+	reqBold := makeFontMultipartRequest(t, "TheYoungest-Bold.ttf", boldTTF, nil)
+	reqBold = withSession(reqBold, adminSess)
+	recBold := httptest.NewRecorder()
+	srv.uploadFont(recBold, reqBold)
+	if recBold.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for Bold variant, got %d: %s", recBold.Code, recBold.Body.String())
+	}
+
+	// Verify both exist under the same family in database
+	rows, err := srv.DB.Query("SELECT family, weight, style FROM font_faces WHERE family = 'TheYoungest'")
+	if err != nil {
+		t.Fatalf("database query failed: %v", err)
+	}
+	defer rows.Close()
+	variantCount := 0
+	for rows.Next() {
+		variantCount++
+	}
+	if variantCount != 2 {
+		t.Errorf("expected 2 variants for TheYoungest, got %d", variantCount)
+	}
+
+	// 3. Upload a different binary for existing identity (TheYoungest-Regular.ttf) without replace flag -> 409 Conflict
+	reqConflict := makeFontMultipartRequest(t, "TheYoungest-Regular.ttf", replacementRegularTTF, nil)
+	reqConflict = withSession(reqConflict, adminSess)
+	recConflict := httptest.NewRecorder()
+	srv.uploadFont(recConflict, reqConflict)
+	if recConflict.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict on identity collision with different binary, got %d: %s", recConflict.Code, recConflict.Body.String())
+	}
+
+	// 4. Upload with replace=true -> 200 OK and updates row
+	reqReplace := makeFontMultipartRequest(t, "TheYoungest-Regular.ttf", replacementRegularTTF, map[string]string{"replace": "true"})
+	reqReplace = withSession(reqReplace, adminSess)
+	recReplace := httptest.NewRecorder()
+	srv.uploadFont(recReplace, reqReplace)
+	if recReplace.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK on font replacement, got %d: %s", recReplace.Code, recReplace.Body.String())
+	}
+
+	// 5. Reject TTC collection
+	ttcHeader := []byte{'t', 't', 'c', 'f', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}
+	reqTTC := makeFontMultipartRequest(t, "collection.ttf", ttcHeader, nil)
+	reqTTC = withSession(reqTTC, adminSess)
+	recTTC := httptest.NewRecorder()
+	srv.uploadFont(recTTC, reqTTC)
+	if recTTC.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request on TTC font collection, got %d", recTTC.Code)
+	}
+
+	// 6. Reject Variable font with fvar table
+	varFont := []byte{
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+		'f', 'v', 'a', 'r', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+		0x01, 0x02, 0x03, 0x04,
+	}
+	reqVar := makeFontMultipartRequest(t, "variable.ttf", varFont, nil)
+	reqVar = withSession(reqVar, adminSess)
+	recVar := httptest.NewRecorder()
+	srv.uploadFont(recVar, reqVar)
+	if recVar.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request on variable font, got %d", recVar.Code)
+	}
+
+	// 7. Verify getFontManifest returns all variants
+	manifest, err := srv.getFontManifest(t.Context())
+	if err != nil {
+		t.Fatalf("getFontManifest failed: %v", err)
+	}
+	if len(manifest) < 2 {
+		t.Errorf("expected at least 2 font faces in manifest, got %d", len(manifest))
 	}
 }

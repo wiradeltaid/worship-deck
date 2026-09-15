@@ -11,6 +11,8 @@
 
 export type FontCategory = 'custom' | 'system' | 'sans' | 'serif' | 'display' | 'script';
 
+export type FontVariant = 'regular' | 'bold' | 'italic' | 'boldItalic';
+
 export interface FontDefinition {
   family: string;
   label: string;
@@ -20,6 +22,18 @@ export interface FontDefinition {
   pptxSafe: boolean;
   pptxSubstitute?: string;
   embeddable?: boolean;
+  variants?: FontVariant[];
+}
+
+export function resolveFontVariantKey(weight: string | undefined, style: string | undefined): FontVariant {
+  const w = String(weight ?? '').toLowerCase();
+  const s = String(style ?? '').toLowerCase();
+  const isBold = w === 'bold' || w === '700' || w === '800' || w === '900' || w === '600';
+  const isItalic = s === 'italic' || s === 'oblique';
+  if (isBold && isItalic) return 'boldItalic';
+  if (isBold) return 'bold';
+  if (isItalic) return 'italic';
+  return 'regular';
 }
 
 export const FONT_CATEGORY_LABELS: Record<FontCategory, { en: string; id: string }> = {
@@ -161,6 +175,7 @@ export interface ImportedFontFace {
 }
 
 const registeredFaces = new Set<string>();
+const activeVariantUrls = new Map<string, { url: string; faceObj?: any }>();
 
 export async function registerDynamicFontFace(
   face: ImportedFontFace,
@@ -171,10 +186,12 @@ export async function registerDynamicFontFace(
     weight: face.weight || 'normal',
     style: face.style || 'normal',
   };
-  const key = `${family.toLowerCase()}-${descriptors.weight}-${descriptors.style}-${face.url}`;
+  const identityKey = `${family.toLowerCase()}-${descriptors.weight}-${descriptors.style}`;
+  const key = `${identityKey}-${face.url}`;
   if (registeredFaces.has(key)) return true;
 
   // Hydrate in browser DOM or using injected fontFaceLoader
+  let loadedFontFace: any = undefined;
   if (fontFaceLoader) {
     try {
       const ok = await fontFaceLoader(family, face.url, descriptors);
@@ -185,22 +202,37 @@ export async function registerDynamicFontFace(
     }
   } else if (typeof document !== 'undefined' && 'fonts' in document && typeof FontFace !== 'undefined') {
     try {
-      let alreadyInDocument = false;
+      // SPEC-36-02: If replacing an existing face with a different URL, retire the old FontFace
+      const existing = activeVariantUrls.get(identityKey);
+      if (existing && existing.url !== face.url) {
+        if (existing.faceObj) {
+          try {
+            (document.fonts as any).delete(existing.faceObj);
+          } catch {}
+        }
+        registeredFaces.delete(`${identityKey}-${existing.url}`);
+      }
+
+      // Also clean up any lingering matching face in document.fonts
+      const toRemove: any[] = [];
       for (const f of document.fonts) {
         if (
           f.family.toLowerCase() === family.toLowerCase() &&
           f.weight === descriptors.weight &&
           f.style === descriptors.style
         ) {
-          alreadyInDocument = true;
-          break;
+          toRemove.push(f);
         }
       }
-      if (!alreadyInDocument) {
-        const font = new FontFace(family, `url("${face.url}")`, descriptors);
-        const loaded = await font.load();
-        document.fonts.add(loaded);
+      for (const f of toRemove) {
+        try {
+          (document.fonts as any).delete(f);
+        } catch {}
       }
+
+      const font = new FontFace(family, `url("${face.url}")`, descriptors);
+      loadedFontFace = await font.load();
+      document.fonts.add(loadedFontFace);
     } catch (e) {
       console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
       return false;
@@ -209,6 +241,9 @@ export async function registerDynamicFontFace(
 
   // Only reached if FontFace loading succeeded (or running in headless environment)
   registeredFaces.add(key);
+  activeVariantUrls.set(identityKey, { url: face.url, faceObj: loadedFontFace });
+
+  const variant = resolveFontVariantKey(descriptors.weight, descriptors.style);
 
   const lowerFamily = family.toLowerCase();
   let def = FONT_MAP.get(lowerFamily);
@@ -220,6 +255,7 @@ export async function registerDynamicFontFace(
       fallback: 'sans-serif',
       pptxSafe: true, // Self-contained embedded font
       embeddable: true,
+      variants: [variant],
     };
     FONT_CATALOG.unshift(def);
     FONT_MAP.set(lowerFamily, def);
@@ -228,6 +264,11 @@ export async function registerDynamicFontFace(
     def.category = 'custom';
     def.embeddable = true;
     def.pptxSafe = true;
+    if (!def.variants) {
+      def.variants = [variant];
+    } else if (!def.variants.includes(variant)) {
+      def.variants.push(variant);
+    }
   }
 
   return true;
