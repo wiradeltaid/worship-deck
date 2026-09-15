@@ -9,7 +9,7 @@
  * - script: 7 Elegant calligraphy, brush, and handwriting fonts for greetings and personal notes.
  */
 
-export type FontCategory = 'system' | 'sans' | 'serif' | 'display' | 'script';
+export type FontCategory = 'custom' | 'system' | 'sans' | 'serif' | 'display' | 'script';
 
 export interface FontDefinition {
   family: string;
@@ -23,6 +23,7 @@ export interface FontDefinition {
 }
 
 export const FONT_CATEGORY_LABELS: Record<FontCategory, { en: string; id: string }> = {
+  custom: { en: 'Custom / Uploaded Fonts', id: 'Font Kustom / Diunggah' },
   system: { en: 'System & PowerPoint Safe', id: 'Standar Sistem & PPTX' },
   sans: { en: 'Modern Sans-Serif', id: 'Sans-Serif Modern' },
   serif: { en: 'Dignified Serif', id: 'Serif Klasik & Sakral' },
@@ -161,51 +162,75 @@ export interface ImportedFontFace {
 
 const registeredFaces = new Set<string>();
 
-export async function registerDynamicFontFace(face: ImportedFontFace): Promise<boolean> {
-  const key = `${face.family}-${face.weight}-${face.style}-${face.url}`;
-  if (registeredFaces.has(key)) return true;
-
-  if (typeof document === 'undefined' || !('fonts' in document) || typeof FontFace === 'undefined') {
-    return false;
-  }
-
+export async function registerDynamicFontFace(
+  face: ImportedFontFace,
+  fontFaceLoader?: (family: string, url: string, descriptors: FontFaceDescriptors) => Promise<boolean>
+): Promise<boolean> {
   const family = face.family.trim();
   const descriptors: FontFaceDescriptors = {
     weight: face.weight || 'normal',
     style: face.style || 'normal',
   };
+  const key = `${family.toLowerCase()}-${descriptors.weight}-${descriptors.style}-${face.url}`;
+  if (registeredFaces.has(key)) return true;
 
-  try {
-    for (const f of document.fonts) {
-      if (f.family === family && f.weight === descriptors.weight && f.style === descriptors.style) {
-        registeredFaces.add(key);
-        return true;
+  // Hydrate in browser DOM or using injected fontFaceLoader
+  if (fontFaceLoader) {
+    try {
+      const ok = await fontFaceLoader(family, face.url, descriptors);
+      if (!ok) return false;
+    } catch (e) {
+      console.warn(`[font-catalog] loader failed for ${family}:`, e);
+      return false;
+    }
+  } else if (typeof document !== 'undefined' && 'fonts' in document && typeof FontFace !== 'undefined') {
+    try {
+      let alreadyInDocument = false;
+      for (const f of document.fonts) {
+        if (
+          f.family.toLowerCase() === family.toLowerCase() &&
+          f.weight === descriptors.weight &&
+          f.style === descriptors.style
+        ) {
+          alreadyInDocument = true;
+          break;
+        }
       }
+      if (!alreadyInDocument) {
+        const font = new FontFace(family, `url("${face.url}")`, descriptors);
+        const loaded = await font.load();
+        document.fonts.add(loaded);
+      }
+    } catch (e) {
+      console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
+      return false;
     }
-    const font = new FontFace(family, `url("${face.url}")`, descriptors);
-    const loaded = await font.load();
-    document.fonts.add(loaded);
-    registeredFaces.add(key);
-
-    // Register into catalog map if not present
-    if (!FONT_MAP.has(family.toLowerCase())) {
-      const def: FontDefinition = {
-        family,
-        label: family,
-        category: 'sans',
-        fallback: 'sans-serif',
-        pptxSafe: true, // Self-contained embedded font
-        embeddable: true,
-      };
-      FONT_CATALOG.push(def);
-      FONT_MAP.set(family.toLowerCase(), def);
-    }
-
-    return true;
-  } catch (e) {
-    console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
-    return false;
   }
+
+  // Only reached if FontFace loading succeeded (or running in headless environment)
+  registeredFaces.add(key);
+
+  const lowerFamily = family.toLowerCase();
+  let def = FONT_MAP.get(lowerFamily);
+  if (!def) {
+    def = {
+      family,
+      label: family,
+      category: 'custom',
+      fallback: 'sans-serif',
+      pptxSafe: true, // Self-contained embedded font
+      embeddable: true,
+    };
+    FONT_CATALOG.unshift(def);
+    FONT_MAP.set(lowerFamily, def);
+  } else {
+    // An uploaded face always promotes to 'custom' category and ensures export readiness
+    def.category = 'custom';
+    def.embeddable = true;
+    def.pptxSafe = true;
+  }
+
+  return true;
 }
 
 export async function hydrateImportedFonts(): Promise<number> {

@@ -375,6 +375,16 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.artifacts.fontColor': 'Warna font',
   'admin.artifacts.fontSize': 'Ukuran font',
   'admin.artifacts.searchFonts': 'Cari font...',
+  'admin.artifacts.importFont': '+ Impor Font',
+  'admin.artifacts.importingFont': 'Mengimpor font…',
+  'admin.artifacts.importProgress': 'Mengimpor font ({current}/{total})…',
+  'admin.artifacts.importSingleFamilySuccess':
+    'Berhasil mengimpor {count} varian font untuk "{family}"!',
+  'admin.artifacts.importMultiFamilySuccess':
+    'Berhasil mengimpor {count} varian font untuk keluarga: {families}',
+  'admin.artifacts.importPartialWarning':
+    'Berhasil mengimpor {count} varian. Gagal ({failedCount}): {failed}',
+  'admin.artifacts.importFailed': 'Gagal mengimpor font: {error}',
   'admin.artifacts.applyStyle': 'Terapkan ke pilihan',
   'admin.artifacts.styleHint':
     'Warna dan ukuran perlu “Terapkan ke pilihan”; teks berlaku saat Anda mengetik. Tidak ada yang disimpan sampai Anda Simpan.',

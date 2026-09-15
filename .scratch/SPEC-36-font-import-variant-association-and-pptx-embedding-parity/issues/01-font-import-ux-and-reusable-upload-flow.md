@@ -1,6 +1,6 @@
 # SPEC-36-01 — Font Import UX & Reusable Multi-File Upload in Artifact Editor
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build

@@ -1705,7 +1705,7 @@ rtm:
   - src/components/admin/ArtifactEditor.tsx
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3628,7 +3628,7 @@ rtm:
   - src/components/admin/ArtifactEditor.tsx
   - src/lib/registry/font-catalog.ts
   - tests/smoke-spec-36.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
