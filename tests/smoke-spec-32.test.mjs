@@ -13,10 +13,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { execSync } from 'child_process';
 import JSZip from 'jszip';
+import { spawnGoApi, stopProcess } from './helpers/go-api.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -372,3 +374,186 @@ test('T-32-07: Full Go test suites pass for pptximport, plan, and httpapi', () =
   assert.ok(output.includes('ok  \tgithub.com/wiradigitalid/worship-presenter-web/internal/plan'));
   assert.ok(output.includes('ok  \tgithub.com/wiradigitalid/worship-presenter-web/internal/httpapi'));
 });
+
+// --------------------------------------------------------------------------
+// T-32-08: Live Go API Server End-to-End Smoke Test (FR-20 Agent Proof-of-Done)
+// --------------------------------------------------------------------------
+
+test('T-32-08: Live Go API server end-to-end smoke test (FR-20 proof-of-done exercised by agent)', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smoke-spec32-live-'));
+  const testDb = path.join(tmpDir, 'test.db');
+  const uploadsDir = path.join(tmpDir, 'uploads');
+  const authSecret = 'smoke-spec32-secret-key-1234567890';
+  const bootstrapUser = 'admin';
+  const bootstrapPass = 'admin-secret-pass-99';
+
+  const { child, base } = await spawnGoApi({
+    root,
+    dbPath: testDb,
+    env: {
+      UPLOADS_DIR: uploadsDir,
+      AUTH_SECRET: authSecret,
+      AUTH_BOOTSTRAP_USER: bootstrapUser,
+      AUTH_BOOTSTRAP_PASSWORD: bootstrapPass,
+    },
+  });
+
+  try {
+    // 1. Admin login to get session cookie
+    const loginRes = await fetch(`${base}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: bootstrapUser, password: bootstrapPass }),
+    });
+    assert.equal(loginRes.status, 200, 'admin login must succeed');
+    const cookie = loginRes.headers.get('set-cookie')?.split(';')[0] || '';
+    assert.ok(cookie.length > 0, 'session cookie must be returned');
+
+    // 2. Build synthetic PPTX with Montserrat Light, spc="150" (2.0px), and embedded font
+    const zip = new JSZip();
+    zip.file(
+      '[Content_Types].xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+  <Default Extension="ttf" ContentType="font/ttf"/>
+</Types>`
+    );
+    zip.file(
+      'ppt/presentation.xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:sldSz cx="12192000" cy="6858000"/>
+  <p:sldIdLst>
+    <p:sldId id="256" r:id="rId1"/>
+  </p:sldIdLst>
+  <p:embeddedFontLst>
+    <p:embeddedFont>
+      <p:font typeface="CustomChurchFont"/>
+      <p:regular r:id="rIdFontReg"/>
+    </p:embeddedFont>
+  </p:embeddedFontLst>
+</p:presentation>`
+    );
+    zip.file(
+      'ppt/_rels/presentation.xml.rels',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
+  <Relationship Id="rIdFontReg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/church.ttf"/>
+</Relationships>`
+    );
+    zip.file(
+      'ppt/slides/slide1.xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="TitleBox"/></p:nvSpPr>
+        <p:spPr><a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="8000000" cy="3000000"/></a:xfrm></p:spPr>
+        <p:txBody>
+          <p:p>
+            <a:r>
+              <a:rPr sz="3200" spc="150">
+                <a:latin typeface="Montserrat Light"/>
+              </a:rPr>
+              <a:t>Worship Title with Spacing</a:t>
+            </a:r>
+          </p:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+</p:sld>`
+    );
+    const validTTF = Buffer.from([
+      0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x03, 0x00, 0x00,
+      0x68, 0x65, 0x61, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x04,
+      0x01, 0x02, 0x03, 0x04,
+    ]);
+    zip.file('ppt/fonts/church.ttf', validTTF);
+
+    const pptxBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+    // 3. Upload & Import via POST /api/admin/artifacts/import-pptx
+    const form = new FormData();
+    form.append('file', new Blob([pptxBuffer]), 'smoke_presentation.pptx');
+
+    const importRes = await fetch(`${base}/api/admin/artifacts/import-pptx`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+      body: form,
+    });
+    assert.equal(importRes.status, 201, 'import-pptx must return 201 Created');
+    const importData = await importRes.json();
+    assert.equal(importData.importedCount, 1, 'must import 1 slide template');
+    assert.equal(importData.importedFonts, 1, 'must import 1 embedded font face');
+
+    const firstTmpl = importData.firstTemplate;
+    const textEl = firstTmpl.layouts.default.elements.find((el) => el.type === 'text');
+    assert.ok(textEl, 'imported template must contain a text element');
+    assert.equal(textEl.style.fontFamily, 'Montserrat', 'canonical family must be Montserrat');
+    assert.equal(textEl.style.fontWeight, '300', 'numeric weight must be 300');
+    assert.equal(textEl.style.letterSpacing, 2.0, 'letterSpacing must be 2.0px (150 / 75)');
+    assert.equal(textEl.style.pptxTypeface, 'Montserrat Light', 'pptxTypeface must be Montserrat Light');
+
+    // 4. Verify font routes: GET /api/fonts and GET /api/fonts/{id}
+    const fontsRes = await fetch(`${base}/api/fonts`, {
+      headers: { Cookie: cookie },
+    });
+    assert.equal(fontsRes.status, 200, 'GET /api/fonts must return 200');
+    const fontList = await fontsRes.json();
+    assert.equal(fontList.length, 1, 'must list 1 font face');
+    assert.equal(fontList[0].family, 'CustomChurchFont');
+
+    const fontDownloadRes = await fetch(`${base}${fontList[0].url}`, {
+      headers: { Cookie: cookie },
+    });
+    assert.equal(fontDownloadRes.status, 200, 'downloading font face must return 200');
+    assert.equal(fontDownloadRes.headers.get('content-type'), 'font/ttf');
+    assert.equal(fontDownloadRes.headers.get('x-content-type-options'), 'nosniff');
+    const downloadedFont = Buffer.from(await fontDownloadRes.arrayBuffer());
+    assert.equal(downloadedFont.length, validTTF.length, 'downloaded font bytes must match');
+
+    // 5. Update template using editor serialization discipline and verify pptxTypeface is cleared on font edit
+    const serializedStyle = serializeTextStyle(textEl, {
+      fontFamily: 'Inter',
+      fontSize: 32,
+      fontWeight: '300',
+    });
+    assert.equal(serializedStyle.pptxTypeface, undefined, 'editor serialization must strip pptxTypeface');
+
+    const updateRes = await fetch(`${base}/api/admin/artifacts/${firstTmpl.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookie,
+      },
+      body: JSON.stringify({
+        ...firstTmpl,
+        layouts: {
+          ...firstTmpl.layouts,
+          default: {
+            ...firstTmpl.layouts.default,
+            elements: [
+              {
+                ...textEl,
+                style: serializedStyle,
+              },
+            ],
+          },
+        },
+      }),
+    });
+    assert.equal(updateRes.status, 200, 'PUT /api/admin/artifacts/{id} must succeed');
+    const updatedData = await updateRes.json();
+    const updatedEl = updatedData.layouts.default.elements.find((el) => el.type === 'text');
+    assert.equal(updatedEl.style.fontFamily, 'Inter');
+    assert.equal(updatedEl.style.pptxTypeface, undefined, 'pptxTypeface must be absent after family edit');
+  } finally {
+    stopProcess(child);
+  }
+});
+
