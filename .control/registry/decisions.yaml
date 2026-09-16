@@ -901,6 +901,36 @@ decisions:
       - internal/pptximport/font_extract.go
       - tests/smoke-spec-36.test.mjs
       - package.json
+  - id: DEC-039
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-16)"
+    title: Autopilot mandate for Cross-Surface Font Availability Parity, Multi-Context Hydration, and Unacquired Font Status Reconciliation (SPEC-37)
+    file: .control/decisions/DEC-039-autopilot-mandate-font-availability-parity-unacquired-status-reconciliation.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-23'
+    touches:
+      - .control/memlog/autopilot-DEC-039.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-37-font-availability-parity-and-unacquired-status-reconciliation/SPEC.md
+      - src/components/admin/ArtifactEditor.tsx
+      - src/operator/present/PresenterOperator.tsx
+      - src/projected/ProjectorClient.tsx
+      - spa/src/App.tsx
+      - src/components/artifacts/ArtifactSlide.tsx
+      - src/lib/fonts/embed-fonts.ts
+      - src/lib/pptx-draw.ts
+      - src/lib/artifacts/render-model.ts
+      - src/lib/registry/font-catalog.ts
+      - tests/smoke-spec-37.test.mjs
+      - package.json
+
 
 
 
