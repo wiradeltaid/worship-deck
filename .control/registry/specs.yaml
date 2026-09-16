@@ -1780,6 +1780,44 @@ waves:
           - src/lib/fonts/embed-fonts.ts
           - tests/smoke-spec-36.test.mjs
 
+  - id: SPEC-37
+    status: open
+    release: font-availability-parity-and-unacquired-status-reconciliation
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-36]
+    spec_folder: .scratch/SPEC-37-font-availability-parity-and-unacquired-status-reconciliation/
+    tickets:
+      - id: "SPEC-37-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/smoke-spec-37.test.mjs
+      - id: "SPEC-37-02"
+        component: presenter
+        satisfies: [UC-12, UC-14]
+        blocked_by: []
+        touches: [presenter, artifacts]
+        tests:
+          - src/operator/present/PresenterOperator.tsx
+          - src/projected/ProjectorClient.tsx
+          - spa/src/App.tsx
+          - tests/smoke-spec-37.test.mjs
+      - id: "SPEC-37-03"
+        component: pptx
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [pptx, artifacts]
+        tests:
+          - src/lib/fonts/embed-fonts.ts
+          - src/lib/pptx-draw.ts
+          - tests/smoke-spec-37.test.mjs
+
+
 
 
 
