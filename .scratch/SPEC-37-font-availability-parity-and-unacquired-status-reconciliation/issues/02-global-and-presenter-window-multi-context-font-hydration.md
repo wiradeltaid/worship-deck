@@ -1,6 +1,6 @@
 # SPEC-37-02 — Global SPA and Presenter Window Multi-Context Font Hydration
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build

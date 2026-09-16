@@ -279,7 +279,7 @@ rtm:
   - src/projected/ProjectorClient.tsx
   - spa/src/App.tsx
   - tests/smoke-spec-37.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -1785,7 +1785,7 @@ rtm:
   - src/projected/ProjectorClient.tsx
   - spa/src/App.tsx
   - tests/smoke-spec-37.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3756,7 +3756,7 @@ rtm:
   - src/projected/ProjectorClient.tsx
   - spa/src/App.tsx
   - tests/smoke-spec-37.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
