@@ -38,7 +38,7 @@ Go 1.24 and Node.js 22 or newer. `npm install` installs the SPA, PPTX worker, an
 ## Quickstart
 
 ```bash
-git clone https://github.com/wiradigitalid/worship-presenter-web.git
+git clone https://github.com/wiradeltaid/worship-presenter-web.git
 cd worship-presenter-web
 npm install
 npm run setup
