@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"log"
@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
-	"github.com/wiradigitalid/worship-presenter-web/internal/httpapi"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/httpapi"
 )
 
 func main() {

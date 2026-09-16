@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"crypto/rand"
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/pptximport"
+	"github.com/wiradeltaid/worship-presenter-web/internal/pptximport"
 )
 
 func newImportedTemplateID() (string, error) {

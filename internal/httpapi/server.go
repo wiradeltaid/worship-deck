@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"database/sql"
@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/auth"
-	"github.com/wiradigitalid/worship-presenter-web/internal/gate"
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
-	"github.com/wiradigitalid/worship-presenter-web/internal/pptx"
+	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
+	"github.com/wiradeltaid/worship-presenter-web/internal/gate"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/pptx"
 )
 
 type Server struct {

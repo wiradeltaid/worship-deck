@@ -1,4 +1,4 @@
-package parse
+﻿package parse
 
 import (
 	"database/sql"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
 )
 
 func newParseTestDB(t *testing.T) (*sql.DB, string) {

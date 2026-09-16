@@ -120,3 +120,6 @@ data.db.bak-*
 # Screenshot evidence for WYSIWYG parity analysis. Images may only be tracked
 # under public/ (tests/public-repo-guard.test.mjs); these stay local.
 .scratch/**/*.png
+
+# Local scratch fonts in .work
+.work/*.ttf

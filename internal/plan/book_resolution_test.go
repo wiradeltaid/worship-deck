@@ -1,4 +1,4 @@
-package plan_test
+﻿package plan_test
 
 import (
 	"database/sql"
@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 func newTestDB(t *testing.T) (*sql.DB, string) {

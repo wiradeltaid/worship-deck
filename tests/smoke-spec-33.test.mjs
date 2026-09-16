@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SPEC-33: PPTX Typography Fidelity, Font Safety Parity, and Missing Font Acquisition Smoke Suite
  *
  * Automated verification of:
@@ -439,7 +439,7 @@ test('T-33-07: Full Go test suite passes across internal/pptximport, internal/pl
     cwd: root,
     encoding: 'utf8',
   });
-  assert.ok(output.includes('ok  \tgithub.com/wiradigitalid/worship-presenter-web/internal/pptximport'));
-  assert.ok(output.includes('ok  \tgithub.com/wiradigitalid/worship-presenter-web/internal/plan'));
-  assert.ok(output.includes('ok  \tgithub.com/wiradigitalid/worship-presenter-web/internal/httpapi'));
+  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-presenter-web/internal/pptximport'));
+  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-presenter-web/internal/plan'));
+  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-presenter-web/internal/httpapi'));
 });

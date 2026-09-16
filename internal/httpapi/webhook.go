@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"crypto/subtle"
@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
-	"github.com/wiradigitalid/worship-presenter-web/internal/parse"
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 func (s *Server) postWebhook(w http.ResponseWriter, r *http.Request) {

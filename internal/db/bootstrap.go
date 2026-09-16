@@ -1,4 +1,4 @@
-// Package db provides database access, migrations, and bootstrap.
+﻿// Package db provides database access, migrations, and bootstrap.
 // Mirrored on the TypeScript side by `src/lib/db/index.ts` (bootstrap).
 package db
 
@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/auth"
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 const (

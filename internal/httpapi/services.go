@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"database/sql"
@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
-	"github.com/wiradigitalid/worship-presenter-web/internal/parse"
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 type serviceListItem struct {

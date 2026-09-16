@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"encoding/json"
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 func newAnnTestServer(t *testing.T) (*httptest.Server, *dbHandleAndRoot) {

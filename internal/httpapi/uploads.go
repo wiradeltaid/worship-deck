@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"crypto/rand"
@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 var uploadRef = regexp.MustCompile(`(?i)^[a-f0-9]{32}\.(jpe?g|png|gif|webp)$`)

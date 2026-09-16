@@ -1,4 +1,4 @@
-module github.com/wiradigitalid/worship-presenter-web
+module github.com/wiradeltaid/worship-presenter-web
 
 go 1.22
 

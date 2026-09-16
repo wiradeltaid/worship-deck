@@ -1,4 +1,4 @@
-# Attributions and third-party content
+﻿# Attributions and third-party content
 
 The MIT licence in [LICENSE](LICENSE) covers the code in this repository. It does
 not cover the content below, which belongs to others.
@@ -32,7 +32,7 @@ licence — neither ours to give nor granted to us.
 ### Removal requests
 
 If you hold rights in this material and want it removed or changed, please open
-an issue at <https://github.com/wiradigitalid/worship-presenter-web/issues> or
+an issue at <https://github.com/wiradeltaid/worship-presenter-web/issues> or
 contact the maintainer through the org at <https://github.com/wiradigitalid>.
 Requests will be honoured promptly and without argument.
 

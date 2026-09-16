@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"log"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
 )
 
 func (s *Server) getHymns(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"archive/zip"
@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/auth"
-	"github.com/wiradigitalid/worship-presenter-web/internal/pptximport"
+	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
+	"github.com/wiradeltaid/worship-presenter-web/internal/pptximport"
 )
 
 func TestFontRoutesAndSecurity(t *testing.T) {

@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"log"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/auth"
+	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
 )
 
 var positiveID = regexp.MustCompile(`^\d+$`)

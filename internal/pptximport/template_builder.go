@@ -1,11 +1,11 @@
-package pptximport
+﻿package pptximport
 
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	"github.com/wiradigitalid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
 // BuildTemplatePayload converts a ParsedSlide into valid artifact template JSON bytes
