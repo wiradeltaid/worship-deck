@@ -121,14 +121,17 @@ const FORBIDDEN_LITERAL_HASHES = new Set([
  * `asset-map.json` with the real text runs, and the guard catches that only because
  * these particular names are now known. It will not catch the next family.
  *
- * Three words from this group are deliberately NOT listed, for the same reason as
+ * Four words from this group are deliberately NOT listed, for the same reason as
  * the Bible-book name above:
  *   - one given name is a word in 182 hymns in the song book corpus (then at
  *     `data/hymns.json`, since 2026-08-01 at `data/song-book/sdah.json`) and in
  *     the title "Amazing Grace";
  *   - one is a figure in the Bible;
  *   - one is a first name in an invented brainstorming cast under `_bmad-output/`,
- *     alongside three other invented personas, and is not a congregation member.
+ *     alongside three other invented personas, and is not a congregation member;
+ *   - the given name of the studio founder ("Wira") is part of the publisher and
+ *     maintainer entity name ("Wira Delta Indonesia"); blocking it prevented legitimate
+ *     license, attribution, privacy, and security notices from naming the organization.
  * In each case the surname is what identified the person, and the surname is blocked.
  */
 const FORBIDDEN_NAME_HASHES = new Set([
@@ -140,7 +143,6 @@ const FORBIDDEN_NAME_HASHES = new Set([
   '692a0b8721a3f704',
   '65c3f75641b22925',
   '931f22c9283e090b',
-  '44554623ac571276',
   '2da866399f105840',
   '7c60939f1ca7243e',
   'c3b454249c0b91a2',

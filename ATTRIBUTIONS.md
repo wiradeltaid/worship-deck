@@ -33,7 +33,7 @@ licence — neither ours to give nor granted to us.
 
 If you hold rights in this material and want it removed or changed, please open
 an issue at <https://github.com/wiradeltaid/worship-presenter-web/issues> or
-contact the maintainer through the org at <https://github.com/wiradigitalid>.
+contact the maintainer through the org at <https://github.com/wiradeltaid>.
 Requests will be honoured promptly and without argument.
 
 Anyone adapting this project for another tradition should add their own corpus
@@ -62,8 +62,49 @@ are covered by the repository's MIT licence.
 
 ## Dependencies
 
-Every npm dependency carries its own licence. `npm ls --all` lists them, and
-each package's licence text ships inside `node_modules`.
+The application relies on open-source libraries for its frontend single-page application and backend Go server. All direct production dependencies use permissive open-source licences (MIT, BSD-3-Clause, Apache-2.0, ISC, and SIL Open Font License 1.1).
+
+### Frontend & build runtime (npm)
+
+| Package | Version | Licence | Purpose |
+|---|---|---|---|
+| `@base-ui/react` | ^1.6.0 | MIT | Unstyled UI primitives |
+| `@fontsource/geist-mono` | ^5.3.0 | OFL-1.1 | Self-hosted monospace typeface |
+| `@fontsource/geist-sans` | ^5.3.0 | OFL-1.1 | Self-hosted sans-serif typeface |
+| `better-sqlite3` | ^12.11.1 | MIT | Node.js SQLite client for scripts and testing |
+| `class-variance-authority` | ^0.7.1 | Apache-2.0 | Component variant styling |
+| `clsx` | ^2.1.1 | MIT | Classname composition utility |
+| `fabric` | ^6.6.1 | MIT | HTML5 canvas presentation and slide editing |
+| `jszip` | ^3.10.1 | MIT | Archive generation for PPTX export |
+| `lucide-react` | ^1.25.0 | ISC | Application iconography |
+| `next-themes` | ^0.4.6 | MIT | Theme management (light/dark) |
+| `pptxgenjs` | ^4.0.1 | MIT | PowerPoint presentation generation |
+| `react` | 19.2.4 | MIT | UI framework |
+| `react-dom` | 19.2.4 | MIT | React DOM renderer |
+| `shadcn` | ^4.13.0 | MIT | UI component library CLI |
+| `sonner` | ^2.0.7 | MIT | Toast notification system |
+| `tailwind-merge` | ^3.6.0 | MIT | Tailwind utility merging |
+| `tw-animate-css` | ^1.4.0 | MIT | UI animation utilities |
+
+Transitive npm dependencies and full licence texts reside within `node_modules`. Run `npm ls --all` to list the full dependency tree.
+
+### Backend server (Go)
+
+| Module | Version | Licence | Purpose |
+|---|---|---|---|
+| `modernc.org/sqlite` | v1.34.5 | BSD-3-Clause | Pure-Go CGO-free SQLite database engine |
+| `modernc.org/libc` | v1.55.3 | BSD-3-Clause | C runtime translation layer for SQLite |
+| `modernc.org/mathutil` | v1.6.0 | BSD-3-Clause | Mathematical utilities for SQLite |
+| `modernc.org/memory` | v1.8.0 | BSD-3-Clause | Memory management primitives |
+| `github.com/dustin/go-humanize` | v1.0.1 | MIT | Data format humanization |
+| `github.com/google/uuid` | v1.6.0 | BSD-3-Clause | Cryptographic UUID generation |
+| `github.com/mattn/go-isatty` | v0.0.20 | MIT | Terminal TTY detection |
+| `github.com/ncruces/go-strftime` | v0.1.9 | BSD-3-Clause | Date formatting utilities |
+| `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | BSD-3-Clause | FFT floating point primitives |
+| `golang.org/x/crypto` | v0.31.0 | BSD-3-Clause | Cryptographic algorithms (scrypt) |
+| `golang.org/x/sys` | v0.28.0 | BSD-3-Clause | OS-level syscall abstractions |
+
+Transitive Go module licences can be verified via `go list -m -json all`.
 
 ## Agent skills under `.claude/skills/`
 
