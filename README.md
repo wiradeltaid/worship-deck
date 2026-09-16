@@ -1,41 +1,28 @@
-# worship-presenter-web
+> Read in [English](README.en.md)
 
-A self-hosted hub that turns a worship service rundown into slides — a downloadable PowerPoint deck for offline use, and a dual-screen presenter for the room.
+# Worship Presenter Web
 
-Built for a Seventh-day Adventist congregation, but the slide templates are data rather than code, so any church running a similar order of service can adopt it by editing them.
+Aplikasi penampil ibadah gereja mandiri (*self-hosted*) yang mengubah susunan acara (*rundown*) ibadah menjadi slide presentasi siap pakai — menghasilkan file PowerPoint (.pptx) untuk kebutuhan luring (*offline*) dan konsol presenter dua layar untuk proyektor jemaat.
 
-## What problem it solves
+Dibangun dengan arsitektur lokal (*local-first*); template slide disimpan sebagai data terkelola (bukan kode), sehingga jemaat dengan tata ibadah serupa dapat langsung menyesuaikannya lewat peramban.
 
-Preparing worship slides by hand takes hours, most of it spent typing hymn lyrics that were already typed last month. A last-minute song change means redoing the deck. And the knowledge of how to build it lives with one volunteer.
+## Masalah yang Dipecahkan
 
-This takes the rundown a service planner already writes — in a chat message or a form — and produces the finished slides.
+Menyiapkan slide kebaktian secara manual membutuhkan waktu 2–4 jam setiap pekan, sebagian besar dihabiskan untuk mengetik ulang lirik lagu yang sebenarnya sudah pernah diketik. Perubahan lagu secara mendadak di hari ibadah memaksa pembuatan ulang slide dari awal. Selain itu, keterampilan teknis penyiapan slide sering kali hanya dikuasai oleh satu relawan.
+
+Aplikasi ini menerima susunan acara yang ditulis oleh pengatur kebaktian — baik ditempel ke formulir web atau dikirim dari bot chat — dan otomatis merangkai slide ibadah yang rapi dan konsisten.
 
 ```
-rundown text  →  parsed service  →  slide plan  →  ┬→  PowerPoint deck (offline)
-                                                   ├→  full-screen slideshow
-                                                   └→  presenter + projector
+teks rundown  →  kebaktian terurai  →  rencana slide  →  ┬→  file PowerPoint (luring)
+                                                         ├→  slideshow layar penuh
+                                                         └→  konsol presenter + proyektor
 ```
 
-Hymn lyrics come from a local corpus, looked up by number. Layouts come from a registry an administrator can edit in the browser. Nothing needs a network connection once the deck is downloaded — which matters, because the deck is what runs the service if anything else fails.
+Lirik lagu diambil dari korpus database lokal berdasarkan nomor lagu. Tata letak slide dikelola melalui registri SQLite yang dapat disunting langsung di peramban. Begitu file PowerPoint diunduh, penayangan ibadah tidak membutuhkan koneksi internet sama sekali — hal ini krusial agar kebaktian tetap berjalan lancar saat jaringan gereja bermasalah.
 
-## Features
+## Panduan Memulai Cepat (Instalasi Mandiri)
 
-- **Rundown intake** — paste into the web form, or `POST` from a chat bot to a secret-gated webhook. Unrecognised lines are surfaced, never silently dropped.
-- **Hymn resolution** — hymns referenced by number are expanded into title and lyric slides, split for readability, with the refrain repeated after each verse.
-- **Editable slide templates** — 28 templates in a SQLite registry with a canvas editor: move and resize elements, change text and styling, add your own text boxes and shapes, reset any template to its shipped state.
-- **One layout, four outputs** — the same hydrated slide drives the PowerPoint deck, the web slideshow, the projector and the live preview. No per-format layout code.
-- **Presenter mode** — current and next slide, a thumbnail filmstrip, a slide list, a jump-to-any-slide grid, the run sheet, and a real second window you can drag onto the projector.
-- **Blank screen** — black the projector out and restore it without losing your place.
-- **Selectable transitions** — none, cut, fade, dissolve or push, applied identically to the deck and the browser.
-- **Scripture lookup** — pull a KJV passage onto the projector during the service and clear it again.
-- **Announcement flyers** — a persistent list, with images uploaded to the hub or pulled from an allow-listed URL.
-- **Accounts and roles** — per-person admin and operator accounts, rate-limited sign-in, and sessions that can actually be revoked.
-
-## Requirements
-
-Go 1.24 and Node.js 22 or newer. `npm install` installs the SPA, PPTX worker, and tests. Storage is SQLite; there is no separate database server.
-
-## Quickstart
+Aplikasi dijalankan langsung dari sumber menggunakan Go dan Node.js:
 
 ```bash
 git clone https://github.com/wiradeltaid/worship-presenter-web.git
@@ -45,13 +32,37 @@ npm run setup
 npm run dev
 ```
 
-`npm run setup` generates `.env` with fresh secrets, creates the database, seeds the slide registry, and prints the admin password it generated for you. `npm run dev` starts the Go API on <http://localhost:3000> and the React SPA on <http://localhost:5173> (Vite proxies `/api` to Go). Sign in as `admin` on the SPA. For a single origin, `npm run spa:build && npm start` and open port 3000. Re-running setup is safe: it never overwrites an existing `.env` or database.
+`npm run setup` akan menghasilkan berkas `.env` dengan kredensial baru, menginisiasi database SQLite, menyemai registri slide bawaan, dan menampilkan kata sandi akun `admin` yang dibuat otomatis.
 
-See [`.constitution/project/private-data.md`](.constitution/project/private-data.md) before you put your own congregation's details in.
+- `npm run dev` menjalankan server Go API pada <http://localhost:3000> dan frontend React SPA pada <http://localhost:5173>.
+- Untuk penyajian produksi satu asal (*single origin*): jalankan `npm run spa:build && npm start` lalu buka port 3000.
+- Menjalankan ulang perintah setup aman dilakukan: konfigurasi `.env` dan data yang sudah ada tidak akan ditimpa.
 
-### Create a service
+Baca [`.constitution/project/private-data.md`](.constitution/project/private-data.md) sebelum memasukkan data jemaat Anda.
 
-**Services → New.** Paste a rundown into the raw text box. The shape it expects looks like this (synthetic names):
+## Fitur Utama
+
+- **Penerimaan Susunan Acara (Rundown):** Tempel teks ke formulir web, atau kirimkan via `POST` dari bot chat ke endpoint webhook berotentikasi rahasia. Baris teks yang tidak dikenali akan ditampilkan secara transparan, tidak pernah dibuang diam-diam.
+- **Pencarian & Pemecahan Bait Lagu Otomatis:** Lagu yang dirujuk berdasarkan nomor otomatis dipecah menjadi slide judul, bait, dan refrein berulang yang nyaman dibaca jemaat.
+- **Editor Template Slide (Canvas WYSIWYG):** 28 template slide di registri SQLite dengan kontrol canvas interaktif: geser, ubah ukuran, atur gaya tipografi, tambah kotak teks/bentuk, dan reset template ke bentuk awal kapan pun.
+- **Satu Tata Letak untuk Semua Output (16:9 Widescreen):** Satu struktur slide terhidrasi menggerakkan file PowerPoint, tayangan slideshow web, jendela proyektor, dan pratinjau langsung secara presisi 1:1.
+- **Mode Presenter Dua Layar:** Layar kontrol operator dilengkapi pratinjau slide aktif dan berikutnya, filmstrip miniatur, lembar urutan acara, dan jendela kedua mandiri yang dapat ditarik ke layar proyektor.
+- **Tombol Layar Hitam (Blank Screen):** Gelapkan tampilan layar proyektor jemaat seketika dan pulihkan kembali tanpa kehilangan posisi slide (`B`).
+- **Pilihan Efek Transisi:** Dukungan transisi *none*, *cut*, *fade*, *dissolve*, atau *push*, diterapkan identik pada tayangan web maupun file PowerPoint.
+- **Pencarian Ayat Alkitab Cepat:** Tampilkan perikop Alkitab (KJV) ke proyektor di tengah ibadah secara cepat dan bersihkan kembali setelah selesai dibaca.
+- **Warta & Flyer Pengumuman:** Daftar flyer terkelola dengan gambar yang diunggah langsung atau diambil dari URL yang diizinkan.
+- **Tipografi Kustom & Font Embedding:** Impor berkas font kustom dengan pengelompokan varian otomatis dan enkapsulasi ECMA-376 untuk rendering offline sempurna di Microsoft PowerPoint Desktop.
+- **Manajemen Akun & Sesi:** Akun admin dan operator terpisah, pembatasan laju login anti *brute-force*, serta token sesi kriptografis yang dapat dicabut seketika.
+
+## Persyaratan Sistem
+
+- Go versi 1.24 atau lebih baru.
+- Node.js versi 22 atau lebih baru.
+- SQLite (terintegrasi murni di Go tanpa server database terpisah).
+
+## Membuat Kebaktian Baru
+
+**Services → New.** Tempel teks susunan acara ke kotak teks. Pola yang dikenali memiliki format natural berikut (nama contoh sintetis):
 
 ```
 SABBATH, MARCH 14, 2026
@@ -71,83 +82,36 @@ Sermon : Pr. Andi Hartono "Working Out" (45m)
 [  ] Closing Song : SDAH #249 Praise Him! Praise Him!
 ```
 
-Press **Parse**. Roles, timings and hymn numbers are pulled out into the form; hymns are resolved to titles from the corpus. Anything the parser could not place is listed rather than dropped.
+Klik **Parse**. Peran pelayan, waktu, dan nomor lagu akan dipetakan ke dalam formulir secara otomatis; lirik lagu langsung terisi dari korpus lokal.
 
-Fill in the sermon flyer and family/youth photographs if you have them, then save.
+## Korpus Bawaan
 
-### Present it
+Dua korpus bawaan disertakan secara offline:
 
-From the service page:
-
-- **Download PPTX** — the offline deck. This is the one that runs the service if the network, the laptop or the hub lets you down.
-- **Present** — the operator console. Current and next slide, a filmstrip, a slide list, and **All slides** to jump anywhere.
-- **Open projector** — a separate window to drag onto the second screen. Arrow keys advance both. `B` blanks the projector and restores it.
-
-### Optional extras
-
-**Scripture lookup.** Presenter mode can put a KJV passage on the projector. The corpus ships at `data/en/bible-translation/kjv.json` and is reconciled from that file on every boot.
-
-**Chat intake.** `POST /api/webhook` with an `x-webhook-secret` header accepts a rundown as JSON, so a bot can create or correct a service. The secret is in `.env`; the endpoint is gated by it alone and never by a session.
-
-### Troubleshooting
-
-**`Missing song book corpus`** — `data/song-book/sdah.json` is absent. It ships with the repository, so restore it from version control: `git checkout -- data/song-book/sdah.json`. Then `npm run corpus:verify` to confirm both corpora are whole.
-
-**Locked out** — `npm run auth:set-password -- admin` sets a new password from an interactive prompt. `npm run auth:unlock -- --list` shows and clears sign-in throttling.
-
-**Deck missing images** — remote images must pass the URL safety rules. Uploading to the hub instead always works.
-
-## Making it yours
-
-The shipped registry is a worked example — a real order of service with placeholder contact and payment details. Two things to change:
-
-1. **Slide templates.** Sign in as an administrator and open `/admin/artifacts`. Every template is editable on a canvas; the standing slides (offering, midweek prayer, contact) are where your own details go.
-2. **Private overrides.** If you would rather keep your congregation's registry out of git entirely, drop it at `data/local/default-registry.json` and the app seeds from that instead. That path is git-ignored. See [`.constitution/project/private-data.md`](.constitution/project/private-data.md).
-
-## Shipped corpora
-
-Two default corpora are committed, so a clone resolves a hymn number and a scripture reference with no file handed to it and no network at boot:
-
-| File | Seeds | On boot |
+| Berkas | Muatan | Saat Boot |
 | --- | --- | --- |
-| `data/song-book/sdah.json` | 695 hymns of the Seventh-day Adventist Hymnal | title and lyrics re-applied from the file |
-| `data/en/bible-translation/kjv.json` | 66 books, 1,189 chapters, 31,102 KJV verses | reconciled from the committed file on every boot (~130–150 ms measured) |
+| `data/song-book/sdah.json` | 695 lagu Seventh-day Adventist Hymnal | Judul dan lirik disinkronkan dari berkas |
+| `data/en/bible-translation/kjv.json` | 66 kitab, 1.189 pasal, 31.102 ayat KJV | Direkonsiliasi dari berkas pada setiap boot (~130–150 ms) |
 
-`npm run corpus:verify` asserts both are whole. Neither has a generator: the exports they were converted from are gone, so these files are the source of record — restore from version control rather than rebuilding.
+Jalankan `npm run corpus:verify` untuk memvalidasi keutuhan kedua korpus. Baca [ATTRIBUTIONS.md](ATTRIBUTIONS.md) untuk pernyataan hak cipta non-komersial liturgis dan jalur permohonan penghapusan materi.
 
-Please read [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — it names the copyright holders, states the non-commercial congregational purpose, and gives a contact for removal requests. Each corpus also carries its own licence text inside the file.
+## Penataan untuk Jemaat Anda
 
-If you are adapting this for a different hymnal, add your corpus at `data/song-book/<book-code>.json` in the same shape. Hymns are keyed by `(book_code, number)`, so a second book sits alongside the shipped one instead of replacing it.
+1. **Template Slide:** Masuk sebagai administrator dan buka menu `/admin/artifacts`. Setiap template dapat disesuaikan pada canvas visual.
+2. **Override Registri Privat:** Jika gereja Anda ingin menjaga data registri tetap berada di luar git, simpan berkas di `data/local/default-registry.json` (jalur ini diabaikan oleh git). Lihat [`.constitution/project/private-data.md`](.constitution/project/private-data.md).
 
-## Deployment
+## Penerbitan & Deployment
 
-Build the Go API and SPA, run `./api` (or `npm start`) on a host with Node 22 on `PATH` for the PPTX worker — see [`.constitution/project/deployment.md`](.constitution/project/deployment.md). SQLite, uploaded images and the deck cache all need durable host paths; that file covers which. Dev deploy to `presenter-dev.bic.my.id` is systemd + nginx on a VPS (runbook lives in the devops repo).
+Bangun Go API dan SPA (`npm run build`), lalu jalankan `./api` (atau `npm start`) pada host yang memiliki Node.js 22 pada `PATH` untuk melayani worker generator PPTX. Lihat panduan lengkap di [`.constitution/project/deployment.md`](.constitution/project/deployment.md).
 
-## Project history
+## Lisensi
 
-This project began as a private repository for one congregation. That history is not carried over here, because it contained real member names, photographs of identifiable people including minors, private message screenshots, and a live payment code — none of which belonged in a public repository, and none of which can be un-published once indexed.
+Kode aplikasi dilisensikan di bawah [MIT License](LICENSE). Konten pihak ketiga dijelaskan terpisah di [ATTRIBUTIONS.md](ATTRIBUTIONS.md). Kebijakan privasi tersedia di [PRIVACY.md](PRIVACY.md) dan kebijakan keamanan di [SECURITY.md](SECURITY.md).
 
-This repository therefore starts from a single initial commit with a synthetic example congregation. Why the system is shaped the way it is lives in `.what/` and `.how/` (DEC-001).
+## Nama dan Ikon (The Name and the Icon)
 
-Contributors: please read [`.constitution/project/private-data.md`](.constitution/project/private-data.md) before your first commit. There is a test that fails if congregation data reaches a tracked file, and it is there for a reason.
+Lisensi MIT pada [LICENSE](LICENSE) memberikan hak yang luas atas kode sumber perangkat lunak. Lisensi tersebut tidak mencakup hak atas nama dagang atau logo — perlindungan terpisah berlaku untuk nama **Worship Presenter Web**, nama studio **Wira Delta Indonesia** (**WDI**), serta ikon dan logo grafis proyek.
 
-## Licence
+Anda diperkenankan menyebut nama-nama tersebut untuk merujuk pada proyek ini (misalnya: *"berdasarkan Worship Presenter Web"*, *"fork dari Worship Presenter Web"*, atau *"kompatibel dengan Worship Presenter Web"*). Anda tidak diperkenankan menggunakannya sebagai nama produk turunan Anda sendiri atau dengan cara yang mengesankan adanya afiliasi maupun dukungan resmi dari proyek ini.
 
-[MIT](LICENSE) for the code. Third-party content is covered separately in [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-
-## The name and the icon
-
-The MIT licence in [LICENSE](LICENSE) grants broad rights over the code. It says nothing about names
-or logos — so it covers this repository's code, not the name **Worship Presenter Web**, not
-**WDI**, and not the icon or wordmark.
-
-You may use those names to refer to this project: "based on Worship Presenter Web", "a fork of it",
-"compatible with it". You may not use them as the name of your own product, or in a way that
-suggests you are this project or endorsed by it.
-
-If you publish a modified build — and adapting this for another tradition is expressly encouraged —
-please give it your own name, so the congregations using it know whom to ask when it breaks. The
-code is yours to take; the name is not.
-
-This is separate from the hymn corpus, which is not ours to license at all. See
-[ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+Jika Anda mempublikasikan build modifikasi — dan adaptasi untuk tradisi liturgi gereja lain sangat dianjurkan — gunakan nama produk Anda sendiri agar jemaat yang menggunakannya mengetahui pihak yang bertanggung jawab atas dukungan teknisnya. Kode sumber bebas untuk Anda kembangkan; nama dan tanda merek tetap dilindungi.
