@@ -230,9 +230,18 @@ export async function registerDynamicFontFace(
         } catch {}
       }
 
+      // SPEC-37-02: Add FontFace to document.fonts before loading so document.fonts emits
+      // lifecycle events ('loading' / 'loadingdone') needed by ArtifactSlide text re-fit.
       const font = new FontFace(family, `url("${face.url}")`, descriptors);
-      loadedFontFace = await font.load();
-      document.fonts.add(loadedFontFace);
+      document.fonts.add(font);
+      try {
+        loadedFontFace = await font.load();
+      } catch (loadErr) {
+        try {
+          (document.fonts as any).delete(font);
+        } catch {}
+        throw loadErr;
+      }
     } catch (e) {
       console.warn(`[font-catalog] failed to load dynamic FontFace ${family}:`, e);
       return false;
@@ -274,21 +283,33 @@ export async function registerDynamicFontFace(
   return true;
 }
 
+let inFlightHydration: Promise<number> | null = null;
+
 export async function hydrateImportedFonts(): Promise<number> {
-  if (typeof fetch === 'undefined') return 0;
-  try {
-    const res = await fetch('/api/fonts');
-    if (!res.ok) return 0;
-    const fonts = (await res.json()) as ImportedFontFace[];
-    if (!Array.isArray(fonts)) return 0;
-    let registered = 0;
-    for (const font of fonts) {
-      const ok = await registerDynamicFontFace(font);
-      if (ok) registered++;
-    }
-    return registered;
-  } catch {
-    return 0;
+  if (inFlightHydration) {
+    return inFlightHydration;
   }
+  if (typeof fetch === 'undefined') return 0;
+
+  inFlightHydration = (async () => {
+    try {
+      const res = await fetch('/api/fonts');
+      if (!res.ok) return 0;
+      const fonts = (await res.json()) as ImportedFontFace[];
+      if (!Array.isArray(fonts)) return 0;
+      let registered = 0;
+      for (const font of fonts) {
+        const ok = await registerDynamicFontFace(font);
+        if (ok) registered++;
+      }
+      return registered;
+    } catch {
+      return 0;
+    } finally {
+      inFlightHydration = null;
+    }
+  })();
+
+  return inFlightHydration;
 }
 

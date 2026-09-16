@@ -266,6 +266,23 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-37-02
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/operator/present/PresenterOperator.tsx
+  - src/projected/ProjectorClient.tsx
+  - spa/src/App.tsx
+  - tests/smoke-spec-37.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live
@@ -1731,6 +1748,54 @@ rtm:
   test:
   - src/lib/fonts/embed-fonts.ts
   - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-37-01
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-37.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-37-02
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/operator/present/PresenterOperator.tsx
+  - src/projected/ProjectorClient.tsx
+  - spa/src/App.tsx
+  - tests/smoke-spec-37.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-37-03
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/lib/fonts/embed-fonts.ts
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-37.test.mjs
   status: done
   exempt: false
   green: true
@@ -3654,6 +3719,54 @@ rtm:
   test:
   - src/lib/fonts/embed-fonts.ts
   - tests/smoke-spec-36.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-37-01
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-37.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-37-02
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/operator/present/PresenterOperator.tsx
+  - src/projected/ProjectorClient.tsx
+  - spa/src/App.tsx
+  - tests/smoke-spec-37.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-37-03
+  spec: SPEC-37
+  release: font-availability-parity-and-unacquired-status-reconciliation
+  test:
+  - src/lib/fonts/embed-fonts.ts
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-37.test.mjs
   status: done
   exempt: false
   green: true

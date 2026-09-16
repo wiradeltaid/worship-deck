@@ -11,6 +11,7 @@ import {
 } from '@/lib/present-channel';
 import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
 import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
+import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { useProjectedShell } from '@/lib/use-projected-shell';
 import { useSlideTransition } from '@/lib/use-slide-transition';
 import '@/projected/projected.css';
@@ -51,6 +52,11 @@ export default function ProjectorClient({
     reference: string;
     text: string;
   } | null>(null);
+
+  // SPEC-37-02: Hydrate custom fonts in isolated projector window context
+  useEffect(() => {
+    void hydrateImportedFonts();
+  }, []);
 
   // `goTo` is re-created whenever the live transition changes, and the channel
   // effect must not be: tearing the channel down and re-opening it on a style

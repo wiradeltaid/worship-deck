@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import ThemeProvider from '@/components/ThemeProvider';
 import { Toaster } from '@/components/ui/sonner';
 import { OperatorUiLocaleProvider } from '@/lib/i18n/operator';
+import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { SessionProvider, useSession } from './lib/auth/SessionProvider';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -18,6 +20,12 @@ import OperatorShell from './pages/OperatorShell';
 
 export default function App() {
   const loc = useLocation();
+
+  // SPEC-37-02: Top-level font hydration on application boot
+  useEffect(() => {
+    void hydrateImportedFonts();
+  }, []);
+
   const projected =
     loc.pathname.endsWith('/slideshow') || loc.pathname.endsWith('/projector');
 

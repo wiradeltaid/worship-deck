@@ -594,7 +594,25 @@ export default function ArtifactEditor({
         preserveObjectStacking: true,
       });
       fabricCanvasRef.current = canvas;
-      setLiveElements(layout.elements.map((el) => ({ ...el })));
+      // SPEC-37-01: Reconcile element fontStatus away from 'unresolved' if font is already acquired
+      setLiveElements(
+        layout.elements.map((el) => {
+          if (el.type === 'text' && el.style?.fontFamily) {
+            const fam = el.style.fontFamily;
+            const isAcquired = isFontExportReady(fam) || Boolean(getFontDefinition(fam));
+            if (isAcquired && el.style.fontStatus === 'unresolved') {
+              return {
+                ...el,
+                style: {
+                  ...el.style,
+                  fontStatus: 'uploaded',
+                },
+              };
+            }
+          }
+          return { ...el };
+        })
+      );
 
       const disposeCanvasIfAborted = () => {
         if (!disposed) return false;
@@ -1915,6 +1933,7 @@ export default function ArtifactEditor({
         }
 
         const distinctFamilies = Array.from(familyMap.values());
+        const uploadedFamilySet = new Set(familyMap.keys());
 
         // One-family selection rule: if all successful files belong to a single family (case-insensitive),
         // apply that family to the text selection that existed when the batch began.
@@ -1926,6 +1945,8 @@ export default function ArtifactEditor({
               prev.map((el) =>
                 initialSelectedIds.includes(el.id) && el.type === 'text' && el.style
                   ? { ...el, style: { ...el.style, fontFamily: displayFamily, fontStatus: 'uploaded' } }
+                  : el.type === 'text' && el.style?.fontFamily && uploadedFamilySet.has(el.style.fontFamily.trim().toLowerCase())
+                  ? { ...el, style: { ...el.style, fontStatus: 'uploaded' } }
                   : el
               )
             );
@@ -1961,6 +1982,16 @@ export default function ArtifactEditor({
               });
               canvas.requestRenderAll();
             }
+          } else {
+            // SPEC-37-01: Reconcile element fontStatus when no text selection was active
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                el.type === 'text' && el.style?.fontFamily && uploadedFamilySet.has(el.style.fontFamily.trim().toLowerCase())
+                  ? { ...el, style: { ...el.style, fontStatus: 'uploaded' } }
+                  : el
+              )
+            );
+            markDirty();
           }
 
           if (failed.length > 0) {
@@ -4163,12 +4194,12 @@ export default function ArtifactEditor({
                           </PopoverContent>
                         </Popover>
 
-                        {/* SPEC-33-03: Unacquired Font Indicator and Acquisition Upload Button */}
+                        {/* SPEC-33-03 / SPEC-37-01: Reconciled Unacquired Font Indicator and Acquisition Upload Button */}
                         {(() => {
                           const activeEl = liveElements.find((el) => selectedElementIds.includes(el.id));
-                          const isUnacquired =
-                            activeEl?.style?.fontStatus === 'unresolved' ||
-                            (!isFontExportReady(fontFamily) && !getFontDefinition(fontFamily));
+                          if (!activeEl || activeEl.type !== 'text') return null;
+                          const isFontAcquired = isFontExportReady(fontFamily) || Boolean(getFontDefinition(fontFamily));
+                          const isUnacquired = !isFontAcquired;
                           if (!isUnacquired) return null;
                           return (
                             <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-0.5 shrink-0">

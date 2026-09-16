@@ -64,6 +64,7 @@ import {
   PresenterRemoteSession,
   type PresenterRemoteConnectionState,
 } from '@/lib/presenter-remote-client';
+import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import SlideGridDialog from './SlideGridDialog';
 import {
   PRESENTER_TONE_CLASS,
@@ -332,6 +333,7 @@ export default function PresenterOperator({
 
   useEffect(() => {
     let active = true;
+    void hydrateImportedFonts();
     void fetch('/api/background-library', { credentials: 'same-origin' })
       .then(async (res) => {
         if (!res.ok) return null;

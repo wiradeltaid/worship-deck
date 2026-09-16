@@ -1,6 +1,6 @@
 # SPEC-37-03 — PPTX Font Embedding Variant Fallback, License Safety, and Typeface Canonicalization
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build

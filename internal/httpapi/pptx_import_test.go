@@ -1,15 +1,18 @@
 package httpapi
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -232,5 +235,156 @@ func TestImportPptxAtomicRollbackOnPromotionFailure(t *testing.T) {
 	}
 	if len(entries) > 0 {
 		t.Errorf("expected 0 files in uploads directory after rollback, found %d promoted files left behind", len(entries))
+	}
+}
+
+func makeSyntheticCustomFontPPTX(t *testing.T, customFont1, customFont2 string) []byte {
+	t.Helper()
+	buf := new(bytes.Buffer)
+	zw := zip.NewWriter(buf)
+
+	files := map[string]string{
+		"[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+</Types>`,
+		"ppt/presentation.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:sldSz cx="12192000" cy="6858000"/>
+  <p:sldIdLst>
+    <p:sldId id="256" r:id="rId1"/>
+  </p:sldIdLst>
+</p:presentation>`,
+		"ppt/_rels/presentation.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>
+</Relationships>`,
+		"ppt/slides/slide1.xml": fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="AcquiredShape"/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="5000000" cy="1000000"/></a:xfrm>
+        </p:spPr>
+        <p:txBody>
+          <p:p><a:r><a:rPr sz="3200"><a:latin typeface="%s"/></a:rPr><a:t>Acquired Text</a:t></a:r></p:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="UnacquiredShape"/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1000000" y="3000000"/><a:ext cx="5000000" cy="1000000"/></a:xfrm>
+        </p:spPr>
+        <p:txBody>
+          <p:p><a:r><a:rPr sz="3200"><a:latin typeface="%s"/></a:rPr><a:t>Unacquired Text</a:t></a:r></p:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+</p:sld>`, customFont1, customFont2),
+	}
+
+	for name, content := range files {
+		w, err := zw.Create(name)
+		if err != nil {
+			t.Fatalf("failed to create zip entry %s: %v", name, err)
+		}
+		if _, err := w.Write([]byte(content)); err != nil {
+			t.Fatalf("failed to write zip entry %s: %v", name, err)
+		}
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("failed to close zip writer: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestImportPptx_ReconcilesExistingCustomFontsInSQLite(t *testing.T) {
+	srv, adminSess, _ := setupTestServer(t)
+
+	// Pre-seed SQLite font_faces with a custom font from a prior import session
+	_, err := srv.DB.Exec(`
+		INSERT INTO font_faces (id, family, source_typeface, weight, style, format, asset_path, content_hash, is_restricted)
+		VALUES ('font-seed-1', 'Montserrat Custom', 'Montserrat Custom Semibold', '600', 'normal', 'woff2', 'fonts/seed.woff2', 'hash123', 0)
+	`)
+	if err != nil {
+		t.Fatalf("failed to seed font_faces: %v", err)
+	}
+
+	// Slide uses source_typeface "Montserrat Custom Semibold" which matches font_faces.source_typeface
+	// Second text run uses "CompletelyMissingFontXYZ" which is absent from font_faces
+	pptxBytes := makeSyntheticCustomFontPPTX(t, "Montserrat Custom Semibold", "CompletelyMissingFontXYZ")
+	req, _ := makeMultipartRequest(t, "deck.pptx", pptxBytes)
+	req = withSession(req, adminSess)
+	rec := httptest.NewRecorder()
+	srv.importPptx(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		FirstTemplate struct {
+			Layouts struct {
+				Default struct {
+					Elements []struct {
+						Style map[string]any `json:"style"`
+					} `json:"elements"`
+				} `json:"default"`
+			} `json:"layouts"`
+		} `json:"firstTemplate"`
+		Templates []struct {
+			ID    string `json:"id"`
+			Label string `json:"label"`
+		} `json:"templates"`
+		Warnings []string `json:"warnings"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if len(resp.Templates) != 1 {
+		t.Fatalf("expected 1 template, got %d", len(resp.Templates))
+	}
+
+	elements := resp.FirstTemplate.Layouts.Default.Elements
+	if len(elements) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(elements))
+	}
+
+	// 1. First element ("Montserrat Custom Semibold") matches pre-seeded font_faces
+	// Invariant: fontStatus must be reconciled to "uploaded", NOT "unresolved"
+	status1, _ := elements[0].Style["fontStatus"].(string)
+	if status1 != "uploaded" {
+		t.Errorf("expected pre-seeded font to have fontStatus 'uploaded', got %q", status1)
+	}
+
+	// 2. Second element ("CompletelyMissingFontXYZ") was never seeded
+	// Invariant: fontStatus must remain "unresolved"
+	status2, _ := elements[1].Style["fontStatus"].(string)
+	if status2 != "unresolved" {
+		t.Errorf("expected missing font to have fontStatus 'unresolved', got %q", status2)
+	}
+
+	// 3. Invariant: Aggregate warnings must not complain about Montserrat Custom Semibold
+	for _, w := range resp.Warnings {
+		if strings.Contains(w, "Montserrat Custom") {
+			t.Errorf("unexpected warning for pre-seeded font: %s", w)
+		}
+	}
+
+	// 4. Invariant: Aggregate warnings MUST complain about CompletelyMissingFontXYZ
+	foundMissingWarn := false
+	for _, w := range resp.Warnings {
+		if strings.Contains(w, "CompletelyMissingFontXYZ") {
+			foundMissingWarn = true
+			break
+		}
+	}
+	if !foundMissingWarn {
+		t.Errorf("expected unacquired warning for CompletelyMissingFontXYZ in response warnings")
 	}
 }

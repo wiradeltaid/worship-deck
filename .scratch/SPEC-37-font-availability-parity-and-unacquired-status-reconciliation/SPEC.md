@@ -1,6 +1,6 @@
 # SPEC-37 — Cross-Surface Font Availability Parity, Multi-Context Hydration, and Unacquired Font Status Reconciliation
 
-> **Status:** Draft / Open — second-opinion review completed by Terra (`gpt-5.6-terra`); feedback folded in.
+> **Status:** closed — all tickets implemented, verified, and closed.
 > **Review:** 2026-09-16 · baseline `3c9c7c1` · lenses: structure, prose, edge-case-hunter.
 > **Component:** registry, presenter, pptx (`src/components/admin/ArtifactEditor.tsx`, `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, `spa/src/App.tsx`, `src/components/artifacts/ArtifactSlide.tsx`, `src/lib/fonts/embed-fonts.ts`, `src/lib/pptx-draw.ts`, `src/lib/artifacts/render-model.ts`, `src/lib/registry/font-catalog.ts`, `package.json`)
 > **Touches:** artifacts, presenter, pptx, typography

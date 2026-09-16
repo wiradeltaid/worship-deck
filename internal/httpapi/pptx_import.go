@@ -206,6 +206,78 @@ func (s *Server) importPptx(w http.ResponseWriter, r *http.Request) {
 		Payload string
 	}
 
+	// SPEC-37-01: Reconcile unresolved font status against existing SQLite font_faces
+	// If custom fonts in imported slides are already present in font_faces from prior imports,
+	// mark them as uploaded/acquired and remove false unacquired warnings across elements, slides, and result.
+	reconciledWarnings := make(map[string]bool)
+	for _, slide := range parseResult.Slides {
+		for j := range slide.Elements {
+			el := &slide.Elements[j]
+			if el.Type == "text" && el.Style != nil {
+				if status, _ := el.Style["fontStatus"].(string); status == "unresolved" {
+					family, _ := el.Style["fontFamily"].(string)
+					pptxTypeface, _ := el.Style["pptxTypeface"].(string)
+
+					var exists int
+					err := s.DB.QueryRowContext(r.Context(), `
+						SELECT 1 FROM font_faces
+						WHERE (family = ? COLLATE NOCASE OR source_typeface = ? COLLATE NOCASE)
+						   OR (family = ? COLLATE NOCASE OR source_typeface = ? COLLATE NOCASE)
+						LIMIT 1
+					`, family, family, pptxTypeface, pptxTypeface).Scan(&exists)
+					if err == nil && exists == 1 {
+						el.Style["fontStatus"] = "uploaded"
+						warnPrefix := fmt.Sprintf("Custom font '%s' is not embedded in the PPTX package and will require acquisition", family)
+						reconciledWarnings[warnPrefix] = true
+						if len(el.Warnings) > 0 {
+							filtered := make([]string, 0, len(el.Warnings))
+							for _, w := range el.Warnings {
+								if !strings.Contains(w, warnPrefix) {
+									filtered = append(filtered, w)
+								}
+							}
+							el.Warnings = filtered
+						}
+					}
+				}
+			}
+		}
+
+		if len(reconciledWarnings) > 0 && len(slide.Warnings) > 0 {
+			filteredSlideWarns := make([]string, 0, len(slide.Warnings))
+			for _, w := range slide.Warnings {
+				drop := false
+				for prefix := range reconciledWarnings {
+					if strings.Contains(w, prefix) {
+						drop = true
+						break
+					}
+				}
+				if !drop {
+					filteredSlideWarns = append(filteredSlideWarns, w)
+				}
+			}
+			slide.Warnings = filteredSlideWarns
+		}
+	}
+
+	if len(reconciledWarnings) > 0 && len(parseResult.Warnings) > 0 {
+		filteredResultWarns := make([]string, 0, len(parseResult.Warnings))
+		for _, w := range parseResult.Warnings {
+			drop := false
+			for prefix := range reconciledWarnings {
+				if strings.Contains(w, prefix) {
+					drop = true
+					break
+				}
+			}
+			if !drop {
+				filteredResultWarns = append(filteredResultWarns, w)
+			}
+		}
+		parseResult.Warnings = filteredResultWarns
+	}
+
 	staged := make([]stagedTemplate, 0, len(parseResult.Slides))
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 

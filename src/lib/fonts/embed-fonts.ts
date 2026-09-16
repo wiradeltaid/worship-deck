@@ -19,6 +19,7 @@ export interface FontUsageItem {
 export interface FontManifestItem {
   id?: string;
   family: string;
+  sourceTypeface?: string;
   weight?: string;
   style?: string;
   format?: string;
@@ -191,15 +192,47 @@ export async function embedPresentationFonts(
     const family = usage.family;
     const slot = resolveFontVariantKey(usage.weight, usage.style);
 
-    // 1. Check local font manifest first (AD-30 / SPEC-32-02 / SPEC-36-02)
+    // 1. Check local font manifest first (AD-30 / SPEC-32-02 / SPEC-36-02 / SPEC-37-03)
     let manifestMatch: FontManifestItem | undefined;
+    let isFamilyRestricted = false;
     if (Array.isArray(fontManifest)) {
-      // Try exact variant slot match
+      const famLower = family.trim().toLowerCase();
+      // Step A: Attempt exact variant slot match
       manifestMatch = fontManifest.find(
         (m) =>
-          m.family.trim().toLowerCase() === family.toLowerCase() &&
+          !m.restricted &&
+          (m.family.trim().toLowerCase() === famLower ||
+            (m.sourceTypeface && m.sourceTypeface.trim().toLowerCase() === famLower)) &&
           resolveFontVariantKey(m.weight, m.style) === slot
       );
+
+      // Step B: License-aware fallback selection if exact variant slot face does not exist
+      if (!manifestMatch) {
+        // Collect all candidate faces belonging to this family
+        const candidates = fontManifest.filter(
+          (m) =>
+            m.family.trim().toLowerCase() === famLower ||
+            (m.sourceTypeface && m.sourceTypeface.trim().toLowerCase() === famLower)
+        );
+
+        if (candidates.length > 0) {
+          // If all candidate faces are restricted, do not embed and skip (never fall back to catalog)
+          const allRestricted = candidates.every((m) => m.restricted);
+          if (allRestricted) {
+            isFamilyRestricted = true;
+          } else {
+            // Prefer regular face among unrestricted candidates
+            manifestMatch =
+              candidates.find((m) => !m.restricted && resolveFontVariantKey(m.weight, m.style) === 'regular') ||
+              candidates.find((m) => !m.restricted);
+          }
+        }
+      }
+    }
+
+    if (isFamilyRestricted) {
+      console.warn(`[embed-fonts] Font family '${family}' has embedding restricted by license; skipping embedding.`);
+      continue;
     }
 
     if (manifestMatch) {
@@ -210,8 +243,11 @@ export async function embedPresentationFonts(
       if (manifestMatch.path && fs.existsSync(manifestMatch.path)) {
         try {
           const buf = fs.readFileSync(manifestMatch.path);
-          facesToEmbed.push({ family, slot, buffer: buf });
-          embeddedFamilies.add(family);
+          const faceKey = `${family.toLowerCase()}::${slot}`;
+          if (!facesToEmbed.some((f) => `${f.family.toLowerCase()}::${f.slot}` === faceKey)) {
+            facesToEmbed.push({ family, slot, buffer: buf });
+            embeddedFamilies.add(family);
+          }
           continue;
         } catch {}
       }
