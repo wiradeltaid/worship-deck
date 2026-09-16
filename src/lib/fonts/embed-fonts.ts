@@ -157,6 +157,191 @@ interface ResolvedFaceToEmbed {
   family: string;
   slot: FontVariant;
   buffer: Buffer;
+  sourceTypeface?: string;
+}
+
+/**
+ * Builds an uncompressed Embedded OpenType (EOT v2.2) binary (.fntdata)
+ * from a TrueType/OpenType font buffer according to Microsoft OpenType / EOT specification.
+ * Required for native Microsoft PowerPoint Desktop font embedding and DirectWrite rendering.
+ */
+export function buildEot(
+  fontBuffer: Buffer,
+  familyName: string = 'Unknown',
+  styleName: string = 'Regular'
+): Buffer {
+  let usWeightClass = 400;
+  let fsType = 0;
+  let panose = Buffer.alloc(10);
+  let italic = 0;
+  let urange1 = 0, urange2 = 0, urange3 = 0, urange4 = 0;
+  let cprange1 = 0, cprange2 = 0;
+  let chksum = 0;
+  let family = familyName;
+  let style = styleName;
+  let ver = '1.000';
+  let full = `${family} ${style}`;
+
+  // Attempt to parse TTF tables if valid SFNT
+  if (fontBuffer && fontBuffer.length >= 12) {
+    const numTables = fontBuffer.readUInt16BE(4);
+    if (12 + numTables * 16 <= fontBuffer.length) {
+      const tables: Record<string, { offset: number; length: number }> = {};
+      for (let i = 0; i < numTables; i++) {
+        const off = 12 + i * 16;
+        const tag = fontBuffer.toString('latin1', off, off + 4);
+        const toff = fontBuffer.readUInt32BE(off + 8);
+        const tlen = fontBuffer.readUInt32BE(off + 12);
+        tables[tag] = { offset: toff, length: tlen };
+      }
+
+      if (tables['OS/2'] && tables['OS/2'].offset + 86 <= fontBuffer.length) {
+        const os2 = tables['OS/2'].offset;
+        usWeightClass = fontBuffer.readUInt16BE(os2 + 4);
+        fsType = fontBuffer.readUInt16BE(os2 + 8);
+        panose = Buffer.from(fontBuffer.subarray(os2 + 32, os2 + 42));
+        urange1 = fontBuffer.readUInt32BE(os2 + 42);
+        urange2 = fontBuffer.readUInt32BE(os2 + 46);
+        urange3 = fontBuffer.readUInt32BE(os2 + 50);
+        urange4 = fontBuffer.readUInt32BE(os2 + 54);
+        const fsSel = fontBuffer.readUInt16BE(os2 + 62);
+        italic = (fsSel & 1) ? 1 : 0;
+        cprange1 = fontBuffer.readUInt32BE(os2 + 78);
+        cprange2 = fontBuffer.readUInt32BE(os2 + 82);
+      }
+
+      if (tables['head'] && tables['head'].offset + 12 <= fontBuffer.length) {
+        const head = tables['head'].offset;
+        chksum = fontBuffer.readUInt32BE(head + 8);
+      }
+
+      if (tables['name'] && tables['name'].offset + 6 <= fontBuffer.length) {
+        const noff = tables['name'].offset;
+        const nCount = fontBuffer.readUInt16BE(noff + 2);
+        const sOff = fontBuffer.readUInt16BE(noff + 4);
+        const names: Record<number, string> = {};
+        for (let i = 0; i < nCount; i++) {
+          const roff = noff + 6 + i * 12;
+          if (roff + 12 <= fontBuffer.length) {
+            const plat = fontBuffer.readUInt16BE(roff);
+            const enc = fontBuffer.readUInt16BE(roff + 2);
+            const lang = fontBuffer.readUInt16BE(roff + 4);
+            const nid = fontBuffer.readUInt16BE(roff + 6);
+            const slen = fontBuffer.readUInt16BE(roff + 8);
+            const soff = fontBuffer.readUInt16BE(roff + 10);
+            if (plat === 3 && enc === 1 && lang === 1033) {
+              const strStart = noff + sOff + soff;
+              if (strStart + slen <= fontBuffer.length) {
+                const sBytes = Buffer.from(fontBuffer.subarray(strStart, strStart + slen));
+                sBytes.swap16();
+                names[nid] = sBytes.toString('utf16le');
+              }
+            }
+          }
+        }
+        if (names[1] || names[16]) family = names[1] || names[16];
+        if (names[2] || names[17]) style = names[2] || names[17];
+        if (names[5]) ver = names[5];
+        if (names[4]) full = names[4];
+        else full = `${family} ${style}`;
+      }
+    }
+  }
+
+  function makeStrField(s: string): Buffer {
+    const raw = Buffer.from(s, 'utf16le');
+    const lenBuf = Buffer.alloc(2);
+    lenBuf.writeUInt16LE(raw.length, 0);
+    const nullPad = Buffer.from([0, 0]);
+    return Buffer.concat([lenBuf, raw, nullPad]);
+  }
+
+  const strData = Buffer.concat([
+    makeStrField(family),
+    makeStrField(style),
+    makeStrField(ver),
+    makeStrField(full),
+    // Trailing 24 bytes
+    Buffer.from([0, 0]), // RootStringSize = 0
+    Buffer.from([0x42, 0x53, 0x47, 0x50]), // RootStringChecksum = 0x50475342 LE
+    Buffer.from([0xe4, 0x04, 0x00, 0x00]), // EUDCCodePage = 0x000004e4 LE
+    Buffer.alloc(14), // 14 bytes reserved
+  ]);
+
+  const fixedHdrLen = 82;
+  const hdrLen = fixedHdrLen + strData.length;
+  const fontDataSize = fontBuffer.length;
+  const eotSize = hdrLen + fontDataSize;
+
+  const hdr = Buffer.alloc(fixedHdrLen);
+  hdr.writeUInt32LE(eotSize, 0);
+  hdr.writeUInt32LE(fontDataSize, 4);
+  hdr.writeUInt32LE(0x00020002, 8); // Version 2.2
+  hdr.writeUInt32LE(0x00000000, 12); // Flags = uncompressed
+  panose.copy(hdr, 16, 0, 10);
+  hdr.writeUInt8(0, 26); // Charset = 0
+  hdr.writeUInt8(italic, 27);
+  hdr.writeUInt32LE(usWeightClass, 28);
+  hdr.writeUInt16LE(fsType, 32);
+  hdr.writeUInt16LE(0x504c, 34); // MagicNumber 'LP'
+  hdr.writeUInt32LE(urange1, 36);
+  hdr.writeUInt32LE(urange2, 40);
+  hdr.writeUInt32LE(urange3, 44);
+  hdr.writeUInt32LE(urange4, 48);
+  hdr.writeUInt32LE(cprange1, 52);
+  hdr.writeUInt32LE(cprange2, 56);
+  hdr.writeUInt32LE(chksum, 60);
+  hdr.writeUInt32LE(0, 64);
+  hdr.writeUInt32LE(0, 68);
+  hdr.writeUInt32LE(0, 72);
+  hdr.writeUInt32LE(0, 76);
+  hdr.writeUInt16LE(0, 80); // Padding
+
+  return Buffer.concat([hdr, strData, fontBuffer]);
+}
+
+/**
+ * Extracts alternative family and typeface names from TrueType name table (Name ID 1 and 16).
+ */
+export function extractFontAliases(fontBuffer: Buffer, defaultFamily: string): string[] {
+  const aliases = new Set<string>([defaultFamily]);
+  if (!fontBuffer || fontBuffer.length < 12) return Array.from(aliases);
+
+  const numTables = fontBuffer.readUInt16BE(4);
+  if (12 + numTables * 16 > fontBuffer.length) return Array.from(aliases);
+
+  for (let i = 0; i < numTables; i++) {
+    const off = 12 + i * 16;
+    const tag = fontBuffer.toString('latin1', off, off + 4);
+    if (tag === 'name') {
+      const noff = fontBuffer.readUInt32BE(off + 8);
+      if (noff + 6 > fontBuffer.length) break;
+      const nCount = fontBuffer.readUInt16BE(noff + 2);
+      const sOff = fontBuffer.readUInt16BE(noff + 4);
+      for (let j = 0; j < nCount; j++) {
+        const roff = noff + 6 + j * 12;
+        if (roff + 12 > fontBuffer.length) break;
+        const plat = fontBuffer.readUInt16BE(roff);
+        const enc = fontBuffer.readUInt16BE(roff + 2);
+        const lang = fontBuffer.readUInt16BE(roff + 4);
+        const nid = fontBuffer.readUInt16BE(roff + 6);
+        const slen = fontBuffer.readUInt16BE(roff + 8);
+        const soff = fontBuffer.readUInt16BE(roff + 10);
+        if (plat === 3 && enc === 1 && lang === 1033 && (nid === 1 || nid === 16)) {
+          const strStart = noff + sOff + soff;
+          if (strStart + slen <= fontBuffer.length) {
+            const sBytes = Buffer.from(fontBuffer.subarray(strStart, strStart + slen));
+            sBytes.swap16();
+            const name = sBytes.toString('utf16le').trim();
+            if (name) aliases.add(name);
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  return Array.from(aliases);
 }
 
 /**
@@ -245,7 +430,12 @@ export async function embedPresentationFonts(
           const buf = fs.readFileSync(manifestMatch.path);
           const faceKey = `${family.toLowerCase()}::${slot}`;
           if (!facesToEmbed.some((f) => `${f.family.toLowerCase()}::${f.slot}` === faceKey)) {
-            facesToEmbed.push({ family, slot, buffer: buf });
+            facesToEmbed.push({
+              family,
+              slot,
+              buffer: buf,
+              sourceTypeface: manifestMatch.sourceTypeface,
+            });
             embeddedFamilies.add(family);
           }
           continue;
@@ -268,7 +458,7 @@ export async function embedPresentationFonts(
 
   if (facesToEmbed.length === 0) return [];
 
-  // 1. Ensure [Content_Types].xml declares ECMA-376 obfuscatedFont MIME type for odttf
+  // 1. Ensure [Content_Types].xml declares ECMA-376 obfuscatedFont MIME type for odttf AND application/x-fontdata for fntdata
   const contentTypesFile = zip.file('[Content_Types].xml');
   if (contentTypesFile) {
     let ctXml = await contentTypesFile.async('string');
@@ -277,8 +467,14 @@ export async function embedPresentationFonts(
         '</Types>',
         '<Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/></Types>'
       );
-      zip.file('[Content_Types].xml', ctXml);
     }
+    if (!ctXml.includes('Extension="fntdata"')) {
+      ctXml = ctXml.replace(
+        '</Types>',
+        '<Default Extension="fntdata" ContentType="application/x-fontdata"/></Types>'
+      );
+    }
+    zip.file('[Content_Types].xml', ctXml);
   }
 
   // 2. Read ppt/_rels/presentation.xml.rels to register font relationships
@@ -301,29 +497,40 @@ export async function embedPresentationFonts(
       bold?: string;
       italic?: string;
       boldItalic?: string;
+      aliases: Set<string>;
     }
   >();
 
+  let fontCounter = 0;
   for (const face of facesToEmbed) {
     const rId = `rId${++maxId}`;
+    fontCounter++;
+    const fntFileName = `font${fontCounter}.fntdata`;
+    const target = `fonts/${fntFileName}`;
+
+    // 1. Build uncompressed EOT v2.2 binary for native PowerPoint Desktop rendering
+    const eotBuffer = buildEot(face.buffer, face.family, face.slot);
+    zip.file(`ppt/${target}`, eotBuffer);
+
+    // 2. Also package ECMA-376 .odttf with XOR obfuscation for standard conformity
     const rawUuid = crypto.randomUUID().toUpperCase();
-    const fontFileName = `${rawUuid}.odttf`;
-    const target = `fonts/${fontFileName}`;
-
     const key = deriveObfuscationKey(rawUuid);
-    if (!key) {
-      continue;
+    if (key) {
+      const obfuscated = obfuscateFont(face.buffer, key);
+      zip.file(`ppt/fonts/${rawUuid}.odttf`, obfuscated);
     }
-
-    const obfuscated = obfuscateFont(face.buffer, key);
-    zip.file(`ppt/${target}`, obfuscated);
 
     const relTag = `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="${target}"/>`;
     relsXml = relsXml.replace('</Relationships>', `${relTag}</Relationships>`);
 
     let familyGroup = familySlotMap.get(face.family);
     if (!familyGroup) {
-      familyGroup = {};
+      const aliases = new Set<string>([face.family]);
+      if (face.sourceTypeface) aliases.add(face.sourceTypeface);
+      for (const alias of extractFontAliases(face.buffer, face.family)) {
+        aliases.add(alias);
+      }
+      familyGroup = { aliases };
       familySlotMap.set(face.family, familyGroup);
     }
     familyGroup[face.slot] = rId;
@@ -355,10 +562,12 @@ export async function embedPresentationFonts(
       if (slots.bold) slotTags += `<p:bold r:id="${slots.bold}"/>`;
       if (slots.italic) slotTags += `<p:italic r:id="${slots.italic}"/>`;
       if (slots.boldItalic) slotTags += `<p:boldItalic r:id="${slots.boldItalic}"/>`;
-      familyBlocksMap.set(
-        family.toLowerCase(),
-        `<p:embeddedFont><p:font typeface="${escapeXml(family)}"/>${slotTags}</p:embeddedFont>`
-      );
+      for (const typefaceName of slots.aliases) {
+        familyBlocksMap.set(
+          typefaceName.toLowerCase(),
+          `<p:embeddedFont><p:font typeface="${escapeXml(typefaceName)}"/>${slotTags}</p:embeddedFont>`
+        );
+      }
     }
 
     const fontListXml = `<p:embeddedFontLst>${Array.from(familyBlocksMap.values()).join('')}</p:embeddedFontLst>`;
@@ -377,6 +586,13 @@ export async function embedPresentationFonts(
       } else if (presXml.includes('</p:presentation>')) {
         presXml = presXml.replace('</p:presentation>', `${fontListXml}</p:presentation>`);
       }
+    }
+
+    if (!presXml.includes('embedTrueTypeFonts="1"')) {
+      presXml = presXml.replace('<p:presentation ', '<p:presentation embedTrueTypeFonts="1" ');
+    }
+    if (!presXml.includes('saveSubsetFonts="1"')) {
+      presXml = presXml.replace('<p:presentation ', '<p:presentation saveSubsetFonts="1" ');
     }
 
     zip.file('ppt/presentation.xml', presXml);
