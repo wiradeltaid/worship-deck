@@ -1768,7 +1768,7 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-37.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3739,7 +3739,7 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-37.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

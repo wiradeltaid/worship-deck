@@ -1,6 +1,6 @@
 # SPEC-37-01 — Artifact Editor Unacquired Font Warning Logic Correction and Element Status Reconciliation
 
-**Status:** open
+**Status:** closed
 **Blocked by:** none
 
 ## What to build
