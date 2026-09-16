@@ -1781,7 +1781,7 @@ waves:
           - tests/smoke-spec-36.test.mjs
 
   - id: SPEC-37
-    status: open
+    status: closed
     release: font-availability-parity-and-unacquired-status-reconciliation
     prd: [offline-deck]
     fr: [FR-20]
@@ -1805,7 +1805,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-14]
         blocked_by: ["SPEC-37-01"]
-        touches: [presenter, artifacts]
+        touches: [present-channel, artifacts]
         tests:
           - src/operator/present/PresenterOperator.tsx
           - src/projected/ProjectorClient.tsx

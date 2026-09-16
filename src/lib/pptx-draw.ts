@@ -685,7 +685,7 @@ async function postProcessArchive(
   slideIndexes: Set<number>,
   transition: SlideTransition,
   usedFonts?: Iterable<string | FontUsageItem>,
-  fontManifest?: Array<{ family: string; weight?: string; style?: string; path: string }>,
+  fontManifest?: Array<{ family: string; sourceTypeface?: string; weight?: string; style?: string; path: string; restricted?: boolean }>,
   plan?: DrawPlanItem[]
 ): Promise<Buffer> {
   try {
@@ -742,7 +742,7 @@ export async function generatePptxFromPlan(
   serviceDate: string,
   plan: DrawPlanItem[],
   transition: SlideTransition,
-  fontManifest?: Array<{ family: string; weight?: string; style?: string; path: string }>
+  fontManifest?: Array<{ family: string; sourceTypeface?: string; weight?: string; style?: string; path: string; restricted?: boolean }>
 ): Promise<Buffer> {
   const style = transition;
   const embedded = await embedPlanImages(plan);
@@ -764,13 +764,15 @@ export async function generatePptxFromPlan(
   for (const item of plan) {
     renderArtifactSlide(ctx, item.artifact, item.fade !== false);
     for (const el of item.artifact.layout.elements ?? []) {
-      if (el.type === 'text' && el.style?.fontFamily) {
-        const fam = el.style.fontFamily;
-        const weight = String(el.style.fontWeight ?? 'normal');
-        const style = String(el.style.fontStyle ?? 'normal');
-        const key = `${fam.toLowerCase()}::${weight.toLowerCase()}::${style.toLowerCase()}`;
-        if (!usedFonts.has(key)) {
-          usedFonts.set(key, { family: fam, weight, style });
+      if (el.type === 'text') {
+        const fam = resolveFontFamily(el.style);
+        if (fam) {
+          const weight = String(el.style?.fontWeight ?? 'normal');
+          const style = String(el.style?.fontStyle ?? 'normal');
+          const key = `${fam.toLowerCase()}::${weight.toLowerCase()}::${style.toLowerCase()}`;
+          if (!usedFonts.has(key)) {
+            usedFonts.set(key, { family: fam, weight, style });
+          }
         }
       }
     }

@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
+import JSZip from 'jszip';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -29,9 +30,35 @@ const {
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'font-catalog.ts')).href
 );
 
+const {
+  embedPresentationFonts,
+  deriveObfuscationKey,
+  obfuscateFont,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'fonts', 'embed-fonts.ts')).href
+);
+
+const {
+  resolveFontFamily,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'artifacts', 'render-model.ts')).href
+);
+
 const artifactEditorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
 assert.ok(fs.existsSync(artifactEditorPath), 'ArtifactEditor.tsx must exist');
 const editorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
+const pptxDrawPath = path.join(root, 'src', 'lib', 'pptx-draw.ts');
+assert.ok(fs.existsSync(pptxDrawPath), 'pptx-draw.ts must exist');
+const pptxDrawCode = fs.readFileSync(pptxDrawPath, 'utf8');
+
+const { generatePptxFromPlan } = await import(
+  pathToFileURL(pptxDrawPath).href
+);
+
+const fontsGoPath = path.join(root, 'internal', 'httpapi', 'fonts.go');
+assert.ok(fs.existsSync(fontsGoPath), 'fonts.go must exist');
+const fontsGoCode = fs.readFileSync(fontsGoPath, 'utf8');
 
 const pptxImportPath = path.join(root, 'internal', 'httpapi', 'pptx_import.go');
 assert.ok(fs.existsSync(pptxImportPath), 'pptx_import.go must exist');
@@ -329,5 +356,370 @@ test('T-37-02: hydrateImportedFonts single-flight deduplication and defect injec
     assert.equal(p3, 0);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+// --------------------------------------------------------------------------
+// SPEC-37-03: PPTX Font Embedding Variant Fallback, License Safety & Typeface Parity
+// --------------------------------------------------------------------------
+
+test('T-37-03: PPTX generator canonicalizes typeface across text runs and usedFonts', () => {
+  // 1. Used fonts collection must use resolveFontFamily(el.style)
+  assert.ok(
+    pptxDrawCode.includes('const fam = resolveFontFamily(el.style);'),
+    'pptx-draw.ts must use resolveFontFamily(el.style) when gathering usedFonts'
+  );
+
+  // 2. DrawingML text run options must use resolveFontFamily(style)
+  assert.ok(
+    pptxDrawCode.includes('fontFace: resolveFontFamily(style)'),
+    'pptx-draw.ts must set fontFace: resolveFontFamily(style) for text runs'
+  );
+
+  // 3. Behavioral test of resolveFontFamily with pptxTypeface precedence
+  assert.equal(
+    resolveFontFamily({ fontFamily: 'Montserrat', pptxTypeface: 'Montserrat Light' }),
+    'Montserrat Light',
+    'resolveFontFamily must prioritize pptxTypeface when present'
+  );
+  assert.equal(
+    resolveFontFamily({ fontFamily: 'Inter' }),
+    'Inter',
+    'resolveFontFamily must fall back to fontFamily'
+  );
+});
+
+test('T-37-03: License-aware fallback embeds regular face into bold slot when bold face is unacquired', async () => {
+  const testZip = new JSZip();
+  testZip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>'
+  );
+  testZip.file(
+    'ppt/presentation.xml',
+    '<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:notesSz cx="5143500" cy="9144000"/><p:defaultTextStyle/></p:presentation>'
+  );
+  testZip.file(
+    'ppt/_rels/presentation.xml.rels',
+    '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="sample" Target="sample"/></Relationships>'
+  );
+
+  const validTtfHeader = Buffer.from([
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x10,
+    0x00, 0x00, 0x00, 0x00, 0x68, 0x65, 0x61, 0x64,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1c,
+    0x00, 0x00, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x5F, 0x0F, 0x3C, 0xF5,
+    0x00, 0x03, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+  ]);
+
+  const tempDir = fs.mkdtempSync(path.join(root, 'tests', '.tmp-font-37-'));
+  const regPath = path.join(tempDir, 'brand-regular.ttf');
+  fs.writeFileSync(regPath, validTtfHeader);
+
+  try {
+    // Font manifest has ONLY regular face (no bold face uploaded)
+    const fontManifest = [
+      {
+        family: 'BrandFallbackTest',
+        weight: 'normal',
+        style: 'normal',
+        path: regPath,
+        restricted: false,
+      },
+    ];
+
+    // Slide text requests bold formatting
+    const used = [
+      {
+        family: 'BrandFallbackTest',
+        weight: '700',
+        style: 'normal',
+      },
+    ];
+
+    const embedded = await embedPresentationFonts(testZip, used, fontManifest);
+    assert.ok(embedded.includes('BrandFallbackTest'), 'BrandFallbackTest must be embedded using regular fallback');
+
+    const presXml = await testZip.file('ppt/presentation.xml').async('string');
+    // Invariant: <p:font typeface="BrandFallbackTest"/> must be created
+    assert.ok(
+      presXml.includes('typeface="BrandFallbackTest"'),
+      'presentation.xml must contain embeddedFont for BrandFallbackTest'
+    );
+    // Invariant: <p:bold r:id="..."/> must be mapped for the bold slot
+    assert.ok(
+      presXml.includes('<p:bold r:id='),
+      'presentation.xml must map regular face buffer into <p:bold> slot'
+    );
+
+    // Verify .odttf file exists and can be round-trip de-obfuscated
+    const odttfFiles = Object.keys(testZip.files).filter((f) => f.startsWith('ppt/fonts/') && f.endsWith('.odttf'));
+    assert.equal(odttfFiles.length, 1, 'Exactly one .odttf file must be packaged');
+
+    const fileName = path.basename(odttfFiles[0], '.odttf');
+    const key = deriveObfuscationKey(fileName);
+    assert.ok(key, 'Key must be derived from GUID filename');
+
+    const obfuscatedBuf = await testZip.file(odttfFiles[0]).async('nodebuffer');
+    const deobfuscatedBuf = obfuscateFont(obfuscatedBuf, key);
+    assert.deepEqual(
+      deobfuscatedBuf,
+      validTtfHeader,
+      'De-obfuscated font binary must match original font header byte-for-byte'
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('T-37-03: Restricted fonts are never embedded as variant fallbacks', async () => {
+  const testZip = new JSZip();
+  testZip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>'
+  );
+  testZip.file(
+    'ppt/presentation.xml',
+    '<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:notesSz cx="5143500" cy="9144000"/><p:defaultTextStyle/></p:presentation>'
+  );
+  testZip.file(
+    'ppt/_rels/presentation.xml.rels',
+    '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="sample" Target="sample"/></Relationships>'
+  );
+
+  const tempDir = fs.mkdtempSync(path.join(root, 'tests', '.tmp-font-37-restr-'));
+  const regPath = path.join(tempDir, 'restr-regular.ttf');
+  fs.writeFileSync(regPath, Buffer.alloc(64, 0xaa));
+
+  try {
+    // Font manifest has ONLY a restricted face
+    const fontManifest = [
+      {
+        family: 'RestrictedBrandFont',
+        weight: 'normal',
+        style: 'normal',
+        path: regPath,
+        restricted: true,
+      },
+    ];
+
+    const used = [
+      {
+        family: 'RestrictedBrandFont',
+        weight: 'bold',
+        style: 'normal',
+      },
+    ];
+
+    const embedded = await embedPresentationFonts(testZip, used, fontManifest);
+    assert.equal(embedded.length, 0, 'Restricted font must NOT be embedded as a fallback');
+
+    const presXml = await testZip.file('ppt/presentation.xml').async('string');
+    assert.ok(
+      !presXml.includes('RestrictedBrandFont'),
+      'presentation.xml must not contain embeddedFont for restricted font'
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('T-37-03: Source typeface matching in fontManifest resolves custom family correctly', async () => {
+  const testZip = new JSZip();
+  testZip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>'
+  );
+  testZip.file(
+    'ppt/presentation.xml',
+    '<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:notesSz cx="5143500" cy="9144000"/><p:defaultTextStyle/></p:presentation>'
+  );
+  testZip.file(
+    'ppt/_rels/presentation.xml.rels',
+    '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="sample" Target="sample"/></Relationships>'
+  );
+
+  const tempDir = fs.mkdtempSync(path.join(root, 'tests', '.tmp-font-37-src-'));
+  const fontPath = path.join(tempDir, 'light.ttf');
+  fs.writeFileSync(fontPath, Buffer.alloc(64, 0xbb));
+
+  try {
+    // Font manifest with distinct family and sourceTypeface
+    const fontManifest = [
+      {
+        family: 'Montserrat',
+        sourceTypeface: 'Montserrat Light',
+        weight: '300',
+        style: 'normal',
+        path: fontPath,
+        restricted: false,
+      },
+    ];
+
+    // Text run used 'Montserrat Light' as the family
+    const used = [
+      {
+        family: 'Montserrat Light',
+        weight: 'normal',
+        style: 'normal',
+      },
+    ];
+
+    const embedded = await embedPresentationFonts(testZip, used, fontManifest);
+    assert.ok(embedded.includes('Montserrat Light'), 'Must match via sourceTypeface');
+
+    const presXml = await testZip.file('ppt/presentation.xml').async('string');
+    assert.ok(
+      presXml.includes('typeface="Montserrat Light"'),
+      'presentation.xml must contain embeddedFont with matching typeface="Montserrat Light"'
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('T-37-03: fonts.go includes SourceTypeface in FontManifestEntry and selects source_typeface from database', () => {
+  assert.ok(
+    fontsGoCode.includes('SourceTypeface string `json:"sourceTypeface"`'),
+    'fonts.go must expose SourceTypeface in FontManifestEntry struct'
+  );
+  assert.ok(
+    fontsGoCode.includes('SELECT id, family, source_typeface, weight, style, format, asset_path, is_restricted') &&
+      fontsGoCode.includes('SourceTypeface: sourceTypeface,'),
+    'fonts.go must select and map source_typeface from SQLite font_faces into manifest'
+  );
+});
+
+test('T-37-03: Catalog font with all-restricted manifest candidates is never embedded and does not fall through to catalog', async () => {
+  const testZip = new JSZip();
+  testZip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>'
+  );
+  testZip.file(
+    'ppt/presentation.xml',
+    '<?xml version="1.0"?><p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:notesSz cx="5143500" cy="9144000"/><p:defaultTextStyle/></p:presentation>'
+  );
+  testZip.file(
+    'ppt/_rels/presentation.xml.rels',
+    '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="sample" Target="sample"/></Relationships>'
+  );
+
+  const tempDir = fs.mkdtempSync(path.join(root, 'tests', '.tmp-font-37-cat-restr-'));
+  const fontPath = path.join(tempDir, 'inter-restr.ttf');
+  fs.writeFileSync(fontPath, Buffer.alloc(64, 0xcc));
+
+  try {
+    // Inter is a catalog font, but user manifest marks it restricted
+    const fontManifest = [
+      {
+        family: 'Inter',
+        weight: 'normal',
+        style: 'normal',
+        path: fontPath,
+        restricted: true,
+      },
+    ];
+
+    const used = [
+      {
+        family: 'Inter',
+        weight: '700',
+        style: 'normal',
+      },
+    ];
+
+    const embedded = await embedPresentationFonts(testZip, used, fontManifest);
+    assert.equal(embedded.length, 0, 'Restricted catalog font must NOT be embedded or downloaded');
+
+    const presXml = await testZip.file('ppt/presentation.xml').async('string');
+    assert.ok(
+      !presXml.includes('typeface="Inter"'),
+      'presentation.xml must NOT embed Inter when manifest candidates are restricted'
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('T-37-03: End-to-end generatePptxFromPlan aligns DrawingML a:latin with p:font typeface when element has pptxTypeface', async () => {
+  const tempDir = fs.mkdtempSync(path.join(root, 'tests', '.tmp-font-37-e2e-'));
+  const fontPath = path.join(tempDir, 'montserrat-light.ttf');
+  fs.writeFileSync(fontPath, Buffer.alloc(64, 0xdd));
+
+  try {
+    const fontManifest = [
+      {
+        id: 'font-face-e2e-1',
+        family: 'Montserrat',
+        sourceTypeface: 'Montserrat Light',
+        weight: '300',
+        style: 'normal',
+        format: 'ttf',
+        path: fontPath,
+        restricted: false,
+      },
+    ];
+
+    const plan = [
+      {
+        artifact: {
+          schemaVersion: 1,
+          runtimeVersion: 1,
+          instanceId: 'inst-37-e2e',
+          templateId: 'tmpl-37-e2e',
+          label: 'Parity Test Slide',
+          baseType: 'general',
+          layoutKey: 'default',
+          layout: {
+            aspectRatio: '16:9',
+            backgroundColor: '#000000',
+            elements: [
+              {
+                id: 'el-text-e2e',
+                type: 'text',
+                x: 10,
+                y: 10,
+                w: 80,
+                h: 20,
+                text: 'Parity Typography Text',
+                style: {
+                  fontFamily: 'Montserrat',
+                  pptxTypeface: 'Montserrat Light',
+                  fontSize: 28,
+                  fontColor: '#FFFFFF',
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+
+    const buffer = await generatePptxFromPlan('2026-09-16', plan, 'none', fontManifest);
+    assert.ok(buffer && buffer.length > 0, 'PPTX buffer must be generated');
+
+    const zip = await JSZip.loadAsync(buffer);
+
+    // 1. DrawingML in slide1.xml must use typeface="Montserrat Light"
+    const slide1Xml = await zip.file('ppt/slides/slide1.xml').async('string');
+    assert.ok(
+      slide1Xml.includes('typeface="Montserrat Light"'),
+      `slide1.xml DrawingML text run must use typeface="Montserrat Light", got: ${slide1Xml}`
+    );
+
+    // 2. Embedded font in presentation.xml must also use typeface="Montserrat Light"
+    const presXml = await zip.file('ppt/presentation.xml').async('string');
+    assert.ok(
+      presXml.includes('<p:font typeface="Montserrat Light"/>'),
+      `presentation.xml must declare <p:font typeface="Montserrat Light"/>, got: ${presXml}`
+    );
+
+    // 3. Exactly one relationship and .odttf file created for Montserrat Light
+    const odttfFiles = Object.keys(zip.files).filter((f) => f.startsWith('ppt/fonts/') && f.endsWith('.odttf'));
+    assert.equal(odttfFiles.length, 1, 'Exactly one font part must be embedded');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });

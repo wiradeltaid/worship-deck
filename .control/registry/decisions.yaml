@@ -903,7 +903,7 @@ decisions:
       - package.json
   - id: DEC-039
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-16)"
     title: Autopilot mandate for Cross-Surface Font Availability Parity, Multi-Context Hydration, and Unacquired Font Status Reconciliation (SPEC-37)
     file: .control/decisions/DEC-039-autopilot-mandate-font-availability-parity-unacquired-status-reconciliation.md

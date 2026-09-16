@@ -114,18 +114,19 @@ func (s *Server) getFont(w http.ResponseWriter, r *http.Request) {
 }
 
 type FontManifestEntry struct {
-	ID         string `json:"id"`
-	Family     string `json:"family"`
-	Weight     string `json:"weight"`
-	Style      string `json:"style"`
-	Format     string `json:"format"`
-	Path       string `json:"path"`
-	Restricted bool   `json:"restricted"`
+	ID             string `json:"id"`
+	Family         string `json:"family"`
+	SourceTypeface string `json:"sourceTypeface"`
+	Weight         string `json:"weight"`
+	Style          string `json:"style"`
+	Format         string `json:"format"`
+	Path           string `json:"path"`
+	Restricted     bool   `json:"restricted"`
 }
 
 func (s *Server) getFontManifest(ctx context.Context) ([]FontManifestEntry, error) {
 	rows, err := s.DB.QueryContext(ctx, `
-		SELECT id, family, weight, style, format, asset_path, is_restricted
+		SELECT id, family, source_typeface, weight, style, format, asset_path, is_restricted
 		FROM font_faces
 		ORDER BY family, weight, style
 	`)
@@ -137,19 +138,20 @@ func (s *Server) getFontManifest(ctx context.Context) ([]FontManifestEntry, erro
 	fontsDir := filepath.Join(uploadsDir(), "fonts")
 	var manifest []FontManifestEntry
 	for rows.Next() {
-		var id, family, weight, style, format, assetPath string
+		var id, family, sourceTypeface, weight, style, format, assetPath string
 		var restrictedInt int
-		if err := rows.Scan(&id, &family, &weight, &style, &format, &assetPath, &restrictedInt); err != nil {
+		if err := rows.Scan(&id, &family, &sourceTypeface, &weight, &style, &format, &assetPath, &restrictedInt); err != nil {
 			continue
 		}
 		manifest = append(manifest, FontManifestEntry{
-			ID:         id,
-			Family:     family,
-			Weight:     weight,
-			Style:      style,
-			Format:     format,
-			Path:       filepath.Join(fontsDir, filepath.Base(assetPath)),
-			Restricted: restrictedInt != 0,
+			ID:             id,
+			Family:         family,
+			SourceTypeface: sourceTypeface,
+			Weight:         weight,
+			Style:          style,
+			Format:         format,
+			Path:           filepath.Join(fontsDir, filepath.Base(assetPath)),
+			Restricted:     restrictedInt != 0,
 		})
 	}
 	return manifest, nil
