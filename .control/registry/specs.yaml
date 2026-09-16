@@ -1788,6 +1788,10 @@ waves:
     size: M
     depends_on: [SPEC-36]
     spec_folder: .scratch/SPEC-37-font-availability-parity-and-unacquired-status-reconciliation/
+    spec_reviewed:
+      date: '2026-09-16'
+      sha: 'beab1e4'
+      lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-37-01"
         component: registry
@@ -1800,7 +1804,7 @@ waves:
       - id: "SPEC-37-02"
         component: presenter
         satisfies: [UC-12, UC-14]
-        blocked_by: []
+        blocked_by: ["SPEC-37-01"]
         touches: [presenter, artifacts]
         tests:
           - src/operator/present/PresenterOperator.tsx
@@ -1810,7 +1814,7 @@ waves:
       - id: "SPEC-37-03"
         component: pptx
         satisfies: [UC-14]
-        blocked_by: []
+        blocked_by: ["SPEC-37-02"]
         touches: [pptx, artifacts]
         tests:
           - src/lib/fonts/embed-fonts.ts
