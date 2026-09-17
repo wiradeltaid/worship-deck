@@ -1821,6 +1821,49 @@ waves:
           - src/lib/pptx-draw.ts
           - tests/smoke-spec-37.test.mjs
 
+  - id: SPEC-38
+    status: open
+    release: canvas-undo-redo-and-line-unfilled-shape-elements
+    prd: [offline-deck]
+    fr: [FR-20]
+    size: M
+    depends_on: [SPEC-37]
+    spec_folder: .scratch/SPEC-38-canvas-undo-redo-and-line-unfilled-shape-elements/
+    spec_reviewed:
+      date: '2026-09-17'
+      sha: 'd9060a6'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-38-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/smoke-spec-38.test.mjs
+      - id: "SPEC-38-02"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-38-01"]
+        touches: [artifacts]
+        tests:
+          - internal/plan
+          - src/components/admin/ArtifactEditor.tsx
+          - src/lib/registry/types.ts
+          - src/lib/registry/validate.ts
+          - tests/smoke-spec-38.test.mjs
+      - id: "SPEC-38-03"
+        component: pptx
+        satisfies: [UC-6, UC-14]
+        blocked_by: ["SPEC-38-02"]
+        touches: [pptx, artifacts]
+        tests:
+          - src/components/artifacts/ArtifactSlide.tsx
+          - src/lib/pptx-draw.ts
+          - tests/smoke-spec-38.test.mjs
+
+
 
 
 
