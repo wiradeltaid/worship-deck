@@ -646,7 +646,9 @@ export function elementToFabricObject(
       transparentCorners: false,
       data: {
         ...common.data,
+        isTransparentProxy: true,
         imageRef: element.imageRef,
+        style: { ...element.style },
       },
     });
   }
@@ -1382,6 +1384,24 @@ export function serializeCanvas(
         ...(opacity !== undefined ? { opacity } : {}),
         ...(strokeColor ? { strokeColor } : {}),
         ...(typeof strokeWidth === 'number' && strokeWidth > 0 ? { strokeWidth } : {}),
+      };
+      if (Object.keys(mergedStyle).length > 0) {
+        next.style = mergedStyle;
+      } else {
+        delete next.style;
+      }
+    }
+
+    if (source.type === 'image' || source.type === 'image-placeholder') {
+      const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+      const proxyStyle = ((obj as any).data?.style as CanvasElement['style']) || {};
+      const effOpacity = isProxy
+        ? (proxyStyle.opacity ?? source.style?.opacity)
+        : (typeof (obj as any).opacity === 'number' ? (obj as any).opacity : source.style?.opacity);
+
+      const mergedStyle = {
+        ...source.style,
+        ...(typeof effOpacity === 'number' && effOpacity >= 0 && effOpacity <= 1 ? { opacity: effOpacity } : {}),
       };
       if (Object.keys(mergedStyle).length > 0) {
         next.style = mergedStyle;

@@ -39,6 +39,7 @@ function boxStyle(element: ResolvedElement): CSSProperties {
     height: geometry.height,
     fontSize: geometry.fontSize,
     zIndex: typeof element.zIndex === 'number' ? element.zIndex : undefined,
+    opacity: resolveOpacity(element.style),
     // Policy: an element never paints outside its own box. This clips the
     // element's own content only — the box itself is never clamped, so
     // deck-inherited off-canvas geometry survives untouched.

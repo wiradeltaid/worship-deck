@@ -280,12 +280,14 @@ export default function ArtifactEditor({
   const [shapeFill, setShapeFill] = useState('#5C2E16');
   const [strokeColor, setStrokeColor] = useState('#FFFFFF');
   const [strokeWidth, setStrokeWidth] = useState(2);
+  const [elementOpacity, setElementOpacity] = useState(100);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const selectedElementIdsRef = useRef<string[]>(selectedElementIds);
   selectedElementIdsRef.current = selectedElementIds;
   const [selectedTextCount, setSelectedTextCount] = useState(0);
   const [selectedLineCount, setSelectedLineCount] = useState(0);
   const [selectedOutlineShapeCount, setSelectedOutlineShapeCount] = useState(0);
+  const [selectedImageCount, setSelectedImageCount] = useState(0);
   const [textContent, setTextContent] = useState('');
   const [fontUploading, setFontUploading] = useState(false);
   const fontImportInputRef = useRef<HTMLInputElement | null>(null);
@@ -491,6 +493,16 @@ export default function ArtifactEditor({
       setStrokeWidth(sw);
     }
 
+    const images = active.filter((obj) => Boolean((obj as any).data?.imageRef));
+    setSelectedImageCount(images.length);
+    if (images.length > 0) {
+      const imgObj = images[0] as any;
+      const elId = getElementId(imgObj);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
+      const op = typeof liveEl?.style?.opacity === 'number' ? Math.round(liveEl.style.opacity * 100) : 100;
+      setElementOpacity(op);
+    }
+
     const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef);
     const outlineShapes = shapes.filter((obj) => {
       const elId = getElementId(obj);
@@ -519,6 +531,8 @@ export default function ArtifactEditor({
       const isProxy = Boolean((shapeObj as any).data?.isTransparentProxy);
       const effFill = liveEl?.style?.fillColor ?? (shapeObj as any).data?.style?.fillColor ?? (isProxy ? undefined : (shapeObj as any).fill) ?? '#5C2E16';
       setShapeFill(toStrictHexColor(effFill, '#5C2E16') ?? '#5C2E16');
+      const op = typeof liveEl?.style?.opacity === 'number' ? Math.round(liveEl.style.opacity * 100) : 100;
+      setElementOpacity(op);
     }
   }, []);
 
@@ -3050,6 +3064,42 @@ export default function ArtifactEditor({
     [selectedElementIds, markDirty, recordUndo]
   );
 
+  const handleSetOpacity = useCallback(
+    (opacityPercent: number) => {
+      recordUndo();
+      const clampedPercent = Math.max(0, Math.min(100, Math.round(opacityPercent)));
+      setElementOpacity(clampedPercent);
+      const opDec = Number((clampedPercent / 100).toFixed(2));
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              opacity: opDec,
+            },
+          };
+        })
+      );
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      for (const obj of canvas.getActiveObjects()) {
+        const id = getElementId(obj);
+        if (id && selectedElementIds.includes(id)) {
+          const d = ((obj as any).data = (obj as any).data || {});
+          d.style = { ...(d.style || {}), opacity: opDec };
+          if (!d.isTransparentProxy) {
+            obj.set({ opacity: opDec });
+          }
+        }
+      }
+      canvas.requestRenderAll();
+      markDirty();
+    },
+    [selectedElementIds, markDirty, recordUndo]
+  );
+
   const handleStrokeColorChange = useCallback(
     (color: string) => {
       recordUndo();
@@ -5031,15 +5081,28 @@ export default function ArtifactEditor({
                         </div>
                       </div>
                     </>
-                  ) : fabricCanvasRef.current?.getActiveObjects().some((o) => Boolean((o as any).data?.imageRef)) ? (
+                  ) : fabricCanvasRef.current?.getActiveObjects().some((o) => Boolean((o as any).data?.imageRef)) || selectedImageCount > 0 ? (
                     <>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs italic">
-                          Properties (Image): No properties to change
+                      <div className="flex items-center gap-3 overflow-x-auto overflow-y-hidden shrink-0 flex-nowrap py-0.5">
+                        <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-[10px] font-medium font-mono text-accent-foreground uppercase">
+                          IMAGE
                         </span>
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          Opacity:
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={elementOpacity}
+                            onChange={(e) => handleSetOpacity(Number(e.target.value))}
+                            className="w-20 h-3 accent-primary cursor-pointer"
+                            title={`Opacity: ${elementOpacity}%`}
+                          />
+                          <span className="font-mono text-xs w-9 text-right">{elementOpacity}%</span>
+                        </Label>
                       </div>
                       <div className="flex items-center text-[11px] text-muted-foreground">
-                        <span>Aspect ratio locked on corner handles • Use Context Menu or Del to remove</span>
+                        <span>Aspect ratio locked • Adjust opacity or use Context Menu to reorder / delete</span>
                       </div>
                     </>
                   ) : selectedLineCount > 0 ? (
@@ -5112,7 +5175,7 @@ export default function ArtifactEditor({
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3 overflow-x-auto overflow-y-hidden shrink-0 flex-nowrap py-0.5">
                         <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-[10px] font-medium font-mono text-accent-foreground uppercase">
                           SHAPE
                         </span>
@@ -5124,6 +5187,19 @@ export default function ArtifactEditor({
                             onChange={(e) => handleSetShapeFill(e.target.value)}
                             className="w-5 h-5 bg-transparent border-0 cursor-pointer rounded"
                           />
+                        </Label>
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          Opacity:
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={elementOpacity}
+                            onChange={(e) => handleSetOpacity(Number(e.target.value))}
+                            className="w-20 h-3 accent-primary cursor-pointer"
+                            title={`Opacity: ${elementOpacity}%`}
+                          />
+                          <span className="font-mono text-xs w-9 text-right">{elementOpacity}%</span>
                         </Label>
                       </div>
                       <div className="flex items-center text-[11px] text-muted-foreground">

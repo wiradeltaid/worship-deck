@@ -377,6 +377,7 @@ function renderImageElement(
       data,
       ...box,
       sizing: { type: resolveObjectFit(element.style), w: box.w, h: box.h },
+      transparency: toPptxTransparency(element.style),
     });
   } catch {
     addImageUnavailable(slide, box);

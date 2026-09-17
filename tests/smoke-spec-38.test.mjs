@@ -1016,3 +1016,37 @@ test('SPEC-38-03: Absence Guard 3 — serializeCanvas must persist strokeColor a
     /ABSENCE_DEFECT: serializeCanvas lacks strokeColor\/strokeWidth persistence for lines\/shapes/
   );
 });
+
+test('FEAT: serializeCanvas and pptx-draw support opacity for filled shapes and images', () => {
+  const currentSlideCode = fs.readFileSync(artifactSlidePath, 'utf8');
+  const currentPptxCode = fs.readFileSync(pptxDrawPath, 'utf8');
+  const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+  const currentCanvasUtils = fs.readFileSync(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts'), 'utf8');
+
+  // 1. ArtifactSlide applies opacity to elements via boxStyle
+  assert.ok(
+    currentSlideCode.includes('opacity: resolveOpacity(element.style)'),
+    'ArtifactSlide boxStyle must apply opacity to element boxes'
+  );
+
+  // 2. pptx-draw passes transparency to addImage
+  assert.ok(
+    currentPptxCode.includes('transparency: toPptxTransparency(element.style)'),
+    'pptx-draw must map element opacity to image transparency'
+  );
+
+  // 3. ArtifactEditor provides Opacity slider for SHAPE and IMAGE
+  assert.ok(
+    currentEditorCode.includes('handleSetOpacity') &&
+    currentEditorCode.includes('selectedImageCount') &&
+    currentEditorCode.includes('title={`Opacity: ${elementOpacity}%`}'),
+    'ArtifactEditor must provide opacity controls for shape and image'
+  );
+
+  // 4. serializeCanvas persists opacity for image elements
+  assert.ok(
+    currentCanvasUtils.includes("source.type === 'image' || source.type === 'image-placeholder'") &&
+    currentCanvasUtils.includes('opacity: effOpacity'),
+    'serializeCanvas must serialize opacity for image elements'
+  );
+});
