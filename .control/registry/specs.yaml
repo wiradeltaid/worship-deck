@@ -41,7 +41,7 @@ waves:
     fr: [FR-14]
     size: L
     depends_on: [W1]
-    spec_folder: _bmad-output/specs/spec-w2-hub/
+    spec_folder: .archive/specs/spec-w2-hub/
     spec_reviewed:
       date: '2026-08-21'
       sha: '4d5128fb6b060a10b732550b9d67f79c4b2eafdf'
