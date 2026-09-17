@@ -5,9 +5,9 @@ Provide an in-memory session undo and redo history mechanism in `src/components/
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Define comprehensive snapshot state in `ArtifactEditor.tsx`:
+- [x] Define comprehensive snapshot state in `ArtifactEditor.tsx`:
   ```ts
   type CanvasHistorySnapshot = {
     elements: CanvasElement[];
@@ -18,9 +18,9 @@ Provide an in-memory session undo and redo history mechanism in `src/components/
     isDirty: boolean;
   };
   ```
-- [ ] Maintain `undoStackRef` and `redoStackRef` storing immutable snapshots (capped at 50 depth).
-- [ ] Capture baseline state prior to transform modifications (`mouse:down` on canvas target / `before:transform`) so `object:modified` commits a complete discrete undoable change.
-- [ ] Push a snapshot to `undoStack` on discrete user actions:
+- [x] Maintain `undoStackRef` and `redoStackRef` storing immutable snapshots (capped at 50 depth).
+- [x] Capture baseline state prior to transform modifications (`mouse:down` on canvas target / `before:transform`) so `object:modified` commits a complete discrete undoable change.
+- [x] Push a snapshot to `undoStack` on discrete user actions:
   - Element added (`insertElement`, `insertDrawnElement`)
   - Element deleted (Del key or context menu `handleDeleteElement`)
   - Element duplicated (`handleDuplicateSelected`)
@@ -29,14 +29,14 @@ Provide an in-memory session undo and redo history mechanism in `src/components/
   - Text content committed (on blur / exit edit)
   - Layer reordered (`handleReorderLayer`)
   - Slide background changed (`handleChangeBackgroundUrl`, color change)
-- [ ] Clear `redoStack` whenever a new user change occurs after an undo.
-- [ ] Guard snapshot restoration with `isRestoringHistoryRef`: suppress Fabric canvas mutation listeners (`object:added`, `object:removed`, `object:modified`) during undo/redo restoration to prevent recursive history recording or spurious dirty marks.
-- [ ] Reset both `undoStack` and `redoStack` to empty on:
+- [x] Clear `redoStack` whenever a new user change occurs after an undo.
+- [x] Guard snapshot restoration with `isRestoringHistoryRef`: suppress Fabric canvas mutation listeners (`object:added`, `object:removed`, `object:modified`) during undo/redo restoration to prevent recursive history recording or spurious dirty marks.
+- [x] Reset both `undoStack` and `redoStack` to empty on:
   1. Slide switch in sidebar / template load (`selectedId` change, `loadTemplate`), ensuring zero cross-slide undo leakage.
   2. Discard changes (`handleReset`), preventing resurrection of discarded drafts.
-- [ ] Add Undo and Redo buttons to the editor toolbar:
+- [x] Add Undo and Redo buttons to the editor toolbar:
   - Undo button with Lucide `Undo2` icon, disabled when `undoStack.length === 0`.
   - Redo button with Lucide `Redo2` icon, disabled when `redoStack.length === 0`.
-- [ ] Add global keyboard shortcuts for `Ctrl+Z` / `Cmd+Z` (undo) and `Ctrl+Y` / `Ctrl+Shift+Z` / `Cmd+Shift+Z` (redo):
+- [x] Add global keyboard shortcuts for `Ctrl+Z` / `Cmd+Z` (undo) and `Ctrl+Y` / `Ctrl+Shift+Z` / `Cmd+Shift+Z` (redo):
   - Guard against execution when focusing `<input>`, `<textarea>`, or when Fabric text object is in editing mode (`getActiveObjects().some(obj => (obj as any).isEditing)`).
-- [ ] Add unit tests in `tests/smoke-spec-38.test.mjs` verifying undo/redo stack transitions, button disabled states, reset on slide switch, and reset on `handleReset`.
+- [x] Add unit tests in `tests/smoke-spec-38.test.mjs` verifying undo/redo stack transitions, button disabled states, reset on slide switch, and reset on `handleReset`.

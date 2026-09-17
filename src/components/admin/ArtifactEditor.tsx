@@ -13,11 +13,13 @@ import {
   Italic,
   MoveVertical,
   Plus,
+  Redo2,
   SendToBack,
   Square,
   Trash2,
   Type,
   Underline,
+  Undo2,
   Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -208,7 +210,16 @@ export {
   serializeTextStyle,
 };
 
-export interface ArtifactEditorProps {
+export type CanvasHistorySnapshot = {
+  elements: CanvasElement[];
+  addedElements: Map<string, CanvasElement>;
+  addedPlaceholders: Map<string, PlaceholderDefinition>;
+  backgroundColor: string;
+  backgroundImage?: string;
+  isDirty: boolean;
+};
+
+interface ArtifactEditorProps {
   adapter?: ArtifactEditorAdapter;
   initialSelectedId?: string | null;
   copiedSlidePayload?: CopiedSlide | null;
@@ -379,6 +390,19 @@ export default function ArtifactEditor({
   const isHealingOnlyRef = useRef(false);
   const { setIsBlocked } = useNavigationBlocker();
 
+  const [undoStack, setUndoStack] = useState<CanvasHistorySnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<CanvasHistorySnapshot[]>([]);
+  const undoStackRef = useRef<CanvasHistorySnapshot[]>([]);
+  undoStackRef.current = undoStack;
+  const redoStackRef = useRef<CanvasHistorySnapshot[]>([]);
+  redoStackRef.current = redoStack;
+  const [isRestoringHistory, setIsRestoringHistory] = useState(false);
+  const isRestoringHistoryRef = useRef(false);
+  const pendingBaselineSnapshotRef = useRef<CanvasHistorySnapshot | null>(null);
+  const pendingTextBaselineRef = useRef<CanvasHistorySnapshot | null>(null);
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+
   const busy =
     status === 'loading' ||
     status === 'saving' ||
@@ -390,6 +414,7 @@ export default function ArtifactEditor({
 
   /** SPEC-24-02: Atomic user mutation guard: transition form to dirty and reset healing flag */
   const markUserDirty = useCallback(() => {
+    if (isRestoringHistoryRef.current) return;
     isHealingOnlyRef.current = false;
     setIsDirty((current) => nextDirtyState(current, 'mutated'));
   }, []);
@@ -455,6 +480,152 @@ export default function ArtifactEditor({
     }
   }, []);
 
+  const isEditable = template ? isCanvasAuthorable(template.baseType) : false;
+
+  const takeSnapshot = useCallback((): CanvasHistorySnapshot | null => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !template) return null;
+    const layout = getEditableLayout(template);
+    if (!layout) return null;
+    const serialized = serializeCanvas(
+      canvas,
+      layout,
+      addedElementsRef.current,
+      { isHealingSave: false }
+    );
+    return {
+      elements: JSON.parse(JSON.stringify(serialized)),
+      addedElements: new Map(addedElementsRef.current),
+      addedPlaceholders: new Map(addedPlaceholdersRef.current),
+      backgroundColor: layout.backgroundColor || '#000000',
+      backgroundImage: layout.backgroundImage,
+      isDirty: isDirtyRef.current,
+    };
+  }, [template]);
+
+  const pushUndoSnapshot = useCallback((snapshot: CanvasHistorySnapshot) => {
+    setUndoStack((prev) => {
+      const next = [...prev, snapshot];
+      if (next.length > 50) next.shift();
+      undoStackRef.current = next;
+      return next;
+    });
+    setRedoStack([]);
+    redoStackRef.current = [];
+  }, []);
+
+  const recordUndo = useCallback(() => {
+    if (isRestoringHistoryRef.current) return;
+    const snapshot = takeSnapshot();
+    if (snapshot) {
+      pushUndoSnapshot(snapshot);
+    }
+  }, [takeSnapshot, pushUndoSnapshot]);
+
+  const restoreSnapshot = useCallback(
+    async (snapshot: CanvasHistorySnapshot) => {
+      isRestoringHistoryRef.current = true;
+      const canvas = fabricCanvasRef.current;
+      if (!canvas || !template) return;
+      const layout = getEditableLayout(template);
+      if (!layout) return;
+      const fabric = await import('fabric');
+
+      try {
+        canvas.discardActiveObject();
+        const objects = canvas.getObjects();
+        for (const obj of objects) {
+          canvas.remove(obj);
+        }
+
+        addedElementsRef.current = new Map(snapshot.addedElements);
+        addedPlaceholdersRef.current = new Map(snapshot.addedPlaceholders);
+
+        layout.elements = JSON.parse(JSON.stringify(snapshot.elements));
+        layout.backgroundColor = snapshot.backgroundColor;
+        if (snapshot.backgroundImage) {
+          layout.backgroundImage = snapshot.backgroundImage;
+        } else {
+          delete layout.backgroundImage;
+        }
+
+        const painted = [...snapshot.elements]
+          .map((element, index) => ({ element, index }))
+          .sort((a, b) => a.element.zIndex - b.element.zIndex || a.index - b.index);
+
+        for (const { element } of painted) {
+          canvas.add(elementToFabricObject(fabric, element, true, { transparentProxy: true }));
+        }
+
+        setLiveElements(snapshot.elements);
+        setIsDirty(snapshot.isDirty);
+        syncSelection(canvas);
+        canvas.requestRenderAll();
+      } finally {
+        setTimeout(() => {
+          isRestoringHistoryRef.current = false;
+        }, 0);
+      }
+    },
+    [template, syncSelection]
+  );
+
+  const handleUndo = useCallback(async () => {
+    if (busy || !isEditable || isRestoringHistoryRef.current) return;
+    const currentUndo = undoStackRef.current;
+    if (currentUndo.length === 0) return;
+
+    const currentSnapshot = takeSnapshot();
+    if (!currentSnapshot) return;
+
+    isRestoringHistoryRef.current = true;
+    setIsRestoringHistory(true);
+
+    try {
+      const targetSnapshot = currentUndo[currentUndo.length - 1];
+      const nextUndo = currentUndo.slice(0, -1);
+      const nextRedo = [...redoStackRef.current, currentSnapshot];
+
+      undoStackRef.current = nextUndo;
+      redoStackRef.current = nextRedo;
+      setUndoStack(nextUndo);
+      setRedoStack(nextRedo);
+
+      await restoreSnapshot(targetSnapshot);
+    } finally {
+      isRestoringHistoryRef.current = false;
+      setIsRestoringHistory(false);
+    }
+  }, [busy, isEditable, takeSnapshot, restoreSnapshot]);
+
+  const handleRedo = useCallback(async () => {
+    if (busy || !isEditable || isRestoringHistoryRef.current) return;
+    const currentRedo = redoStackRef.current;
+    if (currentRedo.length === 0) return;
+
+    const currentSnapshot = takeSnapshot();
+    if (!currentSnapshot) return;
+
+    isRestoringHistoryRef.current = true;
+    setIsRestoringHistory(true);
+
+    try {
+      const targetSnapshot = currentRedo[currentRedo.length - 1];
+      const nextRedo = currentRedo.slice(0, -1);
+      const nextUndo = [...undoStackRef.current, currentSnapshot];
+
+      undoStackRef.current = nextUndo;
+      redoStackRef.current = nextRedo;
+      setUndoStack(nextUndo);
+      setRedoStack(nextRedo);
+
+      await restoreSnapshot(targetSnapshot);
+    } finally {
+      isRestoringHistoryRef.current = false;
+      setIsRestoringHistory(false);
+    }
+  }, [busy, isEditable, takeSnapshot, restoreSnapshot]);
+
   const loadList = useCallback(async () => {
     const summaries = await adapter.list();
     setTemplates(summaries);
@@ -465,6 +636,12 @@ export default function ArtifactEditor({
     setStatus('loading');
     setMessage(null);
     const data = await adapter.getOne(id);
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    setUndoStack([]);
+    setRedoStack([]);
+    pendingBaselineSnapshotRef.current = null;
+    pendingTextBaselineRef.current = null;
     setTemplate(data);
     setDraftLabel(typeof data.label === 'string' ? data.label : '');
     // A new server copy remounts the canvas, and a freshly mounted canvas is
@@ -659,8 +836,21 @@ export default function ArtifactEditor({
       canvas.on('selection:updated', onSelectionChange);
       canvas.on('selection:cleared', onSelectionChange);
 
+      const onBeforeTransform = () => {
+        if (!isRestoringHistoryRef.current && !pendingBaselineSnapshotRef.current) {
+          pendingBaselineSnapshotRef.current = takeSnapshot();
+        }
+      };
+      canvas.on('before:transform' as any, onBeforeTransform);
+
       let dragStart: { x: number; y: number } | null = null;
       const onMouseDown = (opt: any) => {
+        if (!drawingToolRef.current && !isRestoringHistoryRef.current && !pendingBaselineSnapshotRef.current) {
+          const target = canvas.findTarget?.(opt.e) || canvas.getActiveObject();
+          if (target) {
+            pendingBaselineSnapshotRef.current = takeSnapshot();
+          }
+        }
         const tool = drawingToolRef.current;
         if (!tool) return;
         const pointer = canvas.getScenePoint(opt.e);
@@ -711,6 +901,11 @@ export default function ArtifactEditor({
         canvas.requestRenderAll();
       };
       const onMouseUp = (opt: any) => {
+        if (!isRestoringHistoryRef.current && pendingBaselineSnapshotRef.current) {
+          setTimeout(() => {
+            pendingBaselineSnapshotRef.current = null;
+          }, 50);
+        }
         const tool = drawingToolRef.current;
         if (previewShapeRef.current) {
           canvas.remove(previewShapeRef.current);
@@ -757,6 +952,7 @@ export default function ArtifactEditor({
 
       // SPEC-14-01 / SPEC-26-02 / SPEC-27-02: On active object moving, synchronize clipPath coordinates & live elements
       const onObjectMoving = (opt: any) => {
+        if (isRestoringHistoryRef.current) return;
         markUserDirty();
         const target = opt.target;
         if (target) {
@@ -787,6 +983,7 @@ export default function ArtifactEditor({
 
       // SPEC-15-01 / SPEC-26-02 / SPEC-27-02 / SPEC-28-03: On active object scaling, synchronize clipPath coordinates, dimensions & live elements
       const onObjectScaling = (opt: any) => {
+        if (isRestoringHistoryRef.current) return;
         markUserDirty();
         const target = opt.target;
         if (target) {
@@ -890,6 +1087,11 @@ export default function ArtifactEditor({
 
       // SPEC-13-03 / SPEC-26-02 / SPEC-27-02 / SPEC-28-03: On object scaling/modification, recalculate fit & sync live elements
       const onObjectModified = (opt: any) => {
+        if (isRestoringHistoryRef.current) return;
+        if (pendingBaselineSnapshotRef.current) {
+          pushUndoSnapshot(pendingBaselineSnapshotRef.current);
+          pendingBaselineSnapshotRef.current = null;
+        }
         markUserDirty();
         const target = opt.target;
         const action = opt?.action || opt?.transform?.action;
@@ -959,6 +1161,7 @@ export default function ArtifactEditor({
       canvas.on('object:modified', onObjectModified);
 
       const onTextChanged = (opt: any) => {
+        if (isRestoringHistoryRef.current) return;
         markUserDirty();
         const target = opt.target;
         const targetData = target ? ((target as any).data = (target as any).data || {}) : null;
@@ -1060,6 +1263,20 @@ export default function ArtifactEditor({
       };
       canvas.on('text:changed', onTextChanged);
 
+      const onTextEditingEntered = () => {
+        if (!isRestoringHistoryRef.current && !pendingTextBaselineRef.current) {
+          pendingTextBaselineRef.current = takeSnapshot();
+        }
+      };
+      const onTextEditingExited = () => {
+        if (!isRestoringHistoryRef.current && pendingTextBaselineRef.current) {
+          pushUndoSnapshot(pendingTextBaselineRef.current);
+          pendingTextBaselineRef.current = null;
+        }
+      };
+      canvas.on('text:editing:entered' as any, onTextEditingEntered);
+      canvas.on('text:editing:exited' as any, onTextEditingExited);
+
       // Registered here and not one line earlier: the paint loop above calls
       // `canvas.add()` for every seed element, and `canvas.add()` fires
       // `object:added`. Attached any sooner, a fresh mount would mark itself
@@ -1071,6 +1288,7 @@ export default function ArtifactEditor({
         canvas.off('selection:created', onSelectionChange);
         canvas.off('selection:updated', onSelectionChange);
         canvas.off('selection:cleared', onSelectionChange);
+        canvas.off('before:transform' as any, onBeforeTransform);
         canvas.off('mouse:down', onMouseDown);
         canvas.off('mouse:move', onMouseMove);
         canvas.off('mouse:up', onMouseUp);
@@ -1079,6 +1297,8 @@ export default function ArtifactEditor({
         canvas.off('object:resizing', markUserDirty);
         canvas.off('object:modified', onObjectModified);
         canvas.off('text:changed', onTextChanged);
+        canvas.off('text:editing:entered' as any, onTextEditingEntered);
+        canvas.off('text:editing:exited' as any, onTextEditingExited);
         upperCanvasEl?.removeEventListener('contextmenu', onNativeContextMenu);
         for (const event of CANVAS_MUTATION_EVENTS) {
           canvas.off(event, markDirty);
@@ -1128,6 +1348,8 @@ export default function ArtifactEditor({
       const canvas = fabricCanvasRef.current;
       const layout = template ? getEditableLayout(template) : null;
       if (!canvas || !layout) return;
+
+      recordUndo();
 
       const usedIds = new Set<string>([
         ...layout.elements.map((e) => e.id),
@@ -1207,6 +1429,8 @@ export default function ArtifactEditor({
         }
       }
 
+      recordUndo();
+
       // In Option A, ArtifactSlide (Visual Layer) renders the background image.
       // Fabric canvas overlay remains completely transparent.
       canvas.backgroundImage = undefined;
@@ -1252,6 +1476,8 @@ export default function ArtifactEditor({
       const canvas = fabricCanvasRef.current;
       const layout = template ? getEditableLayout(template) : null;
       if (!canvas || !layout) return;
+
+      recordUndo();
 
       const usedIds = new Set<string>([
         ...layout.elements.map((e) => e.id),
@@ -1344,6 +1570,8 @@ export default function ArtifactEditor({
         return;
       }
 
+      recordUndo();
+
       const usedIds = new Set<string>([
         ...layout.elements.map((e) => e.id),
         ...addedElementsRef.current.keys(),
@@ -1412,6 +1640,7 @@ export default function ArtifactEditor({
         return action === 'forward' || action === 'front' ? idxB - idxA : idxA - idxB;
       });
 
+      recordUndo();
       let changed = false;
       for (const obj of sorted) {
         if (action === 'forward') {
@@ -1444,6 +1673,7 @@ export default function ArtifactEditor({
       const alreadyDeclared =
         template.placeholders.some((placeholder) => placeholder.key === key) ||
         addedPlaceholdersRef.current.has(key);
+      recordUndo();
       if (!alreadyDeclared) {
         addedPlaceholdersRef.current.set(key, {
           key: entry.key,
@@ -1538,6 +1768,7 @@ export default function ArtifactEditor({
     }
 
     if (removable.length > 0) {
+      recordUndo();
       canvas.discardActiveObject();
       canvas.remove(...removable);
       const removedIds = new Set<string>();
@@ -1576,6 +1807,54 @@ export default function ArtifactEditor({
         setDrawingTool(null);
         return;
       }
+
+      // Session Undo/Redo shortcuts (Ctrl+Z / Cmd+Z, Ctrl+Y / Cmd+Y, Ctrl+Shift+Z / Cmd+Shift+Z)
+      const isUndo = (e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey;
+      const isRedo =
+        ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'));
+
+      if (isUndo || isRedo) {
+        const activeEl = document.activeElement;
+        if (
+          activeEl instanceof HTMLInputElement ||
+          activeEl instanceof HTMLTextAreaElement ||
+          (activeEl instanceof HTMLElement && activeEl.isContentEditable) ||
+          activeEl instanceof HTMLButtonElement ||
+          activeEl?.getAttribute('role') === 'button'
+        ) {
+          return;
+        }
+
+        const shell = canvasShellRef.current;
+        const isCanvasFocused =
+          shell &&
+          (shell.contains(activeEl) || activeEl === document.body || activeEl === null);
+        if (!isCanvasFocused) return;
+
+        const canvas = fabricCanvasRef.current;
+        if (!canvas) return;
+
+        const activeObjects = canvas.getActiveObjects();
+        const isTextEditing = activeObjects.some((obj) => (obj as any).isEditing === true);
+        if (isTextEditing) return;
+
+        const canUndo = !busy && isEditable && !isRestoringHistoryRef.current && undoStackRef.current.length > 0;
+        const canRedo = !busy && isEditable && !isRestoringHistoryRef.current && redoStackRef.current.length > 0;
+
+        if (isUndo && canUndo) {
+          e.preventDefault();
+          void handleUndo();
+          return;
+        }
+        if (isRedo && canRedo) {
+          e.preventDefault();
+          void handleRedo();
+          return;
+        }
+        return;
+      }
+
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
 
       const activeEl = document.activeElement;
@@ -1612,7 +1891,7 @@ export default function ArtifactEditor({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleDeleteSelected]);
+  }, [handleDeleteSelected, handleUndo, handleRedo]);
 
   const handleDuplicateSelected = useCallback(async () => {
     const canvas = fabricCanvasRef.current;
@@ -1632,6 +1911,7 @@ export default function ArtifactEditor({
 
     const fabric = await import('fabric');
     if (fabricCanvasRef.current !== canvas) return;
+    recordUndo();
 
     const usedIds = new Set<string>([
       ...layout.elements.map((e) => e.id),
@@ -1785,6 +2065,7 @@ export default function ArtifactEditor({
   };
 
   const handleFontColorChange = (color: string) => {
+    recordUndo();
     setFontColor(color);
     setLiveElements((prev) =>
       prev.map((el) => {
@@ -1816,6 +2097,7 @@ export default function ArtifactEditor({
 
   const handleFontFamilyChange = async (family: string | null) => {
     if (!family) return;
+    recordUndo();
     setFontFamily(family);
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
@@ -2041,6 +2323,7 @@ export default function ArtifactEditor({
     if (!canvas) return;
     const texts = canvas.getActiveObjects().filter(isFabricTextObject);
     if (texts.length === 0) return;
+    recordUndo();
     const nextWeight: 'normal' | 'bold' = fontWeight === 'bold' ? 'normal' : 'bold';
     setFontWeight(nextWeight);
     setLiveElements((prev) =>
@@ -2066,6 +2349,7 @@ export default function ArtifactEditor({
     if (!canvas) return;
     const texts = canvas.getActiveObjects().filter(isFabricTextObject);
     if (texts.length === 0) return;
+    recordUndo();
     const nextStyle: 'normal' | 'italic' = fontStyle === 'italic' ? 'normal' : 'italic';
     setFontStyle(nextStyle);
     setLiveElements((prev) =>
@@ -2088,6 +2372,7 @@ export default function ArtifactEditor({
 
   const handleLetterSpacingChange = useCallback(
     (valStr: string) => {
+      recordUndo();
       setLetterSpacingInput(valStr);
       const parsed = parseFloat(valStr);
       const newSpacing = Number.isFinite(parsed) ? parsed : undefined;
@@ -2139,6 +2424,7 @@ export default function ArtifactEditor({
     if (!canvas) return;
     const texts = canvas.getActiveObjects().filter(isFabricTextObject);
     if (texts.length === 0) return;
+    recordUndo();
     const nextUnderline = !underline;
     setUnderline(nextUnderline);
     setLiveElements((prev) =>
@@ -2164,6 +2450,7 @@ export default function ArtifactEditor({
 
   const handleLineHeightChange = useCallback(
     (val: number) => {
+      recordUndo();
       const clamped = Math.max(0.8, Math.min(2.5, Number(val.toFixed(2))));
       setLineHeight(clamped);
       setLiveElements((prev) =>
@@ -2197,6 +2484,7 @@ export default function ArtifactEditor({
   const handleToggleTextShadow = useCallback(async () => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
+    recordUndo();
     const fabric = await import('fabric');
     const nextShadow = !textShadow;
     setTextShadow(nextShadow);
@@ -2228,6 +2516,7 @@ export default function ArtifactEditor({
 
   const handleShadowBlurChange = useCallback(
     async (blurVal: number) => {
+      recordUndo();
       const clamped = Math.max(0, Math.min(20, Math.round(blurVal)));
       setShadowBlur(clamped);
       setLiveElements((prev) =>
@@ -2263,6 +2552,7 @@ export default function ArtifactEditor({
    * element: applying one string to a multi-selection would wipe the others.
    */
   const handleTextContentChange = (value: string) => {
+    recordUndo();
     setTextContent(value);
     const canvas = fabricCanvasRef.current;
     if (!canvas) {
@@ -2362,6 +2652,7 @@ export default function ArtifactEditor({
   };
 
   const handleFontSizeCommit = () => {
+    recordUndo();
     const result = commitFontSizeFromDraft(fontSizeInput, fontSize);
     setFontSize(result.fontSize);
     setFontSizeInput(result.inputValue);
@@ -2522,6 +2813,7 @@ export default function ArtifactEditor({
 
   const handleSetTextAlign = useCallback(
     (align: 'left' | 'center' | 'right') => {
+      recordUndo();
       setLiveElements((prev) =>
         prev.map((el) => {
           if (!selectedElementIds.includes(el.id)) return el;
@@ -2549,6 +2841,7 @@ export default function ArtifactEditor({
 
   const handleSetShapeFill = useCallback(
     (color: string) => {
+      recordUndo();
       setShapeFill(color);
       setLiveElements((prev) =>
         prev.map((el) => {
@@ -2773,6 +3066,12 @@ export default function ArtifactEditor({
         await loadList();
 
         if (data.firstTemplate?.id) {
+          undoStackRef.current = [];
+          redoStackRef.current = [];
+          setUndoStack([]);
+          setRedoStack([]);
+          pendingBaselineSnapshotRef.current = null;
+          pendingTextBaselineRef.current = null;
           setSelectedId(data.firstTemplate.id);
           setSelectedIds(new Set([data.firstTemplate.id]));
           setAnchorId(data.firstTemplate.id);
@@ -2951,6 +3250,11 @@ export default function ArtifactEditor({
     try {
       // Revert in-memory canvas state to the last-Saved template from adapter/store
       const data = await adapter.getOne(template.id);
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      setUndoStack([]);
+      setRedoStack([]);
+      pendingBaselineSnapshotRef.current = null;
       addedElementsRef.current = new Map();
       addedPlaceholdersRef.current = new Map();
       setSelectedElementIds([]);
@@ -3299,7 +3603,6 @@ export default function ArtifactEditor({
     await handleReorderTemplates(desired);
   };
 
-  const isEditable = template ? isCanvasAuthorable(template.baseType) : false;
   const isResettable = Boolean(template && isEditable);
   const labelDirty = Boolean(
     template && draftLabel.trim() !== '' && draftLabel.trim() !== template.label
@@ -3878,6 +4181,31 @@ export default function ArtifactEditor({
                 {/* TOOLBAR ROW 1: ADD NEW ELEMENTS & CHANGE BACKGROUND */}
                 <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-lg bg-muted/40 border border-border/80 text-xs">
                   <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={handleUndo}
+                        disabled={busy || !isEditable || isRestoringHistory || undoStack.length === 0}
+                        title="Undo (Ctrl+Z)"
+                        aria-label="Undo"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={handleRedo}
+                        disabled={busy || !isEditable || isRestoringHistory || redoStack.length === 0}
+                        title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+                        aria-label="Redo"
+                      >
+                        <Redo2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    <div className="h-4 w-px bg-border mx-1" />
                     <span className="text-muted-foreground font-semibold px-1">Add:</span>
                     <input
                       ref={fileInputRef}

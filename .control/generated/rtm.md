@@ -1832,7 +1832,7 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-38.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3852,7 +3852,7 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-38.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status
