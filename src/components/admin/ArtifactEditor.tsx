@@ -2046,6 +2046,215 @@ export default function ArtifactEditor({
     );
   }, [template, syncSelection, markDirty, t]);
 
+  const handleCopySelected = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    const layout = template ? getEditableLayout(template) : null;
+    if (!canvas || !layout || !template) return;
+
+    const byId = new Map<string, CanvasElement>([
+      ...addedElementsRef.current,
+      ...layout.elements.map((e) => [e.id, e] as const),
+    ]);
+    const active = canvas.getActiveObjects();
+    if (active.length === 0) return;
+
+    const items: Array<{ sourceSlideId: string; element: CanvasElement }> = [];
+
+    for (const obj of active) {
+      const elementId = getElementId(obj);
+      if (!elementId) continue;
+      const source = byId.get(elementId);
+      if (!source) continue;
+
+      const leftPx = typeof obj.left === 'number' ? obj.left : pctToPx(source.x, CANVAS_WIDTH);
+      const topPx = typeof obj.top === 'number' ? obj.top : pctToPx(source.y, CANVAS_HEIGHT);
+      const liveX = pxToPct(leftPx, CANVAS_WIDTH);
+      const liveY = pxToPct(topPx, CANVAS_HEIGHT);
+
+      const objW = Math.abs(obj.width ?? 0) * (obj.scaleX ?? 1);
+      const objH = typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
+        ? (obj as any).data.authoredHeight
+        : Math.abs(obj.height ?? 0) * (obj.scaleY ?? 1);
+      const liveW = objW > 0 ? pxToPct(objW, CANVAS_WIDTH) : source.w;
+      const liveH = objH > 0 ? pxToPct(objH, CANVAS_HEIGHT) : source.h;
+
+      const clonedStyle: TextStyle & ImageStyle & ShapeStyle = source.style ? { ...source.style } : {};
+
+      if (source.type === 'text' && isFabricTextObject(obj)) {
+        if (obj.fontFamily) clonedStyle.fontFamily = resolveCatalogFontFamily(obj.fontFamily);
+        if (typeof obj.fontSize === 'number') clonedStyle.fontSize = normalizeFontSize(obj.fontSize);
+        const fillHex = toStrictHexColor(obj.fill, undefined);
+        if (fillHex) clonedStyle.fontColor = fillHex;
+        if (obj.fontWeight) clonedStyle.fontWeight = obj.fontWeight === 'bold' ? 'bold' : 'normal';
+        if (obj.fontStyle) clonedStyle.fontStyle = obj.fontStyle === 'italic' ? 'italic' : 'normal';
+        if ((obj as any).underline !== undefined) {
+          clonedStyle.textDecoration = (obj as any).underline ? 'underline' : 'none';
+        }
+        if (obj.textAlign) clonedStyle.textAlign = obj.textAlign as any;
+        if (typeof (obj as any).lineHeight === 'number') clonedStyle.lineHeight = (obj as any).lineHeight;
+        if ((obj as any).shadow) {
+          clonedStyle.textShadow = true;
+          clonedStyle.textShadowBlur =
+            typeof (obj as any).shadow.blur === 'number' ? (obj as any).shadow.blur : 4;
+        } else if ((obj as any).shadow === null) {
+          clonedStyle.textShadow = false;
+        }
+      }
+
+      if (source.type === 'shape' || source.type === 'line') {
+        const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+        const proxyStyle = ((obj as any).data?.style as CanvasElement['style']) || {};
+        const effFill = isProxy
+          ? (proxyStyle.fillColor ?? source.style?.fillColor)
+          : ((obj as any).fill ?? source.style?.fillColor);
+        const isTransparent = effFill === 'transparent';
+        if (isTransparent) {
+          clonedStyle.fillColor = 'transparent';
+        } else {
+          const shapeFillHex = toStrictHexColor(effFill, source.style?.fillColor);
+          if (shapeFillHex) clonedStyle.fillColor = shapeFillHex;
+        }
+        const effStroke = isProxy
+          ? (proxyStyle.strokeColor ?? source.style?.strokeColor)
+          : ((obj as any).stroke ?? source.style?.strokeColor);
+        const strokeHex = toStrictHexColor(effStroke, undefined);
+        if (strokeHex) clonedStyle.strokeColor = strokeHex;
+        const effStrokeWidth = isProxy
+          ? (proxyStyle.strokeWidth ?? source.style?.strokeWidth)
+          : (obj as any).strokeWidth;
+        if (typeof effStrokeWidth === 'number') clonedStyle.strokeWidth = effStrokeWidth;
+        if (typeof (obj as any).opacity === 'number') clonedStyle.opacity = (obj as any).opacity;
+      }
+
+      const clonedElement: CanvasElement = {
+        ...source,
+        x: liveX,
+        y: liveY,
+        w: liveW,
+        h: liveH,
+        style: Object.keys(clonedStyle).length > 0 ? clonedStyle : undefined,
+      };
+
+      if (source.type === 'text' && isFabricTextObject(obj)) {
+        clonedElement.content = obj.text ?? source.content;
+      }
+
+      items.push({
+        sourceSlideId: template.id,
+        element: clonedElement,
+      });
+    }
+
+    if (items.length > 0) {
+      try {
+        sessionStorage.setItem('wpw_canvas_clipboard', JSON.stringify(items));
+      } catch {}
+      const msg = items.length === 1 ? t('admin.artifacts.copiedElement') : `${t('admin.artifacts.copiedElement')} (${items.length})`;
+      toast.success(msg);
+    }
+  }, [template, t]);
+
+  const handlePaste = useCallback(async () => {
+    const canvas = fabricCanvasRef.current;
+    const layout = template ? getEditableLayout(template) : null;
+    if (!canvas || !layout || !template) return;
+
+    let rawData: string | null = null;
+    try {
+      rawData = sessionStorage.getItem('wpw_canvas_clipboard');
+    } catch {}
+    if (!rawData) return;
+
+    let items: Array<{ sourceSlideId?: string; element: CanvasElement }> = [];
+    try {
+      items = JSON.parse(rawData);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(items) || items.length === 0) return;
+
+    const fabric = await import('fabric');
+    if (fabricCanvasRef.current !== canvas) return;
+    recordUndo();
+
+    const usedIds = new Set<string>([
+      ...layout.elements.map((e) => e.id),
+      ...addedElementsRef.current.keys(),
+      ...canvas
+        .getObjects()
+        .map(getElementId)
+        .filter((id): id is string => typeof id === 'string'),
+    ]);
+
+    let maxZ = [
+      ...layout.elements,
+      ...addedElementsRef.current.values(),
+    ].reduce((acc, element) => Math.max(acc, element.zIndex), -1);
+
+    const newObjects: import('fabric').FabricObject[] = [];
+    const isSameSlide = items[0]?.sourceSlideId === template.id;
+
+    for (const item of items) {
+      const source = item.element;
+      if (!source) continue;
+
+      const id = nextElementId(usedIds, insertCounterRef.current);
+      usedIds.add(id);
+      insertCounterRef.current += 1;
+      maxZ += 1;
+
+      const offset = isSameSlide ? Math.min(90, pxToPct(INSERT_CASCADE_PX, CANVAS_WIDTH)) : 0;
+      const pasteX = isSameSlide ? Math.min(90, source.x + offset) : source.x;
+      const pasteY = isSameSlide ? Math.min(90, source.y + offset) : source.y;
+
+      const pastedElement: CanvasElement = {
+        ...source,
+        id,
+        required: false,
+        x: pasteX,
+        y: pasteY,
+        w: source.w,
+        h: source.h,
+        zIndex: maxZ,
+      };
+
+      if (pastedElement.placeholderKey) {
+        const pk = pastedElement.placeholderKey;
+        const alreadyDeclared =
+          template.placeholders.some((p) => p.key === pk) ||
+          addedPlaceholdersRef.current.has(pk);
+        if (!alreadyDeclared) {
+          const entry = catalogEntry(pk);
+          addedPlaceholdersRef.current.set(pk, {
+            key: pk,
+            type: entry?.type ?? (source.type === 'image' || source.type === 'image-placeholder' ? 'image' : 'text'),
+            required: false,
+          });
+        }
+      }
+
+      addedElementsRef.current.set(id, pastedElement);
+      liveElementsRef.current = [...liveElementsRef.current, pastedElement];
+      setLiveElements((prev) => [...prev, pastedElement]);
+
+      const fabricObj = elementToFabricObject(fabric, pastedElement, true, { transparentProxy: true });
+      canvas.add(fabricObj);
+      newObjects.push(fabricObj);
+    }
+
+    if (newObjects.length === 1) {
+      canvas.setActiveObject(newObjects[0]);
+    } else if (newObjects.length > 1) {
+      const sel = new fabric.ActiveSelection(newObjects, { canvas });
+      canvas.setActiveObject(sel);
+    }
+
+    canvas.requestRenderAll();
+    markDirty();
+    const msg = newObjects.length === 1 ? t('admin.artifacts.pastedElement') : `${t('admin.artifacts.pastedElement')} (${newObjects.length})`;
+    toast.success(msg);
+  }, [template, markDirty, t]);
+
   // DEC-012: The canvas admits one keyboard shortcut: Delete/Backspace on the selected element.
   // SPEC-19-03: Escape cancels active drawing tool mode.
   useEffect(() => {
@@ -2065,6 +2274,50 @@ export default function ArtifactEditor({
       const isRedo =
         ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
         ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'));
+      const isCopy = (e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C');
+      const isPaste = (e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V');
+
+      if (isCopy || isPaste) {
+        const activeEl = document.activeElement;
+        if (
+          activeEl instanceof HTMLInputElement ||
+          activeEl instanceof HTMLTextAreaElement ||
+          (activeEl instanceof HTMLElement && activeEl.isContentEditable) ||
+          activeEl instanceof HTMLButtonElement ||
+          activeEl?.getAttribute('role') === 'button'
+        ) {
+          return;
+        }
+
+        const shell = canvasShellRef.current;
+        const isCanvasFocused =
+          shell &&
+          (shell.contains(activeEl) || activeEl === document.body || activeEl === null);
+        if (!isCanvasFocused) return;
+
+        const canvas = fabricCanvasRef.current;
+        if (!canvas) return;
+
+        const activeObjects = canvas.getActiveObjects();
+        const hasEditingText = activeObjects.some((obj) => (obj as any).isEditing === true);
+        if (hasEditingText) return;
+
+        if (isCopy) {
+          if (activeObjects.length > 0) {
+            e.preventDefault();
+            handleCopySelected();
+            return;
+          }
+          return;
+        }
+
+        if (isPaste) {
+          e.preventDefault();
+          void handlePaste();
+          return;
+        }
+        return;
+      }
 
       if (isUndo || isRedo) {
         const activeEl = document.activeElement;
@@ -2143,7 +2396,7 @@ export default function ArtifactEditor({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleDeleteSelected, handleUndo, handleRedo]);
+  }, [handleDeleteSelected, handleUndo, handleRedo, handleCopySelected, handlePaste]);
 
   const handleDuplicateSelected = useCallback(async () => {
     const canvas = fabricCanvasRef.current;
@@ -5549,6 +5802,31 @@ export default function ArtifactEditor({
                       >
                         <span>{t('admin.artifacts.sendToBack')}</span>
                         <span className="text-[10px] text-muted-foreground">Bottom</span>
+                      </div>
+                      <div className="h-px bg-border my-1" />
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-accent hover:text-accent-foreground text-left cursor-pointer select-none"
+                        onClick={() => {
+                          handleCopySelected();
+                          setContextMenu(null);
+                        }}
+                      >
+                        <span>{t('admin.artifacts.copyElement')}</span>
+                        <span className="text-[10px] text-muted-foreground">Ctrl+C</span>
+                      </div>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded hover:bg-accent hover:text-accent-foreground text-left cursor-pointer select-none"
+                        onClick={() => {
+                          void handlePaste();
+                          setContextMenu(null);
+                        }}
+                      >
+                        <span>{t('admin.artifacts.pasteElement')}</span>
+                        <span className="text-[10px] text-muted-foreground">Ctrl+V</span>
                       </div>
                       <div className="h-px bg-border my-1" />
                       <div

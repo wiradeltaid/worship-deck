@@ -1164,4 +1164,35 @@ test('FEAT: Text Area custom bounding box sizing, handles, and toolbar area cont
   );
 });
 
+test('FEAT: Copy (Ctrl+C) and Paste (Ctrl+V) elements across slide canvases', () => {
+  const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
+  // 1. ArtifactEditor defines handleCopySelected and handlePaste
+  assert.ok(
+    currentEditorCode.includes('const handleCopySelected =') &&
+    currentEditorCode.includes('sessionStorage.setItem(\'wpw_canvas_clipboard\', JSON.stringify(items))'),
+    'ArtifactEditor must implement handleCopySelected with sessionStorage persistence'
+  );
+  assert.ok(
+    currentEditorCode.includes('const handlePaste =') &&
+    currentEditorCode.includes('sessionStorage.getItem(\'wpw_canvas_clipboard\')'),
+    'ArtifactEditor must implement handlePaste reading from sessionStorage'
+  );
+
+  // 2. Keyboard shortcuts Ctrl+C and Ctrl+V are wired in handleKeyDown
+  assert.ok(
+    currentEditorCode.includes("const isCopy = (e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')") &&
+    currentEditorCode.includes("const isPaste = (e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')"),
+    'ArtifactEditor handleKeyDown must detect Ctrl+C and Ctrl+V'
+  );
+
+  // 3. Right-click context menu offers Copy and Paste
+  assert.ok(
+    currentEditorCode.includes("t('admin.artifacts.copyElement')") &&
+    currentEditorCode.includes("t('admin.artifacts.pasteElement')"),
+    'Context menu must offer Copy and Paste actions'
+  );
+});
+
+
 
