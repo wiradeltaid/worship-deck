@@ -553,7 +553,6 @@ export function elementToFabricObject(
       ...common,
       stroke: strokeColor,
       strokeWidth,
-      strokeLineCap: 'round',
       perPixelTargetFind: false,
       padding: 6,
       lockUniScaling: false,

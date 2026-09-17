@@ -298,7 +298,6 @@ function LineElement({ element }: { element: ResolvedElement }) {
           y2={isDiagonal ? '100%' : '0'}
           stroke={strokeColor}
           strokeWidth={strokeWidth}
-          strokeLinecap="round"
         />
       </svg>
     </div>

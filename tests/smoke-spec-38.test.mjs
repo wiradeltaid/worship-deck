@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import JSZip from 'jszip';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -28,9 +29,25 @@ const { elementToFabricObject } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts')).href
 );
 
+const { generatePptxFromPlan } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'pptx-draw.ts')).href
+);
+
+const { toPptxStrokeWidth } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'artifacts', 'render-model.ts')).href
+);
+
 const artifactEditorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
 assert.ok(fs.existsSync(artifactEditorPath), 'ArtifactEditor.tsx must exist');
 const editorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
+const pptxDrawPath = path.join(root, 'src', 'lib', 'pptx-draw.ts');
+assert.ok(fs.existsSync(pptxDrawPath), 'pptx-draw.ts must exist');
+const pptxDrawCode = fs.readFileSync(pptxDrawPath, 'utf8');
+
+const artifactSlidePath = path.join(root, 'src', 'components', 'artifacts', 'ArtifactSlide.tsx');
+assert.ok(fs.existsSync(artifactSlidePath), 'ArtifactSlide.tsx must exist');
+const artifactSlideCode = fs.readFileSync(artifactSlidePath, 'utf8');
 
 // ============================================================================
 // SPEC-38-01: Session-Scoped Undo & Redo History Stack Source Guards
@@ -613,5 +630,197 @@ test('SPEC-38-02: Absence Guard 2 — perPixelTargetFind: false required for out
   assert.throws(
     () => validateTargetFindRule(defectiveFactory),
     /ABSENCE_DEFECT: line lacks perPixelTargetFind: false/
+  );
+});
+
+// ============================================================================
+// SPEC-38-03: Presenter & PPTX Export Parity, Conformance Tests, and Absence Guards
+// ============================================================================
+
+test('SPEC-38-03: Unified stroke width conversion in render-model.ts', () => {
+  // 1 px -> 0.75 pt
+  assert.equal(toPptxStrokeWidth(1), 0.75);
+  // 2 px -> 1.5 pt
+  assert.equal(toPptxStrokeWidth(2), 1.5);
+  // 4 px -> 3 pt
+  assert.equal(toPptxStrokeWidth(4), 3);
+  // Default and negative handling
+  assert.equal(toPptxStrokeWidth(undefined), 1.5);
+  assert.equal(toPptxStrokeWidth(-2), 1.5);
+  assert.equal(toPptxStrokeWidth(0), 1.5);
+});
+
+test('SPEC-38-03: PPTX generator emits native line and outline rectangle shapes without errors', async () => {
+  const planItems = [
+    {
+      artifact: {
+        runtimeVersion: 1,
+        instanceId: 'test-spec38-inst',
+        templateId: 'test-spec38-tmpl',
+        label: 'SPEC-38 Test',
+        baseType: 'general',
+        layoutKey: 'default',
+        layout: {
+          aspectRatio: '16:9',
+          backgroundColor: '#1E1E2E',
+          elements: [
+            {
+              id: 'el-line-1',
+              type: 'line',
+              x: 10,
+              y: 20,
+              w: 80,
+              h: 0,
+              zIndex: 1,
+              style: {
+                strokeColor: '#00FF00',
+                strokeWidth: 4,
+                opacity: 0.8,
+              },
+            },
+            {
+              id: 'el-shape-1',
+              type: 'shape',
+              x: 15,
+              y: 25,
+              w: 70,
+              h: 40,
+              zIndex: 2,
+              style: {
+                fillColor: 'transparent',
+                strokeColor: '#FF0055',
+                strokeWidth: 3,
+                opacity: 0.9,
+              },
+            },
+          ],
+        },
+      },
+      fade: true,
+    },
+  ];
+
+  const buffer = await generatePptxFromPlan('2026-09-17', planItems, 'fade');
+  assert.ok(buffer instanceof Buffer, 'generatePptxFromPlan must return a Buffer');
+  assert.ok(buffer.length > 1000, 'PPTX buffer must be non-empty zip');
+
+  // Inspect generated OpenXML DrawingML structure
+  const zip = await JSZip.loadAsync(buffer);
+  const slide1Xml = await zip.file('ppt/slides/slide1.xml')?.async('text');
+  assert.ok(slide1Xml, 'slide1.xml must exist in PPTX archive');
+
+  // Parse individual shape elements from DrawingML <p:spTree>
+  const spBlocks = slide1Xml.match(/<p:sp>[\s\S]*?<\/p:sp>/g) || [];
+  assert.equal(spBlocks.length, 2, 'slide1.xml must contain exactly two shapes');
+
+  // Line shape assertions
+  const lineShapeXml = spBlocks.find((sp) => sp.includes('00FF00'));
+  assert.ok(lineShapeXml, 'Must find line shape by stroke color 00FF00');
+  assert.ok(lineShapeXml.includes('prst="line"'), 'Line shape must have prst="line"');
+  assert.ok(lineShapeXml.includes('w="38100"'), 'Line shape must have 3pt stroke width (w="38100")');
+  assert.ok(lineShapeXml.includes('val="80000"'), 'Line shape must have 80% opacity (val="80000")');
+
+  // Outline rectangle shape assertions
+  const outlineShapeXml = spBlocks.find((sp) => sp.includes('FF0055'));
+  assert.ok(outlineShapeXml, 'Must find outline shape by stroke color FF0055');
+  assert.ok(outlineShapeXml.includes('prst="rect"'), 'Outline shape must have prst="rect"');
+  assert.ok(outlineShapeXml.includes('w="28575"'), 'Outline shape must have 2.25pt stroke width (w="28575")');
+  assert.ok(outlineShapeXml.includes('val="90000"'), 'Outline shape must have 90% opacity (val="90000")');
+  const bodyXmlWithoutLine = outlineShapeXml.replace(/<a:ln[\s\S]*?<\/a:ln>/, '');
+  assert.ok(
+    !bodyXmlWithoutLine.includes('<a:solidFill>'),
+    'Outline shape must not have a solid body fill'
+  );
+});
+
+test('SPEC-38-03: ArtifactSlide HTML structure renders SVG line and bordered outline box', () => {
+  // Source guard: LineElement renders SVG <line>
+  assert.ok(artifactSlideCode.includes('function LineElement'), 'ArtifactSlide must declare LineElement');
+  assert.ok(artifactSlideCode.includes('<svg') && artifactSlideCode.includes('<line'), 'LineElement must render SVG <line>');
+  assert.ok(artifactSlideCode.includes('case \'line\':'), 'ArtifactElement switch must handle type line');
+
+  // Source guard: ShapeElement supports outline border
+  assert.ok(artifactSlideCode.includes('strokeColor'), 'ShapeElement must use strokeColor');
+  assert.ok(artifactSlideCode.includes('strokeWidth'), 'ShapeElement must use strokeWidth');
+  assert.ok(artifactSlideCode.includes('border:'), 'ShapeElement must apply CSS border');
+});
+
+test('SPEC-38-03: Absence Guard 1 — pptx-draw.ts must handle type "line" (defect injection proof)', () => {
+  function validatePptxLineRenderer(code) {
+    if (!code.includes('case \'line\':') || !code.includes('renderLineElement')) {
+      throw new Error('ABSENCE_DEFECT: pptx-draw does not handle type line in slide render switch');
+    }
+    return true;
+  }
+
+  // Real code passes
+  assert.ok(validatePptxLineRenderer(pptxDrawCode), 'Real pptx-draw code must handle type line');
+
+  // Defect injection proof
+  const defectiveCode = pptxDrawCode.replace(
+    /case\s*'line':[\s\S]*?renderLineElement\(slide,\s*element\);[\s\S]*?break;/,
+    '/* defect: omitted line element handling */'
+  );
+  assert.throws(
+    () => validatePptxLineRenderer(defectiveCode),
+    /ABSENCE_DEFECT: pptx-draw does not handle type line in slide render switch/
+  );
+});
+
+test('SPEC-38-03: Absence Guard 2 — pptx-draw.ts must use toPptxStrokeWidth and toPptxTransparency (defect injection proof)', () => {
+  function validateStrokeAndTransparency(code) {
+    if (!code.includes('toPptxStrokeWidth(')) {
+      throw new Error('ABSENCE_DEFECT: pptx-draw lacks toPptxStrokeWidth unit conversion');
+    }
+    if (!code.includes('toPptxTransparency(element.style)')) {
+      throw new Error('ABSENCE_DEFECT: pptx-draw lacks toPptxTransparency outline transparency mapping');
+    }
+    return true;
+  }
+
+  // Real code passes
+  assert.ok(validateStrokeAndTransparency(pptxDrawCode), 'Real pptx-draw code must use toPptxStrokeWidth and toPptxTransparency');
+
+  // Defect injection 1: missing toPptxStrokeWidth
+  const defectNoStrokeWidth = pptxDrawCode.replaceAll('toPptxStrokeWidth(', 'unconverted_pixels(');
+  assert.throws(
+    () => validateStrokeAndTransparency(defectNoStrokeWidth),
+    /ABSENCE_DEFECT: pptx-draw lacks toPptxStrokeWidth unit conversion/
+  );
+
+  // Defect injection 2: missing toPptxTransparency
+  const defectNoTransparency = pptxDrawCode.replaceAll('toPptxTransparency(element.style)', '0');
+  assert.throws(
+    () => validateStrokeAndTransparency(defectNoTransparency),
+    /ABSENCE_DEFECT: pptx-draw lacks toPptxTransparency outline transparency mapping/
+  );
+});
+
+test('SPEC-38-03: Absence Guard 3 — serializeCanvas must persist strokeColor and strokeWidth for lines and outlines (defect injection proof)', () => {
+  const canvasUtilsPath = path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts');
+  const canvasUtilsCode = fs.readFileSync(canvasUtilsPath, 'utf8');
+
+  function validateSerializeStroke(code) {
+    if (
+      !code.includes("source.type === 'shape' || source.type === 'line'") ||
+      !code.includes('strokeColor') ||
+      !code.includes('strokeWidth')
+    ) {
+      throw new Error('ABSENCE_DEFECT: serializeCanvas lacks strokeColor/strokeWidth persistence for lines/shapes');
+    }
+    return true;
+  }
+
+  // Real code passes
+  assert.ok(validateSerializeStroke(canvasUtilsCode), 'Real canvas-utils code must serialize stroke properties');
+
+  // Defect injection
+  const defectiveCode = canvasUtilsCode.replace(
+    "source.type === 'shape' || source.type === 'line'",
+    "/* defect */ false"
+  );
+  assert.throws(
+    () => validateSerializeStroke(defectiveCode),
+    /ABSENCE_DEFECT: serializeCanvas lacks strokeColor\/strokeWidth persistence for lines\/shapes/
   );
 });

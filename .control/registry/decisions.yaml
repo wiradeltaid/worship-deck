@@ -932,7 +932,7 @@ decisions:
       - package.json
   - id: DEC-040
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-17)"
     title: Autopilot mandate for Canvas Undo/Redo and Line & Outline Shape Elements (SPEC-38)
     file: .control/decisions/DEC-040-autopilot-mandate-canvas-undo-redo-and-line-shapes.md

@@ -41,6 +41,7 @@ import {
   toPptxColor,
   toPptxGeometry,
   toPptxTransparency,
+  toPptxStrokeWidth,
 } from '@/lib/artifacts/render-model';
 
 /**
@@ -388,7 +389,7 @@ function renderShapeElement(slide: PptxSlide, element: ResolvedElement): void {
   const strokeColor = toPptxColor(element.style.strokeColor);
   const strokeWidth =
     typeof element.style.strokeWidth === 'number'
-      ? element.style.strokeWidth * 0.75
+      ? toPptxStrokeWidth(element.style.strokeWidth)
       : undefined;
 
   const shapeProps: any = {
@@ -415,10 +416,7 @@ function renderShapeElement(slide: PptxSlide, element: ResolvedElement): void {
 function renderLineElement(slide: PptxSlide, element: ResolvedElement): void {
   const geometry = toPptxGeometry(element);
   const strokeColor = toPptxColor(element.style.strokeColor) ?? 'FFFFFF';
-  const strokeWidth =
-    typeof element.style.strokeWidth === 'number'
-      ? element.style.strokeWidth * 0.75
-      : 1.5;
+  const strokeWidth = toPptxStrokeWidth(element.style.strokeWidth);
 
   slide.addShape('line', {
     x: geometry.x,

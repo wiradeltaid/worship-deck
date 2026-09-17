@@ -1081,7 +1081,7 @@ export function estimateTextFitScale(element: ResolvedElement): number {
 
 /** pptxgenjs wants bare `RRGGBB`; anything non-hex passes through untouched. */
 export function toPptxColor(color: string | undefined): string | undefined {
-  if (typeof color !== 'string' || !color) return undefined;
+  if (typeof color !== 'string' || !color || color === 'transparent') return undefined;
   if (!HEX6.test(color)) return color;
   return color.replace('#', '').toUpperCase();
 }
@@ -1205,6 +1205,17 @@ export function resolveOpacity(style: ResolvedStyle): number {
 /** PowerPoint expresses fill opacity as transparency percent (0 = opaque). */
 export function toPptxTransparency(style: ResolvedStyle): number {
   return round((1 - resolveOpacity(style)) * 100, 2);
+}
+
+/**
+ * SPEC-38: Converts stroke width in reference pixels (960x540 canvas) to PowerPoint typographical points (pt).
+ * 1 px on 72 DPI coordinate space = 0.75 pt.
+ */
+export function toPptxStrokeWidth(strokeWidthPx?: number): number {
+  if (typeof strokeWidthPx !== 'number' || !Number.isFinite(strokeWidthPx) || strokeWidthPx <= 0) {
+    return 1.5;
+  }
+  return round(strokeWidthPx * 0.75, 2);
 }
 
 /** Column-flex mapping for `verticalAlign`. */
