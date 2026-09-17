@@ -3,6 +3,7 @@
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -685,6 +686,10 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parsed := parse.Normalize(parse.ParseRundown(s.DB, rawPayload))
+	if parse.HasStructuredFields(body) {
+		parse.ApplyStructuredFields(s.DB, &parsed, body)
+		parsed = parse.Normalize(parsed)
+	}
 	if parsed.Date == nil || *parsed.Date == "" {
 		writeError(w, http.StatusBadRequest, "Could not parse service date from raw_payload")
 		return
@@ -722,12 +727,19 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 	if s, ok := youth.(string); ok {
 		media.YouthPhotoURL = &s
 	}
-	snap, err := plan.LoadSnapshot(s.DB, 0)
+	serviceID := 0
+	if sid, ok := body["serviceId"].(float64); ok && sid > 0 {
+		serviceID = int(sid)
+	} else if sid, ok := body["service_id"].(float64); ok && sid > 0 {
+		serviceID = int(sid)
+	}
+	snap, err := plan.LoadSnapshot(s.DB, serviceID)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	s.applyPreviewSongSets(&snap, body)
 	items, err := plan.BuildSlidePlan(*parsed.Date, parsed.ToPlan(), media, snap)
 	if err != nil {
 		log.Printf("Error generating preview: %v", err)
@@ -760,6 +772,78 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		"failedHymnNumbers": parsed.FailedHymnNumbers,
 		"fields":            fieldsFromParsed(parsed),
 	})
+}
+
+func (s *Server) applyPreviewSongSets(snap *plan.Snapshot, body map[string]any) {
+	if snap == nil || body == nil {
+		return
+	}
+	if snap.SongInputs == nil {
+		snap.SongInputs = map[string]plan.HymnItem{}
+	}
+	var rawSets map[string]any
+	if fields, ok := body["fields"].(map[string]any); ok {
+		if ss, ok := fields["songSets"].(map[string]any); ok {
+			rawSets = ss
+		}
+	}
+	if rawSets == nil {
+		if ss, ok := body["songSets"].(map[string]any); ok {
+			rawSets = ss
+		}
+	}
+	if rawSets == nil {
+		return
+	}
+	defaultBook := db.ResolveSongBook(s.DB, "")
+	for name, raw := range rawSets {
+		vn := strings.TrimSpace(name)
+		if vn == "" {
+			continue
+		}
+		em, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		num := parse.CoerceSongNumber(em["songNumber"])
+		if num == nil || *num <= 0 {
+			continue
+		}
+		bookCode := ""
+		if b, ok := em["songBookCode"].(string); ok && strings.TrimSpace(b) != "" {
+			bookCode = strings.ToUpper(strings.TrimSpace(b))
+		}
+		resolvedBook := db.ResolveSongBook(s.DB, bookCode)
+		if resolvedBook == "" {
+			resolvedBook = defaultBook
+		}
+		lyricOverride := ""
+		if lyr, ok := em["lyricText"].(string); ok && strings.TrimSpace(lyr) != "" {
+			lyricOverride = strings.TrimSpace(lyr)
+		}
+		var title, dbLyrics string
+		err := s.DB.QueryRow(
+			`SELECT COALESCE(title, ''), COALESCE(lyrics, '') FROM hymns WHERE number = ? AND book_code = ?`,
+			*num, resolvedBook,
+		).Scan(&title, &dbLyrics)
+		if err != nil && err != sql.ErrNoRows {
+			log.Printf("previewService: hymn lookup %d (%s): %v", *num, resolvedBook, err)
+		}
+		if title == "" {
+			title = fmt.Sprintf("%s %d", resolvedBook, *num)
+		}
+		finalLyrics := dbLyrics
+		if lyricOverride != "" {
+			finalLyrics = lyricOverride
+		}
+		snap.SongInputs[vn] = plan.HymnItem{
+			BookCode:   resolvedBook,
+			Number:     *num,
+			Title:      title,
+			Lyrics:     finalLyrics,
+			Incomplete: strings.TrimSpace(finalLyrics) == "",
+		}
+	}
 }
 
 // storedSongSets reads a Service's weekly Song Set inputs for form hydrate,

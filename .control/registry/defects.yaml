@@ -566,3 +566,22 @@ defects:
       and rendered elements directly in DOM array order. Fixed by synchronizing liveElements zIndex
       with projected canvas object order in handleReorderLayer, applying CSS zIndex to boxStyle, and
       sorting elements by zIndex before rendering in ArtifactSlide.
+
+  - id: BUG-38
+    status: fixed
+    fixed_in: fastpath
+    title: "Custom song-set entries missing from worship slide preview and service plan"
+    component: registry
+    violates: [FR-32, UC-28]
+    root_cause: code
+    fix: fastpath
+    source: "User report: Bible Talk Opening Song in main spine missing from worship slide preview"
+    summary: >
+      Custom song-set entries added to the spine did not appear in slide preview or saved plans.
+      1) service_registry_snapshots table lacked variable_name and ann_set_id columns, so
+      LoadSnapshot lost VariableName for frozen snapshots and plan.go fell back to template_id,
+      failing lookup in snap.SongInputs. 2) previewService ignored fields.songSets from the request
+      body and called LoadSnapshot with serviceID 0 without populating SongInputs from live inputs.
+      Fixed by adding columns and backfill to service_registry_snapshots, reading them in LoadSnapshot,
+      applying structured fields and resolving songSets into snap.SongInputs in previewService, and
+      passing serviceId from EditForm.

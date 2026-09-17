@@ -1,7 +1,7 @@
 asof: '2026-09-17'
 since: ''
 since_report: ''
-sha: f5a4e914428ac179ea4beb1ba61f0c5259964904
+sha: 065a1d7b1c5bbf2e2098d781cdf487d5e8ad6e30
 registry_dirty: true
 uncommitted_tickets: []
 promise_progress: 100%
@@ -1307,6 +1307,14 @@ defects:
     - FR-21
     - UC-15
     closed: '2026-09-17'
+  - id: BUG-37
+    title: Canvas layer ordering (Bring to Front, Send to Back, Bring Forward, Send Backward) fails to
+      synchronize with visual preview
+    root_cause: code
+    violates:
+    - FR-21
+    - UC-15
+    closed: '2026-09-17'
   - id: BUG-4
     title: Font size field does not update the selected text element in realtime
     root_cause: ''
@@ -1374,6 +1382,7 @@ defects:
     - BUG-34
     - BUG-35
     - BUG-36
+    - BUG-37
   undiagnosed: []
 gates:
 - gate: G1

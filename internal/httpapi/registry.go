@@ -793,7 +793,7 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	rows, err := tx.Query(`SELECT id, label, base_type, payload, updated_at FROM artifact_templates ORDER BY position`)
+	rows, err := tx.Query(`SELECT id, label, base_type, payload, updated_at, variable_name, ann_set_id FROM artifact_templates ORDER BY position`)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
@@ -801,8 +801,9 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 	pos := 0
 	for rows.Next() {
 		var tid, label, baseType, at string
-		var payloadNull sql.NullString
-		if err := rows.Scan(&tid, &label, &baseType, &payloadNull, &at); err != nil {
+		var payloadNull, varName sql.NullString
+		var annSetID sql.NullInt64
+		if err := rows.Scan(&tid, &label, &baseType, &payloadNull, &at, &varName, &annSetID); err != nil {
 			rows.Close()
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
@@ -829,9 +830,9 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		}
 		if _, err := tx.Exec(
 			`INSERT INTO service_registry_snapshots
-			   (service_id, template_id, position, label, base_type, payload, updated_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			id, tid, pos, label, baseType, payload, at,
+			   (service_id, template_id, position, label, base_type, payload, updated_at, variable_name, ann_set_id)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, tid, pos, label, baseType, payload, at, varName, annSetID,
 		); err != nil {
 			rows.Close()
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")

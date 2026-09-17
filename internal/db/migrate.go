@@ -12,6 +12,9 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureArtifactTemplatesNewColumns(handle); err != nil {
 		return err
 	}
+	if err := ensureServiceRegistrySnapshotsColumns(handle); err != nil {
+		return err
+	}
 	if err := ensureArtifactTemplatesPayloadNullable(handle); err != nil {
 		return err
 	}
@@ -187,4 +190,60 @@ func ensureArtifactTemplatesPayloadNullable(handle *sql.DB) error {
 		ALTER TABLE artifact_templates_new RENAME TO artifact_templates;
 	`)
 	return err
+}
+
+func ensureServiceRegistrySnapshotsColumns(handle *sql.DB) error {
+	rows, err := handle.Query(`PRAGMA table_info(service_registry_snapshots)`)
+	if err != nil {
+		return err
+	}
+	have := map[string]struct{}{}
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, ctype string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			rows.Close()
+			return err
+		}
+		have[name] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	if len(have) == 0 {
+		return nil
+	}
+	if _, ok := have["variable_name"]; !ok {
+		if _, err := handle.Exec(`ALTER TABLE service_registry_snapshots ADD COLUMN variable_name TEXT`); err != nil {
+			return err
+		}
+	}
+	if _, ok := have["ann_set_id"]; !ok {
+		if _, err := handle.Exec(`ALTER TABLE service_registry_snapshots ADD COLUMN ann_set_id INTEGER`); err != nil {
+			return err
+		}
+	}
+	// Backfill existing snapshot rows from artifact_templates
+	_, _ = handle.Exec(`
+		UPDATE service_registry_snapshots
+		   SET variable_name = (
+		       SELECT a.variable_name
+		         FROM artifact_templates a
+		        WHERE a.id = service_registry_snapshots.template_id
+		   )
+		 WHERE variable_name IS NULL
+	`)
+	_, _ = handle.Exec(`
+		UPDATE service_registry_snapshots
+		   SET ann_set_id = (
+		       SELECT a.ann_set_id
+		         FROM artifact_templates a
+		        WHERE a.id = service_registry_snapshots.template_id
+		   )
+		 WHERE ann_set_id IS NULL
+	`)
+	return nil
 }

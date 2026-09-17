@@ -37,16 +37,9 @@ func loadTemplates(rows *sql.Rows, useTemplateID bool, trio *songSetLayoutTrio) 
 		var varName sql.NullString
 		var payloadNull sql.NullString
 		var annSetIDNull sql.NullInt64
-		if useTemplateID {
-			if err := rows.Scan(&id, &label, &baseType, &payloadNull, &updatedAt); err != nil {
-				log.Printf("[registry] scan failed: %v", err)
-				continue
-			}
-		} else {
-			if err := rows.Scan(&id, &label, &baseType, &payloadNull, &updatedAt, &varName, &annSetIDNull); err != nil {
-				log.Printf("[registry] scan failed: %v", err)
-				continue
-			}
+		if err := rows.Scan(&id, &label, &baseType, &payloadNull, &updatedAt, &varName, &annSetIDNull); err != nil {
+			log.Printf("[registry] scan failed: %v", err)
+			continue
 		}
 		if baseType == "song-set-entry" && trio != nil {
 			tmpl := composeSongSetEntryTemplate(id, label, trio)
@@ -131,10 +124,13 @@ func LoadSnapshot(db *sql.DB, serviceID int) (Snapshot, error) {
 	}
 	if n > 0 {
 		rows, err := db.Query(
-			`SELECT template_id, label, base_type, payload, updated_at
-			   FROM service_registry_snapshots
-			  WHERE service_id = ?
-			  ORDER BY position`,
+			`SELECT s.template_id, s.label, s.base_type, s.payload, s.updated_at,
+			        COALESCE(s.variable_name, a.variable_name),
+			        COALESCE(s.ann_set_id, a.ann_set_id)
+			   FROM service_registry_snapshots s
+			   LEFT JOIN artifact_templates a ON a.id = s.template_id
+			  WHERE s.service_id = ?
+			  ORDER BY s.position`,
 			serviceID,
 		)
 		if err != nil {

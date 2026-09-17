@@ -281,3 +281,98 @@ func TestServices_StrayAnnouncementsIgnoredOnCreateAndUpdate(t *testing.T) {
 		t.Fatalf("expected 0 announcement_items after update, got %d", count)
 	}
 }
+
+func TestCustomSongSetInPreviewAndServicePlan(t *testing.T) {
+	ts, _, _ := newSongSetTestServer(t)
+	admin := songSetLogin(t, ts)
+
+	// 1. Create a custom song-set entry via admin API
+	res := songSetRequest(t, ts, "POST", "/api/admin/song-set-entries", `{
+		"title": "Bible Talk Opening Song",
+		"variableName": "bible_talk_opening"
+	}`, admin)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create custom song set entry failed: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 2. Test live preview with custom song-set entry populated in fields.songSets
+	res = songSetRequest(t, ts, "POST", "/api/services/preview", `{
+		"raw_payload": "SABBATH, JULY 25, 2026\nDIVINE SERVICE\nSermon: Pastor Adam",
+		"fields": {
+			"songSets": {
+				"bible_talk_opening": {"songNumber": 100, "songBookCode": "SDAH"}
+			}
+		}
+	}`, admin)
+	previewBody := songSetJSON(t, res)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("preview failed: %d %v", res.StatusCode, previewBody)
+	}
+	planItems, _ := previewBody["plan"].([]any)
+	hasCustomSongSlide := false
+	for i, it := range planItems {
+		itm, _ := it.(map[string]any)
+		art, _ := itm["artifact"].(map[string]any)
+		if grp, ok := art["group"].(map[string]any); ok {
+			if id, ok := grp["id"].(string); ok && (strings.Contains(id, "bible_talk_opening") || strings.Contains(id, "bible-talk-opening")) {
+				hasCustomSongSlide = true
+				break
+			}
+		}
+		if tid, ok := art["templateId"].(string); ok && (strings.Contains(tid, "bible_talk_opening") || strings.Contains(tid, "bible-talk-opening")) {
+			hasCustomSongSlide = true
+			break
+		}
+		_ = i
+	}
+	if !hasCustomSongSlide {
+		t.Errorf("preview plan does not contain slides for custom song-set bible_talk_opening")
+	}
+
+	// 3. Create service with custom song set
+	res = songSetRequest(t, ts, "POST", "/api/services", `{
+		"raw_payload": "SABBATH, JULY 25, 2026\nDIVINE SERVICE\nSermon: Pastor Adam",
+		"fields": {
+			"songSets": {
+				"bible_talk_opening": {"songNumber": 100, "songBookCode": "SDAH"}
+			}
+		}
+	}`, admin)
+	createBody := songSetJSON(t, res)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create failed: %d %v", res.StatusCode, createBody)
+	}
+	serviceID := int64(createBody["id"].(float64))
+
+	// 4. Freeze service registry snapshot (Sync Artifact)
+	token := freshUpdatedAt(t, ts, admin, serviceID)
+	res = songSetRequest(t, ts, "POST", fmt.Sprintf("/api/services/%d/sync-artifact", serviceID), fmt.Sprintf(`{"updated_at":%q}`, token), admin)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("sync-artifact failed: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 5. Get service plan: must contain slides for custom song set even from frozen snapshot
+	res = songSetRequest(t, ts, "GET", fmt.Sprintf("/api/services/%d", serviceID), "", admin)
+	svcBody := songSetJSON(t, res)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get service failed: %d", res.StatusCode)
+	}
+	svcPlan, _ := svcBody["plan"].([]any)
+	hasCustomSongInService := false
+	for i, it := range svcPlan {
+		itm, _ := it.(map[string]any)
+		art, _ := itm["artifact"].(map[string]any)
+		t.Logf("service item %d: templateId=%v, label=%v, group=%v", i, art["templateId"], art["label"], art["group"])
+		if grp, ok := art["group"].(map[string]any); ok {
+			if id, ok := grp["id"].(string); ok && (strings.Contains(id, "bible_talk_opening") || strings.Contains(id, "bible-talk-opening")) {
+				hasCustomSongInService = true
+				break
+			}
+		}
+	}
+	if !hasCustomSongInService {
+		t.Errorf("saved service plan does not contain slides for custom song-set bible_talk_opening")
+	}
+}

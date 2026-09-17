@@ -169,6 +169,8 @@ CREATE TABLE IF NOT EXISTS service_registry_snapshots (
   base_type TEXT NOT NULL,
   payload TEXT,
   updated_at TEXT NOT NULL,
+  variable_name TEXT,
+  ann_set_id INTEGER,
   PRIMARY KEY (service_id, template_id),
   FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
 );

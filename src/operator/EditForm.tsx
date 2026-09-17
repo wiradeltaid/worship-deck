@@ -280,6 +280,7 @@ export default function EditForm({
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
           body: JSON.stringify({
+            serviceId: id,
             raw_payload: payload,
             sermonGraphicUrl: sermonGraphicUrl || null,
             familyPhotoUrl: familyPhotoUrl || null,
@@ -383,6 +384,7 @@ export default function EditForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          serviceId: id,
           raw_payload: payload,
           // Images so setSlidePlan does not flicker photos away;
           // omit fields so hydrate overlays come from raw parse only.
@@ -560,6 +562,7 @@ export default function EditForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          serviceId: id,
           raw_payload: rawPayload,
           sermonGraphicUrl: (snapshot?.sermonGraphicUrl ?? sermonGraphicUrl) || null,
           familyPhotoUrl: (snapshot?.familyPhotoUrl ?? familyPhotoUrl) || null,
