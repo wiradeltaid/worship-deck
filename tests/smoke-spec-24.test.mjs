@@ -205,9 +205,13 @@ test('T-24-03: User interactions on canvas and direct control actions reset isHe
   assert.ok(textChangedBody.includes('markUserDirty()'), 'onTextChanged must call markUserDirty()');
 
   // 3. object:resizing must be hooked to markUserDirty
+  const hasDirectResizing = editorCode.includes("canvas.on('object:resizing', markUserDirty)");
+  const resizingIdx = editorCode.indexOf('const onObjectResizing =');
+  const resizingBody = resizingIdx !== -1 ? editorCode.slice(resizingIdx, editorCode.indexOf('};', resizingIdx)) : '';
+  const hasResizingHandler = editorCode.includes("canvas.on('object:resizing', onObjectResizing)") && resizingBody.includes('markUserDirty()');
   assert.ok(
-    editorCode.includes("canvas.on('object:resizing', markUserDirty)"),
-    'object:resizing must be registered on canvas'
+    hasDirectResizing || hasResizingHandler,
+    'object:resizing must be registered on canvas and invoke markUserDirty'
   );
 });
 

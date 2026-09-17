@@ -1202,12 +1202,18 @@ export function serializeCanvas(
     const authoredTop = pctToPx(source.y, CANVAS_HEIGHT);
     const authoredWidth = pctToPx(source.w, CANVAS_WIDTH);
     const authoredHeight = pctToPx(source.h, CANVAS_HEIGHT);
-    const effWidth = typeof (obj as any).data?.authoredWidth === 'number' && (obj as any).data.authoredWidth > 0
-      ? (obj as any).data.authoredWidth
-      : (obj.width ?? 0);
-    const effHeight = typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
-      ? (obj as any).data.authoredHeight
-      : (obj.height ?? 0);
+    const isUserResizedW = (obj as any).data?.userResizedWidth === true;
+    const isUserResizedH = (obj as any).data?.userResizedHeight === true;
+    const effWidth = isUserResizedW
+      ? (obj.width ?? (obj as any).data?.authoredWidth ?? 0)
+      : typeof (obj as any).data?.authoredWidth === 'number' && (obj as any).data.authoredWidth > 0
+        ? (obj as any).data.authoredWidth
+        : (obj.width ?? 0);
+    const effHeight = isUserResizedH
+      ? (obj.height ?? (obj as any).data?.authoredHeight ?? 0)
+      : typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
+        ? (obj as any).data.authoredHeight
+        : (obj.height ?? 0);
     const measuredWidth = Math.abs(effWidth) * scaleX;
     const measuredHeight = Math.abs(effHeight) * scaleY;
 
@@ -1219,8 +1225,6 @@ export function serializeCanvas(
 
     const hasAuthoredWidth = typeof (obj as any).data?.authoredWidth === 'number';
     const hasAuthoredHeight = typeof (obj as any).data?.authoredHeight === 'number';
-    const isUserResizedW = (obj as any).data?.userResizedWidth === true;
-    const isUserResizedH = (obj as any).data?.userResizedHeight === true;
     const isFontSizeAutoH = (obj as any).data?.heightChange === 'font-size-auto';
     const isUserMoved = (obj as any).data?.userMoved === true;
 

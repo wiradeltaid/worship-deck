@@ -221,4 +221,8 @@ open_questions:
   blocking_budget: 9
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
+mandates:
+  resolution: none
+  active_ids: []
+  active_mandate: null
 ```
