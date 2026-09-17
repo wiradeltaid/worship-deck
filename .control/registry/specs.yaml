@@ -362,7 +362,7 @@ waves:
     fr: [FR-8, FR-17, FR-11, FR-13, FR-10, FR-9, FR-28, FR-32]
     size: S
     depends_on: [W7]
-    spec_folder: _bmad-output/specs/spec-w8-hub-service-ops/
+    spec_folder: .archive/specs/spec-w8-hub-service-ops/
     spec_reviewed:
       date: '2026-09-07'
       sha: '71941a67a07c992d9f4a0815ee6c15b136894c7b'
