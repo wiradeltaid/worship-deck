@@ -20,10 +20,13 @@ const {
   pathToFileURL(path.join(root, 'src', 'lib', 'lyrics.ts')).href
 );
 
-test('continuous join: terminal punctuation joins with space', () => {
-  const slides = splitLyricsLabeled(`Verse 1
+test('continuous join: terminal punctuation joins with space (when continuousJoin: true)', () => {
+  const slides = splitLyricsLabeled(
+    `Verse 1
 Hope in the coming of the Lord.
-We have this faith that Christ alone imparts.`);
+We have this faith that Christ alone imparts.`,
+    { continuousJoin: true }
+  );
   assert.equal(slides.length, 1);
   assert.equal(slides[0].label, '1/1');
   assert.equal(
@@ -33,10 +36,13 @@ We have this faith that Christ alone imparts.`);
   assert.ok(!slides[0].text.includes('\n'));
 });
 
-test('continuous join: punctuation before closing quote joins with space', () => {
-  const slides = splitLyricsLabeled(`Verse 1
+test('continuous join: punctuation before closing quote joins with space (when continuousJoin: true)', () => {
+  const slides = splitLyricsLabeled(
+    `Verse 1
 He said, "Hope in the Lord."
-We trust His Word.`);
+We trust His Word.`,
+    { continuousJoin: true }
+  );
   assert.equal(slides.length, 1);
   assert.equal(
     slides[0].text,
@@ -44,10 +50,13 @@ We trust His Word.`);
   );
 });
 
-test('continuous join: no terminal punctuation joins with "; "', () => {
-  const slides = splitLyricsLabeled(`Verse 1
+test('continuous join: no terminal punctuation joins with "; " (when continuousJoin: true)', () => {
+  const slides = splitLyricsLabeled(
+    `Verse 1
 Shall awake and shout and sing
-Hallelujah! Christ is King!`);
+Hallelujah! Christ is King!`,
+    { continuousJoin: true }
+  );
   assert.equal(slides.length, 1);
   assert.equal(
     slides[0].text,
@@ -143,8 +152,8 @@ Line 2
 Line 3
 Line 4`);
   assert.deepEqual(slides, [
-    { label: '1/1', text: 'Line 1; Line 2' },
-    { label: '1/1', text: 'Line 3; Line 4' },
+    { label: '1/1', text: 'Line 1\nLine 2' },
+    { label: '1/1', text: 'Line 3\nLine 4' },
   ]);
 });
 
@@ -182,9 +191,26 @@ First stanza line 2
 Second stanza line 1
 Second stanza line 2`);
   assert.deepEqual(slides, [
-    { label: '', text: 'First stanza line 1; First stanza line 2' },
-    { label: '', text: 'Second stanza line 1; Second stanza line 2' },
+    { label: '', text: 'First stanza line 1\nFirst stanza line 2' },
+    { label: '', text: 'Second stanza line 1\nSecond stanza line 2' },
   ]);
+});
+
+test('Smart Poetic Line Break: semicolons and length-balanced breaks', () => {
+  const slides = splitLyricsLabeled(`Verse 1
+God Himself is with us; Let us all adore Him,
+And with awe appear before Him.
+Verse 2
+Praise to the Lord, the Almighty, the King of creation!`);
+  assert.equal(slides.length, 2);
+  assert.equal(
+    slides[0].text,
+    'God Himself is with us;\nLet us all adore Him,\nAnd with awe appear before Him.'
+  );
+  assert.equal(
+    slides[1].text,
+    'Praise to the Lord, the Almighty,\nthe King of creation!'
+  );
 });
 
 test('splitLyricsIntoSlides returns array of string texts', () => {

@@ -151,12 +151,13 @@ const SECTION_HEADER =
 
 /** Terminal punct, optionally followed by a closing quote/bracket. */
 const TERMINAL_PUNCTUATION = /[.!,?;:]["'`’”)\]]?$/;
+const PUNCT_WITH_SPACE = /[,:—\-\.!?;]['"`’”)\]]?\s+/g;
 
 /**
  * Join section lines into continuous prose.
  * Terminal punctuation (`. , ! ? ; :`) → space; otherwise → `"; "`.
  */
-function joinLinesContinuous(lines: string[]): string {
+export function joinLinesContinuous(lines: string[]): string {
   if (lines.length === 0) return '';
   let result = lines[0];
   for (let i = 1; i < lines.length; i++) {
@@ -164,6 +165,83 @@ function joinLinesContinuous(lines: string[]): string {
     result = `${result}${sep}${lines[i]}`;
   }
   return result;
+}
+
+export function formatSmartPoeticLine(line: string, maxLen: number = 46): string[] {
+  line = line.trim();
+  if (line.length <= maxLen) return [line];
+
+  const minIdx = Math.floor(line.length * 0.28);
+  const maxIdx = Math.ceil(line.length * 0.72);
+  const mid = Math.floor(line.length / 2);
+
+  let bestPunctIdx = -1;
+  let bestPunctDist = Infinity;
+  let match: RegExpExecArray | null;
+
+  PUNCT_WITH_SPACE.lastIndex = 0;
+  while ((match = PUNCT_WITH_SPACE.exec(line)) !== null) {
+    const breakPos = match.index + match[0].trimEnd().length;
+    if (breakPos >= minIdx && breakPos <= maxIdx) {
+      const dist = Math.abs(breakPos - mid);
+      if (dist < bestPunctDist) {
+        bestPunctDist = dist;
+        bestPunctIdx = breakPos;
+      }
+    }
+  }
+
+  if (bestPunctIdx !== -1) {
+    const part1 = line.slice(0, bestPunctIdx).trim();
+    const part2 = line.slice(bestPunctIdx).trim();
+    return [...formatSmartPoeticLine(part1, maxLen), ...formatSmartPoeticLine(part2, maxLen)];
+  }
+
+  let bestSpaceIdx = -1;
+  let bestSpaceDist = Infinity;
+  for (let i = minIdx; i <= maxIdx; i++) {
+    if (line[i] === ' ') {
+      const dist = Math.abs(i - mid);
+      if (dist < bestSpaceDist) {
+        bestSpaceDist = dist;
+        bestSpaceIdx = i;
+      }
+    }
+  }
+
+  if (bestSpaceIdx !== -1) {
+    const part1 = line.slice(0, bestSpaceIdx).trim();
+    const part2 = line.slice(bestSpaceIdx).trim();
+    return [...formatSmartPoeticLine(part1, maxLen), ...formatSmartPoeticLine(part2, maxLen)];
+  }
+
+  return [line];
+}
+
+/**
+ * Structures lyric lines into beautifully formatted hymn stanzas:
+ * - Splits on explicit semicolon pauses (';') into distinct lines
+ * - Balances lines exceeding 46 characters at natural punctuation marks (, / : / . / -)
+ * - Splits at center whitespace when no punctuation exists
+ */
+export function formatSmartPoeticLines(rawLines: string[], maxLen: number = 46): string {
+  const result: string[] = [];
+  for (const raw of rawLines) {
+    const semiParts = raw.split(';');
+    for (let sIdx = 0; sIdx < semiParts.length; sIdx++) {
+      let part = semiParts[sIdx].trim();
+      if (!part) continue;
+      if (sIdx < semiParts.length - 1) {
+        part = part + ';';
+      }
+      const broken = formatSmartPoeticLine(part, maxLen);
+      for (const b of broken) {
+        const bTrim = b.trim();
+        if (bTrim) result.push(bTrim);
+      }
+    }
+  }
+  return result.join('\n');
 }
 
 function parseSections(lyrics: string): LyricSection[] {
@@ -246,14 +324,14 @@ function fillEmptyRefrains(sections: LyricSection[]): LyricSection[] {
 
 export type SplitLyricsOptions = {
   /**
-   * When true, keep original line breaks (`\n`) instead of continuous
-   * prose joining (`; ` / space).
+   * When true, use legacy continuous prose joining (`; ` / space).
    */
+  continuousJoin?: boolean;
   preserveLineBreaks?: boolean;
 };
 
 /**
- * Split lyrics into labeled slides following DEC-004 S7 (L1-L6):
+ * Split lyrics into labeled slides following DEC-004 S7 (L1-L6) with Smart Poetic Line Breaks:
  * - L1: Recognize Verse, Chorus, Reff, Refrain (with or without numbers)
  * - L2: Distinct refrains per verse preserved verbatim
  * - L3: Bodyless refrain inherits nearest preceding non-empty refrain
@@ -261,6 +339,7 @@ export type SplitLyricsOptions = {
  * - L5: Blank lines inside a section are hard slide breaks (one paragraph, one slide)
  * - L6: No character-budget or line-count splitting
  * - Verse labels are `n/total`; refrains are labeled `Reff` or `Chorus`
+ * - Stanzas format with intelligent poetic line breaks (semicolons, balanced punctuation breaks)
  */
 export function splitLyricsLabeled(
   lyrics: string,
@@ -268,7 +347,7 @@ export function splitLyricsLabeled(
 ): LyricSlide[] {
   if (!lyrics?.trim()) return [];
 
-  const preserveLineBreaks = options?.preserveLineBreaks === true;
+  const useContinuous = options?.continuousJoin === true;
 
   let sections = parseSections(lyrics);
   sections = fillEmptyRefrains(sections);
@@ -293,9 +372,9 @@ export function splitLyricsLabeled(
 
     for (const paragraph of section.paragraphs) {
       if (paragraph.length === 0) continue;
-      const text = preserveLineBreaks
-        ? paragraph.join('\n')
-        : joinLinesContinuous(paragraph);
+      const text = useContinuous
+        ? joinLinesContinuous(paragraph)
+        : formatSmartPoeticLines(paragraph);
       slides.push({ label, text });
     }
   }
@@ -313,9 +392,9 @@ export function splitLyricsLabeled(
         .map((l) => l.trim())
         .filter(Boolean);
       if (lines.length > 0) {
-        const text = preserveLineBreaks
-          ? lines.join('\n')
-          : joinLinesContinuous(lines);
+        const text = useContinuous
+          ? joinLinesContinuous(lines)
+          : formatSmartPoeticLines(lines);
         slides.push({ label: '', text });
       }
     }

@@ -968,10 +968,12 @@ function migrateSongSetShapeDec004(database: Database.Database): void {
     label: 'verse_number',
     lyrics: 'verse_content[]',
   });
+  delete (versePayload as any).backgroundImage;
   const reffPayload = rename(sourceLyric, {
     label: '',
     lyrics: 'reff[]',
   });
+  delete (reffPayload as any).backgroundImage;
 
   const defaultSeeds: Record<string, string> = {
     'bt-opening-song': 'opening_song_bt',

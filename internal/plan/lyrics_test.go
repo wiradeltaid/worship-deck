@@ -75,8 +75,8 @@ func TestSplitLyricsLabeled_DEC004_S7(t *testing.T) {
 		input := "Verse 1\nLine 1\nLine 2\n\nLine 3\nLine 4"
 		got := SplitLyricsLabeled(input)
 		expected := []LyricSlide{
-			{Label: "1/1", Text: "Line 1; Line 2"},
-			{Label: "1/1", Text: "Line 3; Line 4"},
+			{Label: "1/1", Text: "Line 1\nLine 2"},
+			{Label: "1/1", Text: "Line 3\nLine 4"},
 		}
 		if !reflect.DeepEqual(got, expected) {
 			t.Fatalf("expected %+v, got %+v", expected, got)
@@ -96,6 +96,39 @@ func TestSplitLyricsLabeled_DEC004_S7(t *testing.T) {
 		}
 		if len(got[0].Text) <= 320 {
 			t.Fatalf("expected text > 320 chars, got %d", len(got[0].Text))
+		}
+	})
+}
+
+
+func TestSmartPoeticLineBreaks(t *testing.T) {
+	// 1. Semicolon line breaks
+	t.Run("semicolons break into separate lines", func(t *testing.T) {
+		input := "Verse 1\nGod Himself is with us; Let us all adore Him,\nAnd with awe appear before Him."
+		got := SplitLyricsLabeled(input)
+		expected := "God Himself is with us;\nLet us all adore Him,\nAnd with awe appear before Him."
+		if len(got) != 1 || got[0].Text != expected {
+			t.Fatalf("expected:\n%q\ngot:\n%q", expected, got[0].Text)
+		}
+	})
+
+	// 2. Lines exceeding 46 chars break at center punctuation
+	t.Run("long line breaks at center comma", func(t *testing.T) {
+		input := "Verse 1\nPraise to the Lord, the Almighty, the King of creation!"
+		got := SplitLyricsLabeled(input)
+		expected := "Praise to the Lord, the Almighty,\nthe King of creation!"
+		if len(got) != 1 || got[0].Text != expected {
+			t.Fatalf("expected:\n%q\ngot:\n%q", expected, got[0].Text)
+		}
+	})
+
+	// 3. Short lines remain intact
+	t.Run("short line stays intact", func(t *testing.T) {
+		input := "Verse 1\nAlleluia! Alleluia!"
+		got := SplitLyricsLabeled(input)
+		expected := "Alleluia! Alleluia!"
+		if len(got) != 1 || got[0].Text != expected {
+			t.Fatalf("expected:\n%q\ngot:\n%q", expected, got[0].Text)
 		}
 	})
 }

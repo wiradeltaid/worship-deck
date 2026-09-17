@@ -109,6 +109,7 @@ func migrateSongSetShape(db *sql.DB) error {
 		"label":  "verse_number",
 		"lyrics": "verse_content[]",
 	})
+	delete(versePayload, "backgroundImage")
 	// reff is seeded from verse with `lyrics` -> `reff[]` and `label` cleared
 	// (a refrain carries no verse number; DEC-004 mapping leaves `label` no
 	// reff-side target).
@@ -116,6 +117,7 @@ func migrateSongSetShape(db *sql.DB) error {
 		"label":  "",
 		"lyrics": "reff[]",
 	})
+	delete(reffPayload, "backgroundImage")
 
 	now := timeNowUTC()
 	if _, err := tx.Exec(

@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	sectionHeader = regexp.MustCompile(`(?i)^(Verse(?:\s+(\d+))?|Chorus(?:\s+(\d+))?|Reff(?:\s+(\d+))?|Refrain(?:\s+(\d+))?)\s*$`)
-	terminalPunct = regexp.MustCompile(`[.!,?;:]["'` + "`" + `’”)\]]?$`)
+	sectionHeader  = regexp.MustCompile(`(?i)^(Verse(?:\s+(\d+))?|Chorus(?:\s+(\d+))?|Reff(?:\s+(\d+))?|Refrain(?:\s+(\d+))?)\s*$`)
+	terminalPunct  = regexp.MustCompile(`[.!,?;:]["'` + "`" + `’”)\]]?$`)
+	punctWithSpace = regexp.MustCompile(`[,:—\-\.!?;]['"` + "`" + `’”)\]]?\s+`)
 )
 
 type lyricSection struct {
@@ -38,6 +39,94 @@ func joinLinesContinuous(lines []string) string {
 		result = result + sep + lines[i]
 	}
 	return result
+}
+
+func formatSmartPoeticLine(line string, maxLen int) []string {
+	line = strings.TrimSpace(line)
+	if len(line) <= maxLen {
+		return []string{line}
+	}
+
+	minIdx := int(float64(len(line)) * 0.28)
+	maxIdx := int(float64(len(line)) * 0.72)
+	mid := len(line) / 2
+
+	// Priority 1: punctuation near center
+	matches := punctWithSpace.FindAllStringIndex(line, -1)
+	bestPunctIdx := -1
+	bestPunctDist := 999999
+
+	for _, loc := range matches {
+		breakPos := loc[0] + len(strings.TrimRight(line[loc[0]:loc[1]], " \t\r\n"))
+		if breakPos >= minIdx && breakPos <= maxIdx {
+			dist := breakPos - mid
+			if dist < 0 {
+				dist = -dist
+			}
+			if dist < bestPunctDist {
+				bestPunctDist = dist
+				bestPunctIdx = breakPos
+			}
+		}
+	}
+
+	if bestPunctIdx != -1 {
+		part1 := strings.TrimSpace(line[:bestPunctIdx])
+		part2 := strings.TrimSpace(line[bestPunctIdx:])
+		return append(formatSmartPoeticLine(part1, maxLen), formatSmartPoeticLine(part2, maxLen)...)
+	}
+
+	// Priority 2: space closest to midpoint
+	bestSpaceIdx := -1
+	bestSpaceDist := 999999
+	for i := minIdx; i <= maxIdx; i++ {
+		if line[i] == ' ' {
+			dist := i - mid
+			if dist < 0 {
+				dist = -dist
+			}
+			if dist < bestSpaceDist {
+				bestSpaceDist = dist
+				bestSpaceIdx = i
+			}
+		}
+	}
+
+	if bestSpaceIdx != -1 {
+		part1 := strings.TrimSpace(line[:bestSpaceIdx])
+		part2 := strings.TrimSpace(line[bestSpaceIdx:])
+		return append(formatSmartPoeticLine(part1, maxLen), formatSmartPoeticLine(part2, maxLen)...)
+	}
+
+	return []string{line}
+}
+
+// FormatSmartPoeticLines structures lyric lines into beautifully formatted hymn stanzas:
+// - Splits on explicit semicolon pauses (';') into distinct lines
+// - Balances lines exceeding 46 characters at natural punctuation marks (, / : / . / -)
+// - Splits at center whitespace when no punctuation exists
+func FormatSmartPoeticLines(rawLines []string) string {
+	var result []string
+	for _, raw := range rawLines {
+		semiParts := strings.Split(raw, ";")
+		for sIdx, sp := range semiParts {
+			part := strings.TrimSpace(sp)
+			if part == "" {
+				continue
+			}
+			if sIdx < len(semiParts)-1 {
+				part = part + ";"
+			}
+			broken := formatSmartPoeticLine(part, 46)
+			for _, b := range broken {
+				bTrim := strings.TrimSpace(b)
+				if bTrim != "" {
+					result = append(result, bTrim)
+				}
+			}
+		}
+	}
+	return strings.Join(result, "\n")
 }
 
 func parseSections(lyrics string) []lyricSection {
@@ -176,7 +265,7 @@ func SplitLyricsLabeled(lyrics string) []LyricSlide {
 			if len(paragraph) == 0 {
 				continue
 			}
-			text := joinLinesContinuous(paragraph)
+			text := FormatSmartPoeticLines(paragraph)
 			slides = append(slides, LyricSlide{Label: label, Text: text})
 		}
 	}
@@ -191,7 +280,7 @@ func SplitLyricsLabeled(lyrics string) []LyricSlide {
 				}
 			}
 			if len(lines) > 0 {
-				slides = append(slides, LyricSlide{Text: joinLinesContinuous(lines)})
+				slides = append(slides, LyricSlide{Text: FormatSmartPoeticLines(lines)})
 			}
 		}
 	}
