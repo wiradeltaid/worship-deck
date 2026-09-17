@@ -3738,24 +3738,38 @@ export default function ArtifactEditor({
   };
 
   const handleDeleteSelectedTemplates = async (singleItem?: ArtifactTemplateSummary) => {
-    let targetIds: string[];
+    let rawCandidates: ArtifactTemplateSummary[];
     if (singleItem) {
       if (selectedIds.has(singleItem.id) && selectedIds.size > 1) {
-        targetIds = templates.filter((t) => selectedIds.has(t.id)).map((t) => t.id);
+        rawCandidates = templates.filter((t) => selectedIds.has(t.id));
       } else {
-        targetIds = [singleItem.id];
+        rawCandidates = [singleItem];
       }
     } else {
-      targetIds = templates.filter((t) => selectedIds.has(t.id)).map((t) => t.id);
+      rawCandidates = templates.filter((t) => selectedIds.has(t.id));
     }
 
-    if (targetIds.length === 0) return;
+    const songSetItems = rawCandidates.filter((t) => t.baseType === 'song-set-entry');
+    const targetCandidates = rawCandidates.filter((t) => t.baseType !== 'song-set-entry');
+
+    if (targetCandidates.length === 0) {
+      if (songSetItems.length > 0) {
+        toast.info('Song set entries are master data and cannot be deleted here. Manage them in the Song Sets tab.');
+      }
+      return;
+    }
+
+    if (songSetItems.length > 0) {
+      toast.info('Song set master data was preserved and skipped from deletion.');
+    }
+
+    const targetIds = targetCandidates.map((t) => t.id);
 
     const containsActive = selectedId !== null && targetIds.includes(selectedId);
     let warning: string;
 
     if (targetIds.length === 1) {
-      const item = templates.find((t) => t.id === targetIds[0]) ?? singleItem;
+      const item = targetCandidates[0];
       const label = item?.label ?? '';
       warning =
         containsActive && isDirty && isEditable
@@ -4321,20 +4335,22 @@ export default function ArtifactEditor({
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          title={t('admin.artifacts.delete')}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleDeleteTemplate(item);
-                          }}
-                          disabled={busy || isDeletingSelected}
-                          className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        {item.baseType === 'song-set-entry' ? null : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            title={t('admin.artifacts.delete')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleDeleteTemplate(item);
+                            }}
+                            disabled={busy || isDeletingSelected}
+                            className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </li>

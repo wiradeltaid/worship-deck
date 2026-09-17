@@ -503,10 +503,18 @@ func (s *Server) deleteArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "updatedAt is required")
 		return
 	}
-	var stored string
-	err = s.DB.QueryRow(`SELECT updated_at FROM artifact_templates WHERE id = ?`, id).Scan(&stored)
+	var stored, baseType string
+	err = s.DB.QueryRow(`SELECT updated_at, base_type FROM artifact_templates WHERE id = ?`, id).Scan(&stored, &baseType)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "Unknown template: "+id)
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if baseType == "song-set-entry" {
+		writeError(w, http.StatusBadRequest, "Song set entries are master data and cannot be deleted from the slide deck. Manage them in the Song Sets tab.")
 		return
 	}
 	if stored != updatedAt {
