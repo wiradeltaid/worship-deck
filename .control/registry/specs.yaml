@@ -227,7 +227,7 @@ waves:
     fr: [FR-35]
     size: M
     depends_on: []
-    spec_folder: _bmad-output/specs/spec-w5-presenter-remote/
+    spec_folder: .archive/specs/spec-w5-presenter-remote/
     spec_reviewed:
       date: '2026-08-22'
       sha: 'cdf161b84d58035e4e60fdd877e459ea2a7f3e1f'
