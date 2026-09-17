@@ -602,7 +602,7 @@ waves:
     fr: [FR-20, FR-21, FR-29]
     size: M
     depends_on: [W11]
-    spec_folder: .scratch/SPEC-12-artifacts-qa-followup/
+    spec_folder: .archive/specs/SPEC-12-artifacts-qa-followup/
     spec_reviewed:
       date: '2026-09-08'
       sha: '86726c6'
@@ -679,7 +679,7 @@ waves:
     fr: [FR-20, FR-21, FR-29]
     size: M
     depends_on: [SPEC-12]
-    spec_folder: .scratch/SPEC-13-artifacts-qa-followup-round2/
+    spec_folder: .archive/specs/SPEC-13-artifacts-qa-followup-round2/
     spec_reviewed:
       date: '2026-09-08'
       sha: '803fe57'
@@ -791,7 +791,7 @@ waves:
     fr: [FR-20, FR-21, FR-29]
     size: M
     depends_on: [SPEC-13]
-    spec_folder: .scratch/SPEC-14-artifacts-qa-followup-round3/
+    spec_folder: .archive/specs/SPEC-14-artifacts-qa-followup-round3/
     spec_reviewed:
       date: '2026-09-09'
       sha: '46c1b9e'
@@ -870,7 +870,7 @@ waves:
     fr: [FR-20, FR-21, FR-29]
     size: S
     depends_on: [SPEC-14]
-    spec_folder: .scratch/SPEC-15-artifacts-qa-followup-round4/
+    spec_folder: .archive/specs/SPEC-15-artifacts-qa-followup-round4/
     spec_reviewed:
       date: '2026-09-09'
       sha: 'f2a848d'
@@ -912,7 +912,7 @@ waves:
     fr: [FR-20, FR-21, FR-29]
     size: S
     depends_on: [SPEC-15]
-    spec_folder: .scratch/SPEC-16-artifacts-qa-followup-round5/
+    spec_folder: .archive/specs/SPEC-16-artifacts-qa-followup-round5/
     spec_reviewed:
       date: '2026-09-09'
       sha: '76a3f74'
@@ -940,7 +940,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-16]
-    spec_folder: .scratch/SPEC-17-artifacts-font-selector-two-row-toolbar/
+    spec_folder: .archive/specs/SPEC-17-artifacts-font-selector-two-row-toolbar/
     spec_reviewed:
       date: '2026-09-09'
       sha: '86134b6'
@@ -976,7 +976,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-17]
-    spec_folder: .scratch/SPEC-18-artifacts-typography-persistence/
+    spec_folder: .archive/specs/SPEC-18-artifacts-typography-persistence/
     spec_reviewed:
       date: '2026-09-10'
       sha: 'c891a62'
@@ -1011,7 +1011,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-18]
-    spec_folder: .scratch/SPEC-19-artifacts-canvas-interactions/
+    spec_folder: .archive/specs/SPEC-19-artifacts-canvas-interactions/
     spec_reviewed:
       date: '2026-09-10'
       sha: 'b8aebd0'
@@ -1063,7 +1063,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-19]
-    spec_folder: .scratch/SPEC-20-artifacts-canvas-wysiwyg-and-controls/
+    spec_folder: .archive/specs/SPEC-20-artifacts-canvas-wysiwyg-and-controls/
     spec_reviewed:
       date: '2026-09-10'
       sha: '871b43e'
@@ -1110,7 +1110,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-20]
-    spec_folder: .scratch/SPEC-21-artifacts-canvas-parity-and-input-ux/
+    spec_folder: .archive/specs/SPEC-21-artifacts-canvas-parity-and-input-ux/
     spec_reviewed:
       date: '2026-09-10'
       sha: '178bb0d'
@@ -1157,7 +1157,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-21]
-    spec_folder: .scratch/SPEC-22-pptx-text-wrap-parity/
+    spec_folder: .archive/specs/SPEC-22-pptx-text-wrap-parity/
     spec_reviewed:
       date: '2026-09-10'
       sha: 'bb92456'
@@ -1211,7 +1211,7 @@ waves:
     fr: [FR-20]
     size: L
     depends_on: [SPEC-22]
-    spec_folder: .scratch/SPEC-23-wysiwyg-parity-wrap-slack/
+    spec_folder: .archive/specs/SPEC-23-wysiwyg-parity-wrap-slack/
     spec_reviewed:
       date: '2026-09-10'
       sha: 'e4ad0c9'
@@ -1277,7 +1277,7 @@ waves:
     fr: [FR-20]
     size: S
     depends_on: [SPEC-23]
-    spec_folder: .scratch/SPEC-24-canvas-healing-persistence-isolation/
+    spec_folder: .archive/specs/SPEC-24-canvas-healing-persistence-isolation/
     spec_reviewed:
       date: '2026-09-11'
       sha: 'bc60219'
@@ -1319,7 +1319,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-24]
-    spec_folder: .scratch/SPEC-25-canvas-presenter-parity-and-heal-crash/
+    spec_folder: .archive/specs/SPEC-25-canvas-presenter-parity-and-heal-crash/
     spec_reviewed:
       date: '2026-09-13'
       sha: '90ad723'
@@ -1354,7 +1354,7 @@ waves:
     fr: [FR-20]
     size: S
     depends_on: [SPEC-25]
-    spec_folder: .scratch/SPEC-26-canvas-presenter-visual-parity/
+    spec_folder: .archive/specs/SPEC-26-canvas-presenter-visual-parity/
     spec_reviewed:
       date: '2026-09-13'
       sha: '66f7a89'
@@ -1389,7 +1389,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-26]
-    spec_folder: .scratch/SPEC-27-pptx-anchor-visual-parity/
+    spec_folder: .archive/specs/SPEC-27-pptx-anchor-visual-parity/
     spec_reviewed:
       date: '2026-09-13'
       sha: '87113c8'
@@ -1432,7 +1432,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-27]
-    spec_folder: .scratch/SPEC-28-canvas-interaction-and-resize-ux/
+    spec_folder: .archive/specs/SPEC-28-canvas-interaction-and-resize-ux/
     spec_reviewed:
       date: '2026-09-14'
       sha: '03c9ab3'
@@ -1467,7 +1467,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-28]
-    spec_folder: .scratch/SPEC-29-canvas-text-wrapping-and-box-fidelity/
+    spec_folder: .archive/specs/SPEC-29-canvas-text-wrapping-and-box-fidelity/
     spec_reviewed:
       date: '2026-09-14'
       sha: '4af92c2'
@@ -1502,7 +1502,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-29]
-    spec_folder: .scratch/SPEC-30-pptx-word-wrap-and-fit-parity/
+    spec_folder: .archive/specs/SPEC-30-pptx-word-wrap-and-fit-parity/
     spec_reviewed:
       date: '2026-09-14'
       sha: 'c6fa7c2'
@@ -1537,7 +1537,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-30]
-    spec_folder: .scratch/SPEC-31-initial-pptx-import-smart-background/
+    spec_folder: .archive/specs/SPEC-31-initial-pptx-import-smart-background/
     spec_reviewed:
       date: '2026-09-15'
       sha: 'ed0f42a'
@@ -1581,7 +1581,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-31]
-    spec_folder: .scratch/SPEC-32-pptx-import-font-adoption-and-letter-spacing/
+    spec_folder: .archive/specs/SPEC-32-pptx-import-font-adoption-and-letter-spacing/
     spec_reviewed:
       date: '2026-09-15'
       sha: '454ff518547895b67c0b747cc4072641bb924d5b'
@@ -1626,7 +1626,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-32]
-    spec_folder: .scratch/SPEC-33-pptx-typography-fidelity-and-font-acquisition/
+    spec_folder: .archive/specs/SPEC-33-pptx-typography-fidelity-and-font-acquisition/
     spec_reviewed:
       date: '2026-09-15'
       sha: '5f130ca'
@@ -1674,7 +1674,7 @@ waves:
     fr: [FR-21]
     size: S
     depends_on: [SPEC-33]
-    spec_folder: .scratch/SPEC-34-deck-sequence-multi-select-and-bulk-delete/
+    spec_folder: .archive/specs/SPEC-34-deck-sequence-multi-select-and-bulk-delete/
     spec_reviewed:
       date: '2026-09-15'
       sha: 'db9d123'
@@ -1707,7 +1707,7 @@ waves:
     fr: [FR-20]
     size: S
     depends_on: [SPEC-34]
-    spec_folder: .scratch/SPEC-35-pptx-modern-widescreen-parity/
+    spec_folder: .archive/specs/SPEC-35-pptx-modern-widescreen-parity/
     spec_reviewed:
       date: '2026-09-15'
       sha: '3bef9adb8c909b02ee9798e28c1e603e1aef7192'
@@ -1747,7 +1747,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-35]
-    spec_folder: .scratch/SPEC-36-font-import-variant-association-and-pptx-embedding-parity/
+    spec_folder: .archive/specs/SPEC-36-font-import-variant-association-and-pptx-embedding-parity/
     spec_reviewed:
       date: '2026-09-15'
       sha: 'b402b4243877cfefcf7a1e8b73c86c1c1a51f36c'
@@ -1787,7 +1787,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-36]
-    spec_folder: .scratch/SPEC-37-font-availability-parity-and-unacquired-status-reconciliation/
+    spec_folder: .archive/specs/SPEC-37-font-availability-parity-and-unacquired-status-reconciliation/
     spec_reviewed:
       date: '2026-09-16'
       sha: 'beab1e4'
@@ -1828,7 +1828,7 @@ waves:
     fr: [FR-20]
     size: M
     depends_on: [SPEC-37]
-    spec_folder: .scratch/SPEC-38-canvas-undo-redo-and-line-unfilled-shape-elements/
+    spec_folder: .archive/specs/SPEC-38-canvas-undo-redo-and-line-unfilled-shape-elements/
     spec_reviewed:
       date: '2026-09-17'
       sha: 'd9060a6'
