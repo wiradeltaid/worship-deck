@@ -93,6 +93,11 @@ import {
   runBulkDelete,
   selectAllSlides,
 } from '@/lib/registry/slide-selection';
+import {
+  setCanvasClipboard,
+  getCanvasClipboard,
+  type CanvasClipboardItem,
+} from '@/lib/registry/canvas-clipboard';
 
 const FONT_ITEMS_MAP: Record<string, string> = Object.fromEntries(
   FONT_CATALOG.map((f) => [f.family, f.label])
@@ -2173,9 +2178,7 @@ export default function ArtifactEditor({
     }
 
     if (items.length > 0) {
-      try {
-        sessionStorage.setItem('wpw_canvas_clipboard', JSON.stringify(items));
-      } catch {}
+      setCanvasClipboard(items);
       const msg = items.length === 1 ? t('admin.artifacts.copiedElement') : `${t('admin.artifacts.copiedElement')} (${items.length})`;
       toast.success(msg);
     }
@@ -2186,19 +2189,8 @@ export default function ArtifactEditor({
     const layout = template ? getEditableLayout(template) : null;
     if (!canvas || !layout || !template) return;
 
-    let rawData: string | null = null;
-    try {
-      rawData = sessionStorage.getItem('wpw_canvas_clipboard');
-    } catch {}
-    if (!rawData) return;
-
-    let items: Array<{ sourceSlideId?: string; element: CanvasElement }> = [];
-    try {
-      items = JSON.parse(rawData);
-    } catch {
-      return;
-    }
-    if (!Array.isArray(items) || items.length === 0) return;
+    const items = getCanvasClipboard();
+    if (!items || !Array.isArray(items) || items.length === 0) return;
 
     const fabric = await import('fabric');
     if (fabricCanvasRef.current !== canvas) return;

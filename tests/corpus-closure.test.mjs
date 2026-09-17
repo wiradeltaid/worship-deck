@@ -101,6 +101,8 @@ const ALLOWED_CORPUS_WRITES = new Set([
   'internal/httpapi/song_set_entries.go writes song_set_layouts',
   // Admin song-books CRUD contract (.how/registry/02-contracts/05-song-books.md, DEC-005 / AD-36).
   'internal/httpapi/song_books.go writes song_books',
+  // Admin song set master entries (DEC-004 / AD-31 / commit 28a0574).
+  'internal/httpapi/song_set_entries.go writes song_set_entries',
 ]);
 
 test('no operator or administrator write path into a corpus table', () => {

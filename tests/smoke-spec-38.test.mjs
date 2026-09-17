@@ -1174,16 +1174,16 @@ test('FEAT: Text Area custom bounding box sizing, handles, and toolbar area cont
 test('FEAT: Copy (Ctrl+C) and Paste (Ctrl+V) elements across slide canvases', () => {
   const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
 
-  // 1. ArtifactEditor defines handleCopySelected and handlePaste
+  // 1. ArtifactEditor defines handleCopySelected and handlePaste using canvas clipboard module
   assert.ok(
     currentEditorCode.includes('const handleCopySelected =') &&
-    currentEditorCode.includes('sessionStorage.setItem(\'wpw_canvas_clipboard\', JSON.stringify(items))'),
-    'ArtifactEditor must implement handleCopySelected with sessionStorage persistence'
+    (currentEditorCode.includes('setCanvasClipboard(items)') || currentEditorCode.includes('sessionStorage.setItem(\'wpw_canvas_clipboard\'')),
+    'ArtifactEditor must implement handleCopySelected with clipboard persistence'
   );
   assert.ok(
     currentEditorCode.includes('const handlePaste =') &&
-    currentEditorCode.includes('sessionStorage.getItem(\'wpw_canvas_clipboard\')'),
-    'ArtifactEditor must implement handlePaste reading from sessionStorage'
+    (currentEditorCode.includes('getCanvasClipboard()') || currentEditorCode.includes('sessionStorage.getItem(\'wpw_canvas_clipboard\'')),
+    'ArtifactEditor must implement handlePaste reading from clipboard'
   );
 
   // 2. Keyboard shortcuts Ctrl+C and Ctrl+V are wired in handleKeyDown
