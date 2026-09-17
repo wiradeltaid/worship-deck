@@ -213,6 +213,31 @@ Praise to the Lord, the Almighty, the King of creation!`);
   );
 });
 
+test('Smart Poetic Line Break: Rescue the Perishing cadence, preposition, and punctuation breaks', () => {
+  const input = `Verse 1
+Rescue the perishing,
+Care for the dying;
+Snatch them in pity from sin and the grave;
+Weep o'er the erring one,
+Lift up the fallen,
+Tell them of Jesus, the mighty to save.`;
+
+  const slides = splitLyricsLabeled(input);
+  assert.equal(slides.length, 1);
+  const expected = [
+    'Rescue the perishing,',
+    'Care for the dying;',
+    'Snatch them in pity',
+    'from sin and the grave;',
+    "Weep o'er the erring one,",
+    'Lift up the fallen,',
+    'Tell them of Jesus,',
+    'the mighty to save.',
+  ].join('\n');
+
+  assert.equal(slides[0].text, expected);
+});
+
 test('splitLyricsIntoSlides returns array of string texts', () => {
   const texts = splitLyricsIntoSlides(`Verse 1
 Line 1

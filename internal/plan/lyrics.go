@@ -5,6 +5,7 @@ package plan
 
 import (
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -14,6 +15,14 @@ var (
 	terminalPunct  = regexp.MustCompile(`[.!,?;:]["'` + "`" + `’”)\]]?$`)
 	punctWithSpace = regexp.MustCompile(`[,:—\-\.!?;]['"` + "`" + `’”)\]]?\s+`)
 )
+
+var prepositions = map[string]struct{}{
+	"from": {}, "in": {}, "to": {}, "with": {}, "by": {}, "on": {}, "at": {},
+	"through": {}, "into": {}, "upon": {}, "unto": {},
+	"and": {}, "but": {}, "or": {}, "for": {}, "nor": {}, "yet": {}, "so": {},
+	"that": {}, "which": {}, "where": {}, "when": {}, "who": {}, "whose": {},
+	"whom": {}, "as": {}, "till": {}, "while": {},
+}
 
 type lyricSection struct {
 	kind       string
@@ -41,14 +50,83 @@ func joinLinesContinuous(lines []string) string {
 	return result
 }
 
+func computeCadence(lines []string) int {
+	charsBeforeSemi := 0
+	countBeforeSemi := 0
+	foundSemi := false
+
+	for _, l := range lines {
+		countBeforeSemi++
+		semiPos := strings.Index(l, ";")
+		if semiPos != -1 {
+			charsBeforeSemi += semiPos
+			foundSemi = true
+			break
+		} else {
+			charsBeforeSemi += len(l)
+		}
+	}
+
+	if foundSemi && countBeforeSemi > 0 {
+		return charsBeforeSemi / countBeforeSemi
+	}
+	if len(lines) == 0 {
+		return 30
+	}
+	lens := make([]int, len(lines))
+	for i, l := range lines {
+		lens[i] = len(l)
+	}
+	sort.Ints(lens)
+	return lens[len(lens)/2]
+}
+
+func computeDynamicMaxLen(stanzaLines []string) int {
+	cadence := computeCadence(stanzaLines)
+	rawLineCount := len(stanzaLines)
+
+	// Base threshold around 37 chars (capacity for 46.67px bold font in 920px box)
+	maxLen := 37
+
+	if cadence <= 26 {
+		// Short-meter hymn (like Rescue the Perishing): double-length lines (>36) must split
+		maxLen = 36
+	} else if cadence >= 44 {
+		// Long-meter hymn: natural lines are longer
+		maxLen = cadence + 2
+		if maxLen > 48 {
+			maxLen = 48
+		}
+	}
+
+	// Edge case: if stanza is already dense (>= 7 lines), raise threshold so we don't over-inflate vertical lines
+	if rawLineCount >= 7 {
+		if maxLen < 44 {
+			maxLen = 44
+		}
+	}
+
+	return maxLen
+}
+
+func cleanWord(w string) string {
+	var sb strings.Builder
+	for _, r := range w {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
+}
+
 func formatSmartPoeticLine(line string, maxLen int) []string {
 	line = strings.TrimSpace(line)
 	if len(line) <= maxLen {
 		return []string{line}
 	}
 
-	minIdx := int(float64(len(line)) * 0.28)
-	maxIdx := int(float64(len(line)) * 0.72)
+	minIdx := int(float64(len(line)) * 0.25)
+	maxIdx := int(float64(len(line)) * 0.75)
 	mid := len(line) / 2
 
 	// Priority 1: punctuation near center
@@ -76,7 +154,40 @@ func formatSmartPoeticLine(line string, maxLen int) []string {
 		return append(formatSmartPoeticLine(part1, maxLen), formatSmartPoeticLine(part2, maxLen)...)
 	}
 
-	// Priority 2: space closest to midpoint
+	// Priority 2: preposition or conjunction boundary in middle zone
+	words := strings.Fields(line)
+	charCount := 0
+	bestPrepIdx := -1
+	bestPrepDist := 999999
+
+	for w, word := range words {
+		cleaned := strings.ToLower(cleanWord(word))
+		wordStart := charCount
+		charCount += len(word) + 1
+
+		if w > 0 {
+			if _, isPrep := prepositions[cleaned]; isPrep {
+				if wordStart >= minIdx && wordStart <= maxIdx {
+					dist := wordStart - mid
+					if dist < 0 {
+						dist = -dist
+					}
+					if dist < bestPrepDist {
+						bestPrepDist = dist
+						bestPrepIdx = wordStart
+					}
+				}
+			}
+		}
+	}
+
+	if bestPrepIdx != -1 {
+		part1 := strings.TrimSpace(line[:bestPrepIdx])
+		part2 := strings.TrimSpace(line[bestPrepIdx:])
+		return append(formatSmartPoeticLine(part1, maxLen), formatSmartPoeticLine(part2, maxLen)...)
+	}
+
+	// Priority 3: space closest to midpoint
 	bestSpaceIdx := -1
 	bestSpaceDist := 999999
 	for i := minIdx; i <= maxIdx; i++ {
@@ -102,10 +213,12 @@ func formatSmartPoeticLine(line string, maxLen int) []string {
 }
 
 // FormatSmartPoeticLines structures lyric lines into beautifully formatted hymn stanzas:
-// - Splits on explicit semicolon pauses (';') into distinct lines
-// - Balances lines exceeding 46 characters at natural punctuation marks (, / : / . / -)
-// - Splits at center whitespace when no punctuation exists
+// - Computes stanza meter cadence up to the first semicolon (';')
+// - Dynamically calculates character capacity from font size (46.67px bold) and slide box width
+// - Breaks lines at semicolons (';'), punctuation (',', ':', '-'), or preposition boundaries ('from', 'in', 'to', etc.)
+// - Guards against vertical over-density when a stanza already has >= 7 lines
 func FormatSmartPoeticLines(rawLines []string) string {
+	maxLen := computeDynamicMaxLen(rawLines)
 	var result []string
 	for _, raw := range rawLines {
 		semiParts := strings.Split(raw, ";")
@@ -117,7 +230,7 @@ func FormatSmartPoeticLines(rawLines []string) string {
 			if sIdx < len(semiParts)-1 {
 				part = part + ";"
 			}
-			broken := formatSmartPoeticLine(part, 46)
+			broken := formatSmartPoeticLine(part, maxLen)
 			for _, b := range broken {
 				bTrim := strings.TrimSpace(b)
 				if bTrim != "" {

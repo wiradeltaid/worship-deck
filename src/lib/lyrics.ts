@@ -153,6 +153,12 @@ const SECTION_HEADER =
 const TERMINAL_PUNCTUATION = /[.!,?;:]["'`’”)\]]?$/;
 const PUNCT_WITH_SPACE = /[,:—\-\.!?;]['"`’”)\]]?\s+/g;
 
+const PREPOSITIONS = new Set([
+  'from', 'in', 'to', 'with', 'by', 'on', 'at', 'through', 'into', 'upon', 'unto',
+  'and', 'but', 'or', 'for', 'nor', 'yet', 'so',
+  'that', 'which', 'where', 'when', 'who', 'whose', 'whom', 'as', 'till', 'while'
+]);
+
 /**
  * Join section lines into continuous prose.
  * Terminal punctuation (`. , ! ? ; :`) → space; otherwise → `"; "`.
@@ -167,14 +173,63 @@ export function joinLinesContinuous(lines: string[]): string {
   return result;
 }
 
-export function formatSmartPoeticLine(line: string, maxLen: number = 46): string[] {
+export function computeCadence(lines: string[]): number {
+  let charsBeforeSemi = 0;
+  let countBeforeSemi = 0;
+  let foundSemi = false;
+
+  for (const l of lines) {
+    countBeforeSemi++;
+    const semiPos = l.indexOf(';');
+    if (semiPos !== -1) {
+      charsBeforeSemi += semiPos;
+      foundSemi = true;
+      break;
+    } else {
+      charsBeforeSemi += l.length;
+    }
+  }
+
+  if (foundSemi && countBeforeSemi > 0) {
+    return Math.round(charsBeforeSemi / countBeforeSemi);
+  }
+  if (lines.length === 0) return 30;
+  const lens = lines.map((l) => l.length).sort((a, b) => a - b);
+  return lens[Math.floor(lens.length / 2)] || 30;
+}
+
+export function computeDynamicMaxLen(stanzaLines: string[]): number {
+  const cadence = computeCadence(stanzaLines);
+  const rawLineCount = stanzaLines.length;
+
+  // Base threshold around 37 chars (capacity for 46.67px bold font in 920px box)
+  let maxLen = 37;
+
+  if (cadence <= 26) {
+    // Short-meter hymn (like Rescue the Perishing): double-length lines (>36) must split
+    maxLen = 36;
+  } else if (cadence >= 44) {
+    // Long-meter hymn: natural lines are longer
+    maxLen = Math.min(48, cadence + 2);
+  }
+
+  // Edge case 5: if stanza is already dense (>= 7 lines), raise threshold so we don't over-inflate vertical lines
+  if (rawLineCount >= 7) {
+    maxLen = Math.max(maxLen, 44);
+  }
+
+  return maxLen;
+}
+
+export function formatSmartPoeticLine(line: string, maxLen: number = 37): string[] {
   line = line.trim();
   if (line.length <= maxLen) return [line];
 
-  const minIdx = Math.floor(line.length * 0.28);
-  const maxIdx = Math.ceil(line.length * 0.72);
+  const minIdx = Math.floor(line.length * 0.25);
+  const maxIdx = Math.ceil(line.length * 0.75);
   const mid = Math.floor(line.length / 2);
 
+  // Priority 1: punctuation near center
   let bestPunctIdx = -1;
   let bestPunctDist = Infinity;
   let match: RegExpExecArray | null;
@@ -197,6 +252,35 @@ export function formatSmartPoeticLine(line: string, maxLen: number = 46): string
     return [...formatSmartPoeticLine(part1, maxLen), ...formatSmartPoeticLine(part2, maxLen)];
   }
 
+  // Priority 2: preposition or conjunction boundary in middle zone
+  const words = line.split(/\s+/);
+  let charCount = 0;
+  let bestPrepIdx = -1;
+  let bestPrepDist = Infinity;
+
+  for (let w = 0; w < words.length; w++) {
+    const word = words[w].toLowerCase().replace(/[^a-z]/g, '');
+    const wordStart = charCount;
+    charCount += words[w].length + 1;
+
+    if (w > 0 && PREPOSITIONS.has(word)) {
+      if (wordStart >= minIdx && wordStart <= maxIdx) {
+        const dist = Math.abs(wordStart - mid);
+        if (dist < bestPrepDist) {
+          bestPrepDist = dist;
+          bestPrepIdx = wordStart;
+        }
+      }
+    }
+  }
+
+  if (bestPrepIdx !== -1) {
+    const part1 = line.slice(0, bestPrepIdx).trim();
+    const part2 = line.slice(bestPrepIdx).trim();
+    return [...formatSmartPoeticLine(part1, maxLen), ...formatSmartPoeticLine(part2, maxLen)];
+  }
+
+  // Priority 3: space closest to midpoint
   let bestSpaceIdx = -1;
   let bestSpaceDist = Infinity;
   for (let i = minIdx; i <= maxIdx; i++) {
@@ -220,11 +304,13 @@ export function formatSmartPoeticLine(line: string, maxLen: number = 46): string
 
 /**
  * Structures lyric lines into beautifully formatted hymn stanzas:
- * - Splits on explicit semicolon pauses (';') into distinct lines
- * - Balances lines exceeding 46 characters at natural punctuation marks (, / : / . / -)
- * - Splits at center whitespace when no punctuation exists
+ * - Computes stanza meter cadence up to the first semicolon (';')
+ * - Dynamically calculates character capacity from font size (46.67px bold) and slide box width
+ * - Breaks lines at semicolons (';'), punctuation (',', ':', '-'), or preposition boundaries ('from', 'in', 'to', etc.)
+ * - Guards against vertical over-density when a stanza already has >= 7 lines
  */
-export function formatSmartPoeticLines(rawLines: string[], maxLen: number = 46): string {
+export function formatSmartPoeticLines(rawLines: string[]): string {
+  const maxLen = computeDynamicMaxLen(rawLines);
   const result: string[] = [];
   for (const raw of rawLines) {
     const semiParts = raw.split(';');

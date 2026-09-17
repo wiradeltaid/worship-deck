@@ -131,4 +131,14 @@ func TestSmartPoeticLineBreaks(t *testing.T) {
 			t.Fatalf("expected:\n%q\ngot:\n%q", expected, got[0].Text)
 		}
 	})
+
+	// 4. Rescue the perishing: cadence-aware preposition and comma splitting
+	t.Run("Rescue the perishing cadence and preposition split", func(t *testing.T) {
+		input := "Verse 1\nRescue the perishing,\nCare for the dying;\nSnatch them in pity from sin and the grave;\nWeep o'er the erring one,\nLift up the fallen,\nTell them of Jesus, the mighty to save."
+		got := SplitLyricsLabeled(input)
+		expected := "Rescue the perishing,\nCare for the dying;\nSnatch them in pity\nfrom sin and the grave;\nWeep o'er the erring one,\nLift up the fallen,\nTell them of Jesus,\nthe mighty to save."
+		if len(got) != 1 || got[0].Text != expected {
+			t.Fatalf("expected:\n%q\ngot:\n%q", expected, got[0].Text)
+		}
+	})
 }
