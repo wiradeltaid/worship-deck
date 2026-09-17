@@ -440,7 +440,7 @@ waves:
     fr: [FR-18, FR-25, FR-7, FR-3, FR-23, FR-24]
     size: S
     depends_on: [W8]
-    spec_folder: _bmad-output/specs/spec-w9-hub-admin-mgmt/
+    spec_folder: .archive/specs/spec-w9-hub-admin-mgmt/
     spec_reviewed:
       date: '2026-09-07'
       sha: '71941a67a07c992d9f4a0815ee6c15b136894c7b'
