@@ -288,7 +288,7 @@ waves:
     fr: [FR-29, FR-31]
     size: S
     depends_on: [W5]
-    spec_folder: _bmad-output/specs/spec-w6-registry-extensions/
+    spec_folder: .archive/specs/spec-w6-registry-extensions/
     spec_reviewed:
       date: '2026-09-07'
       sha: '71941a67a07c992d9f4a0815ee6c15b136894c7b'
