@@ -107,9 +107,16 @@ CREATE TABLE IF NOT EXISTS artifact_templates (
   ann_set_id INTEGER
 );
 
--- DEC-004 / AD-31: Admin-configurable list of song-set entries.
--- The four default seeds use base_type 'song-set-entry' on artifact_templates
--- with a stable variable_name; their shared canvas trio lives below.
+-- DEC-004 / AD-31: Admin-configurable list of song-set entries (Master Data).
+CREATE TABLE IF NOT EXISTS song_set_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  variable_name TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  position INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+
+-- DEC-004 / AD-31: Shared canvas trio for song-set entries.
 CREATE TABLE IF NOT EXISTS song_set_layouts (
   role TEXT PRIMARY KEY,
   payload TEXT,

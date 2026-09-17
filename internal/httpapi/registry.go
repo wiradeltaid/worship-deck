@@ -210,7 +210,7 @@ func (s *Server) createArtifact(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var songLabel string
-		if err := s.DB.QueryRow(`SELECT label FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = ? LIMIT 1`, vn).Scan(&songLabel); err != nil {
+		if err := s.DB.QueryRow(`SELECT title FROM song_set_entries WHERE variable_name = ?`, vn).Scan(&songLabel); err != nil {
 			if err == sql.ErrNoRows {
 				writeError(w, http.StatusBadRequest, fmt.Sprintf("Song set entry %s not found", vn))
 				return
@@ -503,18 +503,14 @@ func (s *Server) deleteArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "updatedAt is required")
 		return
 	}
-	var stored, baseType string
-	err = s.DB.QueryRow(`SELECT updated_at, base_type FROM artifact_templates WHERE id = ?`, id).Scan(&stored, &baseType)
+	var stored string
+	err = s.DB.QueryRow(`SELECT updated_at FROM artifact_templates WHERE id = ?`, id).Scan(&stored)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "Unknown template: "+id)
 		return
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
-	}
-	if baseType == "song-set-entry" {
-		writeError(w, http.StatusBadRequest, "Song set entries are master data and cannot be deleted from the slide deck. Manage them in the Song Sets tab.")
 		return
 	}
 	if stored != updatedAt {

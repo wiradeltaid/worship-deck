@@ -3749,19 +3749,8 @@ export default function ArtifactEditor({
       rawCandidates = templates.filter((t) => selectedIds.has(t.id));
     }
 
-    const songSetItems = rawCandidates.filter((t) => t.baseType === 'song-set-entry');
-    const targetCandidates = rawCandidates.filter((t) => t.baseType !== 'song-set-entry');
-
-    if (targetCandidates.length === 0) {
-      if (songSetItems.length > 0) {
-        toast.info('Song set entries are master data and cannot be deleted here. Manage them in the Song Sets tab.');
-      }
-      return;
-    }
-
-    if (songSetItems.length > 0) {
-      toast.info('Song set master data was preserved and skipped from deletion.');
-    }
+    const targetCandidates = rawCandidates;
+    if (targetCandidates.length === 0) return;
 
     const targetIds = targetCandidates.map((t) => t.id);
 

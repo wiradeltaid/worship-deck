@@ -1092,3 +1092,32 @@ test('FEAT: image stretch parity across render-model, canvas-utils, artifact-edi
     'pptx-draw must omit sizing parameter when objectFit is fill to stretch image'
   );
 });
+
+test('FEAT: Song Set master data is decoupled from Deck Sequence slide instances', () => {
+  const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+  const registryGoCode = fs.readFileSync(path.join(root, 'internal', 'httpapi', 'registry.go'), 'utf8');
+  const songSetEntriesGoCode = fs.readFileSync(path.join(root, 'internal', 'httpapi', 'song_set_entries.go'), 'utf8');
+
+  // 1. Deck Sequence slide deletion allows song-set-entry slides to be removed
+  assert.ok(
+    !currentEditorCode.includes('Song set entries are master data and cannot be deleted here'),
+    'ArtifactEditor must allow song-set-entry slides to be deleted from deck sequence'
+  );
+
+  // 2. Go registry deleteArtifact does not block song-set-entry deletion
+  assert.ok(
+    !registryGoCode.includes('Song set entries are master data and cannot be deleted from the slide deck'),
+    'deleteArtifact must not reject deletion of song-set-entry slides from deck sequence'
+  );
+
+  // 3. Song set entries master queries use song_set_entries table
+  assert.ok(
+    songSetEntriesGoCode.includes('SELECT variable_name, title, position, updated_at FROM song_set_entries'),
+    'listSongSetEntries must query master data from song_set_entries'
+  );
+  assert.ok(
+    songSetEntriesGoCode.includes('SELECT variable_name, title FROM song_set_entries'),
+    'listSongSetEntriesForOperator must query master data from song_set_entries'
+  );
+});
+

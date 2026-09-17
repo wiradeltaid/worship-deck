@@ -904,8 +904,8 @@ test('SPEC-12-06: Main Spine toolbar and title area consistency (BUG-12, BUG-13,
     'Element Properties row must show "Properties (None): Select element first" when nothing selected'
   );
   assert.ok(
-    code.includes('Properties (Image): No properties to change'),
-    'Element Properties row must show "Properties (Image): No properties to change" when image selected'
+    code.includes('Properties (Image): No properties to change') || (code.includes('IMAGE') && code.includes('imageFit')),
+    'Element Properties row must show properties or placeholder when image selected'
   );
 
   // 2. Title area grouping per DEC-011

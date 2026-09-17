@@ -429,3 +429,74 @@ Closing Song: SDAH #200`
 		t.Errorf("ds-closing lyric roleLabels = %v, want %v", songSet2Labels, want2)
 	}
 }
+
+func TestSongSetMasterDataDeckSequenceDecoupling(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. Initially, opening_song_bt exists in song_set_entries AND in artifact_templates
+	var entryCount int
+	if err := handle.QueryRow(`SELECT COUNT(*) FROM song_set_entries WHERE variable_name = 'opening_song_bt'`).Scan(&entryCount); err != nil || entryCount == 0 {
+		t.Fatalf("expected opening_song_bt in song_set_entries, got count=%d, err=%v", entryCount, err)
+	}
+
+	// Find the slide in artifact_templates
+	var slideID, updatedAt string
+	err := handle.QueryRow(`SELECT id, updated_at FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = 'opening_song_bt' LIMIT 1`).Scan(&slideID, &updatedAt)
+	if err != nil {
+		t.Fatalf("expected slide in artifact_templates for opening_song_bt: %v", err)
+	}
+
+	// 2. Delete the slide from the Deck Sequence (artifact_templates) via DELETE /api/admin/artifacts/{id}
+	delRes := songSetRequest(t, ts, "DELETE", "/api/admin/artifacts/"+slideID, fmt.Sprintf(`{"updatedAt":%q}`, updatedAt), cookie)
+	if delRes.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(delRes.Body)
+		t.Fatalf("delete slide from deck sequence failed: status=%d, body=%s", delRes.StatusCode, b)
+	}
+	delRes.Body.Close()
+
+	// 3. Confirm the slide is gone from artifact_templates
+	var countInDeck int
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM artifact_templates WHERE id = ?`, slideID).Scan(&countInDeck)
+	if countInDeck != 0 {
+		t.Errorf("slide should be deleted from artifact_templates, but count=%d", countInDeck)
+	}
+
+	// 4. Confirm opening_song_bt is STILL intact in master data (song_set_entries)
+	listRes := songSetRequest(t, ts, "GET", "/api/admin/song-set-entries", "", cookie)
+	if listRes.StatusCode != http.StatusOK {
+		t.Fatalf("list master entries failed: %d", listRes.StatusCode)
+	}
+	body := songSetJSON(t, listRes)
+	entries, _ := body["entries"].([]any)
+	foundMaster := false
+	for _, raw := range entries {
+		e, _ := raw.(map[string]any)
+		if e["variableName"] == "opening_song_bt" {
+			foundMaster = true
+			break
+		}
+	}
+	if !foundMaster {
+		t.Errorf("master entry opening_song_bt disappeared after slide was deleted from deck sequence!")
+	}
+
+	// 5. Re-add the slide to the Deck Sequence via POST /api/admin/artifacts
+	addRes := songSetRequest(t, ts, "POST", "/api/admin/artifacts", `{"baseType":"song-set-entry","variableName":"opening_song_bt"}`, cookie)
+	if addRes.StatusCode != http.StatusCreated {
+		b, _ := io.ReadAll(addRes.Body)
+		t.Fatalf("re-adding song-set-entry to deck sequence failed: status=%d, body=%s", addRes.StatusCode, b)
+	}
+	addBody := songSetJSON(t, addRes)
+	newSlideID, _ := addBody["id"].(string)
+	if newSlideID == "" {
+		t.Fatalf("re-added slide has empty id: %v", addBody)
+	}
+
+	// 6. Verify the slide is back in artifact_templates
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM artifact_templates WHERE id = ? AND variable_name = 'opening_song_bt'`, newSlideID).Scan(&countInDeck)
+	if countInDeck != 1 {
+		t.Errorf("re-added slide not found in artifact_templates: count=%d", countInDeck)
+	}
+}
+

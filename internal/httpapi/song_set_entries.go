@@ -47,8 +47,7 @@ func (s *Server) listSongSetEntries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := s.DB.Query(
-		`SELECT variable_name, label, position, updated_at FROM artifact_templates
-		  WHERE base_type = 'song-set-entry' AND variable_name IS NOT NULL
+		`SELECT variable_name, title, position, updated_at FROM song_set_entries
 		  ORDER BY position ASC, id ASC`,
 	)
 	if err != nil {
@@ -82,8 +81,7 @@ func (s *Server) listSongSetEntriesForOperator(w http.ResponseWriter, r *http.Re
 		return
 	}
 	rows, err := s.DB.Query(
-		`SELECT variable_name, label FROM artifact_templates
-		  WHERE base_type = 'song-set-entry' AND variable_name IS NOT NULL
+		`SELECT variable_name, title FROM song_set_entries
 		  ORDER BY position ASC, id ASC`,
 	)
 	if err != nil {
@@ -133,8 +131,7 @@ func (s *Server) createSongSetEntry(w http.ResponseWriter, r *http.Request) {
 
 	var count int
 	if err := s.DB.QueryRow(
-		`SELECT COUNT(*) FROM artifact_templates
-		  WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+		`SELECT COUNT(*) FROM song_set_entries WHERE variable_name = ?`,
 		variableName,
 	).Scan(&count); err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -147,27 +144,36 @@ func (s *Server) createSongSetEntry(w http.ResponseWriter, r *http.Request) {
 
 	var maxPos sql.NullInt64
 	if err := s.DB.QueryRow(
-		`SELECT MAX(position) FROM artifact_templates`,
+		`SELECT MAX(position) FROM song_set_entries`,
 	).Scan(&maxPos); err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 	position := int(maxPos.Int64) + 1
 
-	id, err := s.songSetEntryID(variableName)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Internal Server Error")
-		return
-	}
 	now := timeNowRFC3339Nano()
 	if _, err := s.DB.Exec(
-		`INSERT INTO artifact_templates (id, label, base_type, payload, updated_at, seed_hash, position, variable_name)
-		 VALUES (?, ?, 'song-set-entry', NULL, ?, NULL, ?, ?)`,
-		id, strings.TrimSpace(title), now, position, variableName,
+		`INSERT INTO song_set_entries (variable_name, title, position, updated_at)
+		 VALUES (?, ?, ?, ?)`,
+		variableName, strings.TrimSpace(title), position, now,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+
+	// Also insert an initial slide into artifact_templates so it appears in the active deck sequence
+	id, err := s.songSetEntryID(variableName)
+	if err == nil {
+		var maxDeckPos sql.NullInt64
+		_ = s.DB.QueryRow(`SELECT MAX(position) FROM artifact_templates`).Scan(&maxDeckPos)
+		deckPos := int(maxDeckPos.Int64) + 1
+		_, _ = s.DB.Exec(
+			`INSERT INTO artifact_templates (id, label, base_type, payload, updated_at, seed_hash, position, variable_name)
+			 VALUES (?, ?, 'song-set-entry', NULL, ?, NULL, ?, ?)`,
+			id, strings.TrimSpace(title), now, deckPos, variableName,
+		)
+	}
+
 	writeJSON(w, http.StatusCreated, songSetEntry{
 		VariableName: variableName,
 		Title:        strings.TrimSpace(title),
@@ -235,8 +241,7 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 
 	var storedUpdated string
 	err = tx.QueryRow(
-		`SELECT updated_at FROM artifact_templates
-		  WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+		`SELECT updated_at FROM song_set_entries WHERE variable_name = ?`,
 		variableName,
 	).Scan(&storedUpdated)
 	if err == sql.ErrNoRows {
@@ -255,8 +260,7 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	if targetVariableName != variableName {
 		var conflictCount int
 		if err := tx.QueryRow(
-			`SELECT COUNT(*) FROM artifact_templates
-			  WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+			`SELECT COUNT(*) FROM song_set_entries WHERE variable_name = ?`,
 			targetVariableName,
 		).Scan(&conflictCount); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -270,8 +274,8 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 
 	now := timeNowRFC3339Nano()
 	res, err := tx.Exec(
-		`UPDATE artifact_templates SET label = ?, variable_name = ?, updated_at = ?
-		  WHERE base_type = 'song-set-entry' AND variable_name = ? AND updated_at = ?`,
+		`UPDATE song_set_entries SET title = ?, variable_name = ?, updated_at = ?
+		  WHERE variable_name = ? AND updated_at = ?`,
 		strings.TrimSpace(title), targetVariableName, now, variableName, updatedAt,
 	)
 	if err != nil {
@@ -282,6 +286,13 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "Song set entry was modified by another session")
 		return
 	}
+
+	// Update any live slides in the deck sequence currently referencing this song set
+	_, _ = tx.Exec(
+		`UPDATE artifact_templates SET label = ?, variable_name = ?, updated_at = ?
+		  WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+		strings.TrimSpace(title), targetVariableName, now, variableName,
+	)
 
 	// Migrate existing weekly song_set_inputs if variableName was changed.
 	// Purge any inert/orphaned rows under targetVariableName across all services
@@ -311,7 +322,7 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 
 	var position int
 	_ = s.DB.QueryRow(
-		`SELECT position FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+		`SELECT position FROM song_set_entries WHERE variable_name = ?`,
 		targetVariableName,
 	).Scan(&position)
 	writeJSON(w, http.StatusOK, songSetEntry{
@@ -343,8 +354,7 @@ func (s *Server) deleteSongSetEntry(w http.ResponseWriter, r *http.Request) {
 
 	var storedUpdated string
 	err = s.DB.QueryRow(
-		`SELECT updated_at FROM artifact_templates
-		  WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+		`SELECT updated_at FROM song_set_entries WHERE variable_name = ?`,
 		variableName,
 	).Scan(&storedUpdated)
 	if err == sql.ErrNoRows {
@@ -360,11 +370,9 @@ func (s *Server) deleteSongSetEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hub weekly values in song_set_inputs are deliberately left in place:
-	// per LC-11 they stay stored-but-inert until the name is reused.
+	// Delete from master song_set_entries table
 	res, err := s.DB.Exec(
-		`DELETE FROM artifact_templates
-		  WHERE base_type = 'song-set-entry' AND variable_name = ? AND updated_at = ?`,
+		`DELETE FROM song_set_entries WHERE variable_name = ? AND updated_at = ?`,
 		variableName, updatedAt,
 	)
 	if err != nil {
@@ -375,6 +383,13 @@ func (s *Server) deleteSongSetEntry(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "Song set entry was modified by another session")
 		return
 	}
+
+	// Also delete any corresponding slides from artifact_templates deck sequence
+	_, _ = s.DB.Exec(
+		`DELETE FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = ?`,
+		variableName,
+	)
+
 	writeJSON(w, http.StatusOK, map[string]any{"deleted": true, "variableName": variableName})
 }
 

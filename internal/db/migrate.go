@@ -1,6 +1,9 @@
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 // migrateColumns applies additive schema that CREATE TABLE IF NOT EXISTS cannot
 // reach on an existing file (AD-9). DEC-004 widens this with the new
@@ -10,6 +13,9 @@ func migrateColumns(handle *sql.DB) error {
 		return err
 	}
 	if err := ensureArtifactTemplatesNewColumns(handle); err != nil {
+		return err
+	}
+	if err := ensureSongSetEntriesTable(handle); err != nil {
 		return err
 	}
 	if err := ensureServiceRegistrySnapshotsColumns(handle); err != nil {
@@ -245,5 +251,49 @@ func ensureServiceRegistrySnapshotsColumns(handle *sql.DB) error {
 		   )
 		 WHERE ann_set_id IS NULL
 	`)
+	return nil
+}
+
+func ensureSongSetEntriesTable(handle *sql.DB) error {
+	_, err := handle.Exec(`CREATE TABLE IF NOT EXISTS song_set_entries (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		variable_name TEXT UNIQUE NOT NULL,
+		title TEXT NOT NULL,
+		position INTEGER NOT NULL DEFAULT 0,
+		updated_at TEXT NOT NULL
+	)`)
+	if err != nil {
+		return err
+	}
+
+	// Backfill existing rows from artifact_templates if any exist
+	_, _ = handle.Exec(`INSERT OR IGNORE INTO song_set_entries (variable_name, title, position, updated_at)
+		SELECT variable_name, label, position, updated_at
+		FROM artifact_templates
+		WHERE base_type = 'song-set-entry' AND variable_name IS NOT NULL
+		ORDER BY position ASC, id ASC`)
+
+	// Ensure standard defaults exist if table is empty
+	var count int
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM song_set_entries`).Scan(&count)
+	if count == 0 {
+		now := time.Now().UTC().Format(time.RFC3339Nano)
+		defaults := []struct {
+			variableName string
+			title        string
+			pos          int
+		}{
+			{"opening_song_bt", "Bible Talk Opening Song", 0},
+			{"closing_song_bt", "Bible Talk Closing Song", 1},
+			{"opening_song_dw", "Divine Service Opening Song", 2},
+			{"closing_song_dw", "Divine Service Closing Song", 3},
+		}
+		for _, d := range defaults {
+			_, _ = handle.Exec(
+				`INSERT OR IGNORE INTO song_set_entries (variable_name, title, position, updated_at) VALUES (?, ?, ?, ?)`,
+				d.variableName, d.title, d.pos, now,
+			)
+		}
+	}
 	return nil
 }
