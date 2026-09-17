@@ -39,6 +39,23 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-39-03
+  spec: SPEC-39
+  release: media-gallery-announcement-loop-dynamic-binding
+  test:
+  - src/lib/registry/placeholder-catalog.ts
+  - src/lib/slide-plan.ts
+  - internal/plan
+  - tests/smoke-spec-39.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops
@@ -267,6 +284,22 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
+  ticket: SPEC-39-02
+  spec: SPEC-39
+  release: media-gallery-announcement-loop-dynamic-binding
+  test:
+  - src/operator/present/PresenterOperator.tsx
+  - src/projected/ProjectorClient.tsx
+  - tests/smoke-spec-39.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -1870,6 +1903,39 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-39-01
+  spec: SPEC-39
+  release: media-gallery-announcement-loop-dynamic-binding
+  test:
+  - internal/httpapi
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-39.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-39-03
+  spec: SPEC-39
+  release: media-gallery-announcement-loop-dynamic-binding
+  test:
+  - src/lib/registry/placeholder-catalog.ts
+  - src/lib/slide-plan.ts
+  - internal/plan
+  - tests/smoke-spec-39.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3890,6 +3956,39 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-39-01
+  spec: SPEC-39
+  release: media-gallery-announcement-loop-dynamic-binding
+  test:
+  - internal/httpapi
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-39.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-39-03
+  spec: SPEC-39
+  release: media-gallery-announcement-loop-dynamic-binding
+  test:
+  - src/lib/registry/placeholder-catalog.ts
+  - src/lib/slide-plan.ts
+  - internal/plan
+  - tests/smoke-spec-39.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

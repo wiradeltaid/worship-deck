@@ -1,5 +1,5 @@
 # Written by wdi-method install/update. A trace, not a lockfile.
-wdi_method: 0.6.22
+wdi_method: 0.6.23
 bmad_method: 6.11.0
 engines:
   source: local

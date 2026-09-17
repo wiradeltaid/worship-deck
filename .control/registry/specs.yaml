@@ -1863,6 +1863,48 @@ waves:
           - src/lib/pptx-draw.ts
           - tests/smoke-spec-38.test.mjs
 
+  - id: SPEC-39
+    status: open
+    release: media-gallery-announcement-loop-dynamic-binding
+    prd: [offline-deck, operator-turn]
+    fr: [FR-20, FR-15]
+    size: M
+    depends_on: [SPEC-38]
+    spec_folder: .scratch/SPEC-39-media-gallery-announcement-loop-dynamic-binding/
+    spec_reviewed:
+      date: '2026-09-18'
+      sha: '0709f58'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-39-01"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [registry, api]
+        tests:
+          - internal/httpapi
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/smoke-spec-39.test.mjs
+      - id: "SPEC-39-02"
+        component: presenter
+        satisfies: [UC-11]
+        blocked_by: []
+        touches: [presenter]
+        tests:
+          - src/operator/present/PresenterOperator.tsx
+          - src/projected/ProjectorClient.tsx
+          - tests/smoke-spec-39.test.mjs
+      - id: "SPEC-39-03"
+        component: hub
+        satisfies: [UC-5, UC-14]
+        blocked_by: ["SPEC-39-01"]
+        touches: [hub, registry]
+        tests:
+          - src/lib/registry/placeholder-catalog.ts
+          - src/lib/slide-plan.ts
+          - internal/plan
+          - tests/smoke-spec-39.test.mjs
+
 
 
 
