@@ -14,15 +14,18 @@ hold, the same panel reviews the code. What changes is who answers when a skill 
 
 | Door | When | Does | Asks |
 |---|---|---|---|
-| **Preflight** | **No mandate row exists at all**, and the owner asked for one in this turn | Checks everything, prints one page, waits for the owner's confirmation, writes the mandate, starts the loop | Yes — this is the only place this skill MAY ask |
+| **Preflight** | **No active accepted mandate exists**, and the owner asked for one in this turn | Checks everything, prints one page, waits for the owner's confirmation, writes the mandate, starts the loop | Yes — this is the only place this skill MAY ask |
 | **Iteration** | A mandate at `accepted` whose `expires` has not passed | Reads the registry and the ledger's `## Resume`, works from where the last iteration stopped for as long as it safely can, records, returns only at one of three stops | **Never** |
 | **Finish, lapsed** | A mandate at `accepted` whose `expires` **has** passed | Goes straight to § Finish, marks the run lapsed, cancels the loop | **Never** |
+| **Terminal / No-op** | A mandate at `applied` or `superseded` (or unattended invocation with no unworked mandate) | Clean no-op: reports mandate already completed/lapsed, cancels any active loop task, and halts immediately | **Never** |
 
 **A run MUST NOT write itself a mandate.** Preflight is reachable only when the owner asked for it in the
 turn that is running; a loop firing MUST NOT open it, whatever the mandate's state. Without that, an expired
 mandate would put the next firing back at preflight — where the defaults are already filled in and nobody is
 awake to refuse them — and the run would renew its own authority. The lapsed door exists precisely so the
-expiry ends the run instead of restarting it.
+expiry ends the run instead of restarting it. If an unattended iteration fires after a mandate has already
+reached `status: applied` or `superseded`, the skill MUST NOT attempt to re-open Preflight or restart work;
+it MUST perform a clean, single-line no-op and cancel any lingering loop scheduler.
 
 Typing `/wdi-autopilot` while a mandate is active opens the iteration door, not the preflight. To change a
 setting, the owner supersedes the mandate with a new one — `wdi-decision` owns supersession. A superseded
@@ -44,12 +47,12 @@ NOT start the loop while any row in the first two groups is red.
 | | This skill and `wdi-build` are themselves invocable — no `skillOverrides` entry in `settings.json` set to `off` or `user-invocable-only` | Either is overridden. Nothing else can start the loop, and the override is silent |
 | | The tracker the engines publish to is configured — `docs/agents/issue-tracker.md`, written once by `/setup-matt-pocock-skills` | Missing. `to-tickets` would stop to ask for it, and this skill never asks; the owner runs the setup before confirming |
 | | Reviewers separate from the builder can be dispatched | The session cannot spawn a second agent and any touched component is `risk_accepted: low` — Step 3 of `wdi-build` would block |
-| | `.constitution/project/codebase-stack-guide.md` names build and test commands, **and the test command exits 0 here** | Absent or failing. Every ticket's "full suite green once" and the smoke test read it. Found at minute one, not at hour six |
-| | The remote accepts the run branch — `git push --dry-run` — and `main` is reachable as a PR base | Auth or remote failure. The first real push is at the first spec close, hours in |
+| | `.constitution/project/codebase-stack-guide.md` names build and test commands, **and the test command exits 0 here** (prefer quiet output flags, e.g. `-- --quiet`, to keep context compact; on non-zero exit, surface the failure details and abort preflight) | Absent or failing. Every ticket's "full suite green once" and the smoke test read it. Found at minute one, not at hour six |
+| | The remote accepts the run branch — `git push --dry-run` — and `development_branch` (`policy.development_branch`, default `main`) is reachable as a PR base | Auth or remote failure. Fail-closed: if the configured `development_branch` does not exist locally or on remote (`refs/heads/<branch>` or `refs/remotes/origin/<branch>`), stop immediately and report to maintainer; MUST NOT guess or silently fall back to `main` (`.constitution/method/branch-guide.md`). The first real push is at the first spec close, hours in |
 | | A CI workflow is configured | None. § Finish would wait for checks that never arrive; say so and read the local suite as the evidence instead |
 | | **No workflow fires on an intermediate push** — the run branch is pushed dozens of times and a metered runner MUST NOT start on any of them. `ci-guide.md` § Trigger shape is the check: `workflow_dispatch` present, the automatic trigger `pull_request` `types: [ready_for_review]`, no bare `on: push` | A workflow triggers on every push. Fix it before the mandate is written — one autopilot run over fifteen tickets has spent most of a month's allowance in two days — or, where the workflow is not this repo's to change, the run holds every intermediate push and the preflight page says so |
-| **Position** | `gates_passed` in `index.yaml`, `g4_passed` per component, validators green (`validate.py`) | A red validator. Name it; autopilot MUST NOT start on a corpus already red |
-| | An isolated worktree | A shared checkout. `wdi-build` refuses one, so this skill refuses earlier |
+| **Position** | `gates_passed` in `index.yaml`, `g4_passed` per component, validators green (`uv run .constitution/method/scripts/validate.py --baseline`) | A red validator. Name it; autopilot MUST NOT start on a corpus already red |
+| | An isolated working tree | A shared or dirty checkout. Permitted: an isolated linked worktree (`git worktree add`), or an exclusive primary working tree checked out to `autopilot/<mandate-id>` with a clean working tree (`git status --porcelain` empty) dedicated to this run (`.constitution/method/branch-guide.md`). `wdi-build` refuses un-isolated checkouts, so this skill refuses earlier |
 | | `from_gate` — the first gate the run will hold itself | Below the last passed gate. Default: the gate after the last one passed |
 | **Settings** | `scope` — the `FR` ids to deliver, or `all` | — (default `all` open `FR`) |
 | | `parked` — what stops for the owner instead of being decided: any of `promise` · `ad-n` · `sensitive` | — (default **`ad-n`**, and nothing else. `decision-guide.md` says narrowing an invariant MUST NOT be softened further, so removing it is the owner's to say out loud — not a default they never saw) |
@@ -59,6 +62,7 @@ NOT start the loop while any row in the first two groups is red.
 | | Where the ledger and the final report will be written | — |
 | | The **run branch** — `autopilot/<mandate-id>`, using the next free `DEC-` id from `decisions.yaml`, which the mandate then takes — and that the run will open **one** PR from it | The branch already exists with commits nobody can account for |
 | **Runtime** | The session runs with permission prompts bypassed | Cannot be verified from inside the session. Printed as a line the owner confirms |
+| | Session survivability: on Linux/remote SSH, run inside `tmux` or `screen`; on Windows, in a dedicated persistent Windows Terminal window | Ephemeral terminal that aborts the loop on disconnect |
 
 **Every row arrives with its default already in it**, and the owner changes only what they want changed —
 the same rule the installer follows. A preflight that asks fourteen questions one at a time has failed.
@@ -102,11 +106,15 @@ On the owner's confirmation, and not before:
 The interval is the **pause between** iterations, not the length of one. An iteration that outlives it
 finishes first; the next firing waits.
 
+**Session survivability across environments:**
+- **Linux / Remote SSH:** Run inside a session manager such as `tmux` (`tmux new -s autopilot`) or `screen` before starting the loop. Disconnecting SSH or closing the terminal then leaves the autonomous loop running unharmed.
+- **Windows (PowerShell / Windows Terminal):** `tmux` is not native to Windows PowerShell. Run the session in a dedicated persistent Windows Terminal tab or window left active, or via background subagent tools (`run_in_background`). Do not invoke or require `tmux` on Windows environments.
+
 ## Door 2 — One iteration
 
 Open with three reads, in this order:
 
-1. `validate.py --generate`. `.control/generated/` is written by that flag and nothing else, so without it
+1. `uv run .constitution/method/scripts/validate.py --generate --baseline`. `.control/generated/` is written by that flag and nothing else, so without it
    every iteration reads a status file from before the run and re-holds gates that already passed. It sweeps
    the validators for free at the same time.
 2. **Reconcile `## Resume` against git.** Compare the run branch HEAD with the commit Resume names. A
@@ -195,7 +203,7 @@ the method's, and none of them relaxes here:
 
 ### One run, one branch, one PR
 
-A mandate is **one unit of work**, and it reaches `main` through **one door**: a single PR from the run
+A mandate is **one unit of work**, and it reaches the active development branch (`policy.development_branch`, default `main`) through **one door**: a single PR from the run
 branch, which the **owner** merges after the final review. This is what makes the result reviewable as a
 whole instead of as a stream of PRs nobody read.
 
@@ -209,9 +217,9 @@ branch, one PR, nothing else on the remote.
 |---|---|
 | Step 4 pushes a ticket branch and opens a PR per ticket | The ticket is committed to the run branch — directly, or merged in from its own worktree by the coordinator. The ticket-closing checklist is still answered first. **No PR per ticket** |
 | Step 5 watches CI per PR | The coordinator pushes the run branch **at every spec close** — and that push starts **no cloud run**; the first push opens the one PR as a **draft**. CI runs **once**, at § Finish, and is judged exactly as Step 5 says on the pushed head SHA |
-| `MUST NOT merge` | Holds harder. The run never merges to `main`; the owner does, once, after § Finish |
+| `MUST NOT merge` | Holds harder. The run never merges to `primary_branch` or `development_branch`; the owner does, once, after § Finish |
 
-A second PR is a red flag. Where a change cannot ride the run branch — a hotfix `main` needs today — it is
+A second PR is a red flag. Where a change cannot ride the run branch — an urgent fix the target branch needs today — it is
 reported for the owner, not opened by the run.
 
 ### Cycle-end CI — the cloud runner fires once
@@ -283,6 +291,8 @@ what it decided while running* — and this is exactly one. `memlog-home` holds 
 
 Frontmatter `artifact:` names the mandate's `DEC-` file — `memlog-home` demands it of every memlog.
 
+The mandate ledger file (`.control/memlog/autopilot-<mandate-id>.md` and its companion directory `.control/memlog/autopilot-<mandate-id>/`) is **permanent** and MUST NOT be deleted or removed during spec pruning or housekeeping — it preserves the provenance of autonomous runs.
+
 **It has two readers who want opposite things, and that is what shapes it.** The next iteration needs a
 resume point: where the last one stopped and what to do now. The owner needs every decision, with what it
 cost. Serving both from one flat table is what made a real ledger reach 41 KB by its twenty-second
@@ -351,11 +361,16 @@ applies it.
 
 When § The work table reaches § Finish:
 
-1. **Smoke test.** At `smoke_test: agent`: run the application with the commands
+1. **Smoke test.** Standardized smoke test locations:
+   - **Automated spec test:** `.scratch/<spec-id>-<slug>/smoke/` — spec-level smoke artifacts that archive alongside the spec when closed.
+   - **Human interactive test:** `.work/smoke/<target>.md` — ephemeral test scripts and physical run notes, cleaned up once the task finishes.
+   - **Mandate ledger:** `.control/memlog/autopilot-<mandate-id>.md` — permanent record of pass/fail results per `FR`, never pruned.
+
+   At `smoke_test: agent`: run the application with the commands
    `.constitution/project/codebase-stack-guide.md` names, exercise every closed `FR`'s proof of done from
    the PRD, record pass or fail per `FR` in the ledger. At `owner`: run nothing; the test script below is
    the whole deliverable.
-2. `validate.py --generate`, then `wdi-report` intent `progress`.
+2. `uv run .constitution/method/scripts/validate.py --generate --baseline`, then `wdi-report` intent `progress`.
 3. Raise the mandate to `applied`, `touches` naming the ledger, and rewrite `## Resume` one last time so it
    reads as the run's end state rather than a step that never came.
 4. **Leave the run branch in a state the owner can merge.** A ticket still in flight is either finished or
@@ -381,8 +396,14 @@ When § The work table reaches § Finish:
    Green marks the one PR **ready for review**. Red keeps it a **draft** and is reported red: a PR marked
    ready is an invitation to merge, and the run MUST NOT extend one over a red branch, nor patch to turn it
    green at the door.
-5. Cancel the loop: in Claude Code, the `loop` skill's cancel; elsewhere, tell the owner the loop has nothing
-   left to do.
+
+   **Signed CI override:** If the mandate decision block in `decisions.yaml` records a signed `ci_override`
+   (e.g. `ci_override: local-only-approved-by: "<Person, Date>"` per `.constitution/method/ci-guide.md`),
+   the run MUST NOT mark the draft PR ready (`gh pr ready`). The PR MUST remain as a Draft, no cloud runner
+   is awaited, and the final output report explicitly states: *"locally verified; cloud verification intentionally deferred by mandate"*.
+5. **Cancel the loop cleanly:** in Claude Code, inspect scheduled jobs via `CronList`, identify the job firing
+   `/wdi-autopilot`, and call `CronDelete` on its task ID to eliminate zombie loop firings; elsewhere, call the platform's
+   loop cancellation mechanism or inform the owner that the loop has completed its mandate and has nothing left to do.
 6. Write the final report as the Output below. The owner merges; the run never does.
 
 ## Red Flags — STOP
@@ -409,7 +430,7 @@ When § The work table reaches § Finish:
 - Spinning until `expires` on work that is not runnable, instead of finishing and naming the blockers
 - Returning after one step while work remains and none of the three stops applies
 - A second PR, any branch but the run branch pushed, a working branch left alive at Finish, or any merge
-  into `main` by the run — working branches and worktrees during the run are fine; surviving ones are not
+  into `primary_branch` or `development_branch` by the run — working branches and worktrees during the run are fine; surviving ones are not
 - Merging a red ticket into the run branch, or patching the branch forward instead of reverting the merge
 - Marking the PR ready over red CI, or handing over a run branch with a ticket half-applied
 - Parallel builders sharing a worktree, or a registry written by anyone but the coordinator

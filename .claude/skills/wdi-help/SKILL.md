@@ -1,6 +1,6 @@
 ---
 name: wdi-help
-description: Use when you need to know where the project stands in the delivery flow and which skill comes next. Answers from this project's five gates, not from BMad's phase column.
+description: Check project delivery status, open or pending specs and tickets, current gate progress, and determine what to build or which skill to invoke next. Answers from this project's status registry and five gates.
 ---
 
 # WDI Help
@@ -18,15 +18,16 @@ about BMad itself.
 
 | Source | What it answers |
 |---|---|
-| `.control/generated/status` | Which spec is open, how many of its tickets are done, which validators are red |
+| `.control/generated/status.yaml` | Primary machine-readable status: which spec is open, tickets progress, red validators (or `status.md`) |
 | `.control/registry/index.yaml` | The global `mode`, and the gate map |
 | `.control/registry/components.yaml` | Per-component `mode`, `risk_accepted`, and `g4_passed` |
-| `.control/registry/specs.yaml` | Spec → release, size, `depends_on`, and its ticket index |
+| `.control/registry/specs.yaml` | Fallback only when status is absent/stale: spec → release, size, and ticket index (MUST query selectively) |
 | `.constitution/method/document/delivery-flow-guide.md` | The five gates and their checklists |
 | `.constitution/method/why/README.md` | The whole shape, when the caller has never seen the method |
 
-You MUST read `.control/generated/status` rather than counting files yourself. It is generated from the
-registry; hand-counting produces a second answer that will disagree.
+You MUST read `.control/generated/status.yaml` (or `status.md`) rather than counting files yourself. You
+MUST NOT open or inspect `.control/registry/specs.yaml` if the status file is present and answers which
+spec is open.
 
 ## What to answer
 
@@ -74,6 +75,11 @@ mis-route in this flow, because every other gate is the same for every component
 | An accepted `DEC-` has not reached its documents | `wdi-decision` intent `apply` |
 | A bug, a failing test, unexpected behaviour | `wdi-systematic-debugging`, before any fix is proposed |
 | Numbers are wanted before the work is committed | `wdi-report` intent `estimate` |
+| Closed specs remain in `.scratch/`, or need archival/pruning | `wdi-prune-or-archive` — archives closed spec to `.archive/specs/` or prunes from disk |
+| Raw manual-test notes needing triage, review, and spec drafting | `wdi-daily-what-to-build` — classifies notes, drafts spec/tickets via `wdi-build`, gets second opinion |
+| Autonomous delivery loop with local runner and peer review | `wdi-daily-autopilot` — composes routine, resolves local runners, launches `/loop` unattended |
+| Merged autopilot run needing branch cleanup and physical test checklist | `wdi-daily-what-to-test` — syncs branch, prunes merged worktrees/branches, configures smoke target, provides delta-scoped checklist |
+| Cleaning up generated rendered duplicate files from git | Untrack via `git rm -r --cached .what-rendered/ .how-rendered/`, add to `.gitignore`, regenerate via `validate.py --generate` |
 
 A brief that exists but is thin is still a brief. You MUST NOT route back to `wdi-problem` because a
 section reads weakly — route there only when the brief is absent, when a change signal invalidates what
@@ -90,8 +96,16 @@ it claims, or when one of its eight required sections is missing outright.
   `wdi-blueprint`, `wdi-build`, `wdi-decision`, `wdi-review`, `wdi-ux`.
 - Only `.control/questions/blocking.md` holds a gate. `external.md` holds go-live and MUST NOT be reported
   as blocking a design gate; `assumptions.md` holds nothing.
-- You MUST NOT invent progress. If `.control/generated/status` is missing or stale, say so and name
-  `validate.py --generate`.
+- You MUST NOT invent progress. If `.control/generated/status.yaml` (or `status.md`) is missing or stale,
+  say so, query `specs.yaml` selectively, and name `validate.py --generate`.
+- You MUST NOT call Read on the entire 1000+ line `.control/registry/specs.yaml` file into context. When
+  discovering active or open work as a fallback, query `specs.yaml` selectively (e.g. `Grep` for `status:\s*(open|ready-for-dev)`).
+- You MUST NOT run broad or recursive searches across `.scratch/` (e.g. searching `*` or `**/*`). When
+  inspecting candidate open specs or tickets, inspect only the candidate spec's folder using the `spec_folder:`
+  path resolved from `specs.yaml`.
+- You MUST treat `wdi-help` as a fast status and routing skill: if filesystem drift, orphaned folders, or
+  discrepancies between registry and disk are suspected, route to `wdi-reconcile` rather than conducting
+  a filesystem audit in this skill.
 - You MUST NOT route anyone to `/setup-matt-pocock-skills` to *finish an install*. The installer seeds
   `docs/agents/` pre-answered, and that interview's own defaults send every engineering skill looking for a
   root `CONTEXT.md` and `docs/adr/` — which Article 3 forbids and `wdi-reconcile` reports. It is for

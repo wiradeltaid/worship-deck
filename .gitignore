@@ -123,3 +123,5 @@ data.db.bak-*
 
 # Local scratch fonts in .work
 .work/*.ttf
+# Local runner configuration (never commit personal runners/credentials)
+.control/custom-dispatch.yaml
