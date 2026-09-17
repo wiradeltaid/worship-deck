@@ -243,7 +243,12 @@ export function buildShapeFabricOptions(
     evented: editable,
     hasControls: editable,
     lockRotation: true,
-    data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
+    data: {
+      elementId: element.id,
+      authoredWidth: width,
+      authoredHeight: height,
+      style: { ...element.style },
+    },
   };
 
   const isUnfilled =
@@ -599,8 +604,18 @@ export function elementToFabricObject(
         shapeOpts.cornerSize = 8;
         shapeOpts.transparentCorners = false;
         shapeOpts.perPixelTargetFind = false;
+        shapeOpts.data = {
+          ...(shapeOpts.data || {}),
+          isTransparentProxy: true,
+          elementId: element.id,
+          authoredWidth: width,
+          authoredHeight: height,
+          style: { ...element.style },
+        };
       }
-      return new fabric.Rect(shapeOpts);
+      const rect = new fabric.Rect(shapeOpts);
+      rect.data = shapeOpts.data;
+      return rect;
     }
     return {
       ...common,
@@ -610,6 +625,11 @@ export function elementToFabricObject(
       strokeWidth,
       opacity: isProxy ? 0 : (element.style?.opacity ?? 1),
       perPixelTargetFind: false,
+      data: {
+        ...common.data,
+        isTransparentProxy: isProxy,
+        style: { ...element.style },
+      },
     };
   }
 

@@ -17,7 +17,6 @@ import {
   Redo2,
   SendToBack,
   Square,
-  SquareDashed,
   Trash2,
   Type,
   Underline,
@@ -495,40 +494,30 @@ export default function ArtifactEditor({
     const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef);
     const outlineShapes = shapes.filter((obj) => {
       const elId = getElementId(obj);
-      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
       const isProxy = Boolean((obj as any).data?.isTransparentProxy);
-      const effFill = isProxy
-        ? (liveEl?.style?.fillColor ?? (obj as any).data?.style?.fillColor)
-        : ((obj as any).fill ?? liveEl?.style?.fillColor);
-      const effStroke = isProxy
-        ? (liveEl?.style?.strokeColor ?? (obj as any).data?.style?.strokeColor)
-        : ((obj as any).stroke ?? liveEl?.style?.strokeColor);
+      const effFill = liveEl?.style?.fillColor ?? (obj as any).data?.style?.fillColor ?? (isProxy ? undefined : (obj as any).fill);
+      const effStroke = liveEl?.style?.strokeColor ?? (obj as any).data?.style?.strokeColor ?? (isProxy ? undefined : (obj as any).stroke);
       return effFill === 'transparent' || (!effFill && Boolean(effStroke));
     });
     setSelectedOutlineShapeCount(outlineShapes.length);
     if (outlineShapes.length > 0) {
       const shapeObj = outlineShapes[0] as any;
       const elId = getElementId(shapeObj);
-      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
       const isProxy = Boolean((shapeObj as any).data?.isTransparentProxy);
-      const effStroke = isProxy
-        ? (liveEl?.style?.strokeColor ?? (shapeObj as any).data?.style?.strokeColor)
-        : ((shapeObj as any).stroke ?? liveEl?.style?.strokeColor);
+      const effStroke = liveEl?.style?.strokeColor ?? (shapeObj as any).data?.style?.strokeColor ?? (isProxy ? undefined : (shapeObj as any).stroke);
       const stroke = effStroke || '#FFFFFF';
-      const rawSw = isProxy
-        ? (typeof liveEl?.style?.strokeWidth === 'number' ? liveEl.style.strokeWidth : (shapeObj as any).data?.style?.strokeWidth)
-        : (shapeObj as any).strokeWidth;
+      const rawSw = liveEl?.style?.strokeWidth ?? (shapeObj as any).data?.style?.strokeWidth ?? (isProxy ? undefined : (shapeObj as any).strokeWidth);
       const sw = typeof rawSw === 'number' && rawSw > 0 ? rawSw : 2;
       setStrokeColor(toStrictHexColor(stroke, '#FFFFFF') ?? '#FFFFFF');
       setStrokeWidth(sw);
     } else if (shapes.length > 0) {
       const shapeObj = shapes[0] as any;
       const elId = getElementId(shapeObj);
-      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
       const isProxy = Boolean((shapeObj as any).data?.isTransparentProxy);
-      const effFill = isProxy
-        ? (liveEl?.style?.fillColor ?? (shapeObj as any).data?.style?.fillColor)
-        : ((shapeObj as any).fill ?? liveEl?.style?.fillColor);
+      const effFill = liveEl?.style?.fillColor ?? (shapeObj as any).data?.style?.fillColor ?? (isProxy ? undefined : (shapeObj as any).fill) ?? '#5C2E16';
       setShapeFill(toStrictHexColor(effFill, '#5C2E16') ?? '#5C2E16');
     }
   }, []);
@@ -931,7 +920,6 @@ export default function ArtifactEditor({
                   fill: 'transparent',
                   stroke: strokeColor || '#FFFFFF',
                   strokeWidth: strokeWidth || 2,
-                  strokeDashArray: [4, 4],
                   selectable: false,
                   evented: false,
                 })
@@ -941,10 +929,9 @@ export default function ArtifactEditor({
                     top: pointer.y,
                     width: 0,
                     height: 0,
-                    fill: 'rgba(92, 46, 22, 0.25)',
+                    fill: 'rgba(92, 46, 22, 0.55)',
                     stroke: '#5C2E16',
                     strokeWidth: 1.5,
-                    strokeDashArray: [4, 4],
                     selectable: false,
                     evented: false,
                   })
@@ -1525,6 +1512,7 @@ export default function ArtifactEditor({
       if (fabricCanvasRef.current !== canvas) return;
 
       addedElementsRef.current.set(id, element);
+      liveElementsRef.current = [...liveElementsRef.current, element];
       setLiveElements((prev) => [...prev, element]);
       const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
@@ -1681,6 +1669,7 @@ export default function ArtifactEditor({
       if (fabricCanvasRef.current !== canvas) return;
 
       addedElementsRef.current.set(id, element);
+      liveElementsRef.current = [...liveElementsRef.current, element];
       setLiveElements((prev) => [...prev, element]);
       const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
@@ -1766,6 +1755,7 @@ export default function ArtifactEditor({
       }
 
       addedElementsRef.current.set(id, element);
+      liveElementsRef.current = [...liveElementsRef.current, element];
       setLiveElements((prev) => [...prev, element]);
       const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
@@ -1885,6 +1875,7 @@ export default function ArtifactEditor({
       if (fabricCanvasRef.current !== canvas) return;
 
       addedElementsRef.current.set(id, element);
+      liveElementsRef.current = [...liveElementsRef.current, element];
       setLiveElements((prev) => [...prev, element]);
       const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
       canvas.add(obj);
@@ -4521,10 +4512,10 @@ export default function ArtifactEditor({
                       size="icon-sm"
                       onClick={() => setDrawingTool((cur) => (cur === 'rect' ? null : 'rect'))}
                       disabled={busy}
-                      title="Rectangle"
-                      aria-label="Rectangle"
+                      title="Filled Shape"
+                      aria-label="Filled Shape"
                     >
-                      <Square className="w-3.5 h-3.5" />
+                      <Square className="w-3.5 h-3.5 fill-current" />
                     </Button>
                     <Button
                       type="button"
@@ -4546,7 +4537,7 @@ export default function ArtifactEditor({
                       title="Outline Shape"
                       aria-label="Outline Shape"
                     >
-                      <SquareDashed className="w-3.5 h-3.5" />
+                      <Square className="w-3.5 h-3.5" />
                     </Button>
                     {allowImages ? (
                       <Button

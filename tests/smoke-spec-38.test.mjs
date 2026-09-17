@@ -651,17 +651,54 @@ test('BUG-041 / SPEC-38: ArtifactEditor correctly discriminates filled shapes fr
 });
 
 test('SPEC-38-02: ArtifactEditor UI controls for Line and Outline Shape elements', () => {
+  const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
   // 1. Toolbar Row 1 Creation Buttons
-  assert.ok(editorCode.includes('aria-label="Line"'), 'ArtifactEditor must render Line creation button');
-  assert.ok(editorCode.includes('aria-label="Outline Shape"'), 'ArtifactEditor must render Outline Shape creation button');
-  assert.ok(editorCode.includes('Minus'), 'ArtifactEditor must use Minus icon for Line');
-  assert.ok(editorCode.includes('SquareDashed'), 'ArtifactEditor must use SquareDashed icon for Outline Shape');
+  assert.ok(currentEditorCode.includes('aria-label="Line"'), 'ArtifactEditor must render Line creation button');
+  assert.ok(currentEditorCode.includes('aria-label="Outline Shape"'), 'ArtifactEditor must render Outline Shape creation button');
+  assert.ok(currentEditorCode.includes('aria-label="Filled Shape"'), 'ArtifactEditor must render Filled Shape creation button');
+  assert.ok(currentEditorCode.includes('Minus'), 'ArtifactEditor must use Minus icon for Line');
+  assert.ok(currentEditorCode.includes('fill-current'), 'ArtifactEditor must use fill-current for solid filled shape icon');
+  assert.ok(!currentEditorCode.includes('SquareDashed'), 'ArtifactEditor must not use dashed square icon');
 
   // 2. Toolbar Row 2 Inspector Badges & Controls
-  assert.ok(editorCode.includes('LINE'), 'Toolbar must render LINE badge when line is selected');
-  assert.ok(editorCode.includes('SHAPE (OUTLINE)'), 'Toolbar must render SHAPE (OUTLINE) badge when outline shape is selected');
-  assert.ok(editorCode.includes('handleStrokeColorChange'), 'Toolbar must provide stroke color handler');
-  assert.ok(editorCode.includes('handleStrokeWidthChange'), 'Toolbar must provide stroke width handler');
+  assert.ok(currentEditorCode.includes('LINE'), 'Toolbar must render LINE badge when line is selected');
+  assert.ok(currentEditorCode.includes('SHAPE (OUTLINE)'), 'Toolbar must render SHAPE (OUTLINE) badge when outline shape is selected');
+  assert.ok(currentEditorCode.includes('handleStrokeColorChange'), 'Toolbar must provide stroke color handler');
+  assert.ok(currentEditorCode.includes('handleStrokeWidthChange'), 'Toolbar must provide stroke width handler');
+});
+
+test('BUG-041 / SPEC-38: elementToFabricObject populates isTransparentProxy and authored style on Shape Fabric object', () => {
+  const filledEl = {
+    id: 'test-shape-filled',
+    type: 'shape',
+    x: 10,
+    y: 10,
+    w: 30,
+    h: 20,
+    zIndex: 1,
+    style: {
+      fillColor: '#5C2E16',
+      opacity: 1,
+    },
+  };
+
+  const obj = elementToFabricObject(null, filledEl, true, { transparentProxy: true });
+  assert.ok(obj.data, 'Fabric object must carry data payload');
+  assert.equal(obj.data.isTransparentProxy, true, 'Fabric object in proxy mode must flag isTransparentProxy: true');
+  assert.equal(obj.data.style?.fillColor, '#5C2E16', 'Fabric object in proxy mode must retain authored fillColor');
+
+  // When serialized, the real object from elementToFabricObject must NOT become an outline
+  const layout = {
+    aspectRatio: '16:9',
+    backgroundColor: '#000000',
+    elements: [filledEl],
+  };
+  const mockCanvas = { getObjects: () => [obj] };
+  const serialized = serializeCanvas(mockCanvas, layout, new Map());
+  assert.equal(serialized.length, 1);
+  assert.equal(serialized[0].style?.fillColor, '#5C2E16');
+  assert.equal(serialized[0].style?.strokeColor, undefined);
 });
 
 test('SPEC-38-02: Absence Guard 1 — h === 0 allowed only for type "line" (defect injection proof)', () => {
