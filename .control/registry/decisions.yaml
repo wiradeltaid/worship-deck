@@ -930,6 +930,33 @@ decisions:
       - src/lib/registry/font-catalog.ts
       - tests/smoke-spec-37.test.mjs
       - package.json
+  - id: DEC-040
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-17)"
+    title: Autopilot mandate for Canvas Undo/Redo and Line & Outline Shape Elements (SPEC-38)
+    file: .control/decisions/DEC-040-autopilot-mandate-canvas-undo-redo-and-line-shapes.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-24'
+    touches:
+      - .control/memlog/autopilot-DEC-040.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-38-canvas-undo-redo-and-line-unfilled-shape-elements/SPEC.md
+      - src/components/admin/ArtifactEditor.tsx
+      - src/components/artifacts/ArtifactSlide.tsx
+      - src/lib/registry/types.ts
+      - src/lib/registry/validate.ts
+      - src/lib/pptx-draw.ts
+      - internal/plan/types.go
+      - internal/plan/validate_artifact.go
+      - tests/smoke-spec-38.test.mjs
+      - package.json
 
 
 

@@ -185,6 +185,22 @@ rtm:
   FR: FR-13
   DEC: []
   UC: UC-6
+  ticket: SPEC-38-03
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - src/components/artifacts/ArtifactSlide.tsx
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-13
+  DEC: []
+  UC: UC-6
   ticket: W8-04
   spec: W8
   release: hub-service-ops
@@ -1805,6 +1821,55 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-38-01
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-38-02
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - internal/plan
+  - src/components/admin/ArtifactEditor.tsx
+  - src/lib/registry/types.ts
+  - src/lib/registry/validate.ts
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-38-03
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - src/components/artifacts/ArtifactSlide.tsx
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3776,6 +3841,55 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-38-01
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-38-02
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - internal/plan
+  - src/components/admin/ArtifactEditor.tsx
+  - src/lib/registry/types.ts
+  - src/lib/registry/validate.ts
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-38-03
+  spec: SPEC-38
+  release: canvas-undo-redo-and-line-unfilled-shape-elements
+  test:
+  - src/components/artifacts/ArtifactSlide.tsx
+  - src/lib/pptx-draw.ts
+  - tests/smoke-spec-38.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
