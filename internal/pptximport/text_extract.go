@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -48,6 +49,34 @@ func extractTextFromTxBody(txBody *XMLTextBody) string {
 		paraTexts = append(paraTexts, pBuf.String())
 	}
 	return strings.Join(paraTexts, "\n")
+}
+
+func drawingMLAlphaToOpacity(raw string) (float64, bool) {
+	if raw == "" {
+		return 1.0, false
+	}
+	val, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 1.0, false
+	}
+	val = math.Max(0, math.Min(100000, val))
+	return math.Round((val/100000.0)*100.0) / 100.0, true
+}
+
+func emuToStrokeWidthPx(emu int64) int {
+	if emu <= 0 {
+		return 2
+	}
+	pts := float64(emu) / 12700.0
+	px := pts / 0.75
+	clamped := int(math.Round(px))
+	if clamped < 1 {
+		clamped = 1
+	}
+	if clamped > 50 {
+		clamped = 50
+	}
+	return clamped
 }
 
 func extractElementFromNode(
@@ -105,13 +134,16 @@ func extractElementFromNode(
 
 	// Check if this is an image (p:pic or p:sp with blipFill)
 	var embedRelID string
+	var alphaModFix *XMLAlphaModFix
 	var xfrm *XMLTransform2D
 
 	if node.Tag == "pic" && node.Picture != nil {
 		embedRelID = node.Picture.BlipFill.Blip.Embed
+		alphaModFix = node.Picture.BlipFill.Blip.AlphaModFix
 		xfrm = node.Picture.SpPr.Xfrm
 	} else if node.Tag == "sp" && node.Shape != nil && node.Shape.SpPr.BlipFill != nil {
 		embedRelID = node.Shape.SpPr.BlipFill.Blip.Embed
+		alphaModFix = node.Shape.SpPr.BlipFill.Blip.AlphaModFix
 		xfrm = node.Shape.SpPr.Xfrm
 	}
 
@@ -133,6 +165,15 @@ func extractElementFromNode(
 						hPct = 1.0
 					}
 
+					imgStyle := map[string]any{
+						"objectFit": "fill",
+					}
+					if alphaModFix != nil {
+						if op, ok := drawingMLAlphaToOpacity(alphaModFix.Amt); ok && op < 1.0 {
+							imgStyle["opacity"] = op
+						}
+					}
+
 					el := ParsedElement{
 						ID:     fmt.Sprintf("el-img-%d", elementIdx),
 						Type:   "image",
@@ -142,9 +183,7 @@ func extractElementFromNode(
 						H:      hPct,
 						ZIndex: elementIdx - 1,
 						Image:  img,
-						Style: map[string]any{
-							"objectFit": "contain",
-						},
+						Style:  imgStyle,
 					}
 					return el, true, warnings
 				} else {
@@ -154,11 +193,67 @@ func extractElementFromNode(
 		}
 	}
 
-	// Check if this is a simple shape with solidFill
-	if node.Tag == "sp" && node.Shape != nil && node.Shape.SpPr.SolidFill != nil && node.Shape.SpPr.SolidFill.SrgbClr != nil {
-		val := node.Shape.SpPr.SolidFill.SrgbClr.Val
-		if hexColorRegex.MatchString(val) && node.Shape.SpPr.Xfrm != nil {
-			xfrm := node.Shape.SpPr.Xfrm
+	// Check if this is a line / connector shape
+	isLine := false
+	var lineSpPr *XMLShapeProperties
+	if node.Tag == "cxnSp" && node.Connector != nil {
+		isLine = true
+		lineSpPr = &node.Connector.SpPr
+	} else if node.Tag == "sp" && node.Shape != nil && node.Shape.SpPr.PrstGeom != nil {
+		prst := node.Shape.SpPr.PrstGeom.Prst
+		if prst == "line" || prst == "straightConnector1" {
+			isLine = true
+			lineSpPr = &node.Shape.SpPr
+		}
+	}
+
+	if isLine && lineSpPr != nil && lineSpPr.Xfrm != nil && lineSpPr.Ln != nil && lineSpPr.Ln.SolidFill != nil && lineSpPr.Ln.SolidFill.SrgbClr != nil {
+		strokeVal := lineSpPr.Ln.SolidFill.SrgbClr.Val
+		if hexColorRegex.MatchString(strokeVal) {
+			xfrm := lineSpPr.Xfrm
+			xPct := calcPct(xfrm.Off.X, slideWidthEMU)
+			yPct := calcPct(xfrm.Off.Y, slideHeightEMU)
+			wPct := calcPct(xfrm.Ext.CX, slideWidthEMU)
+			hPct := calcPct(xfrm.Ext.CY, slideHeightEMU)
+			if wPct <= 0 {
+				wPct = 1.0
+			}
+			if hPct < 0 {
+				hPct = 0
+			}
+
+			lineStyle := map[string]any{
+				"strokeColor": "#" + strings.ToUpper(strokeVal),
+				"strokeWidth": emuToStrokeWidthPx(lineSpPr.Ln.W),
+			}
+			if lineSpPr.Ln.SolidFill.SrgbClr.Alpha != nil {
+				if op, ok := drawingMLAlphaToOpacity(lineSpPr.Ln.SolidFill.SrgbClr.Alpha.Val); ok && op < 1.0 {
+					lineStyle["opacity"] = op
+				}
+			}
+
+			el := ParsedElement{
+				ID:     fmt.Sprintf("el-line-%d", elementIdx),
+				Type:   "line",
+				X:      xPct,
+				Y:      yPct,
+				W:      wPct,
+				H:      hPct,
+				ZIndex: elementIdx - 1,
+				Style:  lineStyle,
+			}
+			return el, true, warnings
+		}
+	}
+
+	// Check if this is a shape (rectangle, container, solid filled, or outline)
+	if node.Tag == "sp" && node.Shape != nil && node.Shape.SpPr.Xfrm != nil {
+		spPr := &node.Shape.SpPr
+		hasSolidFill := spPr.SolidFill != nil && spPr.SolidFill.SrgbClr != nil && hexColorRegex.MatchString(spPr.SolidFill.SrgbClr.Val)
+		hasOutline := spPr.Ln != nil && spPr.Ln.SolidFill != nil && spPr.Ln.SolidFill.SrgbClr != nil && hexColorRegex.MatchString(spPr.Ln.SolidFill.SrgbClr.Val)
+
+		if hasSolidFill || hasOutline {
+			xfrm := spPr.Xfrm
 			xPct := calcPct(xfrm.Off.X, slideWidthEMU)
 			yPct := calcPct(xfrm.Off.Y, slideHeightEMU)
 			wPct := calcPct(xfrm.Ext.CX, slideWidthEMU)
@@ -171,6 +266,28 @@ func extractElementFromNode(
 				hPct = 1.0
 			}
 
+			shapeStyle := map[string]any{}
+			if hasSolidFill {
+				shapeStyle["fillColor"] = "#" + strings.ToUpper(spPr.SolidFill.SrgbClr.Val)
+				if spPr.SolidFill.SrgbClr.Alpha != nil {
+					if op, ok := drawingMLAlphaToOpacity(spPr.SolidFill.SrgbClr.Alpha.Val); ok && op < 1.0 {
+						shapeStyle["opacity"] = op
+					}
+				}
+			} else {
+				shapeStyle["fillColor"] = "transparent"
+			}
+
+			if hasOutline {
+				shapeStyle["strokeColor"] = "#" + strings.ToUpper(spPr.Ln.SolidFill.SrgbClr.Val)
+				shapeStyle["strokeWidth"] = emuToStrokeWidthPx(spPr.Ln.W)
+				if !hasSolidFill && spPr.Ln.SolidFill.SrgbClr.Alpha != nil {
+					if op, ok := drawingMLAlphaToOpacity(spPr.Ln.SolidFill.SrgbClr.Alpha.Val); ok && op < 1.0 {
+						shapeStyle["opacity"] = op
+					}
+				}
+			}
+
 			el := ParsedElement{
 				ID:     fmt.Sprintf("el-shape-%d", elementIdx),
 				Type:   "shape",
@@ -179,9 +296,7 @@ func extractElementFromNode(
 				W:      wPct,
 				H:      hPct,
 				ZIndex: elementIdx - 1,
-				Style: map[string]any{
-					"fillColor": "#" + strings.ToUpper(val),
-				},
+				Style:  shapeStyle,
 			}
 			return el, true, warnings
 		}

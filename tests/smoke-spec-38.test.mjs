@@ -1050,3 +1050,45 @@ test('FEAT: serializeCanvas and pptx-draw support opacity for filled shapes and 
     'serializeCanvas must serialize opacity for image elements'
   );
 });
+
+test('FEAT: image stretch parity across render-model, canvas-utils, artifact-editor, and pptx-draw', async () => {
+  const { resolveObjectFit } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'artifacts', 'render-model.ts')).href
+  );
+  const { calculateImageFit } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts')).href
+  );
+
+  // 1. resolveObjectFit supports 'fill'
+  assert.equal(resolveObjectFit({ objectFit: 'fill' }), 'fill');
+  assert.equal(resolveObjectFit({ objectFit: 'contain' }), 'contain');
+  assert.equal(resolveObjectFit({}), 'contain');
+
+  // 2. calculateImageFit computes non-uniform scale for 'fill'
+  const fit = calculateImageFit(
+    { left: 10, top: 20, width: 300, height: 100 },
+    { width: 100, height: 100 },
+    'fill'
+  );
+  assert.equal(fit.scaleX, 3);
+  assert.equal(fit.scaleY, 1);
+  assert.equal(fit.left, 10);
+  assert.equal(fit.top, 20);
+
+  // 3. ArtifactEditor provides Stretch and Fit buttons for IMAGE
+  const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+  assert.ok(
+    currentEditorCode.includes('handleToggleImageFit') &&
+    currentEditorCode.includes('Stretch') &&
+    currentEditorCode.includes('Fit'),
+    'ArtifactEditor must provide Stretch and Fit buttons for image'
+  );
+
+  // 4. pptx-draw omits sizing for objectFit fill
+  const currentPptxCode = fs.readFileSync(pptxDrawPath, 'utf8');
+  assert.ok(
+    currentPptxCode.includes("objectFit === 'fill'") &&
+    currentPptxCode.includes("sizing: { type: objectFit"),
+    'pptx-draw must omit sizing parameter when objectFit is fill to stretch image'
+  );
+});

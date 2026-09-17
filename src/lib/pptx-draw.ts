@@ -372,11 +372,14 @@ function renderImageElement(
     return;
   }
 
+  const objectFit = resolveObjectFit(element.style);
   try {
     slide.addImage({
       data,
       ...box,
-      sizing: { type: resolveObjectFit(element.style), w: box.w, h: box.h },
+      ...(objectFit === 'fill'
+        ? {}
+        : { sizing: { type: objectFit, w: box.w, h: box.h } }),
       transparency: toPptxTransparency(element.style),
     });
   } catch {

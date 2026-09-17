@@ -83,7 +83,8 @@ export type TextStyle = {
 };
 
 export type ImageStyle = {
-  objectFit?: 'contain' | 'cover';
+  objectFit?: 'contain' | 'cover' | 'fill';
+  opacity?: number;
 };
 
 export type ShapeStyle = {

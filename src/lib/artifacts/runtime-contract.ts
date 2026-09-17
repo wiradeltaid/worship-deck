@@ -41,7 +41,7 @@ export type ResolvedStyle = {
   textDecoration?: string;
   textAlign?: 'left' | 'center' | 'right';
   verticalAlign?: 'top' | 'middle' | 'bottom';
-  objectFit?: 'contain' | 'cover';
+  objectFit?: 'contain' | 'cover' | 'fill';
   fillColor?: string;
   opacity?: number;
   lineHeight?: number;

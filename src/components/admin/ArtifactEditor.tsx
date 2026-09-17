@@ -281,6 +281,7 @@ export default function ArtifactEditor({
   const [strokeColor, setStrokeColor] = useState('#FFFFFF');
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [elementOpacity, setElementOpacity] = useState(100);
+  const [imageFit, setImageFit] = useState<'contain' | 'fill'>('contain');
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const selectedElementIdsRef = useRef<string[]>(selectedElementIds);
   selectedElementIdsRef.current = selectedElementIds;
@@ -501,6 +502,8 @@ export default function ArtifactEditor({
       const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
       const op = typeof liveEl?.style?.opacity === 'number' ? Math.round(liveEl.style.opacity * 100) : 100;
       setElementOpacity(op);
+      const fit = liveEl?.style?.objectFit === 'fill' ? 'fill' : 'contain';
+      setImageFit(fit);
     }
 
     const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef);
@@ -3100,6 +3103,42 @@ export default function ArtifactEditor({
     [selectedElementIds, markDirty, recordUndo]
   );
 
+  const handleToggleImageFit = useCallback(
+    (targetFit?: 'contain' | 'fill') => {
+      recordUndo();
+      const nextFit: 'contain' | 'fill' = targetFit ?? (imageFit === 'fill' ? 'contain' : 'fill');
+      setImageFit(nextFit);
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          const newStyle = { ...el.style };
+          if (nextFit === 'fill') {
+            newStyle.objectFit = 'fill';
+          } else {
+            delete newStyle.objectFit;
+          }
+          return {
+            ...el,
+            style: Object.keys(newStyle).length > 0 ? newStyle : undefined,
+          };
+        })
+      );
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      for (const obj of canvas.getActiveObjects()) {
+        const id = getElementId(obj);
+        if (id && selectedElementIds.includes(id)) {
+          const d = ((obj as any).data = (obj as any).data || {});
+          d.objectFit = nextFit;
+          d.style = { ...(d.style || {}), objectFit: nextFit };
+        }
+      }
+      canvas.requestRenderAll();
+      markDirty();
+    },
+    [imageFit, selectedElementIds, markDirty, recordUndo]
+  );
+
   const handleStrokeColorChange = useCallback(
     (color: string) => {
       recordUndo();
@@ -5087,6 +5126,32 @@ export default function ArtifactEditor({
                         <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-[10px] font-medium font-mono text-accent-foreground uppercase">
                           IMAGE
                         </span>
+                        <div className="flex items-center gap-1 bg-background/50 rounded-md p-0.5 border border-border/50">
+                          <Button
+                            type="button"
+                            variant={imageFit === 'fill' ? 'default' : 'ghost'}
+                            size="xs"
+                            className="h-6 text-[11px] px-2"
+                            onClick={() => {
+                              if (imageFit !== 'fill') handleToggleImageFit('fill');
+                            }}
+                            title="Stretch image to fill the box without ratio lock"
+                          >
+                            Stretch
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={imageFit === 'contain' ? 'default' : 'ghost'}
+                            size="xs"
+                            className="h-6 text-[11px] px-2"
+                            onClick={() => {
+                              if (imageFit !== 'contain') handleToggleImageFit('contain');
+                            }}
+                            title="Keep original image aspect ratio"
+                          >
+                            Fit
+                          </Button>
+                        </div>
                         <Label className="flex items-center gap-1.5 text-xs">
                           Opacity:
                           <input
@@ -5102,7 +5167,7 @@ export default function ArtifactEditor({
                         </Label>
                       </div>
                       <div className="flex items-center text-[11px] text-muted-foreground">
-                        <span>Aspect ratio locked • Adjust opacity or use Context Menu to reorder / delete</span>
+                        <span>{imageFit === 'fill' ? 'Stretched to container bounds' : 'Aspect ratio preserved'} • Drag handles to resize</span>
                       </div>
                     </>
                   ) : selectedLineCount > 0 ? (

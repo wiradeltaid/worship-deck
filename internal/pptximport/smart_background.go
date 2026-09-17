@@ -14,10 +14,11 @@ import (
 var hexColorRegex = regexp.MustCompile(`^[0-9A-Fa-f]{6}$`)
 
 type RawShapeNode struct {
-	Tag     string // "sp" or "pic"
-	Shape   *XMLShape
-	Picture *XMLPicture
-	ZIndex  int
+	Tag       string // "sp", "pic", or "cxnSp"
+	Shape     *XMLShape
+	Picture   *XMLPicture
+	Connector *XMLConnectorShape
+	ZIndex    int
 }
 
 // parseShapeTreeSequentially parses p:spTree children in exact document order
@@ -48,6 +49,17 @@ func parseShapeTreeSequentially(decoder *xml.Decoder) ([]RawShapeNode, []string,
 					Tag:    "sp",
 					Shape:  &sp,
 					ZIndex: zIndex,
+				})
+				zIndex++
+			case "cxnSp":
+				var cxn XMLConnectorShape
+				if err := decoder.DecodeElement(&cxn, &se); err != nil {
+					return nil, warnings, err
+				}
+				nodes = append(nodes, RawShapeNode{
+					Tag:       "cxnSp",
+					Connector: &cxn,
+					ZIndex:    zIndex,
 				})
 				zIndex++
 			case "pic":

@@ -1,6 +1,9 @@
 package pptximport
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"io"
+)
 
 // Package Content_Types
 type XMLContentTypes struct {
@@ -117,9 +120,10 @@ type XMLBackgroundProperties struct {
 }
 
 type XMLShapeTree struct {
-	Shapes    []XMLShape   `xml:"sp"`
-	Pictures  []XMLPicture `xml:"pic"`
-	GrpShapes []any        `xml:"grpSp"`
+	Shapes     []XMLShape          `xml:"sp"`
+	Pictures   []XMLPicture        `xml:"pic"`
+	Connectors []XMLConnectorShape `xml:"cxnSp"`
+	GrpShapes  []any               `xml:"grpSp"`
 }
 
 // Shape (p:sp)
@@ -127,6 +131,12 @@ type XMLShape struct {
 	NvSpPr XMLNonVisualShapeProperties `xml:"nvSpPr"`
 	SpPr   XMLShapeProperties          `xml:"spPr"`
 	TxBody *XMLTextBody                `xml:"txBody"`
+}
+
+// Connector Shape (p:cxnSp)
+type XMLConnectorShape struct {
+	NvCxnSpPr XMLNonVisualShapeProperties `xml:"nvCxnSpPr"`
+	SpPr      XMLShapeProperties          `xml:"spPr"`
 }
 
 type XMLNonVisualShapeProperties struct {
@@ -151,8 +161,21 @@ type XMLNonVisualPictureProperties struct {
 
 type XMLShapeProperties struct {
 	Xfrm      *XMLTransform2D `xml:"xfrm"`
+	PrstGeom  *XMLPrstGeom    `xml:"prstGeom"`
 	SolidFill *XMLSolidFill   `xml:"solidFill"`
+	NoFill    *struct{}       `xml:"noFill"`
 	BlipFill  *XMLBlipFill    `xml:"blipFill"`
+	Ln        *XMLLine        `xml:"ln"`
+}
+
+type XMLPrstGeom struct {
+	Prst string `xml:"prst,attr"`
+}
+
+type XMLLine struct {
+	W         int64         `xml:"w,attr"`
+	SolidFill *XMLSolidFill `xml:"solidFill"`
+	NoFill    *struct{}     `xml:"noFill"`
 }
 
 type XMLTransform2D struct {
@@ -170,12 +193,21 @@ type XMLSize2D struct {
 	CY int64 `xml:"cy,attr"`
 }
 
+type XMLAlpha struct {
+	Val string `xml:"val,attr"`
+}
+
 type XMLSolidFill struct {
 	SrgbClr *XMLSrgbColor `xml:"srgbClr"`
 }
 
 type XMLSrgbColor struct {
-	Val string `xml:"val,attr"`
+	Val   string    `xml:"val,attr"`
+	Alpha *XMLAlpha `xml:"alpha"`
+}
+
+type XMLAlphaModFix struct {
+	Amt string `xml:"amt,attr"`
 }
 
 type XMLBlipFill struct {
@@ -183,7 +215,8 @@ type XMLBlipFill struct {
 }
 
 type XMLBlip struct {
-	Embed string
+	Embed       string
+	AlphaModFix *XMLAlphaModFix
 }
 
 func (b *XMLBlip) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -192,7 +225,33 @@ func (b *XMLBlip) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			b.Embed = attr.Value
 		}
 	}
-	return d.Skip()
+	for {
+		tok, err := d.Token()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		switch se := tok.(type) {
+		case xml.StartElement:
+			if se.Name.Local == "alphaModFix" {
+				var amf XMLAlphaModFix
+				if err := d.DecodeElement(&amf, &se); err == nil {
+					b.AlphaModFix = &amf
+				}
+			} else {
+				if err := d.Skip(); err != nil {
+					return err
+				}
+			}
+		case xml.EndElement:
+			if se == start.End() {
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 // Text Body (p:txBody)

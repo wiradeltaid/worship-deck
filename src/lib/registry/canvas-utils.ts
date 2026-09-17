@@ -138,7 +138,7 @@ export function getElementId(obj: { get?: (key: string) => unknown; data?: { ele
 export function calculateImageFit(
   box: { left: number; top: number; width: number; height: number },
   natural: { width: number; height: number },
-  objectFit: 'contain' | 'cover' = 'contain'
+  objectFit: 'contain' | 'cover' | 'fill' = 'contain'
 ): {
   width: number;
   height: number;
@@ -149,6 +149,18 @@ export function calculateImageFit(
 } {
   const natW = natural.width || box.width || 1;
   const natH = natural.height || box.height || 1;
+
+  if (objectFit === 'fill') {
+    return {
+      width: natW,
+      height: natH,
+      scaleX: box.width / natW,
+      scaleY: box.height / natH,
+      left: box.left,
+      top: box.top,
+    };
+  }
+
   const scale =
     objectFit === 'cover'
       ? Math.max(box.width / natW, box.height / natH)
@@ -1398,11 +1410,18 @@ export function serializeCanvas(
       const effOpacity = isProxy
         ? (proxyStyle.opacity ?? source.style?.opacity)
         : (typeof (obj as any).opacity === 'number' ? (obj as any).opacity : source.style?.opacity);
+      const effObjectFit = isProxy
+        ? (proxyStyle.objectFit ?? (obj as any).data?.objectFit ?? source.style?.objectFit)
+        : ((obj as any).data?.objectFit ?? source.style?.objectFit);
 
       const mergedStyle = {
         ...source.style,
         ...(typeof effOpacity === 'number' && effOpacity >= 0 && effOpacity <= 1 ? { opacity: effOpacity } : {}),
+        ...(effObjectFit === 'fill' || effObjectFit === 'cover' ? { objectFit: effObjectFit } : {}),
       };
+      if (effObjectFit === 'contain' && mergedStyle.objectFit !== undefined) {
+        delete mergedStyle.objectFit;
+      }
       if (Object.keys(mergedStyle).length > 0) {
         next.style = mergedStyle;
       } else {
@@ -1538,7 +1557,12 @@ export function updateImageElementFit(
 
   const boxLeft = (imgObj.left ?? 0) + (imgObj.data?.clipOffset?.x ?? 0) * ratioX;
   const boxTop = (imgObj.top ?? 0) + (imgObj.data?.clipOffset?.y ?? 0) * ratioY;
-  const objectFit = imgObj.data?.objectFit === 'cover' ? 'cover' : 'contain';
+  const objectFit =
+    imgObj.data?.objectFit === 'cover'
+      ? 'cover'
+      : imgObj.data?.objectFit === 'fill'
+        ? 'fill'
+        : 'contain';
   const fit = calculateImageFit(
     { left: boxLeft, top: boxTop, width: boxWidth, height: boxHeight },
     { width: naturalWidth, height: naturalHeight },

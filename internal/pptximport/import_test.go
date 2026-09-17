@@ -620,3 +620,135 @@ func TestResolveSafeTargetTraversal(t *testing.T) {
 		t.Errorf("expected error for drive letter C:")
 	}
 }
+
+func TestImportParity_ImageStretchTransparencyLinesAndOutlines(t *testing.T) {
+	pptx := createTestPptx(t, 12192000, 6858000, map[string]string{
+		"ppt/slides/slide1.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:cSld>
+    <p:spTree>
+      <p:pic>
+        <p:nvPicPr><p:cNvPr id="1" name="TransparentImage"/></p:nvPicPr>
+        <p:blipFill><a:blip r:embed="rId2"><a:alphaModFix amt="70000"/></a:blip></p:blipFill>
+        <p:spPr>
+          <a:xfrm><a:off x="1000000" y="1000000"/><a:ext cx="4000000" cy="3000000"/></a:xfrm>
+        </p:spPr>
+      </p:pic>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="2" name="TransparentShape"/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="5000000" y="1000000"/><a:ext cx="4000000" cy="3000000"/></a:xfrm>
+          <a:solidFill><a:srgbClr val="5C2E16"><a:alpha val="50000"/></a:srgbClr></a:solidFill>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="3" name="OutlineShape"/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="1000000" y="4500000"/><a:ext cx="4000000" cy="2000000"/></a:xfrm>
+          <a:noFill/>
+          <a:ln w="25400"><a:solidFill><a:srgbClr val="00AAFF"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr><p:cNvPr id="4" name="DividerLine"/></p:nvSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="5500000" y="4500000"/><a:ext cx="5000000" cy="0"/></a:xfrm>
+          <a:prstGeom prst="line"/>
+          <a:ln w="38100"><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+      <p:cxnSp>
+        <p:nvCxnSpPr><p:cNvPr id="5" name="ConnectorLine"/></p:nvCxnSpPr>
+        <p:spPr>
+          <a:xfrm><a:off x="5500000" y="5500000"/><a:ext cx="5000000" cy="100000"/></a:xfrm>
+          <a:ln w="19050"><a:solidFill><a:srgbClr val="FF5500"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:cxnSp>
+    </p:spTree>
+  </p:cSld>
+</p:sld>`,
+		"ppt/slides/_rels/slide1.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image.png"/>
+</Relationships>`,
+	}, map[string][]byte{
+		"ppt/media/image.png": syntheticPNG,
+	})
+
+	res, err := ParsePresentation(bytes.NewReader(pptx), int64(len(pptx)))
+	if err != nil {
+		t.Fatalf("ParsePresentation failed: %v", err)
+	}
+
+	if len(res.Slides) != 1 {
+		t.Fatalf("expected 1 slide, got %d", len(res.Slides))
+	}
+	slide := res.Slides[0]
+
+	if len(slide.Elements) != 5 {
+		t.Fatalf("expected exactly 5 elements, got %d", len(slide.Elements))
+	}
+
+	// 1. Transparent Stretched Image
+	imgEl := slide.Elements[0]
+	if imgEl.Type != "image" {
+		t.Errorf("el[0] expected type image, got %s", imgEl.Type)
+	}
+	if imgEl.Style["objectFit"] != "fill" {
+		t.Errorf("el[0] expected objectFit fill, got %v", imgEl.Style["objectFit"])
+	}
+	if imgEl.Style["opacity"] != 0.7 {
+		t.Errorf("el[0] expected opacity 0.7, got %v", imgEl.Style["opacity"])
+	}
+
+	// 2. Transparent Solid Shape
+	shapeEl := slide.Elements[1]
+	if shapeEl.Type != "shape" {
+		t.Errorf("el[1] expected type shape, got %s", shapeEl.Type)
+	}
+	if shapeEl.Style["fillColor"] != "#5C2E16" {
+		t.Errorf("el[1] expected fillColor #5C2E16, got %v", shapeEl.Style["fillColor"])
+	}
+	if shapeEl.Style["opacity"] != 0.5 {
+		t.Errorf("el[1] expected opacity 0.5, got %v", shapeEl.Style["opacity"])
+	}
+
+	// 3. Outline Shape
+	outlineEl := slide.Elements[2]
+	if outlineEl.Type != "shape" {
+		t.Errorf("el[2] expected type shape, got %s", outlineEl.Type)
+	}
+	if outlineEl.Style["fillColor"] != "transparent" {
+		t.Errorf("el[2] expected fillColor transparent, got %v", outlineEl.Style["fillColor"])
+	}
+	if outlineEl.Style["strokeColor"] != "#00AAFF" {
+		t.Errorf("el[2] expected strokeColor #00AAFF, got %v", outlineEl.Style["strokeColor"])
+	}
+	if outlineEl.Style["strokeWidth"] != 3 {
+		t.Errorf("el[2] expected strokeWidth 3, got %v", outlineEl.Style["strokeWidth"])
+	}
+
+	// 4. Divider Line
+	lineEl := slide.Elements[3]
+	if lineEl.Type != "line" {
+		t.Errorf("el[3] expected type line, got %s", lineEl.Type)
+	}
+	if lineEl.Style["strokeColor"] != "#FFFFFF" {
+		t.Errorf("el[3] expected strokeColor #FFFFFF, got %v", lineEl.Style["strokeColor"])
+	}
+	if lineEl.Style["strokeWidth"] != 4 {
+		t.Errorf("el[3] expected strokeWidth 4, got %v", lineEl.Style["strokeWidth"])
+	}
+
+	// 5. Connector Line
+	cxnEl := slide.Elements[4]
+	if cxnEl.Type != "line" {
+		t.Errorf("el[4] expected type line, got %s", cxnEl.Type)
+	}
+	if cxnEl.Style["strokeColor"] != "#FF5500" {
+		t.Errorf("el[4] expected strokeColor #FF5500, got %v", cxnEl.Style["strokeColor"])
+	}
+	if cxnEl.Style["strokeWidth"] != 2 {
+		t.Errorf("el[4] expected strokeWidth 2, got %v", cxnEl.Style["strokeWidth"])
+	}
+}
