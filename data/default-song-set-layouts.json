@@ -96,8 +96,7 @@
           "textAlign": "center"
         }
       }
-    ],
-    "backgroundImage": "/assets/song-lyric-bg.jpeg"
+    ]
   },
   "reff": {
     "aspectRatio": "16:9",
@@ -133,7 +132,6 @@
           "textAlign": "center"
         }
       }
-    ],
-    "backgroundImage": "/assets/song-lyric-bg.jpeg"
+    ]
   }
 }

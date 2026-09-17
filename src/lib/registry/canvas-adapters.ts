@@ -454,13 +454,17 @@ export function createSongSetTrioAdapter(): ArtifactEditorAdapter {
       const layouts = (payload.layouts ?? {}) as Record<string, unknown>;
       const defaultLayout = (layouts.default ?? {}) as Record<string, unknown>;
       const updatedAt = payload.updatedAt as string;
+      const cleanLayout = { ...defaultLayout };
+      if (id === 'verse' || id === 'reff') {
+        delete cleanLayout.backgroundImage;
+      }
 
       const res = await fetch(`/api/admin/song-set-layouts/${id}`, {
         method: 'PUT',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          layout: defaultLayout,
+          layout: cleanLayout,
           updatedAt,
         }),
       });
