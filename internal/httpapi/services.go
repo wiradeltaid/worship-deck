@@ -748,11 +748,25 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 	}
 	preview := make([]map[string]any, 0, len(items))
 	for i, it := range items {
+		entryLabel := it.Artifact.Label
+		if it.Artifact.BaseType == "song-set-entry" {
+			roleLabel := ""
+			if it.Artifact.Group != nil {
+				roleLabel = strings.ToLower(strings.TrimSpace(it.Artifact.Group.RoleLabel))
+			}
+			if it.Artifact.LayoutKey == "title" || (it.Artifact.Group != nil && it.Artifact.Group.Role == "title") {
+				entryLabel = "Song Title"
+			} else if it.Artifact.LayoutKey == "reff" || strings.HasPrefix(roleLabel, "reff") || strings.HasPrefix(roleLabel, "chorus") {
+				entryLabel = "Song Reff"
+			} else if it.Artifact.LayoutKey == "verse" || it.Artifact.LayoutKey == "lyric" || (it.Artifact.Group != nil && it.Artifact.Group.Role == "lyric") {
+				entryLabel = "Song Verse"
+			}
+		}
 		entry := map[string]any{
 			"index":      i,
 			"instanceId": it.Artifact.InstanceID,
 			"templateId": it.Artifact.TemplateID,
-			"label":      it.Artifact.Label,
+			"label":      entryLabel,
 			"baseType":   it.Artifact.BaseType,
 		}
 		if it.Artifact.Group != nil {

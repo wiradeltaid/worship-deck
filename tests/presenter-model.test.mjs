@@ -107,7 +107,7 @@ test('labels and tone are the preview taxonomy, not a second one', () => {
   });
 
   const labels = new Set(entries.map((e) => e.label));
-  for (const expected of ['Welcome', 'Song Title', 'Song Lyric', 'Theme Verse']) {
+  for (const expected of ['Welcome', 'Song Title', 'Song Verse', 'Song Reff', 'Theme Verse']) {
     assert.ok(labels.has(expected), `missing operator label "${expected}"`);
   }
 

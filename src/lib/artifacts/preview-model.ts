@@ -46,8 +46,11 @@ export type PreviewBadgeTone =
 /** SongSet reuses one template across three layouts; the layout names the slide. */
 const SONG_SET_LABELS: Readonly<Record<string, string>> = {
   title: 'Song Title',
-  lyric: 'Song Lyric',
-  default: 'Song',
+  verse: 'Song Verse',
+  reff: 'Song Reff',
+  chorus: 'Song Reff',
+  lyric: 'Song Verse',
+  default: 'Song Verse',
 };
 
 /** Templates whose content is scripture, regardless of their base type. */
@@ -85,7 +88,27 @@ export function previewLabel(instance: ArtifactInstance): string {
   // /api/services/preview, and an unrecognised key must fall through to the
   // label rather than 500 the preview or crash the page.
   if (instance.baseType && kindChipLabel(instance.baseType) === 'song-set') {
-    return SONG_SET_LABELS[instance.layoutKey] ?? SONG_SET_LABELS.default;
+    if (instance.layoutKey === 'title' || instance.group?.role === 'title') {
+      return 'Song Title';
+    }
+    const roleLabel = instance.group?.roleLabel?.trim().toLowerCase() || '';
+    if (
+      instance.layoutKey === 'reff' ||
+      roleLabel === 'reff' ||
+      roleLabel.startsWith('reff') ||
+      roleLabel === 'chorus' ||
+      roleLabel.startsWith('chorus')
+    ) {
+      return 'Song Reff';
+    }
+    if (
+      instance.layoutKey === 'verse' ||
+      instance.layoutKey === 'lyric' ||
+      instance.group?.role === 'lyric'
+    ) {
+      return 'Song Verse';
+    }
+    return SONG_SET_LABELS[instance.layoutKey] ?? 'Song Verse';
   }
   const trimmed = instance.label?.trim();
   if (trimmed) {

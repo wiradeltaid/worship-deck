@@ -87,7 +87,8 @@ test('every entry carries an operator-recognizable label', () => {
   for (const expected of [
     'Welcome',
     'Song Title',
-    'Song Lyric',
+    'Song Verse',
+    'Song Reff',
     'Theme Verse',
     'Verse Reading',
     'Offering & Tithe',
@@ -138,7 +139,7 @@ test('SongSet children share one group and carry title/lyric roles', () => {
   // from the shared layout trio.
   for (const child of opening.slice(1)) {
     assert.equal(child.role, 'lyric');
-    assert.equal(child.label, 'Song Lyric');
+    assert.ok(child.label === 'Song Verse' || child.label === 'Song Reff', `unexpected lyric label ${child.label}`);
     assert.equal(child.baseType, 'song-set-entry');
   }
 
