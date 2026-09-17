@@ -317,7 +317,7 @@ waves:
     fr: [FR-15, FR-16, FR-19, FR-22, FR-33]
     size: S
     depends_on: [W6]
-    spec_folder: _bmad-output/specs/spec-w7-presenter-live/
+    spec_folder: .archive/specs/spec-w7-presenter-live/
     spec_reviewed:
       date: '2026-09-07'
       sha: '71941a67a07c992d9f4a0815ee6c15b136894c7b'
