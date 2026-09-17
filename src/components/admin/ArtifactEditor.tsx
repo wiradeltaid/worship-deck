@@ -581,11 +581,11 @@ export default function ArtifactEditor({
           delete layout.backgroundImage;
         }
 
-        const painted = [...snapshot.elements]
+        const restoredElements = [...snapshot.elements]
           .map((element, index) => ({ element, index }))
           .sort((a, b) => a.element.zIndex - b.element.zIndex || a.index - b.index);
 
-        for (const { element } of painted) {
+        for (const { element } of restoredElements) {
           canvas.add(elementToFabricObject(fabric, element, true, { transparentProxy: true }));
         }
 

@@ -1294,7 +1294,7 @@ export function serializeCanvas(
       }
     }
 
-    if (source.type === 'shape' || source.type === 'line') {
+    if (source.type === 'shape') {
       const isUnfilled =
         (obj as any).fill === 'transparent' || source.style?.fillColor === 'transparent';
       const fill = isUnfilled
@@ -1320,6 +1320,34 @@ export function serializeCanvas(
       const mergedStyle = {
         ...source.style,
         ...(isUnfilled ? { fillColor: 'transparent' } : fill ? { fillColor: fill } : {}),
+        ...(opacity !== undefined ? { opacity } : {}),
+        ...(strokeColor ? { strokeColor } : {}),
+        ...(typeof strokeWidth === 'number' && strokeWidth > 0 ? { strokeWidth } : {}),
+      };
+      if (Object.keys(mergedStyle).length > 0) {
+        next.style = mergedStyle;
+      } else {
+        delete next.style;
+      }
+    }
+
+    if (source.type === 'line') {
+      const strokeRaw = (obj as any).stroke ?? source.style?.strokeColor;
+      const strokeColor =
+        toStrictHexColor(strokeRaw, undefined) ??
+        (typeof strokeRaw === 'string' && /^#[0-9A-Fa-f]{6}$/.test(strokeRaw)
+          ? strokeRaw.toUpperCase()
+          : undefined);
+
+      const strokeWidth =
+        typeof (obj as any).strokeWidth === 'number'
+          ? (obj as any).strokeWidth
+          : source.style?.strokeWidth;
+
+      const opacity = typeof (obj as any).opacity === 'number' ? (obj as any).opacity : undefined;
+
+      const mergedStyle = {
+        ...source.style,
         ...(opacity !== undefined ? { opacity } : {}),
         ...(strokeColor ? { strokeColor } : {}),
         ...(typeof strokeWidth === 'number' && strokeWidth > 0 ? { strokeWidth } : {}),

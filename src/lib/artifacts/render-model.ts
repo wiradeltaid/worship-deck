@@ -1081,7 +1081,7 @@ export function estimateTextFitScale(element: ResolvedElement): number {
 
 /** pptxgenjs wants bare `RRGGBB`; anything non-hex passes through untouched. */
 export function toPptxColor(color: string | undefined): string | undefined {
-  if (typeof color !== 'string' || !color || color === 'transparent') return undefined;
+  if (typeof color !== 'string' || !color) return undefined;
   if (!HEX6.test(color)) return color;
   return color.replace('#', '').toUpperCase();
 }

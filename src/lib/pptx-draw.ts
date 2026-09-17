@@ -397,7 +397,7 @@ function renderShapeElement(slide: PptxSlide, element: ResolvedElement): void {
     y: geometry.y,
     w: geometry.w,
     h: geometry.h,
-    fill: color
+    fill: color && color !== 'transparent'
       ? { color, transparency: toPptxTransparency(element.style) }
       : { type: 'none' },
   };

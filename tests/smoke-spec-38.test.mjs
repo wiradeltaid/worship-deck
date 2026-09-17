@@ -802,7 +802,8 @@ test('SPEC-38-03: Absence Guard 3 — serializeCanvas must persist strokeColor a
 
   function validateSerializeStroke(code) {
     if (
-      !code.includes("source.type === 'shape' || source.type === 'line'") ||
+      !code.includes("if (source.type === 'shape')") ||
+      !code.includes("if (source.type === 'line')") ||
       !code.includes('strokeColor') ||
       !code.includes('strokeWidth')
     ) {
@@ -816,8 +817,8 @@ test('SPEC-38-03: Absence Guard 3 — serializeCanvas must persist strokeColor a
 
   // Defect injection
   const defectiveCode = canvasUtilsCode.replace(
-    "source.type === 'shape' || source.type === 'line'",
-    "/* defect */ false"
+    "if (source.type === 'line')",
+    "if (false && source.type === 'line')"
   );
   assert.throws(
     () => validateSerializeStroke(defectiveCode),
