@@ -679,6 +679,7 @@ export function elementToFabricObject(
   const isHealing = options?.isHealing ?? false;
 
   if (isProxy && typeof fabric?.Rect === 'function') {
+    const isImage = element.type === 'image' || element.type === 'image-placeholder';
     return new fabric.Rect({
       ...common,
       fill: 'transparent',
@@ -691,6 +692,9 @@ export function elementToFabricObject(
         ...common.data,
         isTransparentProxy: true,
         imageRef: element.imageRef,
+        placeholderKey: element.placeholderKey,
+        isImage,
+        objectFit: element.style?.objectFit,
         style: { ...element.style },
       },
     });
@@ -1451,12 +1455,18 @@ export function serializeCanvas(
         ? (proxyStyle.objectFit ?? (obj as any).data?.objectFit ?? source.style?.objectFit)
         : ((obj as any).data?.objectFit ?? source.style?.objectFit);
 
+      const isExplicitContain = (obj as any).data?.objectFit === 'contain' || proxyStyle.objectFit === 'contain';
+      const hasResized = isWidthResized || isHeightResized || isUserResizedW || isUserResizedH;
+      const finalFit = isExplicitContain
+        ? 'contain'
+        : (effObjectFit || (hasResized ? 'fill' : undefined));
+
       const mergedStyle = {
         ...source.style,
         ...(typeof effOpacity === 'number' && effOpacity >= 0 && effOpacity <= 1 ? { opacity: effOpacity } : {}),
-        ...(effObjectFit === 'fill' || effObjectFit === 'cover' ? { objectFit: effObjectFit } : {}),
+        ...(finalFit === 'fill' || finalFit === 'cover' ? { objectFit: finalFit } : {}),
       };
-      if (effObjectFit === 'contain' && mergedStyle.objectFit !== undefined) {
+      if (finalFit === 'contain' && mergedStyle.objectFit !== undefined) {
         delete mergedStyle.objectFit;
       }
       if (Object.keys(mergedStyle).length > 0) {

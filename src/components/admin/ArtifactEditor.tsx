@@ -500,7 +500,7 @@ export default function ArtifactEditor({
       setStrokeWidth(sw);
     }
 
-    const images = active.filter((obj) => Boolean((obj as any).data?.imageRef));
+    const images = active.filter((obj) => Boolean((obj as any).data?.imageRef || (obj as any).data?.isImage));
     setSelectedImageCount(images.length);
     if (images.length > 0) {
       const imgObj = images[0] as any;
@@ -510,9 +510,13 @@ export default function ArtifactEditor({
       setElementOpacity(op);
       const fit = liveEl?.style?.objectFit === 'fill' ? 'fill' : 'contain';
       setImageFit(fit);
+      const wVal = liveEl?.w !== undefined ? Number(liveEl.w.toFixed(1)) : 0;
+      const hVal = liveEl?.h !== undefined ? Number(liveEl.h.toFixed(1)) : 0;
+      setBoxWidthInput(String(wVal));
+      setBoxHeightInput(String(hVal));
     }
 
-    const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef);
+    const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef && !(obj as any).data?.isImage);
     const outlineShapes = shapes.filter((obj) => {
       const elId = getElementId(obj);
       const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
@@ -1182,23 +1186,33 @@ export default function ArtifactEditor({
               const h = baseH * scaleY;
               const left = member.left ?? 0;
               const top = member.top ?? 0;
-              setLiveElements((prev) =>
-                prev.map((el) =>
-                  el.id === id
-                    ? {
-                        ...el,
-                        x: pxToPct(left, CANVAS_WIDTH),
-                        y: pxToPct(top, CANVAS_HEIGHT),
-                        w: pxToPct(w, CANVAS_WIDTH),
-                        h: pxToPct(h, CANVAS_HEIGHT),
-                      }
-                    : el
-                )
-              );
-              if (isFabricTextObject(member)) {
-                setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
-                setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
+              const isImage = Boolean((member as any).data?.imageRef || (member as any).data?.isImage);
+
+              if (isImage && (isHoriz || isVert)) {
+                (member as any).data.objectFit = 'fill';
+                (member as any).data.style = { ...((member as any).data.style || {}), objectFit: 'fill' };
+                setImageFit('fill');
               }
+
+              setLiveElements((prev) =>
+                prev.map((el) => {
+                  if (el.id !== id) return el;
+                  const isImageEl = el.type === 'image' || el.type === 'image-placeholder';
+                  const nextStyle = (isImage && (isHoriz || isVert))
+                    ? { ...el.style, objectFit: 'fill' as const }
+                    : el.style;
+                  return {
+                    ...el,
+                    x: pxToPct(left, CANVAS_WIDTH),
+                    y: pxToPct(top, CANVAS_HEIGHT),
+                    w: pxToPct(w, CANVAS_WIDTH),
+                    h: pxToPct(h, CANVAS_HEIGHT),
+                    style: nextStyle,
+                  };
+                })
+              );
+              setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
+              setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
             }
           }
         }
@@ -1212,6 +1226,12 @@ export default function ArtifactEditor({
         if (target) {
           const targetData = ((target as any).data = (target as any).data || {});
           targetData.userResizedWidth = true;
+          const isImage = Boolean(targetData.imageRef || targetData.isImage);
+          if (isImage) {
+            targetData.objectFit = 'fill';
+            targetData.style = { ...(targetData.style || {}), objectFit: 'fill' };
+            setImageFit('fill');
+          }
           const id = getElementId(target);
           if (id) {
             const scaleX = Math.abs(target.scaleX ?? 1);
@@ -1223,22 +1243,21 @@ export default function ArtifactEditor({
             const top = target.top ?? 0;
             targetData.authoredWidth = w;
             setLiveElements((prev) =>
-              prev.map((el) =>
-                el.id === id
-                  ? {
-                      ...el,
-                      x: pxToPct(left, CANVAS_WIDTH),
-                      y: pxToPct(top, CANVAS_HEIGHT),
-                      w: pxToPct(w, CANVAS_WIDTH),
-                      h: pxToPct(h, CANVAS_HEIGHT),
-                    }
-                  : el
-              )
+              prev.map((el) => {
+                if (el.id !== id) return el;
+                const nextStyle = isImage ? { ...el.style, objectFit: 'fill' as const } : el.style;
+                return {
+                  ...el,
+                  x: pxToPct(left, CANVAS_WIDTH),
+                  y: pxToPct(top, CANVAS_HEIGHT),
+                  w: pxToPct(w, CANVAS_WIDTH),
+                  h: pxToPct(h, CANVAS_HEIGHT),
+                  style: nextStyle,
+                };
+              })
             );
-            if (isFabricTextObject(target)) {
-              setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
-              setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
-            }
+            setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
+            setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
           }
         }
       };
@@ -1262,6 +1281,7 @@ export default function ArtifactEditor({
             const scaleX = Math.abs(member.scaleX ?? 1);
             const scaleY = Math.abs(member.scaleY ?? 1);
             const isText = isFabricTextObject(member);
+            const isImage = Boolean((member as any).data?.imageRef || (member as any).data?.isImage);
             const mData = member ? ((member as any).data = (member as any).data || {}) : null;
 
             if (scaleX !== 1 || scaleY !== 1) {
@@ -1273,6 +1293,11 @@ export default function ArtifactEditor({
               if (mData) {
                 mData.authoredWidth = newW;
                 mData.authoredHeight = newH;
+                if (isImage) {
+                  mData.objectFit = 'fill';
+                  mData.style = { ...(mData.style || {}), objectFit: 'fill' };
+                  setImageFit('fill');
+                }
               }
               member.set({
                 width: newW,
@@ -1299,26 +1324,28 @@ export default function ArtifactEditor({
               const left = member.left ?? 0;
               const top = member.top ?? 0;
               setLiveElements((prev) =>
-                prev.map((el) =>
-                  el.id === id
-                    ? {
-                        ...el,
-                        x: pxToPct(left, CANVAS_WIDTH),
-                        y: pxToPct(top, CANVAS_HEIGHT),
-                        w: pxToPct(w, CANVAS_WIDTH),
-                        h: pxToPct(h, CANVAS_HEIGHT),
-                      }
-                    : el
-                )
+                prev.map((el) => {
+                  if (el.id !== id) return el;
+                  const isImageEl = el.type === 'image' || el.type === 'image-placeholder';
+                  const nextStyle = (isImage && (scaleX !== 1 || scaleY !== 1))
+                    ? { ...el.style, objectFit: 'fill' as const }
+                    : el.style;
+                  return {
+                    ...el,
+                    x: pxToPct(left, CANVAS_WIDTH),
+                    y: pxToPct(top, CANVAS_HEIGHT),
+                    w: pxToPct(w, CANVAS_WIDTH),
+                    h: pxToPct(h, CANVAS_HEIGHT),
+                    style: nextStyle,
+                  };
+                })
               );
               if (mData) {
                 mData.authoredWidth = w;
                 mData.authoredHeight = h;
               }
-              if (isText) {
-                setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
-                setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
-              }
+              setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
+              setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
             }
           }
 
@@ -3492,26 +3519,26 @@ export default function ArtifactEditor({
       recordUndo();
       const nextFit: 'contain' | 'fill' = targetFit ?? (imageFit === 'fill' ? 'contain' : 'fill');
       setImageFit(nextFit);
+      const canvas = fabricCanvasRef.current;
+      const activeIds = canvas
+        ? canvas.getActiveObjects().map(getElementId).filter((id): id is string => typeof id === 'string')
+        : [];
+      const targetIds = new Set([...selectedElementIds, ...activeIds]);
+
       setLiveElements((prev) =>
         prev.map((el) => {
-          if (!selectedElementIds.includes(el.id)) return el;
-          const newStyle = { ...el.style };
-          if (nextFit === 'fill') {
-            newStyle.objectFit = 'fill';
-          } else {
-            delete newStyle.objectFit;
-          }
+          if (!targetIds.has(el.id)) return el;
+          const newStyle = { ...el.style, objectFit: nextFit };
           return {
             ...el,
-            style: Object.keys(newStyle).length > 0 ? newStyle : undefined,
+            style: newStyle,
           };
         })
       );
-      const canvas = fabricCanvasRef.current;
       if (!canvas) return;
       for (const obj of canvas.getActiveObjects()) {
         const id = getElementId(obj);
-        if (id && selectedElementIds.includes(id)) {
+        if (id && targetIds.has(id)) {
           const d = ((obj as any).data = (obj as any).data || {});
           d.objectFit = nextFit;
           d.style = { ...(d.style || {}), objectFit: nextFit };
@@ -5588,6 +5615,39 @@ export default function ArtifactEditor({
                           />
                           <span className="font-mono text-xs w-9 text-right">{elementOpacity}%</span>
                         </Label>
+
+                        <div className="h-4 w-px bg-border shrink-0" />
+                        <div className="flex items-center gap-1.5" title="Image Bounding Box (% of slide)">
+                          <span className="text-[11px] font-medium text-muted-foreground">Area:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono">W</span>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={0.5}
+                              value={boxWidthInput}
+                              onChange={(e) => handleBoxWidthChange(e.target.value)}
+                              className="w-14 h-7 text-xs text-center px-1"
+                              title="Width (% of slide)"
+                            />
+                            <span className="text-[10px] text-muted-foreground">%</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono">H</span>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={0.5}
+                              value={boxHeightInput}
+                              onChange={(e) => handleBoxHeightChange(e.target.value)}
+                              className="w-14 h-7 text-xs text-center px-1"
+                              title="Height (% of slide)"
+                            />
+                            <span className="text-[10px] text-muted-foreground">%</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-center text-[11px] text-muted-foreground">
                         <span>{imageFit === 'fill' ? 'Stretched to container bounds' : 'Aspect ratio preserved'} • Drag handles to resize</span>

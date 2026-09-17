@@ -1091,6 +1091,13 @@ test('FEAT: image stretch parity across render-model, canvas-utils, artifact-edi
     currentPptxCode.includes("sizing: { type: objectFit"),
     'pptx-draw must omit sizing parameter when objectFit is fill to stretch image'
   );
+
+  // 5. ArtifactEditor sets objectFit: 'fill' on image when resized via handles
+  assert.ok(
+    currentEditorCode.includes("isImage && (isHoriz || isVert)") &&
+    currentEditorCode.includes("objectFit: 'fill'"),
+    'ArtifactEditor must automatically set objectFit: fill when image is resized via handles'
+  );
 });
 
 test('FEAT: Song Set master data is decoupled from Deck Sequence slide instances', () => {
