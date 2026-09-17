@@ -108,7 +108,7 @@ _bmad-output/                 # BMad workspace — deferred-work register
 
 ### `_bmad-output/`
 
-Live BMad workspace. Open implementation debt: `implementation-artifacts/deferred-work.md`. Prior documents sit in `prior-knowledge/`.
+Live BMad workspace. Work in progress; committed, not curated. Historical prior knowledge and early wave specifications have been retired/archived.
 
 ## Product Components
 

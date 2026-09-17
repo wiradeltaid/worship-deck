@@ -22,7 +22,6 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const DOCS = [
   '.how/_platform/ARCHITECTURE-SPINE.md',
-  '_bmad-output/implementation-artifacts/deferred-work.md',
   '.how/_platform/design-system.md',
 ];
 

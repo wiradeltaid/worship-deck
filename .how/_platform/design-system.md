@@ -48,7 +48,7 @@ Story 17.2 changed `:root --muted-foreground` from `oklch(0.556 0 0)` to `oklch(
 
 The dark palette passes all four of these pairs. The two themes hold independent `--muted-foreground` values.
 
-Untokenized hues (amber, leftover red tints, emerald, indigo, sky) and non-text contrast (border 1.4.11) remain open debt — `_bmad-output/implementation-artifacts/deferred-work.md`. Service-form warning and error banners use `text-destructive` and amber-950/amber-100 pairs so they stay readable on both light and dark hosts.
+Untokenized hues (amber, leftover red tints, emerald, indigo, sky) and non-text contrast (border 1.4.11) remain recorded design debt. Service-form warning and error banners use `text-destructive` and amber-950/amber-100 pairs so they stay readable on both light and dark hosts.
 
 ## Components
 

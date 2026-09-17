@@ -144,7 +144,7 @@ separate Song Set PUT this design proposed was never built (see its row below).
 | --- | --- | --- | --- |
 | Hub route verbs match the inventory | verified | `internal/httpapi` 2026-08-18 | — |
 | GET `/api/services/[id]` | verified | `internal/httpapi` `GET /api/services/{id}` | SPA consumes plan + transition |
-| Not all four Service mutation paths have 409 | [PARTIAL] | spine AD-6 *Not yet closed*; `_bmad-output/implementation-artifacts/deferred-work.md` | debt, not a G4 fix |
+| Not all four Service mutation paths have 409 | [PARTIAL] | spine AD-6 *Not yet closed* | debt, not a G4 fix |
 | Numeric timeout per Hub route (`maxDuration`) | [ASSUMED] | grep 2026-08-19: no `maxDuration` in `src/` | platform default. Do not invent a number |
 | Named timeout on remote image fetch | verified | `src/lib/remote-image.ts` `REMOTE_IMAGE_TIMEOUT_MS = 8000` | from-url 504 |
 | LC-12 parse+write | verified | `src/lib/parser.ts`, `src/lib/services/create-service.ts`, `src/lib/services/update-service.ts` | Hub POST same date is 409 unless `allowSecond`; webhook upsert is CAP-11 |
