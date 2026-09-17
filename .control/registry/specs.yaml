@@ -97,7 +97,7 @@ waves:
     fr: [FR-20, FR-21]
     size: M
     depends_on: []
-    spec_folder: _bmad-output/specs/spec-w3-registry/
+    spec_folder: .archive/specs/spec-w3-registry/
     spec_reviewed:
       date: '2026-08-21'
       sha: '866c8a155f30d1975580dad373eb0febc99de149'
