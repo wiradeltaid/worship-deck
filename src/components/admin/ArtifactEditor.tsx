@@ -282,6 +282,8 @@ export default function ArtifactEditor({
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [elementOpacity, setElementOpacity] = useState(100);
   const [imageFit, setImageFit] = useState<'contain' | 'fill'>('contain');
+  const [boxWidthInput, setBoxWidthInput] = useState('');
+  const [boxHeightInput, setBoxHeightInput] = useState('');
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const selectedElementIdsRef = useRef<string[]>(selectedElementIds);
   selectedElementIdsRef.current = selectedElementIds;
@@ -481,6 +483,10 @@ export default function ArtifactEditor({
         setLetterSpacing(undefined);
         setLetterSpacingInput('0');
       }
+      const wVal = liveEl?.w !== undefined ? Number(liveEl.w.toFixed(1)) : 0;
+      const hVal = liveEl?.h !== undefined ? Number(liveEl.h.toFixed(1)) : 0;
+      setBoxWidthInput(String(wVal));
+      setBoxHeightInput(String(hVal));
     }
     const lines = active.filter((obj) => (obj as any).type === 'line' || (obj as any).data?.isLine);
     setSelectedLineCount(lines.length);
@@ -1172,7 +1178,8 @@ export default function ArtifactEditor({
               const scaleX = Math.abs((member.scaleX ?? 1) * (isGroup ? target.scaleX ?? 1 : 1));
               const scaleY = Math.abs((member.scaleY ?? 1) * (isGroup ? target.scaleY ?? 1 : 1));
               const w = (member.width ?? 100) * scaleX;
-              const h = (member.height ?? 50) * scaleY;
+              const baseH = (member as any).data?.authoredHeight ?? member.height ?? 50;
+              const h = baseH * scaleY;
               const left = member.left ?? 0;
               const top = member.top ?? 0;
               setLiveElements((prev) =>
@@ -1188,12 +1195,54 @@ export default function ArtifactEditor({
                     : el
                 )
               );
+              if (isFabricTextObject(member)) {
+                setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
+                setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
+              }
             }
           }
         }
       };
       canvas.on('object:scaling', onObjectScaling);
-      canvas.on('object:resizing', markUserDirty);
+
+      const onObjectResizing = (opt: any) => {
+        if (isRestoringHistoryRef.current) return;
+        markUserDirty();
+        const target = opt.target;
+        if (target) {
+          const targetData = ((target as any).data = (target as any).data || {});
+          targetData.userResizedWidth = true;
+          const id = getElementId(target);
+          if (id) {
+            const scaleX = Math.abs(target.scaleX ?? 1);
+            const w = (target.width ?? 100) * scaleX;
+            const h = typeof targetData.authoredHeight === 'number' && targetData.authoredHeight > 0
+              ? targetData.authoredHeight
+              : (target.height ?? 50) * Math.abs(target.scaleY ?? 1);
+            const left = target.left ?? 0;
+            const top = target.top ?? 0;
+            targetData.authoredWidth = w;
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                el.id === id
+                  ? {
+                      ...el,
+                      x: pxToPct(left, CANVAS_WIDTH),
+                      y: pxToPct(top, CANVAS_HEIGHT),
+                      w: pxToPct(w, CANVAS_WIDTH),
+                      h: pxToPct(h, CANVAS_HEIGHT),
+                    }
+                  : el
+              )
+            );
+            if (isFabricTextObject(target)) {
+              setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
+              setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
+            }
+          }
+        }
+      };
+      canvas.on('object:resizing', onObjectResizing);
 
       // SPEC-13-03 / SPEC-26-02 / SPEC-27-02 / SPEC-28-03: On object scaling/modification, recalculate fit & sync live elements
       const onObjectModified = (opt: any) => {
@@ -1212,20 +1261,41 @@ export default function ArtifactEditor({
           for (const member of memberObjects) {
             const scaleX = Math.abs(member.scaleX ?? 1);
             const scaleY = Math.abs(member.scaleY ?? 1);
+            const isText = isFabricTextObject(member);
+            const mData = member ? ((member as any).data = (member as any).data || {}) : null;
+
             if (scaleX !== 1 || scaleY !== 1) {
+              const currentBaseH = (isText && typeof mData?.authoredHeight === 'number' && mData.authoredHeight > 0)
+                ? mData.authoredHeight
+                : (member.height ?? 50);
+              const newW = (member.width ?? 100) * scaleX;
+              const newH = currentBaseH * scaleY;
+              if (mData) {
+                mData.authoredWidth = newW;
+                mData.authoredHeight = newH;
+              }
               member.set({
-                width: (member.width ?? 100) * scaleX,
-                height: (member.height ?? 50) * scaleY,
+                width: newW,
+                height: newH,
                 scaleX: 1,
                 scaleY: 1,
               });
+              if (isText && typeof (member as any).initDimensions === 'function') {
+                (member as any).initDimensions();
+              }
               member.setCoords?.();
+            } else if (isText && mData) {
+              mData.authoredWidth = member.width ?? 100;
+              if (typeof mData.authoredHeight === 'number' && mData.authoredHeight > 0) {
+                member.set({ height: mData.authoredHeight });
+                member.setCoords?.();
+              }
             }
+
             const id = getElementId(member);
-            const mData = member ? ((member as any).data = (member as any).data || {}) : null;
             if (id) {
               const w = member.width ?? 100;
-              const h = member.height ?? 50;
+              const h = (mData?.authoredHeight ?? member.height ?? 50);
               const left = member.left ?? 0;
               const top = member.top ?? 0;
               setLiveElements((prev) =>
@@ -1244,6 +1314,10 @@ export default function ArtifactEditor({
               if (mData) {
                 mData.authoredWidth = w;
                 mData.authoredHeight = h;
+              }
+              if (isText) {
+                setBoxWidthInput(String(Number(pxToPct(w, CANVAS_WIDTH).toFixed(1))));
+                setBoxHeightInput(String(Number(pxToPct(h, CANVAS_HEIGHT).toFixed(1))));
               }
             }
           }
@@ -1404,7 +1478,7 @@ export default function ArtifactEditor({
         canvas.off('mouse:up', onMouseUp);
         canvas.off('object:moving', onObjectMoving);
         canvas.off('object:scaling', onObjectScaling);
-        canvas.off('object:resizing', markUserDirty);
+        canvas.off('object:resizing', onObjectResizing);
         canvas.off('object:modified', onObjectModified);
         canvas.off('text:changed', onTextChanged);
         canvas.off('text:editing:entered' as any, onTextEditingEntered);
@@ -1870,7 +1944,9 @@ export default function ArtifactEditor({
       insertCounterRef.current += 1;
 
       const size =
-        entry.type === 'image' ? NEW_SHAPE_SIZE_PX : NEW_TEXT_SIZE_PX;
+        entry.type === 'image'
+          ? NEW_SHAPE_SIZE_PX
+          : (entry.key === 'scripture_text' ? { w: 850, h: 280 } : NEW_TEXT_SIZE_PX);
       const offset = step * INSERT_CASCADE_PX;
       const leftPx = (CANVAS_WIDTH - size.w) / 2 + offset;
       const topPx = (CANVAS_HEIGHT - size.h) / 2 + offset;
@@ -2740,6 +2816,61 @@ export default function ArtifactEditor({
     },
     [selectedElementIds, markDirty]
   );
+
+  const handleBoxWidthChange = (valStr: string) => {
+    setBoxWidthInput(valStr);
+    const num = parseFloat(valStr);
+    if (isNaN(num) || num <= 0 || num > 100) return;
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    const active = canvas.getActiveObjects();
+    if (active.length === 0) return;
+    markUserDirty();
+    recordUndo();
+    for (const obj of active) {
+      const id = getElementId(obj);
+      if (!id) continue;
+      const pxW = pctToPx(num, CANVAS_WIDTH);
+      const mData = ((obj as any).data = (obj as any).data || {});
+      mData.authoredWidth = pxW;
+      mData.userResizedWidth = true;
+      obj.set({ width: pxW, scaleX: 1 });
+      obj.setCoords?.();
+      setLiveElements((prev) =>
+        prev.map((el) => (el.id === id ? { ...el, w: num } : el))
+      );
+    }
+    canvas.requestRenderAll();
+  };
+
+  const handleBoxHeightChange = (valStr: string) => {
+    setBoxHeightInput(valStr);
+    const num = parseFloat(valStr);
+    if (isNaN(num) || num <= 0 || num > 100) return;
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    const active = canvas.getActiveObjects();
+    if (active.length === 0) return;
+    markUserDirty();
+    recordUndo();
+    for (const obj of active) {
+      const id = getElementId(obj);
+      if (!id) continue;
+      const pxH = pctToPx(num, CANVAS_HEIGHT);
+      const mData = ((obj as any).data = (obj as any).data || {});
+      mData.authoredHeight = pxH;
+      mData.userResizedHeight = true;
+      obj.set({ height: pxH, scaleY: 1 });
+      if (typeof (obj as any).initDimensions === 'function') {
+        (obj as any).initDimensions();
+      }
+      obj.setCoords?.();
+      setLiveElements((prev) =>
+        prev.map((el) => (el.id === id ? { ...el, h: num } : el))
+      );
+    }
+    canvas.requestRenderAll();
+  };
 
   /**
    * Writes the words of the selected text box straight through to Fabric, so
@@ -5122,6 +5253,40 @@ export default function ArtifactEditor({
                               title={`Shadow Blur: ${shadowBlur}`}
                             />
                           )}
+                        </div>
+
+                        <div className="h-4 w-px bg-border shrink-0" />
+
+                        <div className="flex items-center gap-1.5" title="Text Area Bounding Box (% of slide)">
+                          <span className="text-[11px] font-medium text-muted-foreground">Area:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono">W</span>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={0.5}
+                              value={boxWidthInput}
+                              onChange={(e) => handleBoxWidthChange(e.target.value)}
+                              className="w-14 h-7 text-xs text-center px-1"
+                              title="Width (% of slide)"
+                            />
+                            <span className="text-[10px] text-muted-foreground">%</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-muted-foreground font-mono">H</span>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={0.5}
+                              value={boxHeightInput}
+                              onChange={(e) => handleBoxHeightChange(e.target.value)}
+                              className="w-14 h-7 text-xs text-center px-1"
+                              title="Height (% of slide)"
+                            />
+                            <span className="text-[10px] text-muted-foreground">%</span>
+                          </div>
                         </div>
                       </div>
                     </>

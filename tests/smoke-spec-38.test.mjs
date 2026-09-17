@@ -1121,3 +1121,47 @@ test('FEAT: Song Set master data is decoupled from Deck Sequence slide instances
   );
 });
 
+test('FEAT: Text Area custom bounding box sizing, handles, and toolbar area controls', () => {
+  const currentEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+  const canvasUtilsCode = fs.readFileSync(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts'), 'utf8');
+
+  // 1. elementToFabricObject preserves authored height on Textbox and enables all controls
+  assert.ok(
+    canvasUtilsCode.includes('tb.setControlsVisibility') &&
+    canvasUtilsCode.includes('mb: true') &&
+    canvasUtilsCode.includes('mt: true'),
+    'elementToFabricObject must enable vertical resize controls (mt, mb) on Textbox'
+  );
+  assert.ok(
+    canvasUtilsCode.includes('targetAuthoredH') &&
+    canvasUtilsCode.includes('Math.max(naturalH, targetAuthoredH)'),
+    'elementToFabricObject must preserve authored bounding box height'
+  );
+
+  // 2. ArtifactEditor provides Area W and H inputs in Toolbar Row 2 for Text
+  assert.ok(
+    currentEditorCode.includes('handleBoxWidthChange') &&
+    currentEditorCode.includes('handleBoxHeightChange') &&
+    currentEditorCode.includes('Area:') &&
+    currentEditorCode.includes('boxWidthInput') &&
+    currentEditorCode.includes('boxHeightInput'),
+    'ArtifactEditor must provide Area W and H inputs for Text in Toolbar Row 2'
+  );
+
+  // 3. ArtifactEditor onObjectResizing updates liveElements in real-time
+  assert.ok(
+    currentEditorCode.includes("canvas.on('object:resizing', onObjectResizing)") &&
+    currentEditorCode.includes('targetData.userResizedWidth = true'),
+    'ArtifactEditor must listen to object:resizing and update dimensions in real-time'
+  );
+
+  // 4. serializeCanvas uses effWidth and effHeight to avoid 1-line text height collapse
+  assert.ok(
+    canvasUtilsCode.includes('effWidth') &&
+    canvasUtilsCode.includes('effHeight') &&
+    canvasUtilsCode.includes('authoredHeight'),
+    'serializeCanvas must use authoredWidth/authoredHeight to prevent dimension collapse'
+  );
+});
+
+

@@ -490,6 +490,37 @@ export function elementToFabricObject(
           textOpts.transparentCorners = false;
         }
         const tb = new fabric.Textbox(element.content ?? '', textOpts);
+        const authoredH = typeof element.h === 'number' && element.h > 0 ? pctToPx(element.h, CANVAS_HEIGHT) : height;
+        const origCalcTextHeight = typeof tb.calcTextHeight === 'function' ? tb.calcTextHeight.bind(tb) : null;
+        if (origCalcTextHeight) {
+          tb.calcTextHeight = function() {
+            const naturalH = origCalcTextHeight();
+            const targetAuthoredH = typeof (this as any).data?.authoredHeight === 'number' && (this as any).data.authoredHeight > 0
+              ? (this as any).data.authoredHeight
+              : authoredH;
+            return Math.max(naturalH, targetAuthoredH);
+          };
+        }
+        if (typeof tb.setControlsVisibility === 'function') {
+          tb.setControlsVisibility({
+            tl: true,
+            tr: true,
+            bl: true,
+            br: true,
+            ml: true,
+            mr: true,
+            mt: true,
+            mb: true,
+            mtr: true,
+          });
+        }
+        tb.set({
+          width,
+          height: authoredH,
+        });
+        if (typeof tb.initDimensions === 'function') {
+          tb.initDimensions();
+        }
         if (isProxy) {
           tb.set({
             fill: 'transparent',
@@ -502,7 +533,7 @@ export function elementToFabricObject(
             isTransparentProxy: true,
             elementId: element.id,
             authoredWidth: width,
-            authoredHeight: height,
+            authoredHeight: authoredH,
             style: { ...element.style },
           };
         } else {
@@ -1167,8 +1198,14 @@ export function serializeCanvas(
     const authoredTop = pctToPx(source.y, CANVAS_HEIGHT);
     const authoredWidth = pctToPx(source.w, CANVAS_WIDTH);
     const authoredHeight = pctToPx(source.h, CANVAS_HEIGHT);
-    const measuredWidth = Math.abs(obj.width ?? 0) * scaleX;
-    const measuredHeight = Math.abs(obj.height ?? 0) * scaleY;
+    const effWidth = typeof (obj as any).data?.authoredWidth === 'number' && (obj as any).data.authoredWidth > 0
+      ? (obj as any).data.authoredWidth
+      : (obj.width ?? 0);
+    const effHeight = typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
+      ? (obj as any).data.authoredHeight
+      : (obj.height ?? 0);
+    const measuredWidth = Math.abs(effWidth) * scaleX;
+    const measuredHeight = Math.abs(effHeight) * scaleY;
 
     const isWidthResized = Math.abs(measuredWidth - authoredWidth) > 1;
     const isHeightResized = Math.abs(measuredHeight - authoredHeight) > 1;
