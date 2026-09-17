@@ -1822,7 +1822,7 @@ waves:
           - tests/smoke-spec-37.test.mjs
 
   - id: SPEC-38
-    status: open
+    status: closed
     release: canvas-undo-redo-and-line-unfilled-shape-elements
     prd: [offline-deck]
     fr: [FR-20]

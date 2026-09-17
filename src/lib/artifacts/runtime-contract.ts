@@ -49,6 +49,8 @@ export type ResolvedStyle = {
   textShadowBlur?: number;
   letterSpacing?: number;
   pptxTypeface?: string;
+  strokeColor?: string;
+  strokeWidth?: number;
 };
 
 export type ResolvedElement = {

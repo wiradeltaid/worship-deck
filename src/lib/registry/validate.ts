@@ -85,6 +85,8 @@ const ALLOWED_STYLE_KEYS = new Set([
   'letterSpacing',
   'pptxTypeface',
   'fontStatus',
+  'strokeColor',
+  'strokeWidth',
 ]);
 
 export class RegistryValidationError extends Error {
@@ -127,6 +129,14 @@ function parsePositiveNumber(value: unknown, label: string): number {
   const n = parseFiniteNumber(value, label);
   if (n <= 0) {
     throw new RegistryValidationError(`${label} must be positive`);
+  }
+  return n;
+}
+
+function parseNonNegativeNumber(value: unknown, label: string): number {
+  const n = parseFiniteNumber(value, label);
+  if (n < 0) {
+    throw new RegistryValidationError(`${label} must be non-negative`);
   }
   return n;
 }
@@ -234,7 +244,10 @@ function parseStyle(value: unknown, label: string) {
     style.objectFit = obj.objectFit;
   }
   if (obj.fillColor !== undefined) {
-    if (typeof obj.fillColor !== 'string' || !HEX_COLOR.test(obj.fillColor)) {
+    if (
+      typeof obj.fillColor !== 'string' ||
+      (obj.fillColor !== 'transparent' && !HEX_COLOR.test(obj.fillColor))
+    ) {
       throw new RegistryValidationError(`${label}.fillColor is invalid`);
     }
     style.fillColor = obj.fillColor;
@@ -287,6 +300,19 @@ function parseStyle(value: unknown, label: string) {
     }
     style.fontStatus = obj.fontStatus;
   }
+  if (obj.strokeColor !== undefined) {
+    if (typeof obj.strokeColor !== 'string' || !HEX_COLOR.test(obj.strokeColor)) {
+      throw new RegistryValidationError(`${label}.strokeColor is invalid`);
+    }
+    style.strokeColor = obj.strokeColor;
+  }
+  if (obj.strokeWidth !== undefined) {
+    const sw = parsePositiveNumber(obj.strokeWidth, `${label}.strokeWidth`);
+    if (sw > 50) {
+      throw new RegistryValidationError(`${label}.strokeWidth exceeds max 50`);
+    }
+    style.strokeWidth = sw;
+  }
   return style;
 }
 
@@ -299,7 +325,8 @@ function parseElement(raw: unknown, label: string): CanvasElement {
     type !== 'text' &&
     type !== 'image' &&
     type !== 'image-placeholder' &&
-    type !== 'shape'
+    type !== 'shape' &&
+    type !== 'line'
   ) {
     throw new RegistryValidationError(`${label}.type is invalid`);
   }
@@ -316,7 +343,9 @@ function parseElement(raw: unknown, label: string): CanvasElement {
     x: parseFiniteNumber(obj.x, `${label}.x`),
     y: parseFiniteNumber(obj.y, `${label}.y`),
     w: parsePositiveNumber(obj.w, `${label}.w`),
-    h: parsePositiveNumber(obj.h, `${label}.h`),
+    h: type === 'line'
+      ? parseNonNegativeNumber(obj.h, `${label}.h`)
+      : parsePositiveNumber(obj.h, `${label}.h`),
     zIndex: parseNonNegativeInt(obj.zIndex, `${label}.zIndex`),
   };
 

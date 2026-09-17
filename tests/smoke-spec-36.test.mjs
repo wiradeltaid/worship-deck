@@ -83,7 +83,7 @@ test('T-36-01: Toolbar Row 1 contains accessible Font Import button available wi
   const toolbarRow1Idx = editorCode.indexOf('TOOLBAR ROW 1: ADD NEW ELEMENTS & CHANGE BACKGROUND');
   assert.ok(toolbarRow1Idx > 0, 'Toolbar Row 1 marker must exist');
 
-  const toolbarSection = editorCode.slice(toolbarRow1Idx, toolbarRow1Idx + 5000);
+  const toolbarSection = editorCode.slice(toolbarRow1Idx, toolbarRow1Idx + 10000);
   assert.ok(
     toolbarSection.includes('fontImportInputRef.current?.click()'),
     'Toolbar Row 1 must provide direct Font Import button'

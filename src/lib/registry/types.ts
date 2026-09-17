@@ -62,7 +62,8 @@ export type CanvasElementType =
   | 'text'
   | 'image'
   | 'image-placeholder'
-  | 'shape';
+  | 'shape'
+  | 'line';
 
 export type TextStyle = {
   fontFamily?: string;
@@ -88,6 +89,8 @@ export type ImageStyle = {
 export type ShapeStyle = {
   fillColor?: string;
   opacity?: number;
+  strokeColor?: string;
+  strokeWidth?: number;
 };
 
 export type MeasuredWith = {

@@ -1,6 +1,6 @@
 # SPEC-38 — Canvas Session Undo / Redo History and Line & Unfilled Shape Elements
 
-> **Status:** open
+> **Status:** closed
 > **Release:** canvas-undo-redo-and-line-unfilled-shape-elements
 > **Component:** registry, presenter, pptx
 > **Touches:** artifacts, pptx

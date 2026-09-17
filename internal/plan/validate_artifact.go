@@ -54,6 +54,7 @@ var (
 		"textAlign": {}, "verticalAlign": {}, "objectFit": {}, "fillColor": {}, "opacity": {},
 		"lineHeight": {}, "textShadow": {}, "textShadowBlur": {},
 		"letterSpacing": {}, "pptxTypeface": {}, "fontStatus": {},
+		"strokeColor": {}, "strokeWidth": {},
 	}
 	entryKeys = map[string]struct{}{"general": {}, "song-set": {}, "song-set-entry": {}, "ann-set-marker": {}, "announcement": {}}
 )
@@ -98,6 +99,17 @@ func asPositive(v any, label string) (float64, error) {
 	}
 	if n <= 0 {
 		return 0, failf("%s must be positive", label)
+	}
+	return n, nil
+}
+
+func asNonNegative(v any, label string) (float64, error) {
+	n, err := asNumber(v, label)
+	if err != nil {
+		return 0, err
+	}
+	if n < 0 {
+		return 0, failf("%s must be non-negative", label)
 	}
 	return n, nil
 }
@@ -241,7 +253,7 @@ func parseStyle(raw any, label string) (map[string]any, error) {
 	}
 	if v, ok := obj["fillColor"]; ok {
 		s, ok := v.(string)
-		if !ok || !hexColor.MatchString(s) {
+		if !ok || (s != "transparent" && !hexColor.MatchString(s)) {
 			return nil, failf("%s.fillColor is invalid", label)
 		}
 		style["fillColor"] = s
@@ -280,6 +292,23 @@ func parseStyle(raw any, label string) (map[string]any, error) {
 		}
 		style["textShadowBlur"] = math.Round(n)
 	}
+	if v, ok := obj["strokeColor"]; ok {
+		s, ok := v.(string)
+		if !ok || !hexColor.MatchString(s) {
+			return nil, failf("%s.strokeColor is invalid", label)
+		}
+		style["strokeColor"] = s
+	}
+	if v, ok := obj["strokeWidth"]; ok {
+		n, err := asPositive(v, label+".strokeWidth")
+		if err != nil {
+			return nil, err
+		}
+		if n > 50 {
+			return nil, failf("%s.strokeWidth exceeds max 50", label)
+		}
+		style["strokeWidth"] = n
+	}
 	if len(style) == 0 {
 		return nil, nil
 	}
@@ -304,7 +333,7 @@ func parseElement(raw any, label, repoRoot string) (CanvasElement, error) {
 		return CanvasElement{}, err
 	}
 	typ, _ := obj["type"].(string)
-	if typ != "text" && typ != "image" && typ != "image-placeholder" && typ != "shape" {
+	if typ != "text" && typ != "image" && typ != "image-placeholder" && typ != "shape" && typ != "line" {
 		return CanvasElement{}, failf("%s.type is invalid", label)
 	}
 	id, _ := obj["id"].(string)
@@ -323,9 +352,17 @@ func parseElement(raw any, label, repoRoot string) (CanvasElement, error) {
 	if err != nil {
 		return CanvasElement{}, err
 	}
-	h, err := asPositive(obj["h"], label+".h")
-	if err != nil {
-		return CanvasElement{}, err
+	var h float64
+	if typ == "line" {
+		h, err = asNonNegative(obj["h"], label+".h")
+		if err != nil {
+			return CanvasElement{}, err
+		}
+	} else {
+		h, err = asPositive(obj["h"], label+".h")
+		if err != nil {
+			return CanvasElement{}, err
+		}
 	}
 	z, err := asNonNegInt(obj["zIndex"], label+".zIndex")
 	if err != nil {
@@ -736,6 +773,20 @@ func marshalLayout(layout Layout) map[string]any {
 		}
 		if el.Content != nil {
 			item["content"] = *el.Content
+		}
+		if len(el.WrapLines) > 0 {
+			item["wrapLines"] = el.WrapLines
+		}
+		if el.LongestWordPx != nil {
+			item["longestWordPx"] = *el.LongestWordPx
+		}
+		if el.MeasuredWith != nil {
+			item["measuredWith"] = map[string]any{
+				"fontFamily": el.MeasuredWith.FontFamily,
+				"fontSize":   el.MeasuredWith.FontSize,
+				"fontWeight": el.MeasuredWith.FontWeight,
+				"fontStyle":  el.MeasuredWith.FontStyle,
+			}
 		}
 		if el.PlaceholderKey != nil {
 			item["placeholderKey"] = *el.PlaceholderKey

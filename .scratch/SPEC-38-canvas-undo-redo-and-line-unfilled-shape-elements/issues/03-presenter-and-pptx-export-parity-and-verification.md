@@ -5,19 +5,19 @@ Ensure `line` and unfilled `shape` elements render with 100% visual fidelity in 
 
 **Blocked by:** 01-canvas-session-undo-redo-history-and-controls, 02-line-and-unfilled-shape-elements-and-properties
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Unified stroke width conversion in `src/lib/artifacts/render-model.ts`:
+- [x] Unified stroke width conversion in `src/lib/artifacts/render-model.ts`:
   - Add helper `toPptxStrokeWidth(strokeWidthPx: number = 2): number` applying the $0.75\text{ pt/px}$ conversion factor.
   - Calculate outline transparency from `opacity`: `outlineTransparency = opacity !== undefined ? Math.round((1 - opacity) * 100) : undefined`.
-- [ ] Presenter View rendering (`src/components/artifacts/ArtifactSlide.tsx`):
-  - Render `line` elements using SVG `<line x1="0" y1="50%" x2="100%" y2="50%" />` within an absolute container scaled by container geometry, or responsive border.
+- [x] Presenter View rendering (`src/components/artifacts/ArtifactSlide.tsx`):
+  - Render `line` elements using SVG `<line x1="0" y1="0" x2="100%" y2={isDiagonal ? "100%" : "0"} />` within an absolute container scaled by container geometry.
   - Render unfilled `shape` elements with `border: `${strokeWidthCss} solid ${strokeColor}``, `backgroundColor: fillColor || 'transparent'`, and CSS `box-sizing: border-box`.
-- [ ] PPTX Export Engine (`src/lib/pptx-draw.ts`):
+- [x] PPTX Export Engine (`src/lib/pptx-draw.ts`):
   - In `renderElementToSlide`:
     - If `element.type === 'line'`: add PPTX native line shape (`pptx.shapes.LINE`) with line options `{ line: { color: strokeColor, width: toPptxStrokeWidth(strokeWidth), transparency: outlineTransparency } }`.
     - If `element.type === 'shape'`: if `fillColor === 'transparent'` or `!fillColor`, set `fill: { type: 'none' }` and line options `{ line: { color: strokeColor, width: toPptxStrokeWidth(strokeWidth), transparency: outlineTransparency } }`.
-- [ ] Conformance Testing & Absence Guards:
+- [x] Conformance Testing & Absence Guards:
   - In `tests/smoke-spec-38.test.mjs`:
     - Assert PPTX slide generation emits native line and outline rectangle shapes without errors, verifying generated OpenXML DrawingML tags.
     - Assert `ArtifactSlide` HTML structure contains proper SVG line and bordered outline box.

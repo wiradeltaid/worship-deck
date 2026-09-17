@@ -1207,6 +1207,17 @@ export function toPptxTransparency(style: ResolvedStyle): number {
   return round((1 - resolveOpacity(style)) * 100, 2);
 }
 
+/**
+ * SPEC-38: Converts stroke width in reference pixels (960x540 canvas) to PowerPoint typographical points (pt).
+ * 1 px on 72 DPI coordinate space = 0.75 pt.
+ */
+export function toPptxStrokeWidth(strokeWidthPx?: number): number {
+  if (typeof strokeWidthPx !== 'number' || !Number.isFinite(strokeWidthPx) || strokeWidthPx <= 0) {
+    return 1.5;
+  }
+  return round(strokeWidthPx * 0.75, 2);
+}
+
 /** Column-flex mapping for `verticalAlign`. */
 export function toCssJustifyContent(
   style: ResolvedStyle
