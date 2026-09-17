@@ -1295,17 +1295,28 @@ export function serializeCanvas(
     }
 
     if (source.type === 'shape') {
+      const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+      const proxyStyle = ((obj as any).data?.style as CanvasElement['style']) || {};
+      const effFillColor = isProxy
+        ? (proxyStyle.fillColor ?? source.style?.fillColor)
+        : ((obj as any).fill ?? source.style?.fillColor);
+      const effStrokeColor = isProxy
+        ? (proxyStyle.strokeColor ?? source.style?.strokeColor)
+        : ((obj as any).stroke ?? source.style?.strokeColor);
+
       const isUnfilled =
-        (obj as any).fill === 'transparent' || source.style?.fillColor === 'transparent';
+        effFillColor === 'transparent' ||
+        (!effFillColor && Boolean(effStrokeColor));
+
       const fill = isUnfilled
         ? undefined
-        : (toStrictHexColor((obj as any).fill, undefined) ??
-          (typeof (obj as any).fill === 'string' && /^#[0-9A-Fa-f]{6}$/.test((obj as any).fill)
-            ? (obj as any).fill.toUpperCase()
+        : (toStrictHexColor(effFillColor, undefined) ??
+          (typeof effFillColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(effFillColor)
+            ? effFillColor.toUpperCase()
             : undefined));
       const opacity = typeof (obj as any).opacity === 'number' ? (obj as any).opacity : undefined;
 
-      const strokeRaw = (obj as any).stroke ?? source.style?.strokeColor;
+      const strokeRaw = effStrokeColor;
       const strokeColor =
         toStrictHexColor(strokeRaw, undefined) ??
         (typeof strokeRaw === 'string' && /^#[0-9A-Fa-f]{6}$/.test(strokeRaw)
@@ -1315,7 +1326,7 @@ export function serializeCanvas(
       const strokeWidth =
         typeof (obj as any).strokeWidth === 'number'
           ? (obj as any).strokeWidth
-          : source.style?.strokeWidth;
+          : (isProxy ? (proxyStyle.strokeWidth ?? source.style?.strokeWidth) : source.style?.strokeWidth);
 
       const mergedStyle = {
         ...source.style,

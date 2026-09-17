@@ -532,3 +532,20 @@ defects:
       are already carried on every Fabric object (canvas-utils.ts:176, :234) and are the intended
       discriminator between a dimension the operator dragged and one Fabric computed. `applyWrapSlack`
       (SPEC-23-01) is a deliberate widening with a stated reason and is not this defect.
+
+  - id: BUG-36
+    status: fixed
+    fixed_in: fastpath
+    title: "Filled rectangle shape misclassified as outline shape in Canvas Editor transparent proxy"
+    component: registry
+    violates: [FR-21, UC-15]
+    root_cause: code
+    fix: fastpath
+    source: "Manual test feedback on SPEC-38 canvas editor shape tool"
+    summary: >
+      ArtifactEditor uses a two-layer transparent proxy model (ArtifactSlide visually underneath,
+      Fabric transparent overlay on top). Because Fabric proxy objects have `fill: 'transparent'`,
+      canvas selection (`syncSelection`), duplication, and canvas serialization (`serializeCanvas`)
+      inspected `(obj as any).fill === 'transparent'`, causing all filled rectangles to be erroneously
+      treated as outline shapes with border color/thickness and stripping their solid fillColor. Fixed
+      by making shape discrimination proxy-aware (reading authored/proxy styles).

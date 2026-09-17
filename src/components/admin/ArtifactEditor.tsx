@@ -496,19 +496,40 @@ export default function ArtifactEditor({
     const outlineShapes = shapes.filter((obj) => {
       const elId = getElementId(obj);
       const liveEl = liveElementsRef.current.find((e) => e.id === elId);
-      return (obj as any).fill === 'transparent' || liveEl?.style?.fillColor === 'transparent';
+      const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+      const effFill = isProxy
+        ? (liveEl?.style?.fillColor ?? (obj as any).data?.style?.fillColor)
+        : ((obj as any).fill ?? liveEl?.style?.fillColor);
+      const effStroke = isProxy
+        ? (liveEl?.style?.strokeColor ?? (obj as any).data?.style?.strokeColor)
+        : ((obj as any).stroke ?? liveEl?.style?.strokeColor);
+      return effFill === 'transparent' || (!effFill && Boolean(effStroke));
     });
     setSelectedOutlineShapeCount(outlineShapes.length);
     if (outlineShapes.length > 0) {
       const shapeObj = outlineShapes[0] as any;
       const elId = getElementId(shapeObj);
       const liveEl = liveElementsRef.current.find((e) => e.id === elId);
-      const stroke = shapeObj.stroke || liveEl?.style?.strokeColor || '#FFFFFF';
-      const sw = typeof shapeObj.strokeWidth === 'number' ? shapeObj.strokeWidth : liveEl?.style?.strokeWidth ?? 2;
+      const isProxy = Boolean((shapeObj as any).data?.isTransparentProxy);
+      const effStroke = isProxy
+        ? (liveEl?.style?.strokeColor ?? (shapeObj as any).data?.style?.strokeColor)
+        : ((shapeObj as any).stroke ?? liveEl?.style?.strokeColor);
+      const stroke = effStroke || '#FFFFFF';
+      const rawSw = isProxy
+        ? (typeof liveEl?.style?.strokeWidth === 'number' ? liveEl.style.strokeWidth : (shapeObj as any).data?.style?.strokeWidth)
+        : (shapeObj as any).strokeWidth;
+      const sw = typeof rawSw === 'number' && rawSw > 0 ? rawSw : 2;
       setStrokeColor(toStrictHexColor(stroke, '#FFFFFF') ?? '#FFFFFF');
       setStrokeWidth(sw);
     } else if (shapes.length > 0) {
-      setShapeFill(toStrictHexColor((shapes[0] as any).fill, '#5C2E16') ?? '#5C2E16');
+      const shapeObj = shapes[0] as any;
+      const elId = getElementId(shapeObj);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      const isProxy = Boolean((shapeObj as any).data?.isTransparentProxy);
+      const effFill = isProxy
+        ? (liveEl?.style?.fillColor ?? (shapeObj as any).data?.style?.fillColor)
+        : ((shapeObj as any).fill ?? liveEl?.style?.fillColor);
+      setShapeFill(toStrictHexColor(effFill, '#5C2E16') ?? '#5C2E16');
     }
   }, []);
 
@@ -2109,16 +2130,27 @@ export default function ArtifactEditor({
       }
 
       if (source.type === 'shape' || source.type === 'line') {
-        const isTransparent = (obj as any).fill === 'transparent' || source.style?.fillColor === 'transparent';
+        const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+        const proxyStyle = ((obj as any).data?.style as CanvasElement['style']) || {};
+        const effFill = isProxy
+          ? (proxyStyle.fillColor ?? source.style?.fillColor)
+          : ((obj as any).fill ?? source.style?.fillColor);
+        const isTransparent = effFill === 'transparent';
         if (isTransparent) {
           clonedStyle.fillColor = 'transparent';
         } else {
-          const shapeFillHex = toStrictHexColor((obj as any).fill, undefined);
+          const shapeFillHex = toStrictHexColor(effFill, source.style?.fillColor);
           if (shapeFillHex) clonedStyle.fillColor = shapeFillHex;
         }
-        const strokeHex = toStrictHexColor((obj as any).stroke, undefined);
+        const effStroke = isProxy
+          ? (proxyStyle.strokeColor ?? source.style?.strokeColor)
+          : ((obj as any).stroke ?? source.style?.strokeColor);
+        const strokeHex = toStrictHexColor(effStroke, undefined);
         if (strokeHex) clonedStyle.strokeColor = strokeHex;
-        if (typeof (obj as any).strokeWidth === 'number') clonedStyle.strokeWidth = (obj as any).strokeWidth;
+        const effStrokeWidth = isProxy
+          ? (proxyStyle.strokeWidth ?? source.style?.strokeWidth)
+          : (obj as any).strokeWidth;
+        if (typeof effStrokeWidth === 'number') clonedStyle.strokeWidth = effStrokeWidth;
         if (typeof (obj as any).opacity === 'number') clonedStyle.opacity = (obj as any).opacity;
       }
 
@@ -3000,13 +3032,17 @@ export default function ArtifactEditor({
       if (!canvas) return;
       for (const obj of canvas.getActiveObjects()) {
         if ((obj as any).type === 'rect' && !(obj as any).data?.imageRef) {
-          obj.set({ fill: color });
+          const d = ((obj as any).data = (obj as any).data || {});
+          d.style = { ...(d.style || {}), fillColor: color };
+          if (!d.isTransparentProxy) {
+            obj.set({ fill: color });
+          }
         }
       }
       canvas.requestRenderAll();
       markDirty();
     },
-    [selectedElementIds, markDirty]
+    [selectedElementIds, markDirty, recordUndo]
   );
 
   const handleStrokeColorChange = useCallback(
@@ -3037,11 +3073,16 @@ export default function ArtifactEditor({
         const id = getElementId(obj);
         const liveEl = liveElementsRef.current.find((e) => e.id === id);
         const isLine = (obj as any).type === 'line' || (obj as any).data?.isLine;
+        const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+        const effFill = isProxy
+          ? (liveEl?.style?.fillColor ?? (obj as any).data?.style?.fillColor)
+          : ((obj as any).fill ?? liveEl?.style?.fillColor);
+        const effStroke = isProxy
+          ? (liveEl?.style?.strokeColor ?? (obj as any).data?.style?.strokeColor)
+          : ((obj as any).stroke ?? liveEl?.style?.strokeColor);
         const isOutline =
           (obj as any).type === 'rect' &&
-          ((obj as any).fill === 'transparent' ||
-            liveEl?.style?.fillColor === 'transparent' ||
-            Boolean(liveEl?.style?.strokeColor));
+          (effFill === 'transparent' || (!effFill && Boolean(effStroke)));
         if (isLine || isOutline) {
           obj.set({ stroke: color });
           const d = ((obj as any).data = (obj as any).data || {});
@@ -3086,11 +3127,16 @@ export default function ArtifactEditor({
         const id = getElementId(obj);
         const liveEl = liveElementsRef.current.find((e) => e.id === id);
         const isLine = (obj as any).type === 'line' || (obj as any).data?.isLine;
+        const isProxy = Boolean((obj as any).data?.isTransparentProxy);
+        const effFill = isProxy
+          ? (liveEl?.style?.fillColor ?? (obj as any).data?.style?.fillColor)
+          : ((obj as any).fill ?? liveEl?.style?.fillColor);
+        const effStroke = isProxy
+          ? (liveEl?.style?.strokeColor ?? (obj as any).data?.style?.strokeColor)
+          : ((obj as any).stroke ?? liveEl?.style?.strokeColor);
         const isOutline =
           (obj as any).type === 'rect' &&
-          ((obj as any).fill === 'transparent' ||
-            liveEl?.style?.fillColor === 'transparent' ||
-            Boolean(liveEl?.style?.strokeColor));
+          (effFill === 'transparent' || (!effFill && Boolean(effStroke)));
         if (isLine || isOutline) {
           obj.set({ strokeWidth: clamped });
           const d = ((obj as any).data = (obj as any).data || {});

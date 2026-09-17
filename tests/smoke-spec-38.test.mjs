@@ -25,7 +25,7 @@ const { validateArtifactTemplate } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'validate.ts')).href
 );
 
-const { elementToFabricObject } = await import(
+const { elementToFabricObject, serializeCanvas } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts')).href
 );
 
@@ -526,6 +526,128 @@ test('SPEC-38-02: elementToFabricObject assigns stroke properties and perPixelTa
   assert.equal(outlineObj.stroke, '#0000FF');
   assert.equal(outlineObj.strokeWidth, 5);
   assert.equal(outlineObj.perPixelTargetFind, false, 'Outline shape must have perPixelTargetFind: false for hit testing');
+});
+
+test('BUG-041 / SPEC-38: serializeCanvas preserves filled shape fillColor from transparent proxy', () => {
+  const layout = {
+    aspectRatio: '16:9',
+    backgroundColor: '#000000',
+    elements: [
+      {
+        id: 'shape-fill-1',
+        type: 'shape',
+        x: 10,
+        y: 10,
+        w: 30,
+        h: 20,
+        zIndex: 1,
+        style: {
+          fillColor: '#5C2E16',
+          opacity: 1,
+        },
+      },
+      {
+        id: 'shape-outline-1',
+        type: 'shape',
+        x: 50,
+        y: 10,
+        w: 30,
+        h: 20,
+        zIndex: 2,
+        style: {
+          fillColor: 'transparent',
+          strokeColor: '#FFFFFF',
+          strokeWidth: 2,
+          opacity: 1,
+        },
+      },
+    ],
+  };
+
+  // Mock Fabric objects produced by elementToFabricObject with transparentProxy: true
+  const fillProxyObj = {
+    type: 'rect',
+    left: 96,
+    top: 54,
+    width: 288,
+    height: 108,
+    scaleX: 1,
+    scaleY: 1,
+    fill: 'transparent',
+    stroke: 'transparent',
+    strokeWidth: 0,
+    opacity: 1,
+    data: {
+      isTransparentProxy: true,
+      elementId: 'shape-fill-1',
+      authoredWidth: 288,
+      authoredHeight: 108,
+      style: {
+        fillColor: '#5C2E16',
+        opacity: 1,
+      },
+    },
+  };
+
+  const outlineProxyObj = {
+    type: 'rect',
+    left: 480,
+    top: 54,
+    width: 288,
+    height: 108,
+    scaleX: 1,
+    scaleY: 1,
+    fill: 'transparent',
+    stroke: '#FFFFFF',
+    strokeWidth: 2,
+    opacity: 1,
+    data: {
+      isTransparentProxy: true,
+      elementId: 'shape-outline-1',
+      authoredWidth: 288,
+      authoredHeight: 108,
+      style: {
+        fillColor: 'transparent',
+        strokeColor: '#FFFFFF',
+        strokeWidth: 2,
+        opacity: 1,
+      },
+    },
+  };
+
+  const mockCanvas = {
+    getObjects: () => [fillProxyObj, outlineProxyObj],
+  };
+
+  const serialized = serializeCanvas(mockCanvas, layout, new Map());
+  const serializedFill = serialized.find((e) => e.id === 'shape-fill-1');
+  const serializedOutline = serialized.find((e) => e.id === 'shape-outline-1');
+
+  assert.ok(serializedFill, 'Must serialize filled shape');
+  assert.equal(serializedFill.style?.fillColor, '#5C2E16', 'Filled shape must preserve solid fillColor and NOT become transparent');
+  assert.equal(serializedFill.style?.strokeColor, undefined, 'Filled shape must not have strokeColor assigned');
+
+  assert.ok(serializedOutline, 'Must serialize outline shape');
+  assert.equal(serializedOutline.style?.fillColor, 'transparent', 'Outline shape must have transparent fillColor');
+  assert.equal(serializedOutline.style?.strokeColor, '#FFFFFF', 'Outline shape must have strokeColor #FFFFFF');
+  assert.equal(serializedOutline.style?.strokeWidth, 2, 'Outline shape must have strokeWidth 2');
+});
+
+test('BUG-041 / SPEC-38: ArtifactEditor correctly discriminates filled shapes from outline shapes in proxy mode', () => {
+  // Re-read latest editor code
+  const freshEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
+  // Verify syncSelection outlineShapes discrimination does not rely blindly on (obj as any).fill === 'transparent'
+  assert.ok(
+    !freshEditorCode.includes("(obj as any).fill === 'transparent' || liveEl?.style?.fillColor === 'transparent'"),
+    'ArtifactEditor syncSelection must not blindly treat all transparent proxy shapes as outline shapes'
+  );
+
+  // Verify proxy awareness in shape outline discrimination
+  assert.ok(
+    freshEditorCode.includes('isTransparentProxy') && freshEditorCode.includes('effFill'),
+    'ArtifactEditor must be proxy-aware when determining outline vs filled shapes'
+  );
 });
 
 test('SPEC-38-02: ArtifactEditor UI controls for Line and Outline Shape elements', () => {

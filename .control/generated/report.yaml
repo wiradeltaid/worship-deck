@@ -1,13 +1,13 @@
-asof: '2026-09-15'
+asof: '2026-09-17'
 since: ''
 since_report: ''
-sha: 4d373dbd59960e4cd655b3448fac95f2d76cbb92
-registry_dirty: false
+sha: cc2bf01e9cf5aa9134276f12cbe4bb920b688d59
+registry_dirty: true
 uncommitted_tickets: []
 promise_progress: 100%
 rtm_rows:
-  green: 256
-  counted: 256
+  green: 283
+  counted: 283
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -124,6 +124,26 @@ work_progress:
   status: closed
   tickets_done: 2
   tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-35
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-36
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-37
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-38
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
   work_progress: 100%
 - spec: W1
   status: closed
@@ -961,10 +981,6 @@ moved:
 - id: FR-15
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-16
-  kind: FR
-  event: closed
   date: '2026-09-07'
 - id: FR-16
   kind: FR

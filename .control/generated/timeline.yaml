@@ -1,4 +1,4 @@
-asof: '2026-09-15'
+asof: '2026-09-17'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -222,6 +222,8 @@ capabilities:
     - SPEC-23-04
     - SPEC-23-05
     - SPEC-23-07
+    - SPEC-35-02
+    - SPEC-38-03
     - W8-04
     actual_start: '2026-09-07'
     actual_end: ''
@@ -304,10 +306,11 @@ capabilities:
   - id: FR-16
     text: Two-screen presenter view in the browser
     tickets:
+    - SPEC-37-02
     - W7-02
     actual_start: '2026-09-07'
-    actual_end: '2026-09-07'
-    state: done
+    actual_end: ''
+    state: in-progress
   - id: FR-19
     text: Search and display an on-demand verse in Presenter
     tickets:
@@ -482,6 +485,18 @@ capabilities:
     - SPEC-33-02
     - SPEC-33-03
     - SPEC-33-04
+    - SPEC-35-01
+    - SPEC-35-02
+    - SPEC-35-03
+    - SPEC-36-01
+    - SPEC-36-02
+    - SPEC-36-03
+    - SPEC-37-01
+    - SPEC-37-02
+    - SPEC-37-03
+    - SPEC-38-01
+    - SPEC-38-02
+    - SPEC-38-03
     - W11-02
     - W11-03
     - W11-06
@@ -617,6 +632,18 @@ capabilities:
     - SPEC-33-02
     - SPEC-33-03
     - SPEC-33-04
+    - SPEC-35-01
+    - SPEC-35-02
+    - SPEC-35-03
+    - SPEC-36-01
+    - SPEC-36-02
+    - SPEC-36-03
+    - SPEC-37-01
+    - SPEC-37-02
+    - SPEC-37-03
+    - SPEC-38-01
+    - SPEC-38-02
+    - SPEC-38-03
     - W11-02
     - W11-03
     - W11-06
