@@ -4,7 +4,7 @@
 
 Period: **the project's start → 2026-09-17**. This period has no left bound — there is no earlier report yet.
 
-Freshness: commit `cc2bf01e9cf5`. **The registry has uncommitted changes — the numbers below may not reflect what is on `main`.**
+Freshness: commit `f5a4e914428a`. **The registry has uncommitted changes — the numbers below may not reflect what is on `main`.**
 
 ## Promise progress — 100%
 
@@ -211,7 +211,7 @@ _None._
 | Root cause | Defects | Count |
 |---|---|---|
 | ? | BUG-1, BUG-10, BUG-11, BUG-12, BUG-13, BUG-14, BUG-15, BUG-16, BUG-17, BUG-18, BUG-19, BUG-2, BUG-20, BUG-21, BUG-22, BUG-23, BUG-24, BUG-25, BUG-26, BUG-27, BUG-28, BUG-29, BUG-3, BUG-30, BUG-4, BUG-5, BUG-6, BUG-7, BUG-8, BUG-9 | 30 |
-| code | BUG-33, BUG-34, BUG-35 | 3 |
+| code | BUG-33, BUG-34, BUG-35, BUG-36 | 4 |
 
 The `requirement` and `architecture` rows are worth reading twice: both count defects that turned out not to be bad code.
 

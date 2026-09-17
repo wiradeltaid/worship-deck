@@ -1,7 +1,7 @@
 asof: '2026-09-17'
 since: ''
 since_report: ''
-sha: cc2bf01e9cf5aa9134276f12cbe4bb920b688d59
+sha: f5a4e914428ac179ea4beb1ba61f0c5259964904
 registry_dirty: true
 uncommitted_tickets: []
 promise_progress: 100%
@@ -1300,6 +1300,13 @@ defects:
     violates:
     - UC-14
     closed: '2026-09-13'
+  - id: BUG-36
+    title: Filled rectangle shape misclassified as outline shape in Canvas Editor transparent proxy
+    root_cause: code
+    violates:
+    - FR-21
+    - UC-15
+    closed: '2026-09-17'
   - id: BUG-4
     title: Font size field does not update the selected text element in realtime
     root_cause: ''
@@ -1366,6 +1373,7 @@ defects:
     - BUG-33
     - BUG-34
     - BUG-35
+    - BUG-36
   undiagnosed: []
 gates:
 - gate: G1

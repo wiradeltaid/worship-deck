@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react';
 import {
   assertRuntimeVersion,
   type ArtifactInstance,
@@ -38,6 +38,7 @@ function boxStyle(element: ResolvedElement): CSSProperties {
     width: geometry.width,
     height: geometry.height,
     fontSize: geometry.fontSize,
+    zIndex: typeof element.zIndex === 'number' ? element.zIndex : undefined,
     // Policy: an element never paints outside its own box. This clips the
     // element's own content only — the box itself is never clamped, so
     // deck-inherited off-canvas geometry survives untouched.
@@ -376,6 +377,13 @@ export default function ArtifactSlide({
       ? backgroundOverride || undefined
       : layout.backgroundImage;
 
+  const sortedElements = useMemo(() => {
+    return [...(layout.elements ?? [])]
+      .map((element, index) => ({ element, index }))
+      .sort((a, b) => (a.element.zIndex ?? 0) - (b.element.zIndex ?? 0) || a.index - b.index)
+      .map((entry) => entry.element);
+  }, [layout.elements]);
+
   return (
     <div
       className="flex h-full w-full items-center justify-center overflow-hidden"
@@ -408,7 +416,7 @@ export default function ArtifactSlide({
               : {}),
           }}
         >
-          {layout.elements.map((element) => (
+          {sortedElements.map((element) => (
             <ArtifactElement
               key={element.id}
               element={element}

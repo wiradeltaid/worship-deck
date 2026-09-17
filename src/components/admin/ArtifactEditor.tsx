@@ -1799,12 +1799,26 @@ export default function ArtifactEditor({
       }
 
       if (changed) {
+        const canvasObjects = canvas.getObjects();
+        const nextLive = liveElementsRef.current.map((el) => {
+          const objIdx = canvasObjects.findIndex((o) => getElementId(o) === el.id);
+          if (objIdx === -1) return el;
+          return { ...el, zIndex: objIdx };
+        });
+        liveElementsRef.current = nextLive;
+        setLiveElements(nextLive);
+        for (const el of nextLive) {
+          if (addedElementsRef.current.has(el.id)) {
+            const existing = addedElementsRef.current.get(el.id)!;
+            addedElementsRef.current.set(el.id, { ...existing, zIndex: el.zIndex });
+          }
+        }
         canvas.requestRenderAll();
         syncSelection(canvas);
         markDirty();
       }
     },
-    [syncSelection, markDirty]
+    [syncSelection, markDirty, recordUndo]
   );
 
   const insertPlaceholder = useCallback(

@@ -549,3 +549,20 @@ defects:
       inspected `(obj as any).fill === 'transparent'`, causing all filled rectangles to be erroneously
       treated as outline shapes with border color/thickness and stripping their solid fillColor. Fixed
       by making shape discrimination proxy-aware (reading authored/proxy styles).
+
+  - id: BUG-37
+    status: fixed
+    fixed_in: fastpath
+    title: "Canvas layer ordering (Bring to Front, Send to Back, Bring Forward, Send Backward) fails to synchronize with visual preview"
+    component: registry
+    violates: [FR-21, UC-15]
+    root_cause: code
+    fix: fastpath
+    source: "Manual test feedback on SPEC-38 canvas editor layer ordering"
+    summary: >
+      In ArtifactEditor's two-layer architecture (ArtifactSlide visually underneath, Fabric transparent
+      overlay on top), handleReorderLayer only reordered Fabric canvas objects without updating the
+      liveElements state or element zIndex. In addition, ArtifactSlide's boxStyle lacked CSS zIndex
+      and rendered elements directly in DOM array order. Fixed by synchronizing liveElements zIndex
+      with projected canvas object order in handleReorderLayer, applying CSS zIndex to boxStyle, and
+      sorting elements by zIndex before rendering in ArtifactSlide.

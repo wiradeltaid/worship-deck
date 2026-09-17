@@ -701,6 +701,38 @@ test('BUG-041 / SPEC-38: elementToFabricObject populates isTransparentProxy and 
   assert.equal(serialized[0].style?.strokeColor, undefined);
 });
 
+test('BUG-042 / SPEC-38: Layer ordering synchronizes liveElements zIndex and ArtifactSlide CSS zIndex', () => {
+  const freshEditorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+  const freshSlideCode = fs.readFileSync(artifactSlidePath, 'utf8');
+
+  // 1. ArtifactSlide must apply CSS zIndex in boxStyle
+  assert.ok(
+    freshSlideCode.includes('zIndex: typeof element.zIndex === \'number\' ? element.zIndex : undefined') ||
+    freshSlideCode.includes('zIndex: element.zIndex'),
+    'ArtifactSlide boxStyle must assign CSS zIndex for proper browser stacking'
+  );
+
+  // 2. ArtifactSlide must sort elements by zIndex
+  assert.ok(
+    freshSlideCode.includes('.zIndex') && freshSlideCode.includes('sort('),
+    'ArtifactSlide must sort elements by zIndex before rendering'
+  );
+
+  // 3. ArtifactEditor handleReorderLayer must update liveElements with projected canvas zIndex
+  assert.ok(
+    freshEditorCode.includes('setLiveElements') &&
+    freshEditorCode.includes('canvasObjects.findIndex') &&
+    freshEditorCode.includes('zIndex: objIdx'),
+    'ArtifactEditor handleReorderLayer must synchronize liveElements with updated zIndex'
+  );
+
+  // 4. ArtifactEditor handleReorderLayer must maintain multi-selection sort
+  assert.ok(
+    freshEditorCode.includes("action === 'forward' || action === 'front' ? idxB - idxA : idxA - idxB"),
+    'handleReorderLayer must sort active objects by stack index'
+  );
+});
+
 test('SPEC-38-02: Absence Guard 1 — h === 0 allowed only for type "line" (defect injection proof)', () => {
   function validateLineHeightRule(validatorFn) {
     const lineRes = validatorFn({
