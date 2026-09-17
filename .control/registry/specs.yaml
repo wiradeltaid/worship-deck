@@ -540,7 +540,7 @@ waves:
     fr: [FR-20, FR-21, FR-29, FR-30, FR-31]
     size: M
     depends_on: [W10]
-    spec_folder: _bmad-output/specs/spec-w11-artifacts-overhaul/
+    spec_folder: .archive/specs/spec-w11-artifacts-overhaul/
     spec_reviewed:
       date: '2026-09-07'
       sha: '909ab2a'
