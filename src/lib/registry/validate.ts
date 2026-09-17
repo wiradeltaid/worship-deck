@@ -238,7 +238,7 @@ function parseStyle(value: unknown, label: string) {
     style.verticalAlign = obj.verticalAlign;
   }
   if (obj.objectFit !== undefined) {
-    if (obj.objectFit !== 'contain' && obj.objectFit !== 'cover') {
+    if (obj.objectFit !== 'contain' && obj.objectFit !== 'cover' && obj.objectFit !== 'fill') {
       throw new RegistryValidationError(`${label}.objectFit is invalid`);
     }
     style.objectFit = obj.objectFit;

@@ -246,7 +246,7 @@ func parseStyle(raw any, label string) (map[string]any, error) {
 	}
 	if v, ok := obj["objectFit"]; ok {
 		s, _ := v.(string)
-		if s != "contain" && s != "cover" {
+		if s != "contain" && s != "cover" && s != "fill" {
 			return nil, failf("%s.objectFit is invalid", label)
 		}
 		style["objectFit"] = s
