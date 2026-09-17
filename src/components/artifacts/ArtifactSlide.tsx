@@ -252,15 +252,56 @@ function ImageElement({ element }: { element: ResolvedElement }) {
 }
 
 function ShapeElement({ element }: { element: ResolvedElement }) {
+  const strokeColor = toCssColor(element.style.strokeColor);
+  const strokeWidth =
+    typeof element.style.strokeWidth === 'number' ? element.style.strokeWidth : undefined;
   return (
     <div
       data-element-id={element.id}
       style={{
         ...boxStyle(element),
         backgroundColor: toCssColor(element.style.fillColor) ?? 'transparent',
+        border: strokeColor && strokeWidth ? `${strokeWidth}px solid ${strokeColor}` : undefined,
+        boxSizing: 'border-box',
         opacity: resolveOpacity(element.style),
       }}
     />
+  );
+}
+
+function LineElement({ element }: { element: ResolvedElement }) {
+  const strokeColor = toCssColor(element.style.strokeColor) ?? '#FFFFFF';
+  const strokeWidth =
+    typeof element.style.strokeWidth === 'number' ? element.style.strokeWidth : 2;
+  const isDiagonal = element.h > 0;
+  return (
+    <div
+      data-element-id={element.id}
+      style={{
+        ...boxStyle(element),
+        overflow: 'visible',
+        opacity: resolveOpacity(element.style),
+      }}
+    >
+      <svg
+        width="100%"
+        height="100%"
+        style={{
+          overflow: 'visible',
+          display: 'block',
+        }}
+      >
+        <line
+          x1="0"
+          y1="0"
+          x2="100%"
+          y2={isDiagonal ? '100%' : '0'}
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
   );
 }
 
@@ -279,6 +320,8 @@ function ArtifactElement({
       return <ImageElement element={element} />;
     case 'shape':
       return <ShapeElement element={element} />;
+    case 'line':
+      return <LineElement element={element} />;
     default: {
       const unsupported: never = element.type;
       throw new Error(

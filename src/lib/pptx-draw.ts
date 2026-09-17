@@ -385,8 +385,13 @@ function renderImageElement(
 function renderShapeElement(slide: PptxSlide, element: ResolvedElement): void {
   const geometry = toPptxGeometry(element);
   const color = toPptxColor(element.style.fillColor);
+  const strokeColor = toPptxColor(element.style.strokeColor);
+  const strokeWidth =
+    typeof element.style.strokeWidth === 'number'
+      ? element.style.strokeWidth * 0.75
+      : undefined;
 
-  slide.addShape('rect', {
+  const shapeProps: any = {
     x: geometry.x,
     y: geometry.y,
     w: geometry.w,
@@ -394,6 +399,37 @@ function renderShapeElement(slide: PptxSlide, element: ResolvedElement): void {
     fill: color
       ? { color, transparency: toPptxTransparency(element.style) }
       : { type: 'none' },
+  };
+
+  if (strokeColor && strokeWidth) {
+    shapeProps.line = {
+      color: strokeColor,
+      width: strokeWidth,
+      transparency: toPptxTransparency(element.style),
+    };
+  }
+
+  slide.addShape('rect', shapeProps);
+}
+
+function renderLineElement(slide: PptxSlide, element: ResolvedElement): void {
+  const geometry = toPptxGeometry(element);
+  const strokeColor = toPptxColor(element.style.strokeColor) ?? 'FFFFFF';
+  const strokeWidth =
+    typeof element.style.strokeWidth === 'number'
+      ? element.style.strokeWidth * 0.75
+      : 1.5;
+
+  slide.addShape('line', {
+    x: geometry.x,
+    y: geometry.y,
+    w: geometry.w,
+    h: geometry.h,
+    line: {
+      color: strokeColor,
+      width: strokeWidth,
+      transparency: toPptxTransparency(element.style),
+    },
   });
 }
 
@@ -440,6 +476,9 @@ function renderArtifactSlide(
         break;
       case 'shape':
         renderShapeElement(slide, element);
+        break;
+      case 'line':
+        renderLineElement(slide, element);
         break;
       default: {
         const unsupported: never = element.type;

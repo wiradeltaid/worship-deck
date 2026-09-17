@@ -295,6 +295,109 @@ func TestLongestWordPxAndMeasuredWithValidation(t *testing.T) {
 	}
 }
 
+func TestLineAndOutlineShapeValidation(t *testing.T) {
+	root := repoRoot(t)
+	base := map[string]any{
+		"schemaVersion": 1,
+		"id":            "test-line-shape-schema",
+		"label":         "Test Line & Shape",
+		"baseType":      "general",
+		"placeholders":  []any{},
+		"layouts": map[string]any{
+			"default": map[string]any{
+				"aspectRatio":     "16:9",
+				"backgroundColor": "#000000",
+				"elements": []any{
+					map[string]any{
+						"id":     "line-1",
+						"type":   "line",
+						"x":      10.0,
+						"y":      20.0,
+						"w":      80.0,
+						"h":      0.0,
+						"zIndex": 1,
+						"style": map[string]any{
+							"strokeColor": "#FFFFFF",
+							"strokeWidth": 2.0,
+						},
+					},
+					map[string]any{
+						"id":     "outline-1",
+						"type":   "shape",
+						"x":      15.0,
+						"y":      25.0,
+						"w":      70.0,
+						"h":      50.0,
+						"zIndex": 2,
+						"style": map[string]any{
+							"fillColor":   "transparent",
+							"strokeColor": "#FF5500",
+							"strokeWidth": 4.0,
+							"opacity":     0.9,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// 1. Valid line (h=0) and outline shape (fill=transparent) passes
+	tmplBytes, err := ValidateArtifactTemplate(mustJSON(base), root)
+	if err != nil {
+		t.Fatalf("valid line and outline shape must pass: %v", err)
+	}
+	var tmpl Template
+	if err := json.Unmarshal(tmplBytes, &tmpl); err != nil {
+		t.Fatalf("unmarshal validated template: %v", err)
+	}
+	if len(tmpl.Layouts["default"].Elements) != 2 {
+		t.Fatalf("expected 2 elements, got %d", len(tmpl.Layouts["default"].Elements))
+	}
+	if tmpl.Layouts["default"].Elements[0].H != 0.0 {
+		t.Fatalf("expected line H to be 0, got %f", tmpl.Layouts["default"].Elements[0].H)
+	}
+
+	// 2. Negative height on line must fail
+	layouts := base["layouts"].(map[string]any)
+	defaultLayout := layouts["default"].(map[string]any)
+	elements := defaultLayout["elements"].([]any)
+	lineEl := elements[0].(map[string]any)
+	lineEl["h"] = -1.0
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "must be non-negative") {
+		t.Fatalf("expected non-negative error for line h=-1, got: %v", err)
+	}
+	lineEl["h"] = 0.0
+
+	// 3. Zero height on shape must fail (requires positive)
+	shapeEl := elements[1].(map[string]any)
+	shapeEl["h"] = 0.0
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "must be positive") {
+		t.Fatalf("expected positive error for shape h=0, got: %v", err)
+	}
+	shapeEl["h"] = 50.0
+
+	// 4. Invalid strokeColor (non-hex) must fail
+	lineStyle := lineEl["style"].(map[string]any)
+	lineStyle["strokeColor"] = "red"
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "strokeColor is invalid") {
+		t.Fatalf("expected strokeColor invalid error, got: %v", err)
+	}
+	lineStyle["strokeColor"] = "#FFFFFF"
+
+	// 5. StrokeWidth > 50 must fail
+	lineStyle["strokeWidth"] = 55.0
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "strokeWidth exceeds max 50") {
+		t.Fatalf("expected strokeWidth exceeds max error, got: %v", err)
+	}
+
+	// 6. Negative strokeWidth must fail
+	lineStyle["strokeWidth"] = -2.0
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "must be positive") {
+		t.Fatalf("expected positive error for negative strokeWidth, got: %v", err)
+	}
+	lineStyle["strokeWidth"] = 2.0
+}
+
 func mustJSON(v any) []byte {
 	b, err := json.Marshal(v)
 	if err != nil {

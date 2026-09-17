@@ -246,10 +246,25 @@ export function buildShapeFabricOptions(
     data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
   };
 
+  const isUnfilled =
+    element.style?.fillColor === 'transparent' ||
+    (!element.style?.fillColor && Boolean(element.style?.strokeColor));
+  const strokeColor = element.style?.strokeColor || (isUnfilled ? '#FFFFFF' : undefined);
+  const strokeWidth =
+    typeof element.style?.strokeWidth === 'number'
+      ? element.style.strokeWidth
+      : isUnfilled
+        ? 2
+        : 0;
+  const fillColor = element.style?.fillColor ?? (isUnfilled ? 'transparent' : '#5C2E16');
+
   return {
     ...common,
-    fill: element.style?.fillColor ?? '#5C2E16',
+    fill: fillColor,
+    stroke: strokeColor,
+    strokeWidth,
     opacity: element.style?.opacity ?? 1,
+    perPixelTargetFind: false,
   };
 }
 
@@ -530,24 +545,72 @@ export function elementToFabricObject(
     return fallbackData;
   }
 
+  if (element.type === 'line') {
+    const strokeColor = element.style?.strokeColor || '#FFFFFF';
+    const strokeWidth = typeof element.style?.strokeWidth === 'number' ? element.style.strokeWidth : 2;
+    const lineCoords = [0, 0, width, Math.max(0, height)];
+    const lineOpts: any = {
+      ...common,
+      stroke: strokeColor,
+      strokeWidth,
+      strokeLineCap: 'round',
+      perPixelTargetFind: false,
+      padding: 6,
+      lockUniScaling: false,
+      data: {
+        ...common.data,
+        isLine: true,
+        style: { ...element.style },
+      },
+    };
+    if (typeof fabric?.Line === 'function') {
+      return new fabric.Line(lineCoords, lineOpts);
+    }
+    return {
+      ...common,
+      type: 'line',
+      stroke: strokeColor,
+      strokeWidth,
+      perPixelTargetFind: false,
+      data: lineOpts.data,
+    };
+  }
+
   if (element.type === 'shape') {
+    const isUnfilled =
+      element.style?.fillColor === 'transparent' ||
+      (!element.style?.fillColor && Boolean(element.style?.strokeColor));
+    const strokeColor = element.style?.strokeColor || (isUnfilled ? '#FFFFFF' : undefined);
+    const strokeWidth =
+      typeof element.style?.strokeWidth === 'number'
+        ? element.style.strokeWidth
+        : isUnfilled
+          ? 2
+          : 0;
+    const fillColor = element.style?.fillColor ?? (isUnfilled ? 'transparent' : '#5C2E16');
+
     if (typeof fabric?.Rect === 'function') {
       const shapeOpts: any = buildShapeFabricOptions(element, { editable });
       if (isProxy) {
         shapeOpts.fill = 'transparent';
-        shapeOpts.stroke = 'transparent';
+        shapeOpts.stroke = strokeColor ?? 'transparent';
+        shapeOpts.strokeWidth = strokeWidth;
         shapeOpts.cornerColor = '#2563EB';
         shapeOpts.borderColor = '#2563EB';
         shapeOpts.cornerSize = 8;
         shapeOpts.transparentCorners = false;
+        shapeOpts.perPixelTargetFind = false;
       }
       return new fabric.Rect(shapeOpts);
     }
     return {
       ...common,
       type: 'shape',
-      fill: isProxy ? 'transparent' : (element.style?.fillColor ?? '#5C2E16'),
+      fill: isProxy ? 'transparent' : fillColor,
+      stroke: strokeColor,
+      strokeWidth,
       opacity: isProxy ? 0 : (element.style?.opacity ?? 1),
+      perPixelTargetFind: false,
     };
   }
 
@@ -1154,7 +1217,7 @@ export function serializeCanvas(
 
     // SPEC-21-02: Retain minimum dimension floor, but do not truncate off-canvas bleeding
     const clampedW = isHealing ? w : Math.max(MIN_ELEMENT_W_PCT, w);
-    const clampedH = isHealing ? h : Math.max(MIN_ELEMENT_H_PCT, h);
+    const clampedH = isHealing ? h : (source.type === 'line' ? Math.max(0, h) : Math.max(MIN_ELEMENT_H_PCT, h));
 
     const next: CanvasElement = {
       ...source,
@@ -1232,17 +1295,35 @@ export function serializeCanvas(
       }
     }
 
-    if (source.type === 'shape') {
-      const fill =
-        toStrictHexColor((obj as any).fill, undefined) ??
-        (typeof (obj as any).fill === 'string' && /^#[0-9A-Fa-f]{6}$/.test((obj as any).fill)
-          ? (obj as any).fill.toUpperCase()
-          : undefined);
+    if (source.type === 'shape' || source.type === 'line') {
+      const isUnfilled =
+        (obj as any).fill === 'transparent' || source.style?.fillColor === 'transparent';
+      const fill = isUnfilled
+        ? undefined
+        : (toStrictHexColor((obj as any).fill, undefined) ??
+          (typeof (obj as any).fill === 'string' && /^#[0-9A-Fa-f]{6}$/.test((obj as any).fill)
+            ? (obj as any).fill.toUpperCase()
+            : undefined));
       const opacity = typeof (obj as any).opacity === 'number' ? (obj as any).opacity : undefined;
+
+      const strokeRaw = (obj as any).stroke ?? source.style?.strokeColor;
+      const strokeColor =
+        toStrictHexColor(strokeRaw, undefined) ??
+        (typeof strokeRaw === 'string' && /^#[0-9A-Fa-f]{6}$/.test(strokeRaw)
+          ? strokeRaw.toUpperCase()
+          : undefined);
+
+      const strokeWidth =
+        typeof (obj as any).strokeWidth === 'number'
+          ? (obj as any).strokeWidth
+          : source.style?.strokeWidth;
+
       const mergedStyle = {
         ...source.style,
-        ...(fill ? { fillColor: fill } : {}),
+        ...(isUnfilled ? { fillColor: 'transparent' } : fill ? { fillColor: fill } : {}),
         ...(opacity !== undefined ? { opacity } : {}),
+        ...(strokeColor ? { strokeColor } : {}),
+        ...(typeof strokeWidth === 'number' && strokeWidth > 0 ? { strokeWidth } : {}),
       };
       if (Object.keys(mergedStyle).length > 0) {
         next.style = mergedStyle;

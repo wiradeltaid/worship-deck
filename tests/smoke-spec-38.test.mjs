@@ -15,10 +15,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
+
+const { validateArtifactTemplate } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'validate.ts')).href
+);
+
+const { elementToFabricObject } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts')).href
+);
 
 const artifactEditorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
 assert.ok(fs.existsSync(artifactEditorPath), 'ArtifactEditor.tsx must exist');
@@ -261,5 +269,349 @@ test('SPEC-38-01: Absence Guard 2 — Slide change & Discard must clear history 
   assert.throws(
     () => validateBoundaryHistoryClearing(defectWithoutSlideClear),
     /ABSENCE_DEFECT: loadTemplate does not clear undoStack on slide change/
+  );
+});
+
+// ============================================================================
+// SPEC-38-02: Line & Unfilled Shape Elements, Schema Validation, and Property Inspector
+// ============================================================================
+
+test('SPEC-38-02: Schema validation accepts line element (including h=0) and outline shape', () => {
+  const validTemplate = {
+    schemaVersion: 1,
+    id: 'test-spec38-template',
+    label: 'Test Spec 38',
+    baseType: 'general',
+    placeholders: [],
+    layouts: {
+      default: {
+        aspectRatio: '16:9',
+        backgroundColor: '#000000',
+        elements: [
+          {
+            id: 'line-1',
+            type: 'line',
+            x: 10,
+            y: 20,
+            w: 80,
+            h: 0, // Horizontal line with zero height
+            zIndex: 1,
+            style: {
+              strokeColor: '#FFFFFF',
+              strokeWidth: 2,
+            },
+          },
+          {
+            id: 'outline-shape-1',
+            type: 'shape',
+            x: 15,
+            y: 25,
+            w: 70,
+            h: 50,
+            zIndex: 2,
+            style: {
+              fillColor: 'transparent',
+              strokeColor: '#FF5500',
+              strokeWidth: 4,
+              opacity: 0.9,
+            },
+          },
+        ],
+      },
+    },
+  };
+
+  // Valid template passes
+  const parsed = validateArtifactTemplate(validTemplate);
+  assert.equal(parsed.layouts.default.elements.length, 2);
+  assert.equal(parsed.layouts.default.elements[0].type, 'line');
+  assert.equal(parsed.layouts.default.elements[0].h, 0);
+  assert.equal(parsed.layouts.default.elements[1].type, 'shape');
+  assert.equal(parsed.layouts.default.elements[1].style.fillColor, 'transparent');
+  assert.equal(parsed.layouts.default.elements[1].style.strokeColor, '#FF5500');
+  assert.equal(parsed.layouts.default.elements[1].style.strokeWidth, 4);
+});
+
+test('SPEC-38-02: Schema validation rejects invalid stroke styles and non-line zero height', () => {
+  const base = {
+    schemaVersion: 1,
+    id: 'test-invalid-template',
+    label: 'Test Invalid',
+    baseType: 'general',
+    placeholders: [],
+    layouts: {
+      default: {
+        aspectRatio: '16:9',
+        backgroundColor: '#000000',
+        elements: [],
+      },
+    },
+  };
+
+  // 1. Rejects shape with h = 0
+  assert.throws(() => {
+    validateArtifactTemplate({
+      ...base,
+      layouts: {
+        default: {
+          ...base.layouts.default,
+          elements: [
+            {
+              id: 'shape-zero-h',
+              type: 'shape',
+              x: 10,
+              y: 10,
+              w: 50,
+              h: 0,
+              zIndex: 1,
+            },
+          ],
+        },
+      },
+    });
+  }, /must be positive/);
+
+  // 2. Rejects invalid strokeColor (non-hex)
+  assert.throws(() => {
+    validateArtifactTemplate({
+      ...base,
+      layouts: {
+        default: {
+          ...base.layouts.default,
+          elements: [
+            {
+              id: 'line-bad-color',
+              type: 'line',
+              x: 10,
+              y: 10,
+              w: 50,
+              h: 0,
+              zIndex: 1,
+              style: { strokeColor: 'invalid-red' },
+            },
+          ],
+        },
+      },
+    });
+  }, /strokeColor is invalid/);
+
+  // 3. Rejects strokeWidth exceeding 50
+  assert.throws(() => {
+    validateArtifactTemplate({
+      ...base,
+      layouts: {
+        default: {
+          ...base.layouts.default,
+          elements: [
+            {
+              id: 'line-huge-width',
+              type: 'line',
+              x: 10,
+              y: 10,
+              w: 50,
+              h: 0,
+              zIndex: 1,
+              style: { strokeWidth: 99 },
+            },
+          ],
+        },
+      },
+    });
+  }, /strokeWidth exceeds max 50/);
+
+  // 4. Rejects negative strokeWidth
+  assert.throws(() => {
+    validateArtifactTemplate({
+      ...base,
+      layouts: {
+        default: {
+          ...base.layouts.default,
+          elements: [
+            {
+              id: 'line-neg-width',
+              type: 'line',
+              x: 10,
+              y: 10,
+              w: 50,
+              h: 0,
+              zIndex: 1,
+              style: { strokeWidth: -5 },
+            },
+          ],
+        },
+      },
+    });
+  }, /must be positive/);
+
+  // 5. Rejects line with h = -1 (must be non-negative)
+  assert.throws(() => {
+    validateArtifactTemplate({
+      ...base,
+      layouts: {
+        default: {
+          ...base.layouts.default,
+          elements: [
+            {
+              id: 'line-neg-h',
+              type: 'line',
+              x: 10,
+              y: 10,
+              w: 50,
+              h: -1,
+              zIndex: 1,
+            },
+          ],
+        },
+      },
+    });
+  }, /must be non-negative/);
+});
+
+test('SPEC-38-02: elementToFabricObject assigns stroke properties and perPixelTargetFind: false', () => {
+  // 1. Line element
+  const lineEl = {
+    id: 'test-line',
+    type: 'line',
+    x: 10,
+    y: 10,
+    w: 50,
+    h: 0,
+    zIndex: 1,
+    style: {
+      strokeColor: '#00FF00',
+      strokeWidth: 3,
+    },
+  };
+  const lineObj = elementToFabricObject(null, lineEl, true, { transparentProxy: true });
+  assert.equal(lineObj.type, 'line');
+  assert.equal(lineObj.stroke, '#00FF00');
+  assert.equal(lineObj.strokeWidth, 3);
+  assert.equal(lineObj.perPixelTargetFind, false, 'Line must have perPixelTargetFind: false for hit testing');
+
+  // 2. Outline shape element
+  const outlineShapeEl = {
+    id: 'test-outline-shape',
+    type: 'shape',
+    x: 10,
+    y: 10,
+    w: 50,
+    h: 30,
+    zIndex: 2,
+    style: {
+      fillColor: 'transparent',
+      strokeColor: '#0000FF',
+      strokeWidth: 5,
+    },
+  };
+  const outlineObj = elementToFabricObject(null, outlineShapeEl, true, { transparentProxy: true });
+  assert.equal(outlineObj.type, 'shape');
+  assert.equal(outlineObj.fill, 'transparent');
+  assert.equal(outlineObj.stroke, '#0000FF');
+  assert.equal(outlineObj.strokeWidth, 5);
+  assert.equal(outlineObj.perPixelTargetFind, false, 'Outline shape must have perPixelTargetFind: false for hit testing');
+});
+
+test('SPEC-38-02: ArtifactEditor UI controls for Line and Outline Shape elements', () => {
+  // 1. Toolbar Row 1 Creation Buttons
+  assert.ok(editorCode.includes('aria-label="Line"'), 'ArtifactEditor must render Line creation button');
+  assert.ok(editorCode.includes('aria-label="Outline Shape"'), 'ArtifactEditor must render Outline Shape creation button');
+  assert.ok(editorCode.includes('Minus'), 'ArtifactEditor must use Minus icon for Line');
+  assert.ok(editorCode.includes('SquareDashed'), 'ArtifactEditor must use SquareDashed icon for Outline Shape');
+
+  // 2. Toolbar Row 2 Inspector Badges & Controls
+  assert.ok(editorCode.includes('LINE'), 'Toolbar must render LINE badge when line is selected');
+  assert.ok(editorCode.includes('SHAPE (OUTLINE)'), 'Toolbar must render SHAPE (OUTLINE) badge when outline shape is selected');
+  assert.ok(editorCode.includes('handleStrokeColorChange'), 'Toolbar must provide stroke color handler');
+  assert.ok(editorCode.includes('handleStrokeWidthChange'), 'Toolbar must provide stroke width handler');
+});
+
+test('SPEC-38-02: Absence Guard 1 — h === 0 allowed only for type "line" (defect injection proof)', () => {
+  function validateLineHeightRule(validatorFn) {
+    const lineRes = validatorFn({
+      schemaVersion: 1,
+      id: 'test-line-h0',
+      label: 'Line H0',
+      baseType: 'general',
+      placeholders: [],
+      layouts: {
+        default: {
+          aspectRatio: '16:9',
+          backgroundColor: '#000000',
+          elements: [{ id: 'l1', type: 'line', x: 0, y: 0, w: 10, h: 0, zIndex: 0 }],
+        },
+      },
+    });
+    if (lineRes.layouts.default.elements[0].h !== 0) {
+      throw new Error('ABSENCE_DEFECT: line with h=0 was rejected or mutated');
+    }
+
+    try {
+      validatorFn({
+        schemaVersion: 1,
+        id: 'test-shape-h0',
+        label: 'Shape H0',
+        baseType: 'general',
+        placeholders: [],
+        layouts: {
+          default: {
+            aspectRatio: '16:9',
+            backgroundColor: '#000000',
+            elements: [{ id: 's1', type: 'shape', x: 0, y: 0, w: 10, h: 0, zIndex: 0 }],
+          },
+        },
+      });
+      throw new Error('ABSENCE_DEFECT: shape with h=0 was erroneously accepted');
+    } catch (err) {
+      if (!err.message.includes('must be positive')) {
+        throw err;
+      }
+    }
+    return true;
+  }
+
+  // Real validator passes
+  assert.ok(validateLineHeightRule(validateArtifactTemplate), 'Real validator must allow h=0 only for line');
+
+  // Defect injection: mock validator that allows h=0 for shapes
+  const defectiveValidator = (template) => {
+    const el = template.layouts.default.elements[0];
+    if (el.h < 0) throw new Error('must be positive');
+    return template;
+  };
+  assert.throws(
+    () => validateLineHeightRule(defectiveValidator),
+    /ABSENCE_DEFECT: shape with h=0 was erroneously accepted/
+  );
+});
+
+test('SPEC-38-02: Absence Guard 2 — perPixelTargetFind: false required for outline shape / line (defect injection proof)', () => {
+  function validateTargetFindRule(factoryFn) {
+    const lineObj = factoryFn(null, { id: 'l', type: 'line', x: 0, y: 0, w: 10, h: 0, zIndex: 0 }, true);
+    if (lineObj.perPixelTargetFind !== false) {
+      throw new Error('ABSENCE_DEFECT: line lacks perPixelTargetFind: false');
+    }
+    const shapeObj = factoryFn(
+      null,
+      { id: 's', type: 'shape', x: 0, y: 0, w: 10, h: 10, zIndex: 0, style: { fillColor: 'transparent', strokeColor: '#FFF' } },
+      true
+    );
+    if (shapeObj.perPixelTargetFind !== false) {
+      throw new Error('ABSENCE_DEFECT: outline shape lacks perPixelTargetFind: false');
+    }
+    return true;
+  }
+
+  // Real factory passes
+  assert.ok(validateTargetFindRule(elementToFabricObject), 'Real elementToFabricObject must set perPixelTargetFind: false');
+
+  // Defect injection: factory that sets perPixelTargetFind: true
+  const defectiveFactory = (fabric, el, editable) => {
+    const res = elementToFabricObject(fabric, el, editable);
+    res.perPixelTargetFind = true; // defect
+    return res;
+  };
+  assert.throws(
+    () => validateTargetFindRule(defectiveFactory),
+    /ABSENCE_DEFECT: line lacks perPixelTargetFind: false/
   );
 });

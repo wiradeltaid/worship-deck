@@ -1850,7 +1850,7 @@ rtm:
   - src/lib/registry/types.ts
   - src/lib/registry/validate.ts
   - tests/smoke-spec-38.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3870,7 +3870,7 @@ rtm:
   - src/lib/registry/types.ts
   - src/lib/registry/validate.ts
   - tests/smoke-spec-38.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status

@@ -11,11 +11,13 @@ import {
   Copy,
   Image as ImageIcon,
   Italic,
+  Minus,
   MoveVertical,
   Plus,
   Redo2,
   SendToBack,
   Square,
+  SquareDashed,
   Trash2,
   Type,
   Underline,
@@ -277,10 +279,14 @@ export default function ArtifactEditor({
   const [textShadow, setTextShadow] = useState(false);
   const [shadowBlur, setShadowBlur] = useState<number>(4);
   const [shapeFill, setShapeFill] = useState('#5C2E16');
+  const [strokeColor, setStrokeColor] = useState('#FFFFFF');
+  const [strokeWidth, setStrokeWidth] = useState(2);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const selectedElementIdsRef = useRef<string[]>(selectedElementIds);
   selectedElementIdsRef.current = selectedElementIds;
   const [selectedTextCount, setSelectedTextCount] = useState(0);
+  const [selectedLineCount, setSelectedLineCount] = useState(0);
+  const [selectedOutlineShapeCount, setSelectedOutlineShapeCount] = useState(0);
   const [textContent, setTextContent] = useState('');
   const [fontUploading, setFontUploading] = useState(false);
   const fontImportInputRef = useRef<HTMLInputElement | null>(null);
@@ -296,8 +302,8 @@ export default function ArtifactEditor({
   const [availableSongSets, setAvailableSongSets] = useState<Array<{ variableName: string; title: string }>>([]);
   const [availableAnnSets, setAvailableAnnSets] = useState<Array<{ id: number; label: string }>>([]);
   const [newSlideType, setNewSlideType] = useState('general');
-  const [drawingTool, setDrawingTool] = useState<'text' | 'rect' | null>(null);
-  const drawingToolRef = useRef<'text' | 'rect' | null>(null);
+  const [drawingTool, setDrawingTool] = useState<'text' | 'rect' | 'line' | 'rect-outline' | null>(null);
+  const drawingToolRef = useRef<'text' | 'rect' | 'line' | 'rect-outline' | null>(null);
   const previewShapeRef = useRef<any>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -474,8 +480,34 @@ export default function ArtifactEditor({
         setLetterSpacingInput('0');
       }
     }
+    const lines = active.filter((obj) => (obj as any).type === 'line' || (obj as any).data?.isLine);
+    setSelectedLineCount(lines.length);
+    if (lines.length > 0) {
+      const lineObj = lines[0] as any;
+      const elId = getElementId(lineObj);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      const stroke = lineObj.stroke || liveEl?.style?.strokeColor || '#FFFFFF';
+      const sw = typeof lineObj.strokeWidth === 'number' ? lineObj.strokeWidth : liveEl?.style?.strokeWidth ?? 2;
+      setStrokeColor(toStrictHexColor(stroke, '#FFFFFF') ?? '#FFFFFF');
+      setStrokeWidth(sw);
+    }
+
     const shapes = active.filter((obj) => (obj as any).type === 'rect' && !(obj as any).data?.imageRef);
-    if (shapes.length > 0) {
+    const outlineShapes = shapes.filter((obj) => {
+      const elId = getElementId(obj);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      return (obj as any).fill === 'transparent' || liveEl?.style?.fillColor === 'transparent';
+    });
+    setSelectedOutlineShapeCount(outlineShapes.length);
+    if (outlineShapes.length > 0) {
+      const shapeObj = outlineShapes[0] as any;
+      const elId = getElementId(shapeObj);
+      const liveEl = liveElementsRef.current.find((e) => e.id === elId);
+      const stroke = shapeObj.stroke || liveEl?.style?.strokeColor || '#FFFFFF';
+      const sw = typeof shapeObj.strokeWidth === 'number' ? shapeObj.strokeWidth : liveEl?.style?.strokeWidth ?? 2;
+      setStrokeColor(toStrictHexColor(stroke, '#FFFFFF') ?? '#FFFFFF');
+      setStrokeWidth(sw);
+    } else if (shapes.length > 0) {
       setShapeFill(toStrictHexColor((shapes[0] as any).fill, '#5C2E16') ?? '#5C2E16');
     }
   }, []);
@@ -861,43 +893,69 @@ export default function ArtifactEditor({
           previewShapeRef.current = null;
         }
 
-        const preview = tool === 'rect'
-          ? new fabric.Rect({
-              left: pointer.x,
-              top: pointer.y,
-              width: 0,
-              height: 0,
-              fill: 'rgba(92, 46, 22, 0.25)',
-              stroke: '#5C2E16',
-              strokeWidth: 1.5,
-              strokeDashArray: [4, 4],
-              selectable: false,
-              evented: false,
-            })
-          : new fabric.Rect({
-              left: pointer.x,
-              top: pointer.y,
-              width: 0,
-              height: 0,
-              fill: 'rgba(37, 99, 235, 0.15)',
-              stroke: '#2563EB',
-              strokeWidth: 1.5,
-              strokeDashArray: [4, 4],
-              selectable: false,
-              evented: false,
-            });
+        const preview =
+          tool === 'line'
+            ? new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+                stroke: strokeColor || '#FFFFFF',
+                strokeWidth: strokeWidth || 2,
+                selectable: false,
+                evented: false,
+              })
+            : tool === 'rect-outline'
+              ? new fabric.Rect({
+                  left: pointer.x,
+                  top: pointer.y,
+                  width: 0,
+                  height: 0,
+                  fill: 'transparent',
+                  stroke: strokeColor || '#FFFFFF',
+                  strokeWidth: strokeWidth || 2,
+                  strokeDashArray: [4, 4],
+                  selectable: false,
+                  evented: false,
+                })
+              : tool === 'rect'
+                ? new fabric.Rect({
+                    left: pointer.x,
+                    top: pointer.y,
+                    width: 0,
+                    height: 0,
+                    fill: 'rgba(92, 46, 22, 0.25)',
+                    stroke: '#5C2E16',
+                    strokeWidth: 1.5,
+                    strokeDashArray: [4, 4],
+                    selectable: false,
+                    evented: false,
+                  })
+                : new fabric.Rect({
+                    left: pointer.x,
+                    top: pointer.y,
+                    width: 0,
+                    height: 0,
+                    fill: 'rgba(37, 99, 235, 0.15)',
+                    stroke: '#2563EB',
+                    strokeWidth: 1.5,
+                    strokeDashArray: [4, 4],
+                    selectable: false,
+                    evented: false,
+                  });
         previewShapeRef.current = preview;
         canvas.add(preview);
         canvas.requestRenderAll();
       };
       const onMouseMove = (opt: any) => {
-        if (!drawingToolRef.current || !dragStart || !previewShapeRef.current) return;
+        const tool = drawingToolRef.current;
+        if (!tool || !dragStart || !previewShapeRef.current) return;
         const pointer = canvas.getScenePoint(opt.e);
-        const left = Math.min(dragStart.x, pointer.x);
-        const top = Math.min(dragStart.y, pointer.y);
-        const width = Math.abs(pointer.x - dragStart.x);
-        const height = Math.abs(pointer.y - dragStart.y);
-        previewShapeRef.current.set({ left, top, width, height });
+        if (tool === 'line') {
+          previewShapeRef.current.set({ x2: pointer.x, y2: pointer.y });
+        } else {
+          const left = Math.min(dragStart.x, pointer.x);
+          const top = Math.min(dragStart.y, pointer.y);
+          const width = Math.abs(pointer.x - dragStart.x);
+          const height = Math.abs(pointer.y - dragStart.y);
+          previewShapeRef.current.set({ left, top, width, height });
+        }
         canvas.requestRenderAll();
       };
       const onMouseUp = (opt: any) => {
@@ -915,18 +973,45 @@ export default function ArtifactEditor({
         const pointer = canvas.getScenePoint(opt.e);
         const start = dragStart;
         dragStart = null;
-        const dx = Math.abs(pointer.x - start.x);
-        const dy = Math.abs(pointer.y - start.y);
-        let x = Math.min(start.x, pointer.x);
-        let y = Math.min(start.y, pointer.y);
-        let w = dx;
-        let h = dy;
-        if (dx < 10 && dy < 10) {
-          const def = tool === 'text' ? NEW_TEXT_SIZE_PX : NEW_SHAPE_SIZE_PX;
-          w = def.w;
-          h = def.h;
+        if (tool === 'line') {
+          const dx = Math.abs(pointer.x - start.x);
+          const dy = Math.abs(pointer.y - start.y);
+          const x = Math.min(start.x, pointer.x);
+          const y = Math.min(start.y, pointer.y);
+          let w = dx;
+          let h = dy;
+          if (dx < 10 && dy < 10) {
+            w = 400;
+            h = 0;
+          }
+          void insertDrawnElement('line', x, y, w, h);
+        } else if (tool === 'rect-outline') {
+          const dx = Math.abs(pointer.x - start.x);
+          const dy = Math.abs(pointer.y - start.y);
+          let x = Math.min(start.x, pointer.x);
+          let y = Math.min(start.y, pointer.y);
+          let w = dx;
+          let h = dy;
+          if (dx < 10 && dy < 10) {
+            const def = NEW_SHAPE_SIZE_PX;
+            w = def.w;
+            h = def.h;
+          }
+          void insertDrawnElement('shape', x, y, w, h, { isOutline: true });
+        } else {
+          const dx = Math.abs(pointer.x - start.x);
+          const dy = Math.abs(pointer.y - start.y);
+          let x = Math.min(start.x, pointer.x);
+          let y = Math.min(start.y, pointer.y);
+          let w = dx;
+          let h = dy;
+          if (dx < 10 && dy < 10) {
+            const def = tool === 'text' ? NEW_TEXT_SIZE_PX : NEW_SHAPE_SIZE_PX;
+            w = def.w;
+            h = def.h;
+          }
+          void insertDrawnElement(tool === 'rect' ? 'shape' : 'text', x, y, w, h);
         }
-        void insertDrawnElement(tool === 'rect' ? 'shape' : 'text', x, y, w, h);
         setDrawingTool(null);
       };
       canvas.on('mouse:down', onMouseDown);
@@ -1344,7 +1429,14 @@ export default function ArtifactEditor({
   }, [template, syncSelection, markDirty, fitCanvasToShell]);
 
   const insertDrawnElement = useCallback(
-    async (kind: 'text' | 'shape', xPx: number, yPx: number, wPx: number, hPx: number) => {
+    async (
+      kind: 'text' | 'shape' | 'line',
+      xPx: number,
+      yPx: number,
+      wPx: number,
+      hPx: number,
+      options?: { isOutline?: boolean }
+    ) => {
       const canvas = fabricCanvasRef.current;
       const layout = template ? getEditableLayout(template) : null;
       if (!canvas || !layout) return;
@@ -1366,6 +1458,9 @@ export default function ArtifactEditor({
         ...addedElementsRef.current.values(),
       ].reduce((acc, e) => Math.max(acc, e.zIndex), -1);
 
+      const isLine = kind === 'line';
+      const isOutline = options?.isOutline;
+
       const element: CanvasElement = {
         id,
         type: kind,
@@ -1375,18 +1470,34 @@ export default function ArtifactEditor({
         w: pxToPct(wPx, CANVAS_WIDTH),
         h: pxToPct(hPx, CANVAS_HEIGHT),
         zIndex: maxZ + 1,
-        ...(kind === 'text'
+        ...(isLine
           ? {
-              content: NEW_TEXT_CONTENT,
               style: {
-                fontFamily: fontFamily || DEFAULT_FONT_FAMILY,
-                fontSize,
-                fontColor,
-                fontWeight: 'normal',
-                textAlign: 'left' as const,
+                strokeColor: strokeColor || '#FFFFFF',
+                strokeWidth: strokeWidth || 2,
               },
             }
-          : { style: { fillColor: NEW_SHAPE_FILL, opacity: 1 } }),
+          : isOutline
+            ? {
+                style: {
+                  fillColor: 'transparent',
+                  strokeColor: strokeColor || '#FFFFFF',
+                  strokeWidth: strokeWidth || 2,
+                  opacity: 1,
+                },
+              }
+            : kind === 'text'
+              ? {
+                  content: NEW_TEXT_CONTENT,
+                  style: {
+                    fontFamily: fontFamily || DEFAULT_FONT_FAMILY,
+                    fontSize,
+                    fontColor,
+                    fontWeight: 'normal',
+                    textAlign: 'left' as const,
+                  },
+                }
+              : { style: { fillColor: NEW_SHAPE_FILL, opacity: 1 } }),
       };
 
       const fabric = await import('fabric');
@@ -1403,7 +1514,7 @@ export default function ArtifactEditor({
       setStatus('idle');
       setMessage(null);
     },
-    [template, fontFamily, fontColor, fontSize, syncSelection, markDirty]
+    [template, fontFamily, fontColor, fontSize, strokeColor, strokeWidth, syncSelection, markDirty, recordUndo]
   );
 
   const handleChangeBackgroundUrl = useCallback(
@@ -1472,7 +1583,7 @@ export default function ArtifactEditor({
   );
 
   const insertElement = useCallback(
-    async (kind: 'text' | 'shape') => {
+    async (kind: 'text' | 'shape' | 'line' | 'rect-outline') => {
       const canvas = fabricCanvasRef.current;
       const layout = template ? getEditableLayout(template) : null;
       if (!canvas || !layout) return;
@@ -1491,7 +1602,13 @@ export default function ArtifactEditor({
       const step = insertCounterRef.current % INSERT_CASCADE_STEPS;
       insertCounterRef.current += 1;
 
-      const size = kind === 'text' ? NEW_TEXT_SIZE_PX : NEW_SHAPE_SIZE_PX;
+      const isLine = kind === 'line';
+      const isOutline = kind === 'rect-outline';
+      const size = isLine
+        ? { w: 400, h: 2 }
+        : kind === 'text'
+          ? NEW_TEXT_SIZE_PX
+          : NEW_SHAPE_SIZE_PX;
       const offset = step * INSERT_CASCADE_PX;
       const leftPx = (CANVAS_WIDTH - size.w) / 2 + offset;
       const topPx = (CANVAS_HEIGHT - size.h) / 2 + offset;
@@ -1502,25 +1619,41 @@ export default function ArtifactEditor({
 
       const element: CanvasElement = {
         id,
-        type: kind,
+        type: isLine ? 'line' : isOutline ? 'shape' : kind,
         required: false,
         x: pxToPct(leftPx, CANVAS_WIDTH),
         y: pxToPct(topPx, CANVAS_HEIGHT),
         w: pxToPct(size.w, CANVAS_WIDTH),
         h: pxToPct(size.h, CANVAS_HEIGHT),
         zIndex: maxZ + 1,
-        ...(kind === 'text'
+        ...(isLine
           ? {
-              content: NEW_TEXT_CONTENT,
               style: {
-                fontFamily: fontFamily || DEFAULT_FONT_FAMILY,
-                fontSize,
-                fontColor,
-                fontWeight: 'normal',
-                textAlign: 'left' as const,
+                strokeColor: strokeColor || '#FFFFFF',
+                strokeWidth: strokeWidth || 2,
               },
             }
-          : { style: { fillColor: NEW_SHAPE_FILL, opacity: 1 } }),
+          : isOutline
+            ? {
+                style: {
+                  fillColor: 'transparent',
+                  strokeColor: strokeColor || '#FFFFFF',
+                  strokeWidth: strokeWidth || 2,
+                  opacity: 1,
+                },
+              }
+            : kind === 'text'
+              ? {
+                  content: NEW_TEXT_CONTENT,
+                  style: {
+                    fontFamily: fontFamily || DEFAULT_FONT_FAMILY,
+                    fontSize,
+                    fontColor,
+                    fontWeight: 'normal',
+                    textAlign: 'left' as const,
+                  },
+                }
+              : { style: { fillColor: NEW_SHAPE_FILL, opacity: 1 } }),
       };
 
       const fabric = await import('fabric');
@@ -1546,7 +1679,7 @@ export default function ArtifactEditor({
       setStatus('idle');
       setMessage(null);
     },
-    [template, fontFamily, fontColor, fontSize, syncSelection, markDirty]
+    [template, fontFamily, fontColor, fontSize, strokeColor, strokeWidth, syncSelection, markDirty, recordUndo]
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1975,9 +2108,17 @@ export default function ArtifactEditor({
         }
       }
 
-      if (source.type === 'shape') {
-        const shapeFillHex = toStrictHexColor((obj as any).fill, undefined);
-        if (shapeFillHex) clonedStyle.fillColor = shapeFillHex;
+      if (source.type === 'shape' || source.type === 'line') {
+        const isTransparent = (obj as any).fill === 'transparent' || source.style?.fillColor === 'transparent';
+        if (isTransparent) {
+          clonedStyle.fillColor = 'transparent';
+        } else {
+          const shapeFillHex = toStrictHexColor((obj as any).fill, undefined);
+          if (shapeFillHex) clonedStyle.fillColor = shapeFillHex;
+        }
+        const strokeHex = toStrictHexColor((obj as any).stroke, undefined);
+        if (strokeHex) clonedStyle.strokeColor = strokeHex;
+        if (typeof (obj as any).strokeWidth === 'number') clonedStyle.strokeWidth = (obj as any).strokeWidth;
         if (typeof (obj as any).opacity === 'number') clonedStyle.opacity = (obj as any).opacity;
       }
 
@@ -2866,6 +3007,103 @@ export default function ArtifactEditor({
       markDirty();
     },
     [selectedElementIds, markDirty]
+  );
+
+  const handleStrokeColorChange = useCallback(
+    (color: string) => {
+      recordUndo();
+      setStrokeColor(color);
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          const isLine = el.type === 'line';
+          const isOutline =
+            el.type === 'shape' &&
+            (el.style?.fillColor === 'transparent' || Boolean(el.style?.strokeColor));
+          if (!isLine && !isOutline) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              strokeColor: color,
+            },
+          };
+        })
+      );
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      let updated = false;
+      for (const obj of canvas.getActiveObjects()) {
+        const id = getElementId(obj);
+        const liveEl = liveElementsRef.current.find((e) => e.id === id);
+        const isLine = (obj as any).type === 'line' || (obj as any).data?.isLine;
+        const isOutline =
+          (obj as any).type === 'rect' &&
+          ((obj as any).fill === 'transparent' ||
+            liveEl?.style?.fillColor === 'transparent' ||
+            Boolean(liveEl?.style?.strokeColor));
+        if (isLine || isOutline) {
+          obj.set({ stroke: color });
+          const d = ((obj as any).data = (obj as any).data || {});
+          d.style = { ...(d.style || {}), strokeColor: color };
+          updated = true;
+        }
+      }
+      if (updated) {
+        canvas.requestRenderAll();
+        markDirty();
+      }
+    },
+    [selectedElementIds, markDirty, recordUndo]
+  );
+
+  const handleStrokeWidthChange = useCallback(
+    (widthNum: number) => {
+      recordUndo();
+      const clamped = Math.max(1, Math.min(50, Math.round(widthNum)));
+      setStrokeWidth(clamped);
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          const isLine = el.type === 'line';
+          const isOutline =
+            el.type === 'shape' &&
+            (el.style?.fillColor === 'transparent' || Boolean(el.style?.strokeColor));
+          if (!isLine && !isOutline) return el;
+          return {
+            ...el,
+            style: {
+              ...el.style,
+              strokeWidth: clamped,
+            },
+          };
+        })
+      );
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      let updated = false;
+      for (const obj of canvas.getActiveObjects()) {
+        const id = getElementId(obj);
+        const liveEl = liveElementsRef.current.find((e) => e.id === id);
+        const isLine = (obj as any).type === 'line' || (obj as any).data?.isLine;
+        const isOutline =
+          (obj as any).type === 'rect' &&
+          ((obj as any).fill === 'transparent' ||
+            liveEl?.style?.fillColor === 'transparent' ||
+            Boolean(liveEl?.style?.strokeColor));
+        if (isLine || isOutline) {
+          obj.set({ strokeWidth: clamped });
+          const d = ((obj as any).data = (obj as any).data || {});
+          d.style = { ...(d.style || {}), strokeWidth: clamped };
+          updated = true;
+        }
+      }
+      if (updated) {
+        canvas.requestRenderAll();
+        markDirty();
+      }
+    },
+    [selectedElementIds, markDirty, recordUndo]
   );
 
   const handleCloneTemplate = async (item: ArtifactTemplateSummary) => {
@@ -4238,8 +4476,31 @@ export default function ArtifactEditor({
                       onClick={() => setDrawingTool((cur) => (cur === 'rect' ? null : 'rect'))}
                       disabled={busy}
                       title="Rectangle"
+                      aria-label="Rectangle"
                     >
                       <Square className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={drawingTool === 'line' ? 'default' : 'outline'}
+                      size="icon-sm"
+                      onClick={() => setDrawingTool((cur) => (cur === 'line' ? null : 'line'))}
+                      disabled={busy}
+                      title="Line"
+                      aria-label="Line"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={drawingTool === 'rect-outline' ? 'default' : 'outline'}
+                      size="icon-sm"
+                      onClick={() => setDrawingTool((cur) => (cur === 'rect-outline' ? null : 'rect-outline'))}
+                      disabled={busy}
+                      title="Outline Shape"
+                      aria-label="Outline Shape"
+                    >
+                      <SquareDashed className="w-3.5 h-3.5" />
                     </Button>
                     {allowImages ? (
                       <Button
@@ -4728,6 +4989,74 @@ export default function ArtifactEditor({
                       </div>
                       <div className="flex items-center text-[11px] text-muted-foreground">
                         <span>Aspect ratio locked on corner handles • Use Context Menu or Del to remove</span>
+                      </div>
+                    </>
+                  ) : selectedLineCount > 0 ? (
+                    <>
+                      <div className="flex items-center gap-3 overflow-x-auto overflow-y-hidden shrink-0 flex-nowrap py-0.5">
+                        <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-[10px] font-medium font-mono text-accent-foreground uppercase">
+                          LINE
+                        </span>
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          Color:
+                          <input
+                            type="color"
+                            value={strokeColor}
+                            onChange={(e) => handleStrokeColorChange(e.target.value)}
+                            className="w-5 h-5 bg-transparent border-0 cursor-pointer rounded"
+                            title="Line Color"
+                          />
+                        </Label>
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          Thickness:
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={strokeWidth}
+                            onChange={(e) => handleStrokeWidthChange(Number(e.target.value))}
+                            className="w-14 h-7 text-xs px-1.5 border border-input rounded bg-transparent"
+                            title="Line Thickness (px)"
+                          />
+                          <span className="text-[10px] text-muted-foreground">px</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center text-[11px] text-muted-foreground">
+                        <span>Divider line • Drag handles to scale or reposition</span>
+                      </div>
+                    </>
+                  ) : selectedOutlineShapeCount > 0 ? (
+                    <>
+                      <div className="flex items-center gap-3 overflow-x-auto overflow-y-hidden shrink-0 flex-nowrap py-0.5">
+                        <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-[10px] font-medium font-mono text-accent-foreground uppercase">
+                          SHAPE (OUTLINE)
+                        </span>
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          Border Color:
+                          <input
+                            type="color"
+                            value={strokeColor}
+                            onChange={(e) => handleStrokeColorChange(e.target.value)}
+                            className="w-5 h-5 bg-transparent border-0 cursor-pointer rounded"
+                            title="Outline Border Color"
+                          />
+                        </Label>
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          Thickness:
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={strokeWidth}
+                            onChange={(e) => handleStrokeWidthChange(Number(e.target.value))}
+                            className="w-14 h-7 text-xs px-1.5 border border-input rounded bg-transparent"
+                            title="Border Thickness (px)"
+                          />
+                          <span className="text-[10px] text-muted-foreground">px</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center text-[11px] text-muted-foreground">
+                        <span>Decorative outline container (transparent fill) • Drag handles to scale</span>
                       </div>
                     </>
                   ) : (
