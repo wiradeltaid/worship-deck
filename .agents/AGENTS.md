@@ -294,5 +294,5 @@ guard claims to cover. Do not narrow a guard to silence a false positive without
 
 ## Sync rule for this file
 
-`CLAUDE.md` MUST remain `@AGENTS.md`. `.agents/AGENTS.md` and `.cursorrules` MUST be identical to
-this file.
+`{project-root}/AGENTS.md` is the source of truth. Every change MUST sync to `CLAUDE.md`,
+`.agents/AGENTS.md`, and `.cursorrules` so all agents read the same rules.
