@@ -32,6 +32,8 @@ export interface AnnouncementSlide {
   position: number;
   updatedAt: string;
   resettable: boolean;
+  isPlaceholder?: boolean;
+  placeholderSlot?: number;
 }
 
 export interface AnnouncementSetsPanelProps {
@@ -457,6 +459,71 @@ export function AnnouncementSetsPanel({
     });
   }, [selectedSetId]);
 
+  const handleTogglePlaceholder = async (slide: AnnouncementSlide, isPlaceholder: boolean) => {
+    if (!announcementSetAdapter) return;
+    try {
+      const fullTmpl = await announcementSetAdapter.getOne(String(slide.id));
+      const slot = slide.placeholderSlot ?? 1;
+      const { updatedAt, ...body } = fullTmpl;
+      const res = await announcementSetAdapter.save(String(slide.id), {
+        ...body,
+        isPlaceholder,
+        placeholderSlot: isPlaceholder ? slot : undefined,
+        updatedAt: slide.updatedAt,
+      });
+      if (!res.ok) throw new Error(res.error || 'Failed to update placeholder status');
+      setSlides((prev) =>
+        prev.map((s) =>
+          s.id === slide.id
+            ? {
+                ...s,
+                isPlaceholder,
+                placeholderSlot: isPlaceholder ? slot : undefined,
+                updatedAt: res.data?.updatedAt ?? s.updatedAt,
+              }
+            : s
+        )
+      );
+      toast.success(
+        isPlaceholder
+          ? `Designated as Weekly Placeholder (Slot ${slot})`
+          : 'Removed weekly placeholder designation'
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update placeholder status');
+    }
+  };
+
+  const handleSetPlaceholderSlot = async (slide: AnnouncementSlide, slot: number) => {
+    if (!announcementSetAdapter) return;
+    try {
+      const fullTmpl = await announcementSetAdapter.getOne(String(slide.id));
+      const { updatedAt, ...body } = fullTmpl;
+      const res = await announcementSetAdapter.save(String(slide.id), {
+        ...body,
+        isPlaceholder: true,
+        placeholderSlot: slot,
+        updatedAt: slide.updatedAt,
+      });
+      if (!res.ok) throw new Error(res.error || 'Failed to update placeholder slot');
+      setSlides((prev) =>
+        prev.map((s) =>
+          s.id === slide.id
+            ? {
+                ...s,
+                isPlaceholder: true,
+                placeholderSlot: slot,
+                updatedAt: res.data?.updatedAt ?? s.updatedAt,
+              }
+            : s
+        )
+      );
+      toast.success(`Bound to Weekly Announcement Slot ${slot}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update placeholder slot');
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[330px_minmax(0,1fr)] gap-6">
       {/* Panel Kiri: 3-Tier Hierarchy (Button -> Dropdown -> Slides List) */}
@@ -623,7 +690,11 @@ export function AnnouncementSetsPanel({
                         <p className="text-xs font-semibold truncate text-foreground">
                           #{index + 1} {slide.label}
                         </p>
-                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">[announcement-slide]</span>
+                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                          {slide.isPlaceholder
+                            ? `[Weekly Slot ${slide.placeholderSlot ?? 1}]`
+                            : '[announcement-slide]'}
+                        </span>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0">
                         <Button
@@ -685,14 +756,61 @@ export function AnnouncementSetsPanel({
             No announcement slide selected. Click "Add Slide" to create one.
           </div>
         ) : (
-          <ArtifactEditor
-            key={`ann-set-${selectedSet.id}-slide-${activeSlide.id}`}
-            adapter={announcementSetAdapter}
-            initialSelectedId={String(activeSlide.id)}
-            hideList={true}
-            copiedSlidePayload={copiedSlidePayload}
-            onCopySlidePayloadChange={onCopySlidePayloadChange}
-          />
+          <div className="space-y-3">
+            {/* Weekly Placeholder Controls */}
+            <div
+              data-testid="announcement-placeholder-controls"
+              className="p-3 rounded-lg border border-border/80 bg-card/60 backdrop-blur-sm flex flex-wrap items-center justify-between gap-3 text-xs"
+            >
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer font-medium text-foreground">
+                  <input
+                    type="checkbox"
+                    data-testid="slide-is-placeholder"
+                    className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                    checked={Boolean(activeSlide.isPlaceholder)}
+                    onChange={(e) => void handleTogglePlaceholder(activeSlide, e.target.checked)}
+                  />
+                  <span>Designate as Weekly Placeholder</span>
+                </label>
+                {activeSlide.isPlaceholder && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">Bound to:</span>
+                    <Select
+                      value={String(activeSlide.placeholderSlot ?? 1)}
+                      onValueChange={(val) => void handleSetPlaceholderSlot(activeSlide, Number(val))}
+                    >
+                      <SelectTrigger
+                        data-testid="slide-placeholder-slot"
+                        className="h-7 w-28 text-xs font-semibold"
+                      >
+                        <SelectValue placeholder="Slot 1" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Slot 1</SelectItem>
+                        <SelectItem value="2">Slot 2</SelectItem>
+                        <SelectItem value="3">Slot 3</SelectItem>
+                        <SelectItem value="4">Slot 4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {activeSlide.isPlaceholder
+                  ? `Populated with Slot ${activeSlide.placeholderSlot ?? 1} weekly poster; omitted if slot is empty.`
+                  : 'Renders static slide canvas elements.'}
+              </p>
+            </div>
+            <ArtifactEditor
+              key={`ann-set-${selectedSet.id}-slide-${activeSlide.id}`}
+              adapter={announcementSetAdapter}
+              initialSelectedId={String(activeSlide.id)}
+              hideList={true}
+              copiedSlidePayload={copiedSlidePayload}
+              onCopySlidePayloadChange={onCopySlidePayloadChange}
+            />
+          </div>
         )}
       </section>
     </div>

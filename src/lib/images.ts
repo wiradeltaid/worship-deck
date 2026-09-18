@@ -11,11 +11,12 @@ export type ImagesPayloadExtras = {
   sermonGraphicUrl: string | null;
   familyPhotoUrl: string | null;
   youthPhotoUrl: string | null;
+  announcementInserts: string[];
 };
 
 /**
  * Parse legacy array images_payload or object form:
- * `{ images?: string[], sermonGraphicUrl?, familyPhotoUrl?, youthPhotoUrl? }`.
+ * `{ images?: string[], sermonGraphicUrl?, familyPhotoUrl?, youthPhotoUrl?, announcementInserts? }`.
  */
 export function parseImagesPayload(
   value: unknown
@@ -25,6 +26,7 @@ export function parseImagesPayload(
     sermonGraphicUrl: null,
     familyPhotoUrl: null,
     youthPhotoUrl: null,
+    announcementInserts: [],
   };
   if (value == null) return empty;
   if (Array.isArray(value)) {
@@ -42,6 +44,10 @@ export function parseImagesPayload(
   const sermonRaw = obj.sermonGraphicUrl;
   const familyRaw = obj.familyPhotoUrl;
   const youthRaw = obj.youthPhotoUrl;
+  const insertsRaw = obj.announcementInserts;
+  const announcementInserts: string[] = Array.isArray(insertsRaw)
+    ? insertsRaw.map((x) => (typeof x === 'string' && isSafeImageUrl(x) ? x.trim() : ''))
+    : [];
   return {
     urls,
     sermonGraphicUrl:
@@ -56,6 +62,7 @@ export function parseImagesPayload(
       typeof youthRaw === 'string' && isSafeImageUrl(youthRaw)
         ? youthRaw
         : null,
+    announcementInserts,
   };
 }
 
@@ -63,12 +70,24 @@ export function parseImagesPayloadJson(
   json: string | null | undefined
 ): ImagesPayloadExtras {
   if (!json) {
-    return { urls: [], sermonGraphicUrl: null, familyPhotoUrl: null, youthPhotoUrl: null };
+    return {
+      urls: [],
+      sermonGraphicUrl: null,
+      familyPhotoUrl: null,
+      youthPhotoUrl: null,
+      announcementInserts: ['', '', '', ''],
+    };
   }
   try {
     return parseImagesPayload(JSON.parse(json));
   } catch {
-    return { urls: [], sermonGraphicUrl: null, familyPhotoUrl: null, youthPhotoUrl: null };
+    return {
+      urls: [],
+      sermonGraphicUrl: null,
+      familyPhotoUrl: null,
+      youthPhotoUrl: null,
+      announcementInserts: ['', '', '', ''],
+    };
   }
 }
 

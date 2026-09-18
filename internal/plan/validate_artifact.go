@@ -34,10 +34,9 @@ var (
 		"youth_name":              "text",
 		"family_photo":            "image",
 		"youth_photo":             "image",
-		"afternoon_program":       "text",
 	}
 	allowedTemplateKeys = map[string]struct{}{
-		"schemaVersion": {}, "id": {}, "label": {}, "baseType": {}, "placeholders": {}, "layouts": {},
+		"schemaVersion": {}, "id": {}, "label": {}, "baseType": {}, "isPlaceholder": {}, "placeholderSlot": {}, "placeholders": {}, "layouts": {},
 	}
 	allowedPlaceholderKeys = map[string]struct{}{"key": {}, "type": {}, "required": {}, "defaultValue": {}}
 	allowedLayoutKeys      = map[string]struct{}{
@@ -675,6 +674,15 @@ func ValidateArtifactTemplate(raw []byte, repoRoot string) ([]byte, error) {
 		Placeholders:  placeholders,
 		Layouts:       layouts,
 	}
+	if b, ok := obj["isPlaceholder"].(bool); ok && b {
+		n, ok := obj["placeholderSlot"].(float64)
+		if !ok || n != float64(int(n)) || n < 1 || n > 4 {
+			return nil, failf("placeholderSlot must be an integer between 1 and 4 when isPlaceholder is true")
+		}
+		slot := int(n)
+		cleaned.IsPlaceholder = true
+		cleaned.PlaceholderSlot = &slot
+	}
 	out, err := marshalTemplate(cleaned)
 	if err != nil {
 		return nil, failf("Invalid JSON")
@@ -764,14 +772,21 @@ func marshalTemplate(t Template) ([]byte, error) {
 	for name, layout := range t.Layouts {
 		layouts[name] = marshalLayout(layout)
 	}
-	return json.Marshal(map[string]any{
+	res := map[string]any{
 		"schemaVersion": t.SchemaVersion,
 		"id":            t.ID,
 		"label":         t.Label,
 		"baseType":      t.BaseType,
 		"placeholders":  placeholders,
 		"layouts":       layouts,
-	})
+	}
+	if t.IsPlaceholder {
+		res["isPlaceholder"] = true
+	}
+	if t.PlaceholderSlot != nil {
+		res["placeholderSlot"] = *t.PlaceholderSlot
+	}
+	return json.Marshal(res)
 }
 
 func marshalLayout(layout Layout) map[string]any {

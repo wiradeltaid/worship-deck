@@ -145,6 +145,8 @@ export type ArtifactTemplate = {
   baseType: ArtifactBaseType;
   variableName?: string;
   annSetId?: number;
+  isPlaceholder?: boolean;
+  placeholderSlot?: number;
   placeholders: PlaceholderDefinition[];
   layouts: {
     default?: ArtifactLayout;

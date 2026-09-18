@@ -46,7 +46,6 @@ type Rundown struct {
 	YouthPrayerRequest  *string    `json:"youthPrayerRequest"`
 	FamilyName          *string    `json:"familyName,omitempty"`
 	YouthName           *string    `json:"youthName,omitempty"`
-	AfternoonProgram    *string    `json:"afternoonProgram,omitempty"`
 }
 
 var (

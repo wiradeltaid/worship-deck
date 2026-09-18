@@ -81,14 +81,10 @@ func (s *Server) postWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	afternoonProgram := ""
-	if parsed.AfternoonProgram != nil {
-		afternoonProgram = *parsed.AfternoonProgram
-	}
 	res, err := tx.Exec(
 		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, afternoon_program, updated_at)
-		 VALUES (?, ?, ?, ?, ?, `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), imagesJSON, afternoonProgram,
+		 VALUES (?, ?, ?, ?, '', `+db.StampNowSQL+`)`,
+		serviceDate, rawPayload, string(parsedJSON), imagesJSON,
 	)
 	if err != nil {
 		log.Printf("Error processing webhook: %v", err)

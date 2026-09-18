@@ -58,6 +58,7 @@ export default function EditForm({
   initialSermonGraphicUrl = '',
   initialFamilyPhotoUrl = '',
   initialYouthPhotoUrl = '',
+  initialAnnouncementInserts = [],
   initialUpdatedAt,
   hymnIndex = EMPTY_HYMN_INDEX,
 }: {
@@ -69,6 +70,7 @@ export default function EditForm({
   initialSermonGraphicUrl?: string;
   initialFamilyPhotoUrl?: string;
   initialYouthPhotoUrl?: string;
+  initialAnnouncementInserts?: string[];
   /** Accepted for page compat; edit no longer mutates participants_payload. */
   initialParticipantsRaw?: string;
   initialUpdatedAt: string;
@@ -81,6 +83,13 @@ export default function EditForm({
   );
   const [familyPhotoUrl, setFamilyPhotoUrl] = useState(initialFamilyPhotoUrl);
   const [youthPhotoUrl, setYouthPhotoUrl] = useState(initialYouthPhotoUrl);
+  const [announcementInserts, setAnnouncementInserts] = useState<string[]>(
+    () => {
+      const arr = Array.isArray(initialAnnouncementInserts) ? [...initialAnnouncementInserts] : [];
+      while (arr.length < 4) arr.push('');
+      return arr.slice(0, 4);
+    }
+  );
 
   const [fields, setFields] = useState<WorshipFormFields>(() => ({
     ...fieldsFromParsed(initialParsed),
@@ -285,6 +294,7 @@ export default function EditForm({
             sermonGraphicUrl: sermonGraphicUrl || null,
             familyPhotoUrl: familyPhotoUrl || null,
             youthPhotoUrl: youthPhotoUrl || null,
+            announcementInserts: announcementInserts.map((s) => s.trim()),
             fields: buildFieldsPayload(fields),
           }),
         });
@@ -331,6 +341,7 @@ export default function EditForm({
     sermonGraphicUrl,
     familyPhotoUrl,
     youthPhotoUrl,
+    announcementInserts,
     fields,
   ]);
 
@@ -391,6 +402,7 @@ export default function EditForm({
           sermonGraphicUrl: sermonGraphicUrl || null,
           familyPhotoUrl: familyPhotoUrl || null,
           youthPhotoUrl: youthPhotoUrl || null,
+          announcementInserts: announcementInserts.map((s) => s.trim()),
         }),
       });
       const data = (await res.json()) as {
@@ -511,6 +523,12 @@ export default function EditForm({
       typeof images.familyPhotoUrl === 'string' ? images.familyPhotoUrl : '';
     const youthUrl =
       typeof images.youthPhotoUrl === 'string' ? images.youthPhotoUrl : '';
+    const rawInserts = Array.isArray(images.announcementInserts)
+      ? images.announcementInserts.map((x: unknown) => (typeof x === 'string' ? x : ''))
+      : [];
+    while (rawInserts.length < 4) rawInserts.push('');
+    const inserts = rawInserts.slice(0, 4);
+
     const nextFields = {
       ...fieldsFromParsed(svc.parsed_data ?? null),
       songSets: coerceSongSetInputs(svc.songSets),
@@ -520,6 +538,7 @@ export default function EditForm({
     setSermonGraphicUrl(sermonUrl);
     setFamilyPhotoUrl(familyUrl);
     setYouthPhotoUrl(youthUrl);
+    setAnnouncementInserts(inserts);
     setFields(nextFields);
     setClosingPrayerCopiesSpeaker(
       shouldClosingPrayerCheckboxStartChecked(
@@ -534,6 +553,7 @@ export default function EditForm({
       sermonGraphicUrl: sermonUrl,
       familyPhotoUrl: familyUrl,
       youthPhotoUrl: youthUrl,
+      announcementInserts: inserts,
       fields: nextFields,
     };
   };
@@ -543,6 +563,7 @@ export default function EditForm({
     sermonGraphicUrl: string;
     familyPhotoUrl: string;
     youthPhotoUrl: string;
+    announcementInserts?: string[];
     fields: WorshipFormFields;
   }) => {
     const rawPayload = snapshot?.raw_payload ?? payload;
@@ -555,6 +576,7 @@ export default function EditForm({
     }
 
     const previewFields = snapshot?.fields ?? fieldsRef.current;
+    const previewInserts = snapshot?.announcementInserts ?? announcementInserts;
 
     const seq = ++previewSeqRef.current;
     try {
@@ -567,6 +589,7 @@ export default function EditForm({
           sermonGraphicUrl: (snapshot?.sermonGraphicUrl ?? sermonGraphicUrl) || null,
           familyPhotoUrl: (snapshot?.familyPhotoUrl ?? familyPhotoUrl) || null,
           youthPhotoUrl: (snapshot?.youthPhotoUrl ?? youthPhotoUrl) || null,
+          announcementInserts: previewInserts.map((s) => s.trim()),
           fields: buildFieldsPayload(previewFields),
         }),
       });
@@ -630,6 +653,7 @@ export default function EditForm({
           sermonGraphicUrl: sermonGraphicUrl.trim() || null,
           familyPhotoUrl: familyPhotoUrl.trim() || null,
           youthPhotoUrl: youthPhotoUrl.trim() || null,
+          announcementInserts: announcementInserts.map((s) => s.trim()),
           fields: buildFieldsPayload(fieldsRef.current),
         }),
       });
@@ -1020,19 +1044,6 @@ export default function EditForm({
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
-                  {t('form.afternoonProgram')}
-                </label>
-                <Input
-                  type="text"
-                  className="text-xs"
-                  value={fields.afternoonProgram}
-                  onChange={(e) => setField('afternoonProgram', e.target.value)}
-                  placeholder={t('form.afternoonProgramPlaceholder')}
-                  disabled={isSaving}
-                />
-              </div>
               <ImageUploadField
                 label={t('form.sermonGraphic')}
                 value={sermonGraphicUrl}
@@ -1041,6 +1052,47 @@ export default function EditForm({
                 uploadLabel={t('form.sermonGraphicUpload')}
                 disabled={isSaving}
               />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/80 shadow-md bg-card/60 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">
+                Weekly Announcement Posters
+              </CardTitle>
+              <CardDescription>
+                Upload up to 4 weekly announcement posters to dynamically populate placeholder slides across announcement sets. Empty slots are omitted from the live presentation plan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((slot) => (
+                  <div
+                    key={slot}
+                    data-slot={`announcement-insert-slot-${slot}`}
+                    className="rounded-lg border border-border/40 p-3 bg-background/40 space-y-2"
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                      Announcement Slot {slot}
+                    </span>
+                    <ImageUploadField
+                      label={`Slot ${slot} Poster`}
+                      value={announcementInserts[slot - 1] || ''}
+                      onChange={(url) => {
+                        setAnnouncementInserts((prev) => {
+                          const next = [...prev];
+                          while (next.length < 4) next.push('');
+                          next[slot - 1] = url;
+                          return next;
+                        });
+                      }}
+                      previewAlt={`Announcement Slot ${slot} preview`}
+                      uploadLabel={`Upload Slot ${slot}`}
+                      disabled={isSaving}
+                    />
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
 

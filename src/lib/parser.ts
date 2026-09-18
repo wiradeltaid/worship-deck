@@ -50,8 +50,6 @@ export interface ParsedRundown {
   familyName?: string | null;
   /** Youth-of-the-week name (Slide 56). */
   youthName?: string | null;
-  /** Afternoon program notes/title. */
-  afternoonProgram?: string | null;
 }
 
 function normalizeNewlines(text: string): string {

@@ -67,6 +67,7 @@ export type SlidePlanMedia = {
   sermonGraphicUrl?: string | null;
   familyPhotoUrl?: string | null;
   youthPhotoUrl?: string | null;
+  announcementInserts?: string[];
 };
 
 /** Legacy projection carried alongside the hydrated artifact. */
@@ -232,7 +233,7 @@ type PlanContext = {
   youthName: string | null;
   legacyCombined: string | null;
   familyBody: string | null;
-  afternoonProgram?: string | null;
+  announcementInserts: string[];
 };
 
 function computePlanContext(
@@ -254,6 +255,13 @@ function computePlanContext(
     media.youthPhotoUrl && isSafeImageUrl(media.youthPhotoUrl)
       ? media.youthPhotoUrl
       : null;
+  const rawInserts = Array.isArray(media.announcementInserts)
+    ? media.announcementInserts.map((u) =>
+        typeof u === 'string' && isSafeImageUrl(u) ? u : ''
+      )
+    : [];
+  while (rawInserts.length < 4) rawInserts.push('');
+  const announcementInserts = rawInserts.slice(0, 4);
 
   const items = Array.isArray(parsedData.items) ? parsedData.items : [];
   const buckets = bucketHymnsBySection(items);
@@ -316,7 +324,7 @@ function computePlanContext(
     youthName,
     legacyCombined,
     familyBody,
-    afternoonProgram: parsedData.afternoonProgram ?? null,
+    announcementInserts,
   };
 }
 
@@ -730,7 +738,6 @@ function catalogInputFromCtx(ctx: PlanContext): CatalogWeeklyInput {
     youthName: ctx.youthName,
     familyPhoto: ctx.familyPhoto,
     youthPhoto: ctx.youthPhoto,
-    afternoonProgram: ctx.afternoonProgram,
   };
 }
 
@@ -826,6 +833,21 @@ function buildRequestPlan(
 
         const children: RequestGroupChild[] = [];
         for (const slide of slides) {
+          let isPlaceholder = false;
+          let placeholderSlot = 0;
+          try {
+            const p = JSON.parse(slide.payload);
+            isPlaceholder = Boolean(p.isPlaceholder);
+            placeholderSlot = Number(p.placeholderSlot) || 0;
+          } catch {}
+
+          if (isPlaceholder && placeholderSlot >= 1 && placeholderSlot <= 4) {
+            const insertUrl = ctx.announcementInserts[placeholderSlot - 1];
+            if (!insertUrl || !insertUrl.trim()) {
+              continue;
+            }
+          }
+
           const slideInstanceId = `${template.id}-ann-slide-${slide.id}`;
           children.push({
             role: 'announcement',
@@ -838,6 +860,7 @@ function buildRequestPlan(
                 kind: 'body',
                 title: slide.label,
                 lines: derivedLines(instance, slide.label),
+                imageUrl: instance.layout.backgroundImage || undefined,
               }),
             },
           });
@@ -918,6 +941,21 @@ function hydrateLeafOrOmit(
       if (row && row.payload) {
         try {
           const parsed = JSON.parse(row.payload);
+          if (parsed.isPlaceholder && parsed.placeholderSlot >= 1 && parsed.placeholderSlot <= 4) {
+            const slotUrl = ctx.announcementInserts[parsed.placeholderSlot - 1];
+            if (!slotUrl || !slotUrl.trim()) {
+              return null;
+            }
+            if (!parsed.layouts) parsed.layouts = {};
+            if (!parsed.layouts.default) {
+              parsed.layouts.default = {
+                aspectRatio: '16:9',
+                backgroundColor: '#000000',
+                elements: [],
+              };
+            }
+            parsed.layouts.default.backgroundImage = slotUrl.trim();
+          }
           const customSnapshot = new Map<string, StoredArtifactTemplate>(snapshot);
           customSnapshot.set(request.templateId, {
             ...parsed,

@@ -24,6 +24,10 @@ const ALLOWED_TEMPLATE_KEYS = new Set([
   'id',
   'label',
   'baseType',
+  'variableName',
+  'annSetId',
+  'isPlaceholder',
+  'placeholderSlot',
   'placeholders',
   'layouts',
 ]);
@@ -632,6 +636,22 @@ export function validateArtifactTemplate(raw: unknown): ArtifactTemplate {
     layouts.reff = parseLayout(layoutsRaw.reff, 'layouts.reff');
   }
 
+  const isPlaceholder = Boolean(obj.isPlaceholder);
+  let placeholderSlot: number | undefined = undefined;
+  if (isPlaceholder) {
+    if (
+      typeof obj.placeholderSlot !== 'number' ||
+      !Number.isInteger(obj.placeholderSlot) ||
+      obj.placeholderSlot < 1 ||
+      obj.placeholderSlot > 4
+    ) {
+      throw new RegistryValidationError(
+        'placeholderSlot must be an integer between 1 and 4 when isPlaceholder is true'
+      );
+    }
+    placeholderSlot = obj.placeholderSlot;
+  }
+
   const template: ArtifactTemplate = {
     schemaVersion: 1,
     id,
@@ -639,6 +659,7 @@ export function validateArtifactTemplate(raw: unknown): ArtifactTemplate {
     baseType: baseType as ArtifactBaseType,
     placeholders,
     layouts,
+    ...(isPlaceholder ? { isPlaceholder: true, placeholderSlot } : {}),
   };
 
   enforceBaseTypeRules(template);

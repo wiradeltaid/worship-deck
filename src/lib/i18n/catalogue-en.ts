@@ -193,8 +193,6 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'form.sermon.description': 'Speaker, closing prayer, and sermon graphic.',
   'form.sermonSpeaker': 'Sermon Speaker',
   'form.sermonSpeakerPlaceholder': 'e.g. Pr. John Doe',
-  'form.afternoonProgram': 'Afternoon Program',
-  'form.afternoonProgramPlaceholder': 'e.g. AY Program: Bible Bowl & Fellowship (14:30)',
   'form.closingPrayer': 'Closing Prayer Person',
   'form.closingPrayerPlaceholder': 'Name of person leading closing prayer',
   'form.closingPrayerSameAsSpeaker': 'Same as sermon speaker',

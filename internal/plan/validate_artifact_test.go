@@ -479,6 +479,58 @@ func TestLineAndOutlineShapeValidation(t *testing.T) {
 	lineStyle["strokeWidth"] = 2.0
 }
 
+func TestValidateArtifactTemplatePlaceholderSlotValidation(t *testing.T) {
+	root := repoRoot(t)
+	base := map[string]any{
+		"schemaVersion": 1,
+		"id":            "test-placeholder-slot-validation",
+		"label":         "Test Placeholder Slot",
+		"baseType":      "general",
+		"placeholders":  []any{},
+		"layouts": map[string]any{
+			"default": map[string]any{
+				"aspectRatio":     "16:9",
+				"backgroundColor": "#000000",
+				"elements":        []any{},
+			},
+		},
+	}
+
+	// 1. isPlaceholder: true without placeholderSlot must fail
+	base["isPlaceholder"] = true
+	delete(base, "placeholderSlot")
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "placeholderSlot must be an integer between 1 and 4") {
+		t.Fatalf("expected error when isPlaceholder is true without placeholderSlot, got: %v", err)
+	}
+
+	// 2. isPlaceholder: true with invalid slots (0, 5, -1, 2.5) must fail
+	for _, invalidSlot := range []any{0, 5, -1, 2.5} {
+		base["placeholderSlot"] = invalidSlot
+		if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "placeholderSlot must be an integer between 1 and 4") {
+			t.Fatalf("expected error on invalid slot %v, got: %v", invalidSlot, err)
+		}
+	}
+
+	// 3. isPlaceholder: true with valid slots (1..4) must succeed
+	for _, validSlot := range []int{1, 2, 3, 4} {
+		base["placeholderSlot"] = validSlot
+		out, err := ValidateArtifactTemplate(mustJSON(base), root)
+		if err != nil {
+			t.Fatalf("expected valid slot %d to pass, got: %v", validSlot, err)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(out, &parsed); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		if parsed["isPlaceholder"] != true {
+			t.Errorf("expected isPlaceholder true, got %v", parsed["isPlaceholder"])
+		}
+		if int(parsed["placeholderSlot"].(float64)) != validSlot {
+			t.Errorf("expected placeholderSlot %d, got %v", validSlot, parsed["placeholderSlot"])
+		}
+	}
+}
+
 func mustJSON(v any) []byte {
 	b, err := json.Marshal(v)
 	if err != nil {

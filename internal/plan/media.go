@@ -131,6 +131,15 @@ func parseImagesPayload(raw json.RawMessage) Media {
 	if s, ok := obj["youthPhotoUrl"].(string); ok && isSafeImageURL(s) {
 		empty.YouthPhotoURL = &s
 	}
+	if rawInserts, ok := obj["announcementInserts"].([]interface{}); ok {
+		inserts := make([]string, 4)
+		for i := 0; i < 4 && i < len(rawInserts); i++ {
+			if s, ok := rawInserts[i].(string); ok && isSafeImageURL(s) {
+				inserts[i] = s
+			}
+		}
+		empty.AnnouncementInserts = inserts
+	}
 	return empty
 }
 

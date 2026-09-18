@@ -61,6 +61,12 @@ export default function CreateForm({
   const [sermonGraphicUrl, setSermonGraphicUrl] = useState('');
   const [familyPhotoUrl, setFamilyPhotoUrl] = useState('');
   const [youthPhotoUrl, setYouthPhotoUrl] = useState('');
+  const [announcementInserts, setAnnouncementInserts] = useState<string[]>([
+    '',
+    '',
+    '',
+    '',
+  ]);
 
   const [fields, setFields] = useState<WorshipFormFields>(
     EMPTY_WORSHIP_FORM_FIELDS
@@ -186,6 +192,7 @@ export default function CreateForm({
             sermonGraphicUrl: sermonGraphicUrl || null,
             familyPhotoUrl: familyPhotoUrl || null,
             youthPhotoUrl: youthPhotoUrl || null,
+            announcementInserts: announcementInserts.map((s) => s.trim()),
             fields: buildFieldsPayload(fields),
           }),
         });
@@ -255,6 +262,7 @@ export default function CreateForm({
     sermonGraphicUrl,
     familyPhotoUrl,
     youthPhotoUrl,
+    announcementInserts,
     fields,
   ]);
 
@@ -314,6 +322,7 @@ export default function CreateForm({
           sermonGraphicUrl: sermonGraphicUrl || null,
           familyPhotoUrl: familyPhotoUrl || null,
           youthPhotoUrl: youthPhotoUrl || null,
+          announcementInserts: announcementInserts.map((s) => s.trim()),
         }),
       });
       const data = (await res.json()) as {
@@ -435,6 +444,7 @@ export default function CreateForm({
         sermonGraphicUrl: sermonGraphicUrl.trim() || null,
         familyPhotoUrl: familyPhotoUrl.trim() || null,
         youthPhotoUrl: youthPhotoUrl.trim() || null,
+        announcementInserts: announcementInserts.map((s) => s.trim()),
         fields: buildFieldsPayload(fieldsRef.current),
       };
       if (allowSecond) bodyPayload.allowSecond = true;
@@ -853,19 +863,6 @@ export default function CreateForm({
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
-                  {t('form.afternoonProgram')}
-                </label>
-                <Input
-                  type="text"
-                  className="text-xs"
-                  value={fields.afternoonProgram}
-                  onChange={(e) => setField('afternoonProgram', e.target.value)}
-                  placeholder={t('form.afternoonProgramPlaceholder')}
-                  disabled={isSaving}
-                />
-              </div>
               <ImageUploadField
                 label={t('form.sermonGraphic')}
                 value={sermonGraphicUrl}
@@ -874,6 +871,46 @@ export default function CreateForm({
                 uploadLabel={t('form.sermonGraphicUpload')}
                 disabled={isSaving}
               />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/80 shadow-md bg-card/60 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">
+                Weekly Announcement Posters
+              </CardTitle>
+              <CardDescription>
+                Upload up to 4 weekly announcement posters to dynamically populate placeholder slides across announcement sets. Empty slots are omitted from the live presentation plan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((slot) => (
+                  <div
+                    key={slot}
+                    className="p-3 rounded-md border border-border/60 bg-muted/20 space-y-2"
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                      Announcement Slot {slot}
+                    </span>
+                    <ImageUploadField
+                      label={`Slot ${slot} Poster`}
+                      value={announcementInserts[slot - 1] || ''}
+                      onChange={(url) => {
+                        setAnnouncementInserts((prev) => {
+                          const next = [...prev];
+                          while (next.length < 4) next.push('');
+                          next[slot - 1] = url;
+                          return next;
+                        });
+                      }}
+                      previewAlt={`Announcement Slot ${slot}`}
+                      uploadLabel={`Upload Slot ${slot} Poster`}
+                      disabled={isSaving}
+                    />
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
 

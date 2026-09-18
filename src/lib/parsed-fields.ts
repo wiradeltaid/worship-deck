@@ -27,8 +27,7 @@ export type StructuredServiceFields = {
   sermon?: ParsedSermon | null;
   specialSong?: string | null;
   closingPrayerPerson?: string | null;
-  afternoonProgram?: string | null;
-  /** Weekly inputs keyed by Registry variable_name â€” persisted via song_set_inputs. */
+  /** Weekly inputs keyed by Registry variable_name — persisted via song_set_inputs. */
   songSets?: SongSetPayloadMap | null;
 };
 
@@ -213,15 +212,6 @@ export function coerceStructuredFields(
       any = true;
     }
   }
-  if (Object.prototype.hasOwnProperty.call(src, 'afternoonProgram')) {
-    const v = coerceNullableString(
-      (src as { afternoonProgram?: unknown }).afternoonProgram
-    );
-    if (v !== undefined) {
-      fields.afternoonProgram = v;
-      any = true;
-    }
-  }
 
   if (Object.prototype.hasOwnProperty.call(src, 'songSets')) {
     fields.songSets = coerceSongSets((src as { songSets?: unknown }).songSets);
@@ -304,7 +294,6 @@ export function applyStructuredFields(
   }
   if (fields.familyName !== undefined) parsed.familyName = fields.familyName;
   if (fields.youthName !== undefined) parsed.youthName = fields.youthName;
-  if (fields.afternoonProgram !== undefined) parsed.afternoonProgram = fields.afternoonProgram;
   if (fields.specialSong !== undefined) parsed.specialSong = fields.specialSong;
   if (fields.closingPrayerPerson !== undefined) {
     let person = fields.closingPrayerPerson;
@@ -407,6 +396,5 @@ export function normalizeParsedRundown(parsed: ParsedRundown): ParsedRundown {
     youthPrayerRequest,
     familyName: parsed.familyName ?? null,
     youthName: parsed.youthName ?? null,
-    afternoonProgram: parsed.afternoonProgram ?? null,
   };
 }

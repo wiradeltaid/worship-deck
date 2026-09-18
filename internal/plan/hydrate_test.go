@@ -105,3 +105,99 @@ func keys(m map[string]Layout) []string {
 	}
 	return out
 }
+
+func TestAnnouncementPlaceholderSlideEvaluation(t *testing.T) {
+	annSetID := 10
+	slot1 := 1
+	slot2 := 2
+	snap := Snapshot{
+		Order: []string{"ann-marker"},
+		ByID: map[string]Template{
+			"ann-marker": {
+				SchemaVersion: 1,
+				ID:            "ann-marker",
+				Label:         "Announcements Marker",
+				BaseType:      "ann-set-marker",
+				AnnSetID:      &annSetID,
+			},
+		},
+		AnnouncementSetLabels: map[int]string{10: "Weekly Announcements"},
+		AnnouncementSlides: map[int][]AnnouncementSlide{
+			10: {
+				{
+					ID:       1,
+					AnnSetID: 10,
+					Label:    "Normal Slide",
+					Position: 1,
+					Template: Template{
+						SchemaVersion: 1,
+						ID:            "ann-slide-1",
+						Label:         "Normal Slide",
+						BaseType:      "general",
+						Layouts: map[string]Layout{
+							"default": {AspectRatio: "16:9", BackgroundColor: "#111111"},
+						},
+					},
+				},
+				{
+					ID:       2,
+					AnnSetID: 10,
+					Label:    "Placeholder Slot 1",
+					Position: 2,
+					Template: Template{
+						SchemaVersion:   1,
+						ID:              "ann-slide-2",
+						Label:           "Placeholder Slot 1",
+						BaseType:        "general",
+						IsPlaceholder:   true,
+						PlaceholderSlot: &slot1,
+						Layouts: map[string]Layout{
+							"default": {AspectRatio: "16:9", BackgroundColor: "#222222"},
+						},
+					},
+				},
+				{
+					ID:       3,
+					AnnSetID: 10,
+					Label:    "Placeholder Slot 2 (Empty)",
+					Position: 3,
+					Template: Template{
+						SchemaVersion:   1,
+						ID:              "ann-slide-3",
+						Label:           "Placeholder Slot 2 (Empty)",
+						BaseType:        "general",
+						IsPlaceholder:   true,
+						PlaceholderSlot: &slot2,
+						Layouts: map[string]Layout{
+							"default": {AspectRatio: "16:9", BackgroundColor: "#333333"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	slot1URL := "/api/uploads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png"
+	media := Media{
+		AnnouncementInserts: []string{slot1URL, "", "", ""},
+	}
+	items, err := BuildSlidePlan("2026-09-20", ParsedRundown{}, media, snap)
+	if err != nil {
+		t.Fatalf("BuildSlidePlan failed: %v", err)
+	}
+
+	// Should have 2 items: Normal Slide and Placeholder Slot 1. Slot 2 should be omitted.
+	if len(items) != 2 {
+		t.Fatalf("expected 2 slides in plan, got %d", len(items))
+	}
+
+	if items[0].Artifact.Label != "Normal Slide" {
+		t.Errorf("item 0 label = %q, want 'Normal Slide'", items[0].Artifact.Label)
+	}
+	if items[1].Artifact.Label != "Placeholder Slot 1" {
+		t.Errorf("item 1 label = %q, want 'Placeholder Slot 1'", items[1].Artifact.Label)
+	}
+	if items[1].Artifact.Layout.BackgroundImage == nil || *items[1].Artifact.Layout.BackgroundImage != slot1URL {
+		t.Errorf("item 1 background = %v, want %q", items[1].Artifact.Layout.BackgroundImage, slot1URL)
+	}
+}

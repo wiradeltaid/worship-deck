@@ -127,14 +127,10 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	afternoonProgram := ""
-	if parsed.AfternoonProgram != nil {
-		afternoonProgram = *parsed.AfternoonProgram
-	}
 	res, err := tx.Exec(
 		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants, afternoonProgram,
+		 VALUES (?, ?, ?, ?, ?, '', `+db.StampNowSQL+`)`,
+		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants,
 	)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -266,11 +262,26 @@ func narrowCreatePayload(body map[string]any) (images map[string]any, participan
 	if urls == nil {
 		urls = []string{}
 	}
+	var inserts []string
+	if arr, ok := body["announcementInserts"].([]any); ok {
+		inserts = make([]string, 4)
+		for i := 0; i < 4 && i < len(arr); i++ {
+			if s, ok := arr[i].(string); ok && plan.IsSafeImageURL(s) {
+				inserts[i] = s
+			}
+		}
+	}
+	if inserts == nil {
+		inserts = []string{}
+	}
 	images = map[string]any{
 		"images":           urls,
 		"sermonGraphicUrl": sermon,
 		"familyPhotoUrl":   family,
 		"youthPhotoUrl":    youth,
+	}
+	if _, has := body["announcementInserts"]; has {
+		images["announcementInserts"] = inserts
 	}
 	if _, has := body["participantsRaw"]; has {
 		switch v := body["participantsRaw"].(type) {
@@ -532,12 +543,8 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	assignments := []string{`date = ?`, `raw_payload = ?`, `parsed_data = ?`, `afternoon_program = ?`, `updated_at = ` + db.StampNowSQL}
-	afternoonProgram := ""
-	if parsed.AfternoonProgram != nil {
-		afternoonProgram = *parsed.AfternoonProgram
-	}
-	args := []any{newDate, storedRaw, string(parsedJSON), afternoonProgram}
+	assignments := []string{`date = ?`, `raw_payload = ?`, `parsed_data = ?`, `updated_at = ` + db.StampNowSQL}
+	args := []any{newDate, storedRaw, string(parsedJSON)}
 	if imagesJSON != nil {
 		assignments = append(assignments, `images_payload = ?`)
 		args = append(args, *imagesJSON)
@@ -600,7 +607,8 @@ func mergeImagesPayload(stored sql.NullString, body map[string]any) (*string, st
 	_, hasSermon := body["sermonGraphicUrl"]
 	_, hasFamily := body["familyPhotoUrl"]
 	_, hasYouth := body["youthPhotoUrl"]
-	if !hasImages && !hasSermon && !hasFamily && !hasYouth {
+	_, hasInserts := body["announcementInserts"]
+	if !hasImages && !hasSermon && !hasFamily && !hasYouth && !hasInserts {
 		return nil, ""
 	}
 	current := map[string]any{
@@ -628,6 +636,9 @@ func mergeImagesPayload(stored sql.NullString, body map[string]any) (*string, st
 				}
 				if _, ok := obj["youthPhotoUrl"]; ok {
 					current["youthPhotoUrl"] = obj["youthPhotoUrl"]
+				}
+				if ins, ok := obj["announcementInserts"]; ok {
+					current["announcementInserts"] = ins
 				}
 			}
 		}
@@ -675,6 +686,19 @@ func mergeImagesPayload(stored sql.NullString, body map[string]any) (*string, st
 			current["youthPhotoUrl"] = nil
 		} else {
 			current["youthPhotoUrl"] = *out
+		}
+	}
+	if hasInserts {
+		if arr, ok := body["announcementInserts"].([]any); ok {
+			inserts := make([]string, 4)
+			for i := 0; i < 4 && i < len(arr); i++ {
+				if s, ok := arr[i].(string); ok && plan.IsSafeImageURL(s) {
+					inserts[i] = s
+				}
+			}
+			current["announcementInserts"] = inserts
+		} else {
+			current["announcementInserts"] = []string{}
 		}
 	}
 	b, _ := json.Marshal(current)
@@ -734,6 +758,15 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 	}
 	if s, ok := youth.(string); ok {
 		media.YouthPhotoURL = &s
+	}
+	if arr, ok := body["announcementInserts"].([]any); ok {
+		inserts := make([]string, 4)
+		for i := 0; i < 4 && i < len(arr); i++ {
+			if s, ok := arr[i].(string); ok && plan.IsSafeImageURL(s) {
+				inserts[i] = s
+			}
+		}
+		media.AnnouncementInserts = inserts
 	}
 	serviceID := 0
 	if sid, ok := body["serviceId"].(float64); ok && sid > 0 {
@@ -941,10 +974,6 @@ func fieldsFromParsed(p parse.Rundown) map[string]any {
 	if p.YouthName != nil {
 		youthName = *p.YouthName
 	}
-	afternoon := ""
-	if p.AfternoonProgram != nil {
-		afternoon = *p.AfternoonProgram
-	}
 	// Song sets are weekly inputs owned by song_set_inputs (DEC-004), not
 	// parsed_data overlays — the hydrate payload carries an empty map so the
 	// create form starts clean and the edit form hydrates from the Service's
@@ -960,6 +989,5 @@ func fieldsFromParsed(p parse.Rundown) map[string]any {
 		"youthPrayerRequest":  youth,
 		"familyName":          familyName,
 		"youthName":           youthName,
-		"afternoonProgram":    afternoon,
 	}
 }

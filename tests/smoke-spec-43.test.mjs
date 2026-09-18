@@ -1200,3 +1200,491 @@ test('SPEC-43-05: 24. Real-file defect injection proof for text rotation unlock 
     fs.writeFileSync(canvasUtilsPath, pristine, 'utf8');
   }
 });
+
+test('SPEC-43-06: 25. Weekly announcement image slots (announcementInserts) and placeholder slide evaluation (populated slots rendered, empty omitted)', async () => {
+  const { parseImagesPayload } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'images.ts')).href
+  );
+  const { buildSlidePlan } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'slide-plan.ts')).href
+  );
+  const { getDb } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'db', 'index.ts')).href
+  );
+
+  // 1. parseImagesPayload preserves 4 slots with safe URL validation
+  const parsedMedia = parseImagesPayload({
+    announcementInserts: [
+      '/api/uploads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png',
+      'invalid://url',
+      '/api/uploads/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png',
+      '',
+    ],
+  });
+  assert.equal(parsedMedia.announcementInserts.length, 4);
+  assert.equal(parsedMedia.announcementInserts[0], '/api/uploads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png');
+  assert.equal(parsedMedia.announcementInserts[1], '', 'Unsafe or invalid image URL must be coerced to empty string');
+  assert.equal(parsedMedia.announcementInserts[2], '/api/uploads/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png');
+  assert.equal(parsedMedia.announcementInserts[3], '');
+
+  // 2. Setup SQLite test announcement sets and slides with placeholders
+  const db = getDb();
+  // Ensure table exists
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS announcement_sets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL DEFAULT '',
+      label TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS announcement_set_slides (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ann_set_id INTEGER NOT NULL REFERENCES announcement_sets(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      seed_hash TEXT
+    );
+  `);
+
+  const setRes1 = db.prepare(`INSERT INTO announcement_sets (label) VALUES ('Break Announcements')`).run();
+  const set1Id = Number(setRes1.lastInsertRowid);
+  const setRes2 = db.prepare(`INSERT INTO announcement_sets (label) VALUES ('Closing Announcements')`).run();
+  const set2Id = Number(setRes2.lastInsertRowid);
+
+  try {
+    // Normal slide
+    db.prepare(`
+      INSERT INTO announcement_set_slides (ann_set_id, label, payload, position)
+      VALUES (?, 'Normal Slide', ?, 1)
+    `).run(set1Id, JSON.stringify({
+      schemaVersion: 1,
+      id: 'ann-normal',
+      label: 'Normal Slide',
+      baseType: 'general',
+      placeholders: [],
+      layouts: { default: { aspectRatio: '16:9', backgroundColor: '#111111', elements: [] } },
+    }));
+
+    // Placeholder for Slot 1 (populated)
+    db.prepare(`
+      INSERT INTO announcement_set_slides (ann_set_id, label, payload, position)
+      VALUES (?, 'Weekly Poster Slot 1', ?, 2)
+    `).run(set1Id, JSON.stringify({
+      schemaVersion: 1,
+      id: 'ann-slot1',
+      label: 'Weekly Poster Slot 1',
+      baseType: 'general',
+      isPlaceholder: true,
+      placeholderSlot: 1,
+      placeholders: [],
+      layouts: { default: { aspectRatio: '16:9', backgroundColor: '#222222', elements: [] } },
+    }));
+
+    // Placeholder for Slot 2 (empty -> must be omitted)
+    db.prepare(`
+      INSERT INTO announcement_set_slides (ann_set_id, label, payload, position)
+      VALUES (?, 'Weekly Poster Slot 2 (Empty)', ?, 3)
+    `).run(set1Id, JSON.stringify({
+      schemaVersion: 1,
+      id: 'ann-slot2',
+      label: 'Weekly Poster Slot 2 (Empty)',
+      baseType: 'general',
+      isPlaceholder: true,
+      placeholderSlot: 2,
+      placeholders: [],
+      layouts: { default: { aspectRatio: '16:9', backgroundColor: '#333333', elements: [] } },
+    }));
+
+    // Reused placeholder in Set 2 for Slot 1
+    db.prepare(`
+      INSERT INTO announcement_set_slides (ann_set_id, label, payload, position)
+      VALUES (?, 'Closing Poster Slot 1', ?, 1)
+    `).run(set2Id, JSON.stringify({
+      schemaVersion: 1,
+      id: 'ann-set2-slot1',
+      label: 'Closing Poster Slot 1',
+      baseType: 'general',
+      isPlaceholder: true,
+      placeholderSlot: 1,
+      placeholders: [],
+      layouts: { default: { aspectRatio: '16:9', backgroundColor: '#444444', elements: [] } },
+    }));
+
+    // Reused placeholder in Set 2 for Slot 2 (empty -> must be omitted)
+    db.prepare(`
+      INSERT INTO announcement_set_slides (ann_set_id, label, payload, position)
+      VALUES (?, 'Closing Poster Slot 2 (Empty)', ?, 2)
+    `).run(set2Id, JSON.stringify({
+      schemaVersion: 1,
+      id: 'ann-set2-slot2',
+      label: 'Closing Poster Slot 2 (Empty)',
+      baseType: 'general',
+      isPlaceholder: true,
+      placeholderSlot: 2,
+      placeholders: [],
+      layouts: { default: { aspectRatio: '16:9', backgroundColor: '#555555', elements: [] } },
+    }));
+
+    // Insert marker rows in artifact_templates for both sets
+    db.prepare(`
+      INSERT OR REPLACE INTO artifact_templates (id, label, base_type, ann_set_id, position, updated_at)
+      VALUES ('marker-test-set-1', 'Break Announcements Marker', 'ann-set-marker', ?, 901, datetime('now'))
+    `).run(set1Id);
+    db.prepare(`
+      INSERT OR REPLACE INTO artifact_templates (id, label, base_type, ann_set_id, position, updated_at)
+      VALUES ('marker-test-set-2', 'Closing Announcements Marker', 'ann-set-marker', ?, 902, datetime('now'))
+    `).run(set2Id);
+
+    const slot1Image = '/api/uploads/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png';
+    const plan = buildSlidePlan(
+      '2026-09-20',
+      { items: [] },
+      {
+        announcementInserts: [slot1Image, '', '', ''],
+      }
+    );
+
+    // Assert:
+    // Normal slide in Set 1 must be present
+    const normalSlide = plan.find((s) => s.title === 'Normal Slide');
+    assert.ok(normalSlide, 'Normal announcement slide must be present');
+
+    // Slot 1 in Set 1 must be present and have slot1Image background
+    const slot1Slide = plan.find((s) => s.title === 'Weekly Poster Slot 1');
+    assert.ok(slot1Slide, 'Populated Slot 1 placeholder slide must be present in Set 1');
+    assert.equal(slot1Slide.artifact.layout.backgroundImage, slot1Image);
+    assert.equal(slot1Slide.imageUrl, slot1Image);
+
+    // Slot 2 in Set 1 must be OMITTED
+    const slot2Slide = plan.find((s) => s.title === 'Weekly Poster Slot 2 (Empty)');
+    assert.equal(slot2Slide, undefined, 'Empty Slot 2 placeholder slide must be omitted from Set 1');
+
+    // Slot 1 in Set 2 must be present and resolve the same slot1Image
+    const set2Slot1 = plan.find((s) => s.title === 'Closing Poster Slot 1');
+    assert.ok(set2Slot1, 'Reused Slot 1 placeholder slide must be present in Set 2');
+    assert.equal(set2Slot1.artifact.layout.backgroundImage, slot1Image);
+    assert.equal(set2Slot1.imageUrl, slot1Image);
+
+    // Slot 2 in Set 2 must be OMITTED
+    const set2Slot2 = plan.find((s) => s.title === 'Closing Poster Slot 2 (Empty)');
+    assert.equal(set2Slot2, undefined, 'Empty Slot 2 placeholder slide must be omitted from Set 2');
+  } finally {
+    db.prepare(`DELETE FROM artifact_templates WHERE id IN ('marker-test-set-1', 'marker-test-set-2')`).run();
+    db.prepare(`DELETE FROM announcement_set_slides WHERE ann_set_id IN (?, ?)`).run(set1Id, set2Id);
+    db.prepare(`DELETE FROM announcement_sets WHERE id IN (?, ?)`).run(set1Id, set2Id);
+  }
+});
+
+test('SPEC-43-06: 26. AnnouncementSetsPanel and forms support designating slides as placeholders and 4 weekly poster upload slots without afternoonProgram', () => {
+  const panelPath = path.join(root, 'src', 'components', 'admin', 'AnnouncementSetsPanel.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+  const fieldsPath = path.join(root, 'src', 'lib', 'worship-form-fields.ts');
+  const enCatalogPath = path.join(root, 'src', 'lib', 'i18n', 'catalogue-en.ts');
+  const idCatalogPath = path.join(root, 'src', 'lib', 'i18n', 'catalogue-id.ts');
+
+  const panelSrc = fs.readFileSync(panelPath, 'utf8');
+  const editFormSrc = fs.readFileSync(editFormPath, 'utf8');
+  const createFormSrc = fs.readFileSync(createFormPath, 'utf8');
+  const fieldsSrc = fs.readFileSync(fieldsPath, 'utf8');
+  const enCatalogSrc = fs.readFileSync(enCatalogPath, 'utf8');
+  const idCatalogSrc = fs.readFileSync(idCatalogPath, 'utf8');
+
+  // 1. AnnouncementSetsPanel UI controls for placeholders
+  assert.ok(
+    panelSrc.includes('data-testid="announcement-placeholder-controls"'),
+    'AnnouncementSetsPanel must provide placeholder controls container'
+  );
+  assert.ok(
+    panelSrc.includes('data-testid="slide-is-placeholder"'),
+    'AnnouncementSetsPanel must provide slide-is-placeholder checkbox'
+  );
+  assert.ok(
+    panelSrc.includes('data-testid="slide-placeholder-slot"'),
+    'AnnouncementSetsPanel must provide slide-placeholder-slot dropdown'
+  );
+  assert.ok(
+    panelSrc.includes('[Weekly Slot'),
+    'AnnouncementSetsPanel slide list must display [Weekly Slot chip for placeholder slides'
+  );
+
+  // 2. EditForm and CreateForm provide 4 weekly announcement poster slots
+  for (const [name, src] of [['EditForm.tsx', editFormSrc], ['CreateForm.tsx', createFormSrc]]) {
+    assert.ok(
+      src.includes('Weekly Announcement Posters'),
+      `${name} must include Weekly Announcement Posters section`
+    );
+    assert.ok(
+      src.includes('announcementInserts'),
+      `${name} must manage announcementInserts state`
+    );
+    assert.ok(
+      src.includes('Announcement Slot ${slot}') || src.includes('Slot ${slot} Poster'),
+      `${name} must render upload fields for Slots 1 through 4`
+    );
+  }
+
+  // 3. afternoonProgram is strictly absent from forms, fields, catalogs, parsers, services, and endpoints
+  assert.ok(!editFormSrc.includes('afternoonProgram'), 'EditForm must not contain afternoonProgram');
+  assert.ok(!createFormSrc.includes('afternoonProgram'), 'CreateForm must not contain afternoonProgram');
+  assert.ok(!fieldsSrc.includes('afternoonProgram:'), 'WorshipFormFields must not include afternoonProgram field');
+  assert.ok(!enCatalogSrc.includes('form.afternoonProgram'), 'EN catalog must prune form.afternoonProgram');
+  assert.ok(!idCatalogSrc.includes('form.afternoonProgram'), 'ID catalog must prune form.afternoonProgram');
+
+  const parserTsPath = path.join(root, 'src', 'lib', 'parser.ts');
+  const parserGoPath = path.join(root, 'internal', 'parse', 'parser.go');
+  const fieldsGoPath = path.join(root, 'internal', 'parse', 'fields.go');
+  const servicesGoPath = path.join(root, 'internal', 'httpapi', 'services.go');
+  const webhookGoPath = path.join(root, 'internal', 'httpapi', 'webhook.go');
+  const keysPath = path.join(root, 'src', 'lib', 'i18n', 'keys.ts');
+  const slidePlanPath = path.join(root, 'src', 'lib', 'slide-plan.ts');
+  const planGoPath = path.join(root, 'internal', 'plan', 'plan.go');
+  const phCatalogPath = path.join(root, 'src', 'lib', 'registry', 'placeholder-catalog.ts');
+  const validateGoPath = path.join(root, 'internal', 'plan', 'validate_artifact.go');
+  const typesGoPath = path.join(root, 'internal', 'plan', 'types.go');
+  const createServiceTsPath = path.join(root, 'src', 'lib', 'services', 'create-service.ts');
+  const updateServiceTsPath = path.join(root, 'src', 'lib', 'services', 'update-service.ts');
+  const parsedFieldsTsPath = path.join(root, 'src', 'lib', 'parsed-fields.ts');
+
+  const parserTsSrc = fs.readFileSync(parserTsPath, 'utf8');
+  const parserGoSrc = fs.readFileSync(parserGoPath, 'utf8');
+  const fieldsGoSrc = fs.readFileSync(fieldsGoPath, 'utf8');
+  const servicesGoSrc = fs.readFileSync(servicesGoPath, 'utf8');
+  const webhookGoSrc = fs.readFileSync(webhookGoPath, 'utf8');
+  const keysSrc = fs.readFileSync(keysPath, 'utf8');
+  const slidePlanSrc = fs.readFileSync(slidePlanPath, 'utf8');
+  const planGoSrc = fs.readFileSync(planGoPath, 'utf8');
+  const phCatalogSrc = fs.readFileSync(phCatalogPath, 'utf8');
+  const validateGoSrc = fs.readFileSync(validateGoPath, 'utf8');
+  const typesGoSrc = fs.readFileSync(typesGoPath, 'utf8');
+  const createServiceTsSrc = fs.readFileSync(createServiceTsPath, 'utf8');
+  const updateServiceTsSrc = fs.readFileSync(updateServiceTsPath, 'utf8');
+  const parsedFieldsTsSrc = fs.readFileSync(parsedFieldsTsPath, 'utf8');
+
+  assert.ok(!keysSrc.includes('form.afternoonProgram'), 'keys.ts must prune form.afternoonProgram');
+  assert.ok(!parserTsSrc.includes('afternoonProgram'), 'parser.ts must not contain afternoonProgram');
+  assert.ok(!parserGoSrc.includes('AfternoonProgram'), 'parser.go must not contain AfternoonProgram');
+  assert.ok(!fieldsGoSrc.includes('afternoonProgram') && !fieldsGoSrc.includes('afternoon_program'), 'fields.go must not parse afternoonProgram');
+  assert.ok(!servicesGoSrc.includes('"afternoonProgram"'), 'services.go hydrate must not emit afternoonProgram');
+  assert.ok(!webhookGoSrc.includes('parsed.AfternoonProgram'), 'webhook.go must not read AfternoonProgram');
+  assert.ok(!slidePlanSrc.includes('afternoonProgram'), 'slide-plan.ts must not contain afternoonProgram');
+  assert.ok(!planGoSrc.includes('afternoonProgram') && !planGoSrc.includes('afternoon_program'), 'plan.go must not emit afternoon_program');
+  assert.ok(!phCatalogSrc.includes('afternoon_program'), 'placeholder-catalog.ts must prune afternoon_program');
+  assert.ok(!validateGoSrc.includes('"afternoon_program"'), 'validate_artifact.go must prune afternoon_program');
+  assert.ok(!typesGoSrc.includes('AfternoonProgram'), 'types.go must not contain AfternoonProgram');
+  assert.ok(!createServiceTsSrc.includes('afternoonProgram'), 'create-service.ts must not contain afternoonProgram');
+  assert.ok(!updateServiceTsSrc.includes('afternoonProgram') && !updateServiceTsSrc.includes('afternoon_program'), 'update-service.ts must not contain afternoonProgram');
+  assert.ok(!parsedFieldsTsSrc.includes('afternoonProgram'), 'parsed-fields.ts must not contain afternoonProgram');
+
+  // 4. Executable defect-injection absence proof for afternoonProgram removal guard
+  function scanAfternoonProgramField(src) {
+    const findings = [];
+    if (src.includes('afternoonProgram:')) {
+      findings.push('Found afternoonProgram field declaration in form fields');
+    }
+    return findings;
+  }
+  assert.deepEqual(scanAfternoonProgramField(fieldsSrc), [], 'Pristine worship-form-fields.ts must not have afternoonProgram');
+  const defectiveFields = fieldsSrc.replace('youthName: string;', 'youthName: string;\n  afternoonProgram: string;');
+  assert.notEqual(defectiveFields, fieldsSrc);
+  fs.writeFileSync(fieldsPath, defectiveFields, 'utf8');
+  try {
+    const findings = scanAfternoonProgramField(fs.readFileSync(fieldsPath, 'utf8'));
+    assert.ok(findings.some((f) => f.includes('Found afternoonProgram field declaration')), 'Absence guard must detect injected afternoonProgram');
+  } finally {
+    fs.writeFileSync(fieldsPath, fieldsSrc, 'utf8');
+  }
+});
+
+function scanPlaceholderOmissionGuard(fileOrSource) {
+  let source;
+  if (typeof fileOrSource === 'string' && fs.existsSync(fileOrSource)) {
+    source = fs.readFileSync(fileOrSource, 'utf8');
+  } else {
+    source = String(fileOrSource);
+  }
+
+  const findings = [];
+  // Must check isPlaceholder and placeholderSlot
+  if (!/isPlaceholder[\s\S]*?placeholderSlot/.test(source)) {
+    findings.push('Missing isPlaceholder / placeholderSlot inspection in slide plan');
+  }
+  // Must omit when slot is empty
+  const omissionPattern = /if\s*\(!insertUrl\s*\|\|\s*!insertUrl\.trim\(\)\)\s*\{\s*continue;\s*\}/;
+  if (!omissionPattern.test(source)) {
+    findings.push('Missing empty placeholder slide omission guard (if (!insertUrl || !insertUrl.trim()) { continue; })');
+  }
+  return findings;
+}
+
+test('SPEC-43-06: 27. Real-file defect injection proof for placeholder slide omission absence guard', async () => {
+  const slidePlanPath = path.join(root, 'src', 'lib', 'slide-plan.ts');
+  const pristine = fs.readFileSync(slidePlanPath, 'utf8');
+
+  try {
+    // 1. Pristine real file must be clean
+    const cleanFindings = scanPlaceholderOmissionGuard(slidePlanPath);
+    assert.deepEqual(cleanFindings, [], 'Current slide-plan.ts on disk must satisfy placeholder omission guard');
+
+    // 2. Inject omission bypass into real file on disk (break the guard)
+    const defective = pristine.replace(
+      /if\s*\(!insertUrl\s*\|\|\s*!insertUrl\.trim\(\)\)\s*\{\s*continue;\s*\}/,
+      '/* omission bypassed */'
+    );
+    assert.notEqual(defective, pristine, 'Mutation must change file content');
+    fs.writeFileSync(slidePlanPath, defective, 'utf8');
+
+    // 3. Scan real file and assert defect detection
+    const findings = scanPlaceholderOmissionGuard(slidePlanPath);
+    assert.ok(
+      findings.some((f) => f.includes('Missing empty placeholder slide omission guard')),
+      'scanPlaceholderOmissionGuard on real file must detect omission guard removal'
+    );
+
+    // 4. Restore and verify clean again
+    fs.writeFileSync(slidePlanPath, pristine, 'utf8');
+    const restoredFindings = scanPlaceholderOmissionGuard(slidePlanPath);
+    assert.deepEqual(restoredFindings, []);
+  } finally {
+    fs.writeFileSync(slidePlanPath, pristine, 'utf8');
+  }
+});
+
+test('SPEC-43-06: 28. Pre-existing database rows and legacy parsed_data JSON with afternoon_program read safely without errors', async () => {
+  const { getDb } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'db', 'index.ts')).href
+  );
+  const { buildSlidePlan } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'slide-plan.ts')).href
+  );
+  const { normalizeParsedRundown } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'parsed-fields.ts')).href
+  );
+
+  const db = getDb();
+  const legacyJson = JSON.stringify({
+    date: '2026-05-02',
+    items: [],
+    afternoonProgram: 'AY Program: Pathfinders Investiture',
+  });
+  const res = db.prepare(`
+    INSERT INTO services (date, raw_payload, parsed_data, images_payload, afternoon_program, updated_at)
+    VALUES ('2026-05-02', 'legacy rundown', ?, '{}', 'AY Program Legacy Text', datetime('now'))
+  `).run(legacyJson);
+  const serviceId = Number(res.lastInsertRowid);
+  try {
+    const row = db.prepare(`SELECT * FROM services WHERE id = ?`).get(serviceId);
+    assert.ok(row, 'Legacy row must be read from database');
+    assert.equal(row.afternoon_program, 'AY Program Legacy Text');
+
+    // 1. normalizeParsedRundown on legacy parsed JSON does not throw and produces clean ParsedRundown
+    const normalized = normalizeParsedRundown(JSON.parse(row.parsed_data));
+    assert.equal(normalized.date, '2026-05-02');
+    assert.equal(normalized.afternoonProgram, undefined);
+
+    // 2. buildSlidePlan with raw legacy parsed JSON builds valid slide plan without errors
+    const planRaw = buildSlidePlan('2026-05-02', JSON.parse(row.parsed_data), []);
+    assert.ok(Array.isArray(planRaw) && planRaw.length > 0, 'Slide plan must build from raw legacy service');
+
+    // 3. buildSlidePlan with normalized legacy result builds valid slide plan (normalization-to-plan path)
+    const planNormalized = buildSlidePlan('2026-05-02', normalized, []);
+    assert.ok(Array.isArray(planNormalized) && planNormalized.length > 0, 'Slide plan must build from normalized legacy service');
+    for (const slide of planNormalized) {
+      if (slide.artifact?.values) {
+        assert.equal(slide.artifact.values.afternoon_program, undefined);
+      }
+    }
+  } finally {
+    db.prepare(`DELETE FROM services WHERE id = ?`).run(serviceId);
+  }
+});
+
+test('SPEC-43-06: 29. Placeholder metadata validation rejects missing or out-of-range slots', async () => {
+  const { validateArtifactTemplate } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'validate.ts')).href
+  );
+
+  const baseTmpl = {
+    schemaVersion: 1,
+    id: 'test-ph',
+    label: 'Test PH',
+    baseType: 'general',
+    placeholders: [],
+    layouts: { default: { aspectRatio: '16:9', backgroundColor: '#000000', elements: [] } },
+  };
+
+  // 1. isPlaceholder: true without placeholderSlot throws RegistryValidationError
+  assert.throws(
+    () => validateArtifactTemplate({ ...baseTmpl, isPlaceholder: true }),
+    /placeholderSlot must be an integer between 1 and 4 when isPlaceholder is true/
+  );
+
+  // 2. isPlaceholder: true with out-of-range slots (0, 5, -1, 1.5, NaN) throws RegistryValidationError
+  for (const invalidSlot of [0, 5, -1, 1.5, NaN]) {
+    assert.throws(
+      () => validateArtifactTemplate({ ...baseTmpl, isPlaceholder: true, placeholderSlot: invalidSlot }),
+      /placeholderSlot must be an integer between 1 and 4 when isPlaceholder is true/,
+      `Slot ${invalidSlot} must be rejected`
+    );
+  }
+
+  // 3. isPlaceholder: true with valid slot (1..4) succeeds
+  for (const validSlot of [1, 2, 3, 4]) {
+    const validated = validateArtifactTemplate({ ...baseTmpl, isPlaceholder: true, placeholderSlot: validSlot });
+    assert.equal(validated.isPlaceholder, true);
+    assert.equal(validated.placeholderSlot, validSlot);
+  }
+
+  // 4. isPlaceholder: false omits placeholderSlot
+  const validatedFalse = validateArtifactTemplate({ ...baseTmpl, isPlaceholder: false, placeholderSlot: 2 });
+  assert.equal(validatedFalse.isPlaceholder, undefined);
+  assert.equal(validatedFalse.placeholderSlot, undefined);
+});
+
+test('SPEC-43-06: 30. Go omission branch absence-guard mutation proof', () => {
+  const planGoPath = path.join(root, 'internal', 'plan', 'plan.go');
+  const pristine = fs.readFileSync(planGoPath, 'utf8');
+
+  function scanGoPlaceholderOmission(src) {
+    const findings = [];
+    if (!/sl\.Template\.IsPlaceholder\s*&&\s*sl\.Template\.PlaceholderSlot\s*!=\s*nil/.test(src)) {
+      findings.push('Go plan.go missing sl.Template.IsPlaceholder check');
+    }
+    if (!/if\s*slotURL\s*==\s*""\s*\{[^}]*?continue[^}]*?\}/.test(src)) {
+      findings.push('Go plan.go missing if slotURL == "" { continue } omission guard');
+    }
+    return findings;
+  }
+
+  try {
+    // 1. Pristine clean
+    assert.deepEqual(scanGoPlaceholderOmission(pristine), [], 'Go plan.go pristine must pass');
+
+    // 2. Inject defect: break Go omission guard
+    const defective = pristine.replace(
+      /if\s*slotURL\s*==\s*""\s*\{[^}]*?continue[^}]*?\}/,
+      '/* omission bypassed */'
+    );
+    assert.notEqual(defective, pristine);
+    fs.writeFileSync(planGoPath, defective, 'utf8');
+
+    // 3. Scan real on-disk modified file and assert defect detection
+    const onDiskDefective = fs.readFileSync(planGoPath, 'utf8');
+    const findings = scanGoPlaceholderOmission(onDiskDefective);
+    assert.ok(
+      findings.some((f) => f.includes('missing if slotURL == "" { continue } omission guard')),
+      'scanGoPlaceholderOmission on modified disk file must detect broken omission guard in plan.go'
+    );
+
+    // 4. Restore
+    fs.writeFileSync(planGoPath, pristine, 'utf8');
+    assert.deepEqual(scanGoPlaceholderOmission(fs.readFileSync(planGoPath, 'utf8')), []);
+  } finally {
+    fs.writeFileSync(planGoPath, pristine, 'utf8');
+  }
+});
+
+

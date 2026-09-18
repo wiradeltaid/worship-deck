@@ -493,9 +493,9 @@ test('SPEC-39-02: 5. Executable absence guard & defect injection proof for manua
   );
 });
 
-test('SPEC-39-03: 1. Go and TypeScript placeholder catalogs define afternoon_program and dynamic media keys with parity', () => {
-  // 1. TypeScript catalog contains afternoon_program and image keys
-  assert.equal(isCatalogPlaceholderKey('afternoon_program'), true);
+test('SPEC-39-03: 1. Go and TypeScript placeholder catalogs define dynamic media keys with parity and retire afternoon_program', () => {
+  // 1. TypeScript catalog contains dynamic media keys and prunes afternoon_program (SPEC-43-06)
+  assert.equal(isCatalogPlaceholderKey('afternoon_program'), false);
   assert.equal(isCatalogPlaceholderKey('sermon_poster'), true);
   assert.equal(isCatalogPlaceholderKey('family_photo'), true);
   assert.equal(isCatalogPlaceholderKey('youth_photo'), true);
@@ -506,8 +506,8 @@ test('SPEC-39-03: 1. Go and TypeScript placeholder catalogs define afternoon_pro
   const goCode = fs.readFileSync(goValidatePath, 'utf8');
 
   assert.ok(
-    goCode.includes('"afternoon_program":       "text"') || goCode.includes('"afternoon_program": "text"'),
-    'Go catalogKeys in validate_artifact.go must include afternoon_program'
+    !goCode.includes('"afternoon_program"'),
+    'Go catalogKeys in validate_artifact.go must prune afternoon_program per SPEC-43-06'
   );
   assert.ok(
     goCode.includes('"sermon_poster":           "image"') || goCode.includes('"sermon_poster": "image"'),
@@ -523,14 +523,14 @@ test('SPEC-39-03: 1. Go and TypeScript placeholder catalogs define afternoon_pro
   );
 });
 
-test('SPEC-39-03: 2. Weekly service schema and persistence preserves afternoon_program across forms and database', () => {
+test('SPEC-39-03: 2. Weekly service database schema retains afternoon_program column for legacy compatibility without active form writes (SPEC-43-06)', () => {
   const db = getDb();
   // 1. Database schema check for afternoon_program on services table
   const columns = db.prepare(`PRAGMA table_info(services)`).all();
   const hasAfternoonCol = columns.some((c) => c.name === 'afternoon_program');
   assert.ok(hasAfternoonCol, 'services table must include afternoon_program column');
 
-  // 2. Form state helper roundtrips
+  // 2. Form state helper roundtrips without afternoonProgram
   const formPayload = buildFieldsPayload({
     songSets: {},
     verseReference: '',
@@ -543,11 +543,10 @@ test('SPEC-39-03: 2. Weekly service schema and persistence preserves afternoon_p
     youthPrayerRequest: '',
     familyName: '',
     youthName: '',
-    afternoonProgram: 'AY Program: Bible Bowl (14:30)',
   });
-  assert.equal(formPayload.afternoonProgram, 'AY Program: Bible Bowl (14:30)');
+  assert.equal(formPayload.afternoonProgram, undefined);
 
-  // 3. Hydrate fieldsFromParsed roundtrip
+  // 3. Hydrate fieldsFromParsed roundtrip safely handles missing afternoonProgram
   const hydrated = fieldsFromParsed({
     date: '2026-09-20',
     items: [],
@@ -561,18 +560,14 @@ test('SPEC-39-03: 2. Weekly service schema and persistence preserves afternoon_p
     familyYouth: null,
     familyPrayerRequest: null,
     youthPrayerRequest: null,
-    afternoonProgram: 'Community Outreach (15:00)',
   });
-  assert.equal(hydrated.afternoonProgram, 'Community Outreach (15:00)');
+  assert.equal(hydrated.afternoonProgram, undefined);
 
   // 4. Persistence into services table column via createService
   const created = createService(
     db,
     {
       rawPayload: 'Sabbath, September 26, 2026\nDivine Service',
-      structured: {
-        afternoonProgram: 'Health Expo & Seminar (14:00)',
-      },
       clearMaster: false,
       allowSecond: true,
       payload: {
@@ -590,11 +585,11 @@ test('SPEC-39-03: 2. Weekly service schema and persistence preserves afternoon_p
     const row = db.prepare(
       `SELECT afternoon_program FROM services WHERE id = ?`
     ).get(created.id);
-    assert.equal(row.afternoon_program, 'Health Expo & Seminar (14:00)', 'afternoon_program column must persist value');
+    assert.equal(row.afternoon_program, '', 'afternoon_program column receives empty string on new creates');
   }
 });
 
-test('SPEC-39-03: 3. Weekly announcement slide hydration maps sermon_poster, family_photo, youth_photo, and afternoon_program', () => {
+test('SPEC-39-03: 3. Weekly announcement slide hydration maps sermon_poster, family_photo, and youth_photo (SPEC-43-06)', () => {
   // Weekly input with dynamic announcement graphics and schedule
   const weeklyInput = {
     serviceDate: '2026-09-20',
@@ -605,7 +600,6 @@ test('SPEC-39-03: 3. Weekly announcement slide hydration maps sermon_poster, fam
     sermonGraphic: '/api/uploads/sermon-poster-1.png',
     familyPhoto: '/api/uploads/smith-family.png',
     youthPhoto: '/api/uploads/youth-group.png',
-    afternoonProgram: 'Pathfinder Club Drill & Camping Prep',
   };
 
   const values = catalogValuesFromWeekly(weeklyInput);
@@ -617,7 +611,7 @@ test('SPEC-39-03: 3. Weekly announcement slide hydration maps sermon_poster, fam
   assert.equal(values.sermon_poster, '/api/uploads/sermon-poster-1.png');
   assert.equal(values.family_photo, '/api/uploads/smith-family.png');
   assert.equal(values.youth_photo, '/api/uploads/youth-group.png');
-  assert.equal(values.afternoon_program, 'Pathfinder Club Drill & Camping Prep');
+  assert.equal(values.afternoon_program, undefined);
 
   // Verify full plan-level hydration via buildSlidePlan
   const parsedData = {
@@ -699,7 +693,6 @@ test('SPEC-39-03: 5. Executable absence guard & defect injection proof for dynam
     const fnMatch = source.match(/function\s+catalogInputFromCtx\s*\([^)]*\)\s*:\s*CatalogWeeklyInput\s*\{[\s\S]*?\}/);
     assert.ok(fnMatch, 'catalogInputFromCtx must explicitly return CatalogWeeklyInput');
     const body = fnMatch[0];
-    assert.ok(body.includes('afternoonProgram: ctx.afternoonProgram'), 'Must bridge afternoonProgram');
     assert.ok(body.includes('scriptureReference: ctx.verseReading?.reference'), 'Must bridge scriptureReference');
     assert.ok(body.includes('familyRequest: ctx.familyPrayer || ctx.legacyCombined'), 'Must bridge familyRequest');
     assert.ok(body.includes('youthRequest: ctx.youthPrayer'), 'Must bridge youthRequest');
@@ -708,26 +701,18 @@ test('SPEC-39-03: 5. Executable absence guard & defect injection proof for dynam
   // Live source must pass
   assert.doesNotThrow(() => verifyCatalogHydrationBridge(slidePlanCode));
 
-  // Defect injection 1: omitting afternoonProgram in bridge
-  const defect1 = slidePlanCode.replace('afternoonProgram: ctx.afternoonProgram', '// omitted');
+  // Defect injection: wrong property name for scriptureReference
+  const defect1 = slidePlanCode.replace('scriptureReference:', 'verseReference:');
   assert.throws(
     () => verifyCatalogHydrationBridge(defect1),
-    /Must bridge afternoonProgram/,
-    'Absence guard must fail if afternoonProgram is omitted in slide-plan bridge'
-  );
-
-  // Defect injection 2: wrong property name for scriptureReference
-  const defect2 = slidePlanCode.replace('scriptureReference:', 'verseReference:');
-  assert.throws(
-    () => verifyCatalogHydrationBridge(defect2),
     /Must bridge scriptureReference/,
     'Absence guard must fail if scriptureReference bridge uses wrong property name'
   );
 
-  // Defect injection 3: wrong property name for familyRequest
-  const defect3 = slidePlanCode.replace('familyRequest:', 'familyPrayer:');
+  // Defect injection 2: wrong property name for familyRequest
+  const defect2 = slidePlanCode.replace('familyRequest:', 'familyPrayer:');
   assert.throws(
-    () => verifyCatalogHydrationBridge(defect3),
+    () => verifyCatalogHydrationBridge(defect2),
     /Must bridge familyRequest/,
     'Absence guard must fail if familyRequest bridge uses wrong property name'
   );

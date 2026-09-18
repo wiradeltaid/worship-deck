@@ -30,12 +30,14 @@ type announcementSetSlide struct {
 }
 
 type announcementSetSlideSummary struct {
-	ID         int    `json:"id"`
-	AnnSetID   int    `json:"annSetId"`
-	Label      string `json:"label"`
-	Position   int    `json:"position"`
-	UpdatedAt  string `json:"updatedAt"`
-	Resettable bool   `json:"resettable"`
+	ID              int    `json:"id"`
+	AnnSetID        int    `json:"annSetId"`
+	Label           string `json:"label"`
+	Position        int    `json:"position"`
+	UpdatedAt       string `json:"updatedAt"`
+	Resettable      bool   `json:"resettable"`
+	IsPlaceholder   bool   `json:"isPlaceholder,omitempty"`
+	PlaceholderSlot *int   `json:"placeholderSlot,omitempty"`
 }
 
 func normalizeAnnouncementSetLabel(raw any) (string, string) {
@@ -296,7 +298,7 @@ func (s *Server) listAnnouncementSetSlides(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	rows, err := s.DB.Query(
-		`SELECT id, ann_set_id, label, position, updated_at, seed_hash
+		`SELECT id, ann_set_id, label, position, updated_at, seed_hash, payload
 		   FROM announcement_set_slides
 		  WHERE ann_set_id = ?
 		  ORDER BY position ASC, id ASC`,
@@ -311,11 +313,22 @@ func (s *Server) listAnnouncementSetSlides(w http.ResponseWriter, r *http.Reques
 	for rows.Next() {
 		var sl announcementSetSlideSummary
 		var seedHash sql.NullString
-		if err := rows.Scan(&sl.ID, &sl.AnnSetID, &sl.Label, &sl.Position, &sl.UpdatedAt, &seedHash); err != nil {
+		var payloadStr string
+		if err := rows.Scan(&sl.ID, &sl.AnnSetID, &sl.Label, &sl.Position, &sl.UpdatedAt, &seedHash, &payloadStr); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 		sl.Resettable = seedHash.Valid && seedHash.String != ""
+		var raw map[string]any
+		if json.Unmarshal([]byte(payloadStr), &raw) == nil {
+			if b, ok := raw["isPlaceholder"].(bool); ok {
+				sl.IsPlaceholder = b
+			}
+			if n, ok := raw["placeholderSlot"].(float64); ok && n >= 1 && n <= 4 {
+				slot := int(n)
+				sl.PlaceholderSlot = &slot
+			}
+		}
 		slides = append(slides, sl)
 	}
 	if err := rows.Err(); err != nil {
