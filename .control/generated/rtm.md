@@ -1941,6 +1941,51 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-40-01
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-40-02
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - src/components/admin/BackgroundLibraryPanel.tsx
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-40-03
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3994,6 +4039,51 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-40-01
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-40-02
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - src/components/admin/BackgroundLibraryPanel.tsx
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-40-03
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -4052,6 +4142,36 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-31
+  DEC: []
+  UC: UC-25
+  ticket: SPEC-40-01
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-31
+  DEC: []
+  UC: UC-25
+  ticket: SPEC-40-02
+  spec: SPEC-40
+  release: gallery-asset-replacement-and-custom-name
+  test:
+  - src/components/admin/BackgroundLibraryPanel.tsx
+  - tests/smoke-spec-40.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31

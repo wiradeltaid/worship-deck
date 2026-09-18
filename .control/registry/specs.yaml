@@ -1905,6 +1905,45 @@ waves:
           - internal/plan
           - tests/smoke-spec-39.test.mjs
 
+  - id: SPEC-40
+    status: open
+    release: gallery-asset-replacement-and-custom-name
+    prd: [offline-deck, operator-turn]
+    fr: [FR-20, FR-31]
+    size: M
+    depends_on: [SPEC-39]
+    spec_folder: .scratch/SPEC-40-gallery-asset-replacement-and-custom-name/
+    spec_reviewed:
+      date: '2026-09-18'
+      sha: '21ce5a8'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-40-01"
+        component: registry
+        satisfies: [UC-14, UC-25]
+        blocked_by: []
+        touches: [uploads, db]
+        tests:
+          - internal/httpapi
+          - tests/smoke-spec-40.test.mjs
+      - id: "SPEC-40-02"
+        component: registry
+        satisfies: [UC-14, UC-25]
+        blocked_by: ["SPEC-40-01"]
+        touches: [artifacts, uploads]
+        tests:
+          - src/components/admin/BackgroundLibraryPanel.tsx
+          - tests/smoke-spec-40.test.mjs
+      - id: "SPEC-40-03"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: ["SPEC-40-02"]
+        touches: [artifacts]
+        tests:
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/smoke-spec-40.test.mjs
+
+
 
 
 
