@@ -454,7 +454,7 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -515,7 +515,7 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -2429,7 +2429,7 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status

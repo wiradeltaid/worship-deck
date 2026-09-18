@@ -71,6 +71,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScriptureRefAutocomplete } from '@/components/ScriptureRefAutocomplete';
+import ScriptureOverlayView from '@/components/ScriptureOverlayView';
 import { useT } from '@/lib/i18n/operator';
 import {
   PresenterRemoteSession,
@@ -325,6 +326,21 @@ export default function PresenterOperator({
   const [remoteCode, setRemoteCode] = useState<string | null>(null);
   const [remoteDialogOpen, setRemoteDialogOpen] = useState(false);
   const [remoteActionBusy, setRemoteActionBusy] = useState(false);
+  const [scriptureOverlay, setScriptureOverlayState] = useState<{
+    reference: string;
+    text: string;
+  } | null>(null);
+  const scriptureOverlayRef = useRef<{
+    reference: string;
+    text: string;
+  } | null>(null);
+  const setScriptureOverlay = useCallback(
+    (val: { reference: string; text: string } | null) => {
+      scriptureOverlayRef.current = val;
+      setScriptureOverlayState(val);
+    },
+    []
+  );
   const remoteSessionRef = useRef<PresenterRemoteSession | null>(null);
   // The liveness verdict (`AD-29`): whether the projector is answering. Never
   // a second flag alongside it — the whole point of `nextLivenessState` is
@@ -470,6 +486,11 @@ export default function PresenterOperator({
   }, [projectorUrl, serviceId, dispatchLiveness]);
 
   const broadcast = useCallback((msg: PresentMessage) => {
+    if (msg.type === 'scripture') {
+      setScriptureOverlay({ reference: msg.reference, text: msg.text });
+    } else if (msg.type === 'clear-scripture' || msg.type === 'sync') {
+      setScriptureOverlay(null);
+    }
     channelRef.current?.postMessage(msg);
   }, []);
 
@@ -478,6 +499,7 @@ export default function PresenterOperator({
       const clamped = clampSlideIndex(next, slides.length);
       indexRef.current = clamped;
       setIndex(clamped);
+      setScriptureOverlay(null);
       // Carries the blank state and the live style unchanged rather than
       // dropping either: advancing while blanked must move the deck and leave
       // the projector black, and advancing after a style change must not put
@@ -603,6 +625,7 @@ export default function PresenterOperator({
       blank: blankRef.current,
       transition: transitionRef.current,
       background: backgroundRef.current,
+      scripture: scriptureOverlayRef.current,
       planIdentity: planIdentityRef.current,
     });
 
@@ -757,6 +780,7 @@ export default function PresenterOperator({
         setScriptureError(t('presenter.scripture.lookupFailed'));
         return;
       }
+      setScriptureOverlay({ reference: data.reference, text: data.text });
       broadcast({
         type: 'scripture',
         reference: data.reference,
@@ -884,6 +908,14 @@ export default function PresenterOperator({
                   Projector blanked
                 </span>
               ) : null}
+              {scriptureOverlay ? (
+                <span
+                  role="status"
+                  className={`${BADGE_CLASS} border-emerald-400/50 bg-emerald-400/15 text-emerald-300`}
+                >
+                  Scripture live
+                </span>
+              ) : null}
             </p>
             <div
               className={`aspect-video w-full overflow-hidden rounded-lg border bg-black relative ${
@@ -896,7 +928,14 @@ export default function PresenterOperator({
                   Looping ({loopInterval}s)
                 </div>
               ) : null}
-              {current ? <SlideView slide={current} /> : null}
+              {scriptureOverlay ? (
+                <ScriptureOverlayView
+                  reference={scriptureOverlay.reference}
+                  text={scriptureOverlay.text}
+                />
+              ) : current ? (
+                <SlideView slide={current} />
+              ) : null}
             </div>
           </section>
 
@@ -970,12 +1009,13 @@ export default function PresenterOperator({
             </Button>
             <Button
               variant="ghost"
-              onClick={() =>
+              onClick={() => {
+                setScriptureOverlay(null);
                 broadcast({
                   type: 'clear-scripture',
                   planIdentity: planIdentityRef.current,
-                })
-              }
+                });
+              }}
             >
               Clear scripture
             </Button>

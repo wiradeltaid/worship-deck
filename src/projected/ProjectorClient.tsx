@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import SlideView from '@/components/SlideView';
+import ScriptureOverlayView from '@/components/ScriptureOverlayView';
 import {
   adoptsSharedState,
   blankStateOf,
@@ -106,7 +107,7 @@ export default function ProjectorClient({
       if (nextBg !== undefined) setBackgroundOverride(nextBg);
       if (msg.type === 'sync') {
         goToRef.current(msg.index);
-        setOverlay(null);
+        setOverlay(msg.scripture ?? null);
       } else if (msg.type === 'scripture') {
         setOverlay({ reference: msg.reference, text: msg.text });
       } else if (msg.type === 'clear-scripture') {
@@ -201,12 +202,10 @@ export default function ProjectorClient({
         style={transitionLayerStyle(transition, 'incoming', phase)}
       >
         {overlay ? (
-          <div className="flex h-full w-full flex-col items-center justify-center bg-[#0B1220] px-12 text-center text-white">
-            <p className="mb-4 text-lg text-[#D4A574]">{overlay.reference}</p>
-            <p className="max-w-4xl text-3xl italic leading-relaxed">
-              {overlay.text}
-            </p>
-          </div>
+          <ScriptureOverlayView
+            reference={overlay.reference}
+            text={overlay.text}
+          />
         ) : slide ? (
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />
         ) : null}

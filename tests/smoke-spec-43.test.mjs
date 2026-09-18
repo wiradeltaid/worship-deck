@@ -605,3 +605,160 @@ test('SPEC-43-02: 13. Defect injection proof for panel scroll containment guard 
     );
   }
 });
+
+test('SPEC-43-03: 14. getScriptureScaling dynamically scales font size across exact length boundaries', async () => {
+  const { getScriptureScaling } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'scripture-scaling.ts')).href
+  );
+
+  // Exact boundary 59 chars (< 60)
+  const b59 = getScriptureScaling('A'.repeat(59));
+  assert.equal(b59.fontSizeStyle, 'clamp(2.5rem, 8.5cqh, 6rem)');
+  assert.equal(b59.minHeightStyle, '38cqh');
+  assert.ok(b59.tailwindClass.includes('text-8xl'));
+
+  // Exact boundary 60 chars (60-120)
+  const b60 = getScriptureScaling('A'.repeat(60));
+  assert.equal(b60.fontSizeStyle, 'clamp(2rem, 6.5cqh, 4.5rem)');
+  assert.equal(b60.minHeightStyle, '28cqh');
+  assert.ok(b60.tailwindClass.includes('text-7xl'));
+
+  // Exact boundary 119 chars (60-120)
+  const b119 = getScriptureScaling('A'.repeat(119));
+  assert.equal(b119.fontSizeStyle, 'clamp(2rem, 6.5cqh, 4.5rem)');
+  assert.equal(b119.minHeightStyle, '28cqh');
+
+  // Exact boundary 120 chars (120-200)
+  const b120 = getScriptureScaling('A'.repeat(120));
+  assert.equal(b120.fontSizeStyle, 'clamp(1.5rem, 4.8cqh, 3.5rem)');
+  assert.equal(b120.minHeightStyle, '20cqh');
+  assert.ok(b120.tailwindClass.includes('text-5xl'));
+
+  // Exact boundary 199 chars (120-200)
+  const b199 = getScriptureScaling('A'.repeat(199));
+  assert.equal(b199.fontSizeStyle, 'clamp(1.5rem, 4.8cqh, 3.5rem)');
+  assert.equal(b199.minHeightStyle, '20cqh');
+
+  // Exact boundary 200 chars (> 200)
+  const b200 = getScriptureScaling('A'.repeat(200));
+  assert.equal(b200.fontSizeStyle, 'clamp(1.25rem, 3.5cqh, 2.5rem)');
+  assert.equal(b200.minHeightStyle, 'auto');
+  assert.ok(b200.tailwindClass.includes('text-4xl'));
+});
+
+function scanScriptureMirroring(source) {
+  const findings = [];
+
+  // 1. Current stage contains ScriptureOverlayView conditionally
+  const stageMatch = source.match(
+    /<section>[\s\S]*?Current[\s\S]*?<div[^>]*aspect-video[\s\S]*?\{scriptureOverlay \? \(\s*<ScriptureOverlayView/
+  );
+  if (!stageMatch) {
+    findings.push('Current stage missing conditional <ScriptureOverlayView');
+  }
+
+  // 2. Current stage header contains Scripture live badge
+  const badgeMatch = source.match(
+    /Current[\s\S]*?\{scriptureOverlay \? \([\s\S]*?Scripture live/
+  );
+  if (!badgeMatch) {
+    findings.push('Current stage header missing "Scripture live" status badge');
+  }
+
+  // 3. setIndexAndSync clears scriptureOverlay
+  const setIndexMatch = source.match(
+    /const setIndexAndSync = useCallback\(\s*\([^)]*\)\s*=>\s*\{([\s\S]*?)\},\s*\[/
+  );
+  if (!setIndexMatch || !setIndexMatch[1].includes('setScriptureOverlay(null)')) {
+    findings.push('setIndexAndSync missing setScriptureOverlay(null) reset');
+  }
+
+  // 4. currentState includes scriptureOverlayRef
+  const currentStateMatch = source.match(
+    /const currentState = \(\): PresentMessage => \(\{[\s\S]*?scripture:\s*scriptureOverlayRef\.current/
+  );
+  if (!currentStateMatch) {
+    findings.push('currentState missing scripture: scriptureOverlayRef.current');
+  }
+
+  return findings;
+}
+
+test('SPEC-43-03: 15. PresenterOperator mirrors scripture on Current stage with status badge and parity with ProjectorClient', () => {
+  const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
+  const projectorPath = path.join(root, 'src', 'projected', 'ProjectorClient.tsx');
+  const projectorSource = fs.readFileSync(projectorPath, 'utf8');
+
+  // Parity check: both render ScriptureOverlayView
+  assert.ok(
+    projectorSource.includes('<ScriptureOverlayView'),
+    'ProjectorClient must render ScriptureOverlayView'
+  );
+
+  const findings = scanScriptureMirroring(currentPresenterSource);
+  assert.deepEqual(
+    findings,
+    [],
+    'PresenterOperator must structurally mirror scripture overlay on Current stage'
+  );
+});
+
+test('SPEC-43-03: 16. Defect injection proof for scripture stage mirroring guards across all structural forms', () => {
+  const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
+
+  // Form 1: ScriptureOverlayView omitted from Current stage
+  const defective1 = currentPresenterSource.replace(
+    '<ScriptureOverlayView',
+    '<!-- omitted -->'
+  );
+  assert.notEqual(defective1, currentPresenterSource);
+  const findings1 = scanScriptureMirroring(defective1);
+  assert.ok(
+    findings1.some((f) => f.includes('missing conditional <ScriptureOverlayView')),
+    'Must report missing conditional <ScriptureOverlayView defect'
+  );
+
+  // Form 2: Scripture live badge omitted
+  const defective2 = currentPresenterSource.replace('Scripture live', 'Slide live');
+  assert.notEqual(defective2, currentPresenterSource);
+  const findings2 = scanScriptureMirroring(defective2);
+  assert.ok(
+    findings2.some((f) => f.includes('"Scripture live" status badge')),
+    'Must report missing "Scripture live" status badge defect'
+  );
+
+  // Form 3: setScriptureOverlay(null) in setIndexAndSync omitted
+  const defective3 = currentPresenterSource.replace(
+    /indexRef\.current = clamped;\s*setIndex\(clamped\);\s*setScriptureOverlay\(null\);/,
+    'indexRef.current = clamped;\n      setIndex(clamped);'
+  );
+  assert.notEqual(defective3, currentPresenterSource);
+  const findings3 = scanScriptureMirroring(defective3);
+  assert.ok(
+    findings3.some((f) => f.includes('setIndexAndSync missing setScriptureOverlay(null)')),
+    'Must report missing setIndexAndSync reset defect'
+  );
+
+  // Form 4: currentState missing scriptureOverlayRef
+  const defective4 = currentPresenterSource.replace(
+    'scripture: scriptureOverlayRef.current,',
+    ''
+  );
+  assert.notEqual(defective4, currentPresenterSource);
+  const findings4 = scanScriptureMirroring(defective4);
+  assert.ok(
+    findings4.some((f) => f.includes('currentState missing scripture')),
+    'Must report currentState missing scripture defect'
+  );
+});
+
+test('SPEC-43-03: 17. ProjectorClient preserves active scripture overlay on sync reload', () => {
+  const projectorPath = path.join(root, 'src', 'projected', 'ProjectorClient.tsx');
+  const projectorSource = fs.readFileSync(projectorPath, 'utf8');
+
+  // Verify ProjectorClient message handler adopts msg.scripture on sync
+  assert.ok(
+    projectorSource.includes('setOverlay(msg.scripture ?? null);'),
+    'ProjectorClient must adopt msg.scripture on sync to survive projector reconnect/reload'
+  );
+});

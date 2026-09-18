@@ -23,6 +23,7 @@ export type PresentMessage =
       blank: boolean;
       transition: SlideTransition;
       background?: string | null;
+      scripture?: { reference: string; text: string } | null;
       planIdentity: string;
     }
   | { type: 'request-sync' }
