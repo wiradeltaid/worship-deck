@@ -301,7 +301,11 @@ func ParseScriptureValue(raw string) *Scripture {
 }
 
 func ParseRundown(db *sql.DB, rawText string) Rundown {
-	return ParseRundownWithProfile(db, rawText, DefaultParserProfile())
+	profile, err := LoadDefaultParserProfile(db)
+	if err != nil || profile == nil {
+		profile = DefaultParserProfile()
+	}
+	return ParseRundownWithProfile(db, rawText, profile)
 }
 
 func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile) Rundown {
