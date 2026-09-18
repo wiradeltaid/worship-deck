@@ -1586,13 +1586,21 @@ export function migrateSongBookRow(database: Database.Database): void {
   console.info(`[registry] migration 10->11: song_books row migration complete (data_version=11)`);
 }
 
-export {
+import {
   BUILTIN_DEFAULT_PARSER_PROFILE_ID,
   BUILTIN_DEFAULT_PARSER_PROFILE_SLUG,
   BUILTIN_DEFAULT_PARSER_PROFILE_TITLE,
   BUILTIN_DEFAULT_PARSER_PROFILE_DESC,
   BUILTIN_DEFAULT_RULES_JSON,
 } from '../parser-constants';
+
+export {
+  BUILTIN_DEFAULT_PARSER_PROFILE_ID,
+  BUILTIN_DEFAULT_PARSER_PROFILE_SLUG,
+  BUILTIN_DEFAULT_PARSER_PROFILE_TITLE,
+  BUILTIN_DEFAULT_PARSER_PROFILE_DESC,
+  BUILTIN_DEFAULT_RULES_JSON,
+};
 
 export function migrateParserProfiles(database: Database.Database): void {
   try {
