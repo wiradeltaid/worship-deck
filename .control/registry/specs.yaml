@@ -2146,6 +2146,45 @@ waves:
           - src/operator/EditForm.tsx
           - tests/smoke-spec-44.test.mjs
 
+  - id: SPEC-45
+    status: open
+    release: announcement-slot-layout-and-upload-persistence
+    prd: [operator-turn, offline-deck]
+    fr: [FR-20, FR-21]
+    size: S
+    depends_on: [SPEC-44]
+    spec_folder: .scratch/SPEC-45-announcement-slot-layout-and-upload-persistence/
+    spec_reviewed:
+      date: '2026-09-19'
+      sha: '2334bf4'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-45-01"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - spa/src/pages/RunSheetPage.tsx
+          - tests/smoke-spec-45.test.mjs
+      - id: "SPEC-45-02"
+        component: hub
+        satisfies: [UC-2, UC-5]
+        blocked_by: ["SPEC-45-01"]
+        touches: [services]
+        tests:
+          - src/operator/CreateForm.tsx
+          - src/operator/EditForm.tsx
+          - tests/smoke-spec-45.test.mjs
+      - id: "SPEC-45-03"
+        component: hub
+        satisfies: [UC-2, UC-5]
+        blocked_by: ["SPEC-45-02"]
+        touches: [services]
+        tests:
+          - tests/smoke-spec-45.test.mjs
+
+
 
 
 
