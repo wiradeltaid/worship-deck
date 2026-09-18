@@ -2014,6 +2014,73 @@ waves:
           - internal/httpapi
           - tests/smoke-spec-42.test.mjs
 
+  - id: SPEC-43
+    status: open
+    release: presenter-remote-scripture-announcement-ux
+    prd: [offline-deck, operator-turn, rundown-to-service]
+    fr: [FR-15, FR-20, FR-21, FR-31]
+    size: M
+    depends_on: [SPEC-42]
+    spec_folder: .scratch/SPEC-43-presenter-remote-scripture-announcement-ux/
+    spec_reviewed:
+      date: '2026-09-18'
+      sha: '58eaeab'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-43-01"
+        component: presenter
+        satisfies: [UC-12]
+        blocked_by: []
+        touches: [remote-control, present-channel]
+        tests:
+          - internal/httpapi
+          - src/operator/present/PresenterOperator.tsx
+          - tests/smoke-spec-43.test.mjs
+      - id: "SPEC-43-02"
+        component: presenter
+        satisfies: [UC-12]
+        blocked_by: ["SPEC-43-01"]
+        touches: [present-channel]
+        tests:
+          - src/operator/present/PresenterOperator.tsx
+          - tests/smoke-spec-43.test.mjs
+      - id: "SPEC-43-03"
+        component: presenter
+        satisfies: [UC-12, UC-13]
+        blocked_by: ["SPEC-43-02"]
+        touches: [scripture, present-channel]
+        tests:
+          - src/operator/present/PresenterOperator.tsx
+          - src/projected/ProjectorClient.tsx
+          - tests/smoke-spec-43.test.mjs
+      - id: "SPEC-43-04"
+        component: hub
+        satisfies: [UC-5, UC-24]
+        blocked_by: []
+        touches: [services, hymns]
+        tests:
+          - src/operator/EditForm.tsx
+          - tests/smoke-spec-43.test.mjs
+      - id: "SPEC-43-05"
+        component: registry
+        satisfies: [UC-14]
+        blocked_by: []
+        touches: [artifacts, pptx]
+        tests:
+          - src/components/admin/ArtifactEditor.tsx
+          - src/components/artifacts/ArtifactSlide.tsx
+          - src/lib/pptx-draw.ts
+          - tests/smoke-spec-43.test.mjs
+      - id: "SPEC-43-06"
+        component: hub
+        satisfies: [UC-5, UC-25]
+        blocked_by: ["SPEC-43-04"]
+        touches: [announcements, services, slide-plan]
+        tests:
+          - src/lib/slide-plan.ts
+          - src/operator/EditForm.tsx
+          - tests/smoke-spec-43.test.mjs
+
 
 
 

@@ -312,6 +312,17 @@ dag:
     - SPEC-42-01
   - parallel:
     - SPEC-42-02
+- spec: SPEC-43
+  order:
+  - parallel:
+    - SPEC-43-01
+    - SPEC-43-04
+    - SPEC-43-05
+  - parallel:
+    - SPEC-43-02
+    - SPEC-43-06
+  - parallel:
+    - SPEC-43-03
 - spec: W1
   order:
   - parallel:
