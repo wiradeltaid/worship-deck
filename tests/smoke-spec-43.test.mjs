@@ -762,3 +762,169 @@ test('SPEC-43-03: 17. ProjectorClient preserves active scripture overlay on sync
     'ProjectorClient must adopt msg.scripture on sync to survive projector reconnect/reload'
   );
 });
+
+// Absence guard helper for song set row layout in EditForm and CreateForm
+function scanSongSetRowLayout(fileOrSource, filename) {
+  let source;
+  let label;
+  if (typeof fileOrSource === 'string' && fs.existsSync(fileOrSource)) {
+    source = fs.readFileSync(fileOrSource, 'utf8');
+    label = filename || path.basename(fileOrSource);
+  } else {
+    source = String(fileOrSource);
+    label = filename || 'source';
+  }
+
+  const findings = [];
+  // Match the container of songSetEntries
+  const containerMatch = source.match(
+    /\{songSetEntries\.length === 0 \? \([\s\S]*?\)\s*:\s*\(\s*<div\s+className="([^"]*)"/
+  );
+  if (!containerMatch) {
+    findings.push(`${label}: songSetEntries container not found`);
+  } else {
+    const classes = containerMatch[1];
+    if (classes.includes('sm:grid-cols-2')) {
+      findings.push(
+        `${label}: song set list contains obsolete 2-column grid "sm:grid-cols-2"`
+      );
+    }
+    if (classes.includes('grid')) {
+      findings.push(
+        `${label}: song set list root container should be a vertical stack, not a grid`
+      );
+    }
+  }
+
+  // Verify data-slot="song-set-row"
+  const rowMatch = source.match(/data-slot="song-set-row"[\s\S]*?className="([^"]*)"/);
+  if (!rowMatch) {
+    findings.push(`${label}: missing data-slot="song-set-row" element`);
+  }
+
+  // Verify row controls container uses flex flex-wrap items-center gap-2.5 and does NOT use sm:grid-cols-2
+  const innerControlsMatch = source.match(
+    /data-slot="song-set-row"[\s\S]*?<div\s+className="([^"]*)"[\s\S]*?<Select\b/
+  );
+  if (!innerControlsMatch) {
+    findings.push(`${label}: missing row controls container before Select`);
+  } else {
+    const innerClasses = innerControlsMatch[1];
+    if (innerClasses.includes('sm:grid-cols-2')) {
+      findings.push(`${label}: inner controls container contains obsolete sm:grid-cols-2`);
+    }
+    if (!innerClasses.includes('flex') || !innerClasses.includes('flex-wrap') || !innerClasses.includes('items-center')) {
+      findings.push(`${label}: inner controls container missing flex flex-wrap items-center`);
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-43-04: 18. EditForm and CreateForm organize song set inputs as 1 row per song instead of 2-column grid', () => {
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+
+  const editFindings = scanSongSetRowLayout(editFormPath, 'EditForm.tsx');
+  assert.deepEqual(editFindings, [], 'EditForm.tsx must satisfy song set single-row layout');
+
+  const createFindings = scanSongSetRowLayout(createFormPath, 'CreateForm.tsx');
+  assert.deepEqual(createFindings, [], 'CreateForm.tsx must satisfy song set single-row layout');
+});
+
+test('SPEC-43-04: 19. Real-file defect injection proof for song set single-row layout guard in EditForm and CreateForm', () => {
+  const targets = [
+    { path: path.join(root, 'src', 'operator', 'EditForm.tsx'), name: 'EditForm.tsx' },
+    { path: path.join(root, 'src', 'operator', 'CreateForm.tsx'), name: 'CreateForm.tsx' },
+  ];
+
+  for (const { path: filePath, name } of targets) {
+    const pristine = fs.readFileSync(filePath, 'utf8');
+    try {
+      // 1. Pristine must pass
+      assert.deepEqual(scanSongSetRowLayout(filePath, name), [], `${name} pristine must pass`);
+
+      // 2. Form 1: outer 2-column grid defect injected into real file
+      const defective1 = pristine.replace(
+        /className="space-y-3">\s*\{songSetEntries\.map/,
+        'className="grid gap-4 sm:grid-cols-2">\n                  {songSetEntries.map'
+      );
+      assert.notEqual(defective1, pristine);
+      fs.writeFileSync(filePath, defective1, 'utf8');
+      const findings1 = scanSongSetRowLayout(filePath, name);
+      assert.ok(
+        findings1.some((f) => f.includes('obsolete 2-column grid')),
+        `Real-file injection on ${name} must detect obsolete 2-column grid`
+      );
+
+      // Restore and verify clean
+      fs.writeFileSync(filePath, pristine, 'utf8');
+      assert.deepEqual(scanSongSetRowLayout(filePath, name), []);
+
+      // 3. Form 2: data-slot="song-set-row" defect injected into real file
+      const defective2 = pristine.replace(
+        'data-slot="song-set-row"',
+        'data-slot="card"'
+      );
+      assert.notEqual(defective2, pristine);
+      fs.writeFileSync(filePath, defective2, 'utf8');
+      const findings2 = scanSongSetRowLayout(filePath, name);
+      assert.ok(
+        findings2.some((f) => f.includes('missing data-slot="song-set-row"')),
+        `Real-file injection on ${name} must detect missing data-slot="song-set-row"`
+      );
+
+      // Restore and verify clean
+      fs.writeFileSync(filePath, pristine, 'utf8');
+      assert.deepEqual(scanSongSetRowLayout(filePath, name), []);
+
+      // 4. Form 3: inner controls sm:grid-cols-2 defect injected into real file
+      const defective3 = pristine.replace(
+        'flex flex-wrap items-center gap-2.5',
+        'grid grid-cols-1 sm:grid-cols-2 gap-2.5'
+      );
+      assert.notEqual(defective3, pristine);
+      fs.writeFileSync(filePath, defective3, 'utf8');
+      const findings3 = scanSongSetRowLayout(filePath, name);
+      assert.ok(
+        findings3.some((f) => f.includes('inner controls container contains obsolete sm:grid-cols-2')),
+        `Real-file injection on ${name} must detect inner sm:grid-cols-2`
+      );
+    } finally {
+      fs.writeFileSync(filePath, pristine, 'utf8');
+    }
+  }
+});
+
+test('SPEC-43-04: 20. Song set row layout aligns book selector, hymn autocomplete, background dropdown, and lyrics action in both forms', () => {
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+  const editFormSource = fs.readFileSync(editFormPath, 'utf8');
+  const createFormSource = fs.readFileSync(createFormPath, 'utf8');
+
+  for (const [name, src] of [['EditForm.tsx', editFormSource], ['CreateForm.tsx', createFormSource]]) {
+    // Verify structural row contains all 4 controls + lyrics action
+    const rowSnippetMatch = src.match(
+      /data-slot="song-set-row"[\s\S]*?<div\s+className="flex flex-wrap items-center gap-2\.5">([\s\S]*?)<\/div>\s*\{isLyricOpen/
+    );
+    assert.ok(rowSnippetMatch, `${name} must contain flex-wrap items-center row container`);
+    const rowSnippet = rowSnippetMatch[1];
+
+    assert.ok(
+      rowSnippet.includes('value={current.songBookCode'),
+      `${name} row must include Song Book select dropdown`
+    );
+    assert.ok(
+      rowSnippet.includes('<HymnNumberAutocomplete'),
+      `${name} row must include HymnNumberAutocomplete`
+    );
+    assert.ok(
+      rowSnippet.includes("current.background || 'default'"),
+      `${name} row must include Background selector`
+    );
+    assert.ok(
+      rowSnippet.includes('toggleLyricEditor(entry.variableName)'),
+      `${name} row must include lyrics toggle`
+    );
+  }
+});

@@ -745,7 +745,7 @@ export default function EditForm({
                   {t('form.songSets.empty')}
                 </p>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3">
                   {songSetEntries.map((entry) => {
                     const defaultBook = songBooks.find((b) => b.isDefault);
                     const current = fields.songSets[entry.variableName] || {
@@ -760,83 +760,99 @@ export default function EditForm({
                     const hasValidNum = /^\d+$/.test(numVal);
                     const isSavingBook = !!savingBookStatus[entry.variableName];
                     return (
-                      <div key={entry.variableName} className="space-y-2 rounded-lg border border-border/40 p-3 bg-background/40">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
-                            {entry.title}
-                          </label>
-                          {hasValidNum ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="xs"
-                              className="h-6 text-[11px] px-2 text-primary"
-                              onClick={() => toggleLyricEditor(entry.variableName)}
+                      <div
+                        key={entry.variableName}
+                        data-slot="song-set-row"
+                        className="rounded-lg border border-border/50 bg-background/50 p-3 transition-colors hover:border-border"
+                      >
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <div className="w-32 sm:w-36 shrink-0">
+                            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                              {entry.title}
+                            </span>
+                          </div>
+
+                          <div className="w-28 shrink-0">
+                            <Select
+                              value={current.songBookCode || (defaultBook ? defaultBook.bookCode : '')}
+                              onValueChange={(val) =>
+                                setSongSetField(entry.variableName, 'songBookCode', val ?? '')
+                              }
+                              disabled={isSaving}
                             >
-                              {isLyricOpen ? t('form.songSets.hideLyrics') : t('form.songSets.editLyrics')}
-                            </Button>
-                          ) : null}
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder={t('form.songSets.book')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {songBooks.map((b) => (
+                                  <SelectItem key={b.bookCode} value={b.bookCode}>
+                                    {b.bookCode} {b.isDefault ? `(${t('form.songSets.defaultBookBadge')})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="min-w-[10rem] flex-1">
+                            <HymnNumberAutocomplete
+                              value={current.songNumber}
+                              bookCode={selectedBookCode}
+                              onChange={(v) =>
+                                setSongSetField(entry.variableName, 'songNumber', v)
+                              }
+                              hymnIndex={hymnIndex}
+                              placeholder={t('form.hymnPlaceholder')}
+                              disabled={isSaving}
+                            />
+                          </div>
+
+                          <div className="w-36 shrink-0">
+                            <Select
+                              value={current.background || 'default'}
+                              onValueChange={(val) =>
+                                setSongSetField(
+                                  entry.variableName,
+                                  'background',
+                                  !val || val === 'default' ? '' : val
+                                )
+                              }
+                              disabled={isSaving}
+                            >
+                              <SelectTrigger className="h-9 text-xs">
+                                <SelectValue placeholder={t('form.songSets.globalDefault')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="default">{t('form.songSets.globalDefault')}</SelectItem>
+                                {backgroundLibrary.map((img) => (
+                                  <SelectItem key={img.id} value={img.url}>
+                                    {img.url.split('/').pop() || `Image ${img.id}`} {img.isDefault ? `(${t('form.songSets.globalDefault')})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="shrink-0">
+                            {hasValidNum ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-3 text-xs"
+                                onClick={() => toggleLyricEditor(entry.variableName)}
+                              >
+                                {isLyricOpen
+                                  ? t('form.songSets.hideLyrics')
+                                  : t('form.songSets.editLyrics')}
+                              </Button>
+                            ) : (
+                              <div className="w-20" />
+                            )}
+                          </div>
                         </div>
-                        <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] items-center">
-                          <Select
-                            value={current.songBookCode || (defaultBook ? defaultBook.bookCode : '')}
-                            onValueChange={(val) =>
-                              setSongSetField(entry.variableName, 'songBookCode', val ?? '')
-                            }
-                            disabled={isSaving}
-                          >
-                            <SelectTrigger className="h-9 text-xs">
-                              <SelectValue placeholder={t('form.songSets.book')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {songBooks.map((b) => (
-                                <SelectItem key={b.bookCode} value={b.bookCode}>
-                                  {b.bookCode} {b.isDefault ? `(${t('form.songSets.defaultBookBadge')})` : ''}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <HymnNumberAutocomplete
-                            value={current.songNumber}
-                            bookCode={selectedBookCode}
-                            onChange={(v) =>
-                              setSongSetField(entry.variableName, 'songNumber', v)
-                            }
-                            hymnIndex={hymnIndex}
-                            placeholder={t('form.hymnPlaceholder')}
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className="text-[10px] text-muted-foreground uppercase font-medium">
-                            {t('form.songSets.background')}
-                          </label>
-                          <Select
-                            value={current.background || 'default'}
-                            onValueChange={(val) =>
-                              setSongSetField(
-                                entry.variableName,
-                                'background',
-                                !val || val === 'default' ? '' : val
-                              )
-                            }
-                            disabled={isSaving}
-                          >
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder={t('form.songSets.globalDefault')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="default">{t('form.songSets.globalDefault')}</SelectItem>
-                              {backgroundLibrary.map((img) => (
-                                <SelectItem key={img.id} value={img.url}>
-                                  {img.url.split('/').pop() || `Image ${img.id}`} {img.isDefault ? `(${t('form.songSets.globalDefault')})` : ''}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+
                         {isLyricOpen ? (
-                          <div className="mt-3 pt-2 border-t border-border/50 space-y-2">
+                          <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
                             <div className="flex items-center justify-between">
                               <Label className="text-[11px] font-medium text-muted-foreground">
                                 {t('form.songSets.lyricsLabel')}
