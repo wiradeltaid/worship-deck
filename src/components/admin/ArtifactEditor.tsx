@@ -200,6 +200,7 @@ import {
   fetchAvailableAnnouncementSets,
   fetchAvailableSongSets,
   fetchBackgroundLibrary,
+  fetchMediaLibrary,
   mainSpineAdapter,
   uploadImageFile,
 } from '@/lib/registry/canvas-adapters';
@@ -1965,11 +1966,8 @@ export default function ArtifactEditor({
     setShowGalleryDialog(true);
     setGalleryLoading(true);
     try {
-      const res = await fetch('/api/admin/media-library', { credentials: 'same-origin' });
-      if (res.ok) {
-        const data = (await res.json()) as { images?: Array<{ id: number; url: string; category?: string }> };
-        setGalleryItems(data.images ?? []);
-      }
+      const items = await fetchMediaLibrary();
+      setGalleryItems(items);
     } catch {
       // ignore
     } finally {
