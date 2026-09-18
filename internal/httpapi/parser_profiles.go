@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
 )
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -53,6 +54,10 @@ func validateRulesJSON(raw string) error {
 	}
 	if env.SchemaVersion != 1 {
 		return fmt.Errorf("rules_json schema_version must be 1, got %d", env.SchemaVersion)
+	}
+	// Fully compile all rules to validate regex syntax, reject lookarounds and backreferences
+	if _, err := parse.LoadParserProfileFromJSON(trimmed); err != nil {
+		return err
 	}
 	return nil
 }

@@ -58,9 +58,18 @@ func MatchSongSets(
 	claimedSlotVariables := make(map[string]bool)
 
 	// --- Pass 1: Explicit Label Matching ---
+	labelSlots := config.LabelSlots
+	if len(labelSlots) == 0 {
+		labelSlots = []LabelSlotMapping{
+			{Label: "Opening Song", Target: "ds_opening_song"},
+			{Label: "Lagu Buka", Target: "ds_opening_song"},
+			{Label: "Closing Song", Target: "ds_closing_song"},
+			{Label: "Lagu Tutup", Target: "ds_closing_song"},
+		}
+	}
 	for cIdx, candidate := range candidates {
 		lineLower := strings.ToLower(candidate.Line)
-		for _, mapping := range config.LabelSlots {
+		for _, mapping := range labelSlots {
 			lblLower := strings.ToLower(strings.TrimSpace(mapping.Label))
 			if lblLower == "" {
 				continue
@@ -98,17 +107,6 @@ func MatchSongSets(
 		if !claimedSlotVariables[slot.VariableName] {
 			if strings.HasPrefix(slot.VariableName, prefix) || strings.Contains(strings.ToLower(slot.VariableName), "praise") {
 				availableFamilySlots = append(availableFamilySlots, slot)
-			}
-		}
-	}
-
-	// Also gather any other available slots if needed
-	var otherAvailableSlots []SongSetEntrySlot
-	for _, slot := range sortedSlots {
-		if !claimedSlotVariables[slot.VariableName] {
-			isFamily := strings.HasPrefix(slot.VariableName, prefix) || strings.Contains(strings.ToLower(slot.VariableName), "praise")
-			if !isFamily {
-				otherAvailableSlots = append(otherAvailableSlots, slot)
 			}
 		}
 	}

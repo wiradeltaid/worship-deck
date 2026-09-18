@@ -60,6 +60,7 @@ export default function EditForm({
   initialFamilyPhotoUrl = '',
   initialYouthPhotoUrl = '',
   initialAnnouncementInserts = [],
+  initialParserProfileId = '',
   initialUpdatedAt,
   hymnIndex = EMPTY_HYMN_INDEX,
 }: {
@@ -72,6 +73,7 @@ export default function EditForm({
   initialFamilyPhotoUrl?: string;
   initialYouthPhotoUrl?: string;
   initialAnnouncementInserts?: string[];
+  initialParserProfileId?: string;
   /** Accepted for page compat; edit no longer mutates participants_payload. */
   initialParticipantsRaw?: string;
   initialUpdatedAt: string;
@@ -218,8 +220,10 @@ export default function EditForm({
             };
             if (active && Array.isArray(pData.profiles)) {
               setParserProfiles(pData.profiles);
-              const def = pData.profiles.find((p) => p.isDefault) || pData.profiles[0];
-              if (def) setSelectedProfileId(def.id);
+              if (!initialParserProfileId) {
+                const def = pData.profiles.find((p) => p.isDefault) || pData.profiles[0];
+                if (def) setSelectedProfileId(def.id);
+              }
             }
           }
         } catch {
@@ -232,10 +236,10 @@ export default function EditForm({
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialParserProfileId]);
 
   const [parserProfiles, setParserProfiles] = useState<Array<{ id: string; slug: string; title: string; isDefault: boolean }>>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(initialParserProfileId);
   const [songSetSuggestions, setSongSetSuggestions] = useState<Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>>({});
   const [songOverflow, setSongOverflow] = useState<Array<{ line: string; number: number; bookCode: string }>>([]);
   const [unmappedLines, setUnmappedLines] = useState<string[]>([]);
@@ -675,8 +679,12 @@ export default function EditForm({
       parsed_data?: ParsedRundown | null;
       songSets?: unknown;
       images_payload?: Record<string, unknown>;
+      parser_profile_id?: string;
       updated_at?: string;
     };
+    if (svc.parser_profile_id) {
+      setSelectedProfileId(svc.parser_profile_id);
+    }
     const snapshot = applyServerSnapshot(svc);
     await refreshSlidePreview(snapshot);
   };
@@ -699,6 +707,7 @@ export default function EditForm({
           familyPhotoUrl: familyPhotoUrl.trim() || null,
           youthPhotoUrl: youthPhotoUrl.trim() || null,
           announcementInserts: announcementInserts.map((s) => s.trim()),
+          parserProfileId: selectedProfileId || null,
           fields: buildFieldsPayload(fieldsRef.current),
         }),
       });

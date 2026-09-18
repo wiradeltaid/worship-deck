@@ -120,6 +120,7 @@ export default function RunSheetPage() {
         initialSermonGraphicUrl={images.sermonGraphicUrl || ''}
         initialFamilyPhotoUrl={images.familyPhotoUrl || ''}
         initialYouthPhotoUrl={images.youthPhotoUrl || ''}
+        initialParserProfileId={svc.parser_profile_id || ''}
         initialUpdatedAt={svc.updated_at}
       />
     </>

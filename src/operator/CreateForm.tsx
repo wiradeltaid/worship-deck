@@ -489,6 +489,7 @@ export default function CreateForm({
         familyPhotoUrl: familyPhotoUrl.trim() || null,
         youthPhotoUrl: youthPhotoUrl.trim() || null,
         announcementInserts: announcementInserts.map((s) => s.trim()),
+        parserProfileId: selectedProfileId || null,
         fields: buildFieldsPayload(fieldsRef.current),
       };
       if (allowSecond) bodyPayload.allowSecond = true;

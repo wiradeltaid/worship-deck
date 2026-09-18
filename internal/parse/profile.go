@@ -173,7 +173,18 @@ func (p *ParserProfile) Compile() error {
 
 	p.hymnREs = make([]*regexp.Regexp, 0, len(p.HymnPatterns))
 	for _, hp := range p.HymnPatterns {
-		re, err := CompileProfileRegex(hp.Pattern)
+		pat := hp.Pattern
+		hasI := false
+		for _, f := range hp.Flags {
+			if f == "i" {
+				hasI = true
+				break
+			}
+		}
+		if hasI && !strings.Contains(pat, "(?i)") {
+			pat = "(?i)" + pat
+		}
+		re, err := CompileProfileRegex(pat)
 		if err != nil {
 			return fmt.Errorf("compile hymn_pattern %q: %w", hp.Pattern, err)
 		}
