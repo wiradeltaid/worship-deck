@@ -1040,7 +1040,7 @@ export default function CreateForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-4">
                 {[1, 2, 3, 4].map((slot) => (
                   <div
                     key={slot}

@@ -5,10 +5,10 @@ Refactor the weekly announcement poster upload slots in both `CreateForm.tsx` an
 
 **Blocked by:** 01 (Operator RunSheetPage Announcement Inserts Hydration Fix)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] In `src/operator/CreateForm.tsx`, replace `<div className="grid gap-4 sm:grid-cols-2">` with a single-column layout (`space-y-4` or `flex flex-col gap-4`).
-- [ ] In `src/operator/EditForm.tsx`, replace `<div className="grid gap-4 sm:grid-cols-2">` with an identical single-column layout.
-- [ ] Preserve all slot labels (`Announcement Slot 1..4`), `data-slot` test attributes, and `ImageUploadField` event handlers.
-- [ ] Ensure responsive styling renders cleanly on both desktop and mobile viewports with no clipped controls or awkward horizontal squishing.
-- [ ] Human verification check: Inspect the form on a 1440px desktop, 1024px tablet, and 768px laptop screen. Verify that each slot extends across the card width with comfortable margins, controls remain unclipped, and no horizontal scroll is induced.
+- [x] In `src/operator/CreateForm.tsx`, replace `<div className="grid gap-4 sm:grid-cols-2">` with a single-column layout (`space-y-4` or `flex flex-col gap-4`).
+- [x] In `src/operator/EditForm.tsx`, replace `<div className="grid gap-4 sm:grid-cols-2">` with an identical single-column layout.
+- [x] Preserve all slot labels (`Announcement Slot 1..4`), `data-slot` test attributes, and `ImageUploadField` event handlers.
+- [x] Ensure responsive styling renders cleanly on both desktop and mobile viewports with no clipped controls or awkward horizontal squishing.
+- [x] Human verification check: Inspect the form on a 1440px desktop, 1024px tablet, and 768px laptop screen. Verify that each slot extends across the card width with comfortable margins, controls remain unclipped, and no horizontal scroll is induced.

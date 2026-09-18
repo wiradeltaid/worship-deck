@@ -1,12 +1,18 @@
 ---
 type: mandate
 id: DEC-046
-status: accepted
+status: applied
 accepted_by: 'kodesh87 (2026-09-19)'
 touches:
   - .control/memlog/autopilot-DEC-046.md
   - .control/registry/specs.yaml
   - .control/registry/decisions.yaml
+  - spa/src/pages/RunSheetPage.tsx
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - internal/httpapi/services_announcement_inserts_test.go
+  - tests/smoke-spec-45.test.mjs
+  - package.json
 supersedes: null
 superseded_by: null
 created: '2026-09-19'

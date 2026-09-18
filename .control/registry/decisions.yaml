@@ -1055,7 +1055,7 @@ decisions:
       - tests/smoke-spec-44.test.mjs
   - id: DEC-046
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-19)"
     title: Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-45)
     file: .control/decisions/DEC-046-daily-autopilot-mandate-continuous-engineering-routine.md
@@ -1073,7 +1073,9 @@ decisions:
       - spa/src/pages/RunSheetPage.tsx
       - src/operator/CreateForm.tsx
       - src/operator/EditForm.tsx
+      - internal/httpapi/services_announcement_inserts_test.go
       - tests/smoke-spec-45.test.mjs
+      - package.json
 
 
 

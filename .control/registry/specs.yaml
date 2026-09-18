@@ -2147,7 +2147,7 @@ waves:
           - tests/smoke-spec-44.test.mjs
 
   - id: SPEC-45
-    status: open
+    status: closed
     release: announcement-slot-layout-and-upload-persistence
     prd: [operator-turn, offline-deck]
     fr: [FR-20, FR-21]
