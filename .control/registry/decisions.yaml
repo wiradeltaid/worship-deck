@@ -1053,6 +1053,28 @@ decisions:
       - src/operator/CreateForm.tsx
       - src/operator/EditForm.tsx
       - tests/smoke-spec-44.test.mjs
+  - id: DEC-046
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-19)"
+    title: Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-45)
+    file: .control/decisions/DEC-046-daily-autopilot-mandate-continuous-engineering-routine.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-26'
+    touches:
+      - .control/memlog/autopilot-DEC-046.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - spa/src/pages/RunSheetPage.tsx
+      - src/operator/CreateForm.tsx
+      - src/operator/EditForm.tsx
+      - tests/smoke-spec-45.test.mjs
+
 
 
 
