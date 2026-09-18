@@ -126,6 +126,87 @@ func TestValidateArtifactTemplateCatalogKey(t *testing.T) {
 	}
 }
 
+func TestValidateArtifactTemplateRotation(t *testing.T) {
+	root := repoRoot(t)
+	payload := map[string]any{
+		"schemaVersion": 1,
+		"id":            "rotation-test",
+		"label":         "Rotation Test",
+		"baseType":      "general",
+		"placeholders":  []any{},
+		"layouts": map[string]any{
+			"default": map[string]any{
+				"aspectRatio":     "16:9",
+				"backgroundColor": "#000000",
+				"elements": []any{
+					map[string]any{
+						"id":       "e1",
+						"type":     "text",
+						"x":        10.0,
+						"y":        10.0,
+						"w":        50.0,
+						"h":        20.0,
+						"zIndex":   1,
+						"content":  "Rotated 45",
+						"rotation": 45,
+					},
+					map[string]any{
+						"id":       "e2",
+						"type":     "text",
+						"x":        10.0,
+						"y":        40.0,
+						"w":        50.0,
+						"h":        20.0,
+						"zIndex":   2,
+						"content":  "Rotated -0.5",
+						"rotation": -0.5,
+					},
+					map[string]any{
+						"id":       "e3",
+						"type":     "text",
+						"x":        10.0,
+						"y":        70.0,
+						"w":        50.0,
+						"h":        20.0,
+						"zIndex":   3,
+						"content":  "Rotated 405",
+						"rotation": 405,
+					},
+				},
+			},
+		},
+	}
+
+	cleaned, err := ValidateArtifactTemplate(mustJSON(payload), root)
+	if err != nil {
+		t.Fatalf("ValidateArtifactTemplate with rotation must succeed: %v", err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(cleaned, &parsed); err != nil {
+		t.Fatalf("unmarshal cleaned failed: %v", err)
+	}
+	layouts := parsed["layouts"].(map[string]any)
+	defaultLayout := layouts["default"].(map[string]any)
+	elements := defaultLayout["elements"].([]any)
+
+	e1 := elements[0].(map[string]any)
+	if rot, ok := e1["rotation"].(float64); !ok || int(rot) != 45 {
+		t.Fatalf("expected e1 rotation 45, got %v", e1["rotation"])
+	}
+
+	e2 := elements[1].(map[string]any)
+	// -0.5 rounds to 0, which is omitted in marshalLayout (0 default)
+	if _, ok := e2["rotation"]; ok {
+		t.Fatalf("expected e2 rotation 0 to be omitted, got %v", e2["rotation"])
+	}
+
+	e3 := elements[2].(map[string]any)
+	if rot, ok := e3["rotation"].(float64); !ok || int(rot) != 45 {
+		t.Fatalf("expected e3 rotation 45 (from 405), got %v", e3["rotation"])
+	}
+}
+
 func TestAuthoredGeneralAppearsInPlan(t *testing.T) {
 	empty := Layout{AspectRatio: "16:9", BackgroundColor: "#000000"}
 	snap := Snapshot{
@@ -396,6 +477,58 @@ func TestLineAndOutlineShapeValidation(t *testing.T) {
 		t.Fatalf("expected positive error for negative strokeWidth, got: %v", err)
 	}
 	lineStyle["strokeWidth"] = 2.0
+}
+
+func TestValidateArtifactTemplatePlaceholderSlotValidation(t *testing.T) {
+	root := repoRoot(t)
+	base := map[string]any{
+		"schemaVersion": 1,
+		"id":            "test-placeholder-slot-validation",
+		"label":         "Test Placeholder Slot",
+		"baseType":      "general",
+		"placeholders":  []any{},
+		"layouts": map[string]any{
+			"default": map[string]any{
+				"aspectRatio":     "16:9",
+				"backgroundColor": "#000000",
+				"elements":        []any{},
+			},
+		},
+	}
+
+	// 1. isPlaceholder: true without placeholderSlot must fail
+	base["isPlaceholder"] = true
+	delete(base, "placeholderSlot")
+	if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "placeholderSlot must be an integer between 1 and 4") {
+		t.Fatalf("expected error when isPlaceholder is true without placeholderSlot, got: %v", err)
+	}
+
+	// 2. isPlaceholder: true with invalid slots (0, 5, -1, 2.5) must fail
+	for _, invalidSlot := range []any{0, 5, -1, 2.5} {
+		base["placeholderSlot"] = invalidSlot
+		if _, err := ValidateArtifactTemplate(mustJSON(base), root); err == nil || !strings.Contains(err.Error(), "placeholderSlot must be an integer between 1 and 4") {
+			t.Fatalf("expected error on invalid slot %v, got: %v", invalidSlot, err)
+		}
+	}
+
+	// 3. isPlaceholder: true with valid slots (1..4) must succeed
+	for _, validSlot := range []int{1, 2, 3, 4} {
+		base["placeholderSlot"] = validSlot
+		out, err := ValidateArtifactTemplate(mustJSON(base), root)
+		if err != nil {
+			t.Fatalf("expected valid slot %d to pass, got: %v", validSlot, err)
+		}
+		var parsed map[string]any
+		if err := json.Unmarshal(out, &parsed); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		if parsed["isPlaceholder"] != true {
+			t.Errorf("expected isPlaceholder true, got %v", parsed["isPlaceholder"])
+		}
+		if int(parsed["placeholderSlot"].(float64)) != validSlot {
+			t.Errorf("expected placeholderSlot %d, got %v", validSlot, parsed["placeholderSlot"])
+		}
+	}
 }
 
 func mustJSON(v any) []byte {

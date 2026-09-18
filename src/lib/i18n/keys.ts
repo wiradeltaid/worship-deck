@@ -169,8 +169,6 @@ export const I18N_KEYS = [
   'form.sermon.description',
   'form.sermonSpeaker',
   'form.sermonSpeakerPlaceholder',
-  'form.afternoonProgram',
-  'form.afternoonProgramPlaceholder',
   'form.closingPrayer',
   'form.closingPrayerPlaceholder',
   'form.closingPrayerSameAsSpeaker',

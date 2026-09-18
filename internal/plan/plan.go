@@ -51,8 +51,8 @@ type ctx struct {
 	familyName     string
 	youthName        string
 	legacyCombined   string
-	familyBody       string
-	afternoonProgram string
+	familyBody          string
+	announcementInserts []string
 }
 
 func trimPtr(s *string) string {
@@ -166,21 +166,27 @@ func computeCtx(serviceDate string, parsed ParsedRundown, media Media) ctx {
 	}
 	bt = filter(bt)
 	ds = filter(ds)
+	inserts := make([]string, 4)
+	for i := 0; i < 4 && i < len(media.AnnouncementInserts); i++ {
+		if s := strings.TrimSpace(media.AnnouncementInserts[i]); isSafeImageURL(s) {
+			inserts[i] = s
+		}
+	}
 	c := ctx{
-		serviceDate:    serviceDate,
-		flyers:         flyers,
-		sermonGraphic:  sermonGraphic,
-		familyPhoto:    familyPhoto,
-		youthPhoto:     youthPhoto,
+		serviceDate:         serviceDate,
+		flyers:              flyers,
+		sermonGraphic:       sermonGraphic,
+		familyPhoto:         familyPhoto,
+		youthPhoto:          youthPhoto,
+		announcementInserts: inserts,
 		bibleTalkHymns: bt,
 		specialSong:    trimPtr(parsed.SpecialSong),
 		sermon:         parsed.Sermon,
 		closingPrayer:  trimPtr(parsed.ClosingPrayerPerson),
 		familyPrayer:   trimPtr(parsed.FamilyPrayerRequest),
 		youthPrayer:    trimPtr(parsed.YouthPrayerRequest),
-		familyName:       trimPtr(parsed.FamilyName),
-		youthName:        trimPtr(parsed.YouthName),
-		afternoonProgram: trimPtr(parsed.AfternoonProgram),
+		familyName:          trimPtr(parsed.FamilyName),
+		youthName:           trimPtr(parsed.YouthName),
 	}
 	if hasScripture(parsed.ThemeVerse) {
 		c.themeVerse = parsed.ThemeVerse
@@ -288,9 +294,6 @@ func catalogValues(c ctx) map[string]interface{} {
 		if photo := firstNonEmpty(*c.youthPhoto); photo != "" {
 			out["youth_photo"] = photo
 		}
-	}
-	if c.afternoonProgram != "" {
-		out["afternoon_program"] = c.afternoonProgram
 	}
 	return out
 }
@@ -544,6 +547,17 @@ func nodesFor(id string, c ctx, snap Snapshot) []node {
 				var children []groupChild
 				fade := false
 				for _, sl := range slides {
+					if sl.Template.IsPlaceholder && sl.Template.PlaceholderSlot != nil {
+						slot := *sl.Template.PlaceholderSlot
+						var slotURL string
+						if slot >= 1 && slot <= 4 && len(c.announcementInserts) >= slot {
+							slotURL = strings.TrimSpace(c.announcementInserts[slot-1])
+						}
+						if slotURL == "" {
+							// Empty slot: omit slide from the plan!
+							continue
+						}
+					}
 					childID := fmt.Sprintf("%s-ann-slide-%d", tmpl.ID, sl.ID)
 					children = append(children, groupChild{
 						role:      RoleAnnouncement,
@@ -555,6 +569,9 @@ func nodesFor(id string, c ctx, snap Snapshot) []node {
 							fade:       &fade,
 						},
 					})
+				}
+				if len(children) == 0 {
+					return nil
 				}
 				return []node{{kind: "group", id: groupID, label: setLabel, children: children}}
 			}
@@ -606,6 +623,26 @@ func hydrateOne(snap Snapshot, r request, group *GroupRef, c ctx) (*DrawItem, er
 		if !found {
 			return nil, nil
 		}
+	}
+	if tmpl.IsPlaceholder && tmpl.PlaceholderSlot != nil {
+		slot := *tmpl.PlaceholderSlot
+		var slotURL string
+		if slot >= 1 && slot <= 4 && len(c.announcementInserts) >= slot {
+			slotURL = strings.TrimSpace(c.announcementInserts[slot-1])
+		}
+		if slotURL == "" {
+			return nil, nil
+		}
+		if tmpl.Layouts == nil {
+			tmpl.Layouts = map[string]Layout{}
+		}
+		layout := tmpl.Layouts["default"]
+		if layout.AspectRatio == "" {
+			layout.AspectRatio = "16:9"
+			layout.BackgroundColor = "#000000"
+		}
+		layout.BackgroundImage = &slotURL
+		tmpl.Layouts["default"] = layout
 	}
 	values := r.values
 	if tmpl.BaseType == "general" {

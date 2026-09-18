@@ -136,6 +136,11 @@ export class PresenterRemoteSession {
   private onCode?: (code: string, expiresIn: number) => void;
   private onStateChange?: (state: PresenterRemoteConnectionState) => void;
   private eventSource: EventSource | null = null;
+  private abortController: AbortController | null = null;
+  private queue: Promise<void> = Promise.resolve();
+  private generation = 0;
+  private startRequestedEpoch = 0;
+  private stopEpoch = 0;
   private stopped = false;
 
   constructor(options: PresenterRemoteSessionOptions) {
@@ -146,49 +151,80 @@ export class PresenterRemoteSession {
     this.onStateChange = options.onStateChange;
   }
 
-  public async start(): Promise<void> {
-    this.stopped = false;
-    this.onStateChange?.('pairing');
-    try {
-      const res = await fetch(`/api/present/${this.serviceId}/remote/pair`, {
-        method: 'POST',
-        credentials: 'same-origin',
-      });
-      if (!res.ok) {
-        if (!this.stopped) {
-          this.onStateChange?.('error');
-        }
-        return;
-      }
-      const body = (await res.json()) as { code?: string; expiresIn?: number };
-      if (this.stopped) return;
-      if (body.code) {
-        this.onCode?.(body.code, body.expiresIn ?? 60);
-      }
-      this.openStream();
-    } catch {
-      if (!this.stopped) {
-        this.onStateChange?.('error');
-      }
-    }
+  private enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const next = this.queue.then(task, task);
+    this.queue = next.then(
+      () => {},
+      () => {}
+    );
+    return next;
   }
 
-  private openStream(): void {
-    if (this.stopped) return;
+  public async start(): Promise<void> {
+    this.stopped = false;
+    const epoch = ++this.startRequestedEpoch;
+    return this.enqueue(async () => {
+      if (epoch <= this.stopEpoch) {
+        return;
+      }
+      if (this.abortController) {
+        this.abortController.abort();
+        this.abortController = null;
+      }
+      const controller = new AbortController();
+      this.abortController = controller;
+      const gen = ++this.generation;
+
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
+      this.onStateChange?.('pairing');
+      try {
+        const res = await fetch(`/api/present/${this.serviceId}/remote/pair`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          signal: controller.signal,
+        });
+        if (this.stopped || epoch <= this.stopEpoch || this.generation !== gen) return;
+        if (!res.ok) {
+          this.onStateChange?.('error');
+          return;
+        }
+        const body = (await res.json()) as { code?: string; expiresIn?: number };
+        if (this.stopped || epoch <= this.stopEpoch || this.generation !== gen) return;
+        if (body.code) {
+          this.onCode?.(body.code, body.expiresIn ?? 60);
+        }
+        this.openStream(gen);
+      } catch (err: unknown) {
+        if (this.stopped || epoch <= this.stopEpoch || this.generation !== gen) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        this.onStateChange?.('error');
+      }
+    });
+  }
+
+  private openStream(gen: number): void {
+    if (this.stopped || this.generation !== gen) return;
     if (typeof EventSource === 'undefined') return;
+
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
 
     const url = `/api/present/${this.serviceId}/remote/stream?role=presenter`;
     const es = new EventSource(url, { withCredentials: true });
     this.eventSource = es;
 
     es.onopen = () => {
-      if (!this.stopped) {
-        this.onStateChange?.('connected');
-      }
+      if (this.stopped || this.generation !== gen || this.eventSource !== es) return;
+      this.onStateChange?.('connected');
     };
 
     es.onmessage = (event) => {
-      if (this.stopped) return;
+      if (this.stopped || this.generation !== gen || this.eventSource !== es) return;
       try {
         const data = JSON.parse(event.data);
         applyRemoteIntent(data, this.getPlanIdentity(), this.handlers);
@@ -198,22 +234,46 @@ export class PresenterRemoteSession {
     };
 
     es.onerror = () => {
-      // If the server closed the stream because another client took the presenting role or connection dropped
-      if (!this.stopped) {
-        this.onStateChange?.('role-lost');
-      }
+      if (this.stopped || this.generation !== gen || this.eventSource !== es) return;
+      this.onStateChange?.('role-lost');
       es.close();
-      this.eventSource = null;
+      if (this.eventSource === es) {
+        this.eventSource = null;
+      }
     };
   }
 
   public stop(): void {
     this.stopped = true;
+    this.stopEpoch = this.startRequestedEpoch;
+    this.generation++;
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
     this.onStateChange?.('idle');
+  }
+
+  /**
+   * Revokes the pairing session server-side via DELETE /pair,
+   * closes local stream listeners, and transitions state to idle.
+   */
+  public async disconnect(): Promise<void> {
+    this.stop();
+    return this.enqueue(async () => {
+      try {
+        await fetch(`/api/present/${this.serviceId}/remote/pair`, {
+          method: 'DELETE',
+          credentials: 'same-origin',
+        });
+      } catch {
+        // Ignore network error on teardown
+      }
+    });
   }
 }
 

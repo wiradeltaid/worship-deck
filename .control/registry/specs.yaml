@@ -2015,7 +2015,7 @@ waves:
           - tests/smoke-spec-42.test.mjs
 
   - id: SPEC-43
-    status: open
+    status: closed
     release: presenter-remote-scripture-announcement-ux
     prd: [offline-deck, operator-turn, rundown-to-service]
     fr: [FR-15, FR-20, FR-21, FR-31]

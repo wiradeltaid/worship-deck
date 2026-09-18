@@ -336,6 +336,10 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     align: resolveTextAlign(style),
     valign,
     lineSpacingMultiple: lineSpacingMultiple,
+    rotate:
+      typeof element.rotation === 'number' && element.rotation !== 0
+        ? element.rotation
+        : undefined,
     shadow: style?.textShadow
       ? {
           type: 'outer',
@@ -381,6 +385,10 @@ function renderImageElement(
         ? {}
         : { sizing: { type: objectFit, w: box.w, h: box.h } }),
       transparency: toPptxTransparency(element.style),
+      rotate:
+        typeof element.rotation === 'number' && element.rotation !== 0
+          ? element.rotation
+          : undefined,
     });
   } catch {
     addImageUnavailable(slide, box);
@@ -404,6 +412,10 @@ function renderShapeElement(slide: PptxSlide, element: ResolvedElement): void {
     fill: color && color !== 'transparent'
       ? { color, transparency: toPptxTransparency(element.style) }
       : { type: 'none' },
+    rotate:
+      typeof element.rotation === 'number' && element.rotation !== 0
+        ? element.rotation
+        : undefined,
   };
 
   if (strokeColor && strokeWidth) {
@@ -427,6 +439,10 @@ function renderLineElement(slide: PptxSlide, element: ResolvedElement): void {
     y: geometry.y,
     w: geometry.w,
     h: geometry.h,
+    rotate:
+      typeof element.rotation === 'number' && element.rotation !== 0
+        ? element.rotation
+        : undefined,
     line: {
       color: strokeColor,
       width: strokeWidth,

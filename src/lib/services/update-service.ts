@@ -131,9 +131,6 @@ export function updateService(
   }
   assignments.push('participants_payload = ?');
   params.push(participantsPayload);
-  const afternoonProgram = parsedData.afternoonProgram || '';
-  assignments.push('afternoon_program = ?');
-  params.push(afternoonProgram);
   assignments.push(`updated_at = ${STAMP_NOW_SQL}`);
   params.push(serviceId, currentUpdatedAt);
 

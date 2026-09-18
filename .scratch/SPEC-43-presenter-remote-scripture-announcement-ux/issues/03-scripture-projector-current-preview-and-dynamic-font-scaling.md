@@ -5,10 +5,10 @@ Mirror pushed scripture overlays onto the Current stage in `PresenterOperator.ts
 
 **Blocked by:** 02 (Presenter Mode Height Relaxation and Vertical Scrolling)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Pushing scripture updates the local `Current` stage in `PresenterOperator.tsx` to display the active scripture overlay preview.
-- [ ] Extend the existing "Clear scripture" button (`PresenterOperator.tsx:939-949`) so it clears the local `scriptureOverlay` state in tandem with the projector broadcast.
-- [ ] Scripture text size dynamically scales according to text length, allowing short verses (under 80 characters) to render prominently (4.5rem-5.5rem / ~40-50% vertical screen presence).
-- [ ] Longer scripture passages scale down gracefully with a minimum font floor (e.g. 1.75rem-2rem) and line height containment to guarantee text remains fully contained without viewport overflow.
-- [ ] Shared font scaling formula is used by both `ProjectorClient.tsx` and `PresenterOperator.tsx` ensuring 100% visual preview parity.
+- [x] Pushing scripture updates the local `Current` stage in `PresenterOperator.tsx` to display the active scripture overlay preview.
+- [x] Extend the existing "Clear scripture" button (`PresenterOperator.tsx:939-949`) so it clears the local `scriptureOverlay` state in tandem with the projector broadcast.
+- [x] Scripture text size dynamically scales according to text length, allowing short verses (under 80 characters) to render prominently (4.5rem-5.5rem / ~40-50% vertical screen presence).
+- [x] Longer scripture passages scale down gracefully with a minimum font floor (e.g. 1.75rem-2rem) and line height containment to guarantee text remains fully contained without viewport overflow.
+- [x] Shared font scaling formula is used by both `ProjectorClient.tsx` and `PresenterOperator.tsx` ensuring 100% visual preview parity.

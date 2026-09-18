@@ -81,14 +81,10 @@ func (s *Server) postWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	afternoonProgram := ""
-	if parsed.AfternoonProgram != nil {
-		afternoonProgram = *parsed.AfternoonProgram
-	}
 	res, err := tx.Exec(
 		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, afternoon_program, updated_at)
-		 VALUES (?, ?, ?, ?, ?, `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), imagesJSON, afternoonProgram,
+		 VALUES (?, ?, ?, ?, '', `+db.StampNowSQL+`)`,
+		serviceDate, rawPayload, string(parsedJSON), imagesJSON,
 	)
 	if err != nil {
 		log.Printf("Error processing webhook: %v", err)
@@ -181,8 +177,8 @@ func (s *Server) handleCorrection(w http.ResponseWriter, body map[string]any) {
 	parsedJSON, _ := json.Marshal(parsed)
 	res, err := s.DB.Exec(
 		`UPDATE services SET date = ?, raw_payload = ?, parsed_data = ?, updated_at = `+db.StampNowSQL+`
-		  WHERE id = ? AND COALESCE(updated_at, created_at) = ?`,
-		newDate, text, string(parsedJSON), serviceID, token,
+		  WHERE id = ? AND (COALESCE(updated_at, created_at) = ? OR COALESCE(updated_at, created_at) = ?)`,
+		newDate, text, string(parsedJSON), serviceID, snap.UpdatedAt, snap.RawStoredToken,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")

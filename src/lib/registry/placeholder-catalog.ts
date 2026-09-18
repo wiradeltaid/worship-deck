@@ -34,7 +34,6 @@ export const PLACEHOLDER_CATALOG: readonly CatalogEntry[] = [
   { key: 'youth_name', type: 'text' },
   { key: 'family_photo', type: 'image' },
   { key: 'youth_photo', type: 'image' },
-  { key: 'afternoon_program', type: 'text' },
 ];
 
 const CATALOG_BY_KEY = new Map(PLACEHOLDER_CATALOG.map((entry) => [entry.key, entry]));
@@ -119,7 +118,6 @@ export type CatalogWeeklyInput = {
   youthName?: string | null;
   familyPhoto?: string | null;
   youthPhoto?: string | null;
-  afternoonProgram?: string | null;
 };
 
 function firstText(...values: Array<string | null | undefined>): string | undefined {
@@ -175,7 +173,5 @@ export function catalogValuesFromWeekly(input: CatalogWeeklyInput): Readonly<
   if (familyPhoto) values.family_photo = familyPhoto;
   const youthPhoto = firstText(input.youthPhoto);
   if (youthPhoto) values.youth_photo = youthPhoto;
-  const afternoonProgram = firstText(input.afternoonProgram);
-  if (afternoonProgram) values.afternoon_program = afternoonProgram;
   return values;
 }

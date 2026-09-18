@@ -119,6 +119,8 @@ export type CanvasElement = {
   measuredWith?: MeasuredWith;
   placeholderKey?: string;
   imageRef?: string;
+  /** SPEC-43: Optional 2D planar rotation in degrees [0, 360) */
+  rotation?: number;
   style?: TextStyle & ImageStyle & ShapeStyle;
 };
 
@@ -143,6 +145,8 @@ export type ArtifactTemplate = {
   baseType: ArtifactBaseType;
   variableName?: string;
   annSetId?: number;
+  isPlaceholder?: boolean;
+  placeholderSlot?: number;
   placeholders: PlaceholderDefinition[];
   layouts: {
     default?: ArtifactLayout;

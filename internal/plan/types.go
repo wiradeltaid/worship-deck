@@ -29,6 +29,7 @@ type CanvasElement struct {
 	MeasuredWith   *MeasuredWith          `json:"measuredWith,omitempty"`
 	PlaceholderKey *string                `json:"placeholderKey"`
 	ImageRef       *string                `json:"imageRef"`
+	Rotation       *int                   `json:"rotation,omitempty"`
 	Style          map[string]interface{} `json:"style"`
 }
 
@@ -44,9 +45,11 @@ type Template struct {
 	ID            string            `json:"id"`
 	Label         string            `json:"label"`
 	BaseType      string            `json:"baseType"`
-	VariableName  *string           `json:"variableName,omitempty"`
-	AnnSetID      *int              `json:"annSetId,omitempty"`
-	Placeholders  []Placeholder     `json:"placeholders"`
+	VariableName    *string           `json:"variableName,omitempty"`
+	AnnSetID        *int              `json:"annSetId,omitempty"`
+	IsPlaceholder   bool              `json:"isPlaceholder,omitempty"`
+	PlaceholderSlot *int              `json:"placeholderSlot,omitempty"`
+	Placeholders    []Placeholder     `json:"placeholders"`
 	Layouts       map[string]Layout `json:"layouts"`
 }
 
@@ -64,6 +67,7 @@ type ResolvedElement struct {
 	MeasuredWith   *MeasuredWith          `json:"measuredWith,omitempty"`
 	ImageURL       *string                `json:"imageUrl,omitempty"`
 	PlaceholderKey *string                `json:"placeholderKey,omitempty"`
+	Rotation       *int                   `json:"rotation,omitempty"`
 	Style          map[string]interface{} `json:"style"`
 }
 
@@ -139,14 +143,14 @@ type ParsedRundown struct {
 	YouthPrayerRequest  *string          `json:"youthPrayerRequest"`
 	FamilyName          *string          `json:"familyName,omitempty"`
 	YouthName           *string          `json:"youthName,omitempty"`
-	AfternoonProgram    *string          `json:"afternoonProgram,omitempty"`
 }
 
 type Media struct {
-	Flyers           []string
-	SermonGraphicURL *string
-	FamilyPhotoURL   *string
-	YouthPhotoURL    *string
+	Flyers              []string
+	SermonGraphicURL    *string
+	FamilyPhotoURL      *string
+	YouthPhotoURL       *string
+	AnnouncementInserts []string
 }
 
 type HymnItem struct {

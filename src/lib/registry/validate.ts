@@ -24,6 +24,10 @@ const ALLOWED_TEMPLATE_KEYS = new Set([
   'id',
   'label',
   'baseType',
+  'variableName',
+  'annSetId',
+  'isPlaceholder',
+  'placeholderSlot',
   'placeholders',
   'layouts',
 ]);
@@ -57,6 +61,7 @@ const ALLOWED_ELEMENT_KEYS = new Set([
   'measuredWith',
   'placeholderKey',
   'imageRef',
+  'rotation',
   'style',
 ]);
 
@@ -418,6 +423,11 @@ function parseElement(raw: unknown, label: string): CanvasElement {
     }
     element.imageRef = obj.imageRef;
   }
+  if (obj.rotation !== undefined) {
+    const rot = parseFiniteNumber(obj.rotation, `${label}.rotation`);
+    const normalized = Math.round(((rot % 360) + 360) % 360) % 360;
+    element.rotation = normalized;
+  }
   const style = parseStyle(obj.style, `${label}.style`);
   if (style && Object.keys(style).length > 0) {
     element.style = style;
@@ -626,6 +636,22 @@ export function validateArtifactTemplate(raw: unknown): ArtifactTemplate {
     layouts.reff = parseLayout(layoutsRaw.reff, 'layouts.reff');
   }
 
+  const isPlaceholder = Boolean(obj.isPlaceholder);
+  let placeholderSlot: number | undefined = undefined;
+  if (isPlaceholder) {
+    if (
+      typeof obj.placeholderSlot !== 'number' ||
+      !Number.isInteger(obj.placeholderSlot) ||
+      obj.placeholderSlot < 1 ||
+      obj.placeholderSlot > 4
+    ) {
+      throw new RegistryValidationError(
+        'placeholderSlot must be an integer between 1 and 4 when isPlaceholder is true'
+      );
+    }
+    placeholderSlot = obj.placeholderSlot;
+  }
+
   const template: ArtifactTemplate = {
     schemaVersion: 1,
     id,
@@ -633,6 +659,7 @@ export function validateArtifactTemplate(raw: unknown): ArtifactTemplate {
     baseType: baseType as ArtifactBaseType,
     placeholders,
     layouts,
+    ...(isPlaceholder ? { isPlaceholder: true, placeholderSlot } : {}),
   };
 
   enforceBaseTypeRules(template);

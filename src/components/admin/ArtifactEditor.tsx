@@ -15,6 +15,7 @@ import {
   MoveVertical,
   Plus,
   Redo2,
+  RotateCw,
   SendToBack,
   Square,
   Trash2,
@@ -282,6 +283,8 @@ export default function ArtifactEditor({
   const [underline, setUnderline] = useState(false);
   const [letterSpacing, setLetterSpacing] = useState<number | undefined>(undefined);
   const [letterSpacingInput, setLetterSpacingInput] = useState<string>('0');
+  const [elementRotation, setElementRotation] = useState<number>(0);
+  const [elementRotationInput, setElementRotationInput] = useState<string>('0');
   const [lineHeight, setLineHeight] = useState<number>(TEXT_LINE_HEIGHT);
   const [textShadow, setTextShadow] = useState(false);
   const [shadowBlur, setShadowBlur] = useState<number>(4);
@@ -360,6 +363,7 @@ export default function ArtifactEditor({
           w: el.w,
           h: el.h,
           zIndex: el.zIndex,
+          rotation: el.rotation,
           text: el.content ?? (el.placeholderKey ? `{${el.placeholderKey}}` : ''),
           wrapLines: el.wrapLines,
           longestWordPx: el.longestWordPx,
@@ -497,6 +501,12 @@ export default function ArtifactEditor({
         setLetterSpacing(undefined);
         setLetterSpacingInput('0');
       }
+      const angle =
+        typeof (selectedText as any).angle === 'number' && Number.isFinite((selectedText as any).angle)
+          ? Math.round((((selectedText as any).angle % 360) + 360) % 360)
+          : liveEl?.rotation ?? 0;
+      setElementRotation(angle);
+      setElementRotationInput(String(angle));
       const wVal = liveEl?.w !== undefined ? Number(liveEl.w.toFixed(1)) : 0;
       const hVal = liveEl?.h !== undefined ? Number(liveEl.h.toFixed(1)) : 0;
       setBoxWidthInput(String(wVal));
@@ -3045,6 +3055,38 @@ export default function ArtifactEditor({
     [selectedElementIds, markDirty]
   );
 
+  const handleRotationChange = useCallback(
+    (valStr: string) => {
+      if (busy) return;
+      recordUndo();
+      setElementRotationInput(valStr);
+      const parsed = parseFloat(valStr);
+      const newRotation = Number.isFinite(parsed) ? Math.round(((parsed % 360) + 360) % 360) % 360 : 0;
+      setElementRotation(newRotation);
+
+      setLiveElements((prev) =>
+        prev.map((el) => {
+          if (!selectedElementIds.includes(el.id)) return el;
+          return { ...el, rotation: newRotation > 0 ? newRotation : undefined };
+        })
+      );
+
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      let updated = false;
+      for (const obj of canvas.getActiveObjects()) {
+        obj.set({ angle: newRotation });
+        obj.setCoords();
+        updated = true;
+      }
+      if (updated) {
+        canvas.requestRenderAll();
+        markDirty();
+      }
+    },
+    [busy, selectedElementIds, markDirty, recordUndo]
+  );
+
   const handleToggleUnderline = useCallback(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
@@ -5524,6 +5566,33 @@ export default function ArtifactEditor({
                             className="w-16 h-7 text-xs text-center px-1"
                             title="Letter Spacing (px)"
                           />
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0" title="Rotation (degrees, 0-359)">
+                          <RotateCw className="w-3.5 h-3.5 text-muted-foreground" />
+                          <Input
+                            data-testid="element-rotation"
+                            type="number"
+                            min={0}
+                            max={359}
+                            value={elementRotationInput}
+                            onChange={(e) => handleRotationChange(e.target.value)}
+                            disabled={busy}
+                            className="w-16 h-7 text-xs text-center px-1 font-mono"
+                            title="Rotation (0-359°)"
+                          />
+                          {elementRotation > 0 ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => handleRotationChange('0')}
+                              disabled={busy}
+                              className="h-7 px-1.5 text-[10px] text-muted-foreground"
+                              title="Reset rotation to 0°"
+                            >
+                              0°
+                            </Button>
+                          ) : null}
                         </div>
                         <div className="h-4 w-px bg-border mx-1 shrink-0" />
                         <Button

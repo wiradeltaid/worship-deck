@@ -145,6 +145,7 @@ func hydrateArtifact(template Template, instanceID, layoutKey string, values map
 			WrapLines:     element.WrapLines,
 			LongestWordPx: element.LongestWordPx,
 			MeasuredWith:  element.MeasuredWith,
+			Rotation:      element.Rotation,
 			Style:         style,
 		}
 		if element.PlaceholderKey == nil || *element.PlaceholderKey == "" {

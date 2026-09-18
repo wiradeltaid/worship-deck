@@ -34,7 +34,6 @@ export type WorshipFormFields = {
   youthPrayerRequest: string;
   familyName: string;
   youthName: string;
-  afternoonProgram: string;
 };
 
 export type HymnIndexEntry = { number: number; title: string };
@@ -51,7 +50,6 @@ export const EMPTY_WORSHIP_FORM_FIELDS: WorshipFormFields = {
   youthPrayerRequest: '',
   familyName: '',
   youthName: '',
-  afternoonProgram: '',
 };
 
 /** Map ParsedRundown → overlay form fields (Parse hydrate / edit initial). */
@@ -74,7 +72,6 @@ export function fieldsFromParsed(
     youthPrayerRequest: parsed?.youthPrayerRequest ?? '',
     familyName: parsed?.familyName ?? '',
     youthName: parsed?.youthName ?? '',
-    afternoonProgram: parsed?.afternoonProgram ?? '',
   };
 }
 
@@ -96,7 +93,6 @@ export function buildFieldsPayload(fields: WorshipFormFields) {
     youthPrayerRequest: (fields.youthPrayerRequest ?? '').trim() || null,
     familyName: (fields.familyName ?? '').trim() || null,
     youthName: (fields.youthName ?? '').trim() || null,
-    afternoonProgram: (fields.afternoonProgram ?? '').trim() || null,
     sermon: (fields.sermonSpeaker ?? '').trim()
       ? { speaker: fields.sermonSpeaker.trim(), title: '' }
       : null,
@@ -347,7 +343,6 @@ export function coerceHydrateFields(raw: unknown): WorshipFormFields | null {
     youthPrayerRequest: str(o.youthPrayerRequest),
     familyName: str(o.familyName),
     youthName: str(o.youthName),
-    afternoonProgram: str(o.afternoonProgram),
   };
 }
 

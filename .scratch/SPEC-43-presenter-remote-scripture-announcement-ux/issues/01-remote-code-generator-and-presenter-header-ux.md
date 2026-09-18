@@ -5,11 +5,11 @@ Repair the remote pairing code generation bug in the Go API (`%0604d` to `%06d`)
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] `internal/httpapi/remote.go` formats remote pairing codes strictly as 6-digit zero-padded numbers (`%06d`), returning an exact 6-character numeric string across all random values (including leading zeros, e.g. `001234`).
-- [ ] Run-Sheet button in `PresenterOperator.tsx` is styled with standard button variant (`outline`), visually consistent with adjacent actions (`All slides`, `Open projector`).
-- [ ] Presenter header replaces the raw inline remote code text with a dedicated Remote Pairing trigger displaying current pairing state and opening a pairing modal/popover.
-- [ ] Remote pairing dialog displays the 6-digit pairing code prominently, along with direct URL to `/services/:id/remote` and regenerate/disconnect options.
-- [ ] Remote pairing protocol states (`idle`, `pairing`, `connected`, `role-lost`, `error`) and failure cases (expired code, invalid code) transition accurately.
-- [ ] Mobile remote controller (`RemoteOperator.tsx`) pairs seamlessly with the 6-digit code.
+- [x] `internal/httpapi/remote.go` formats remote pairing codes strictly as 6-digit zero-padded numbers (`%06d`), returning an exact 6-character numeric string across all random values (including leading zeros, e.g. `001234`).
+- [x] Run-Sheet button in `PresenterOperator.tsx` is styled with standard button variant (`outline`), visually consistent with adjacent actions (`All slides`, `Open projector`).
+- [x] Presenter header replaces the raw inline remote code text with a dedicated Remote Pairing trigger displaying current pairing state and opening a pairing modal/popover.
+- [x] Remote pairing dialog displays the 6-digit pairing code prominently, along with direct URL to `/services/:id/remote` and regenerate/disconnect options.
+- [x] Remote pairing protocol states (`idle`, `pairing`, `connected`, `role-lost`, `error`) and failure cases (expired code, invalid code) transition accurately.
+- [x] Mobile remote controller (`RemoteOperator.tsx`) pairs seamlessly with the 6-digit code.

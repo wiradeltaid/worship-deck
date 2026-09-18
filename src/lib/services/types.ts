@@ -50,6 +50,7 @@ export type ServiceImagesPayload = {
   sermonGraphicUrl: string | null;
   familyPhotoUrl: string | null;
   youthPhotoUrl: string | null;
+  announcementInserts?: string[];
 };
 
 /** Presence-tagged optional field, so "absent" is distinct from "set to null". */

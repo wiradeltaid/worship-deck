@@ -379,11 +379,15 @@ func TestMediaLibrary_InPlaceReplacementAndCustomName(t *testing.T) {
 	updatedAt2 := patchResp["updatedAt"].(string)
 
 	// 4. In-place replace attempt with STALE updatedAt -> 409 Conflict
+	staleToken := "2020-01-01T00:00:00Z"
+	if updatedAt != updatedAt2 {
+		staleToken = updatedAt
+	}
 	var replaceBody bytes.Buffer
 	rwStale := multipart.NewWriter(&replaceBody)
-	rfwStale, _ := rwStale.CreateFormFile("file", "replacement.png")
+	rfwStale, _ := createImagePart(rwStale, "file", "replacement.png", "image/png")
 	rfwStale.Write([]byte("fake-replacement-bytes"))
-	rwStale.WriteField("updatedAt", updatedAt) // Stale timestamp!
+	rwStale.WriteField("updatedAt", staleToken) // Stale timestamp!
 	rwStale.Close()
 
 	req, _ = http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, assetID), &replaceBody)
