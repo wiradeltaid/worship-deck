@@ -1,6 +1,6 @@
 # SPEC-39 — Central Media Gallery Bucket, Presenter Announcement Section Looping, and Weekly Announcement Placeholders
 
-> **Status:** open
+> **Status:** closed
 > **Release:** media-gallery-announcement-loop-dynamic-binding
 > **Component:** registry, presenter, hub
 > **Touches:** registry, presenter, hub

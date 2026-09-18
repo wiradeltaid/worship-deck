@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS services (
   parsed_data TEXT,
   images_payload TEXT,
   participants_payload TEXT,
+  afternoon_program TEXT DEFAULT '',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   registry_snapshot_at TEXT
@@ -155,7 +156,8 @@ CREATE TABLE IF NOT EXISTS background_library_images (
   url TEXT,
   is_default INTEGER NOT NULL DEFAULT 0,
   created_at TEXT,
-  updated_at TEXT
+  updated_at TEXT,
+  category TEXT NOT NULL DEFAULT 'background'
 );
 
 CREATE TABLE IF NOT EXISTS song_books (

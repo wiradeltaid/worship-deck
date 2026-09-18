@@ -195,6 +195,8 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'form.sermon.description': 'Pembicara, doa penutup, dan grafis khotbah.',
   'form.sermonSpeaker': 'Pembicara khotbah',
   'form.sermonSpeakerPlaceholder': 'mis. Pr. John Doe',
+  'form.afternoonProgram': 'Program Sore',
+  'form.afternoonProgramPlaceholder': 'mis. Program AY: Cerdas Cermat Alkitab & Persekutuan (14:30)',
   'form.closingPrayer': 'Doa penutup',
   'form.closingPrayerPlaceholder': 'Nama yang memimpin doa penutup',
   'form.closingPrayerSameAsSpeaker': 'Sama dengan pembicara khotbah',
@@ -397,6 +399,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.registry.tab.songBooks': 'Song Books',
   'admin.registry.tab.announcements': 'Announcement Sets',
   'admin.registry.tab.backgrounds': 'Backgrounds',
+  'admin.registry.tab.mediaGallery': 'Galeri Media',
   'admin.registry.announcements.placeholder.title': 'Announcement Sets',
   'admin.registry.announcements.placeholder.description':
     'Pengelolaan Announcement Sets akan hadir di slice berikutnya.',

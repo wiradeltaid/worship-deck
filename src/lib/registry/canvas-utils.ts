@@ -763,6 +763,16 @@ export function elementToFabricObject(
         });
         fabricImg.canvas?.requestRenderAll();
       };
+      imgEl.onerror = () => {
+        // Missing asset fallback: render safe outline box instead of crashing
+        if ((fabricImg as any).data) {
+          (fabricImg as any).data.imageMissing = true;
+        }
+        fabricImg.set({
+          opacity: 0.4,
+        });
+        fabricImg.canvas?.requestRenderAll();
+      };
       return fabricImg;
     }
 

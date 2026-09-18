@@ -1864,7 +1864,7 @@ waves:
           - tests/smoke-spec-38.test.mjs
 
   - id: SPEC-39
-    status: open
+    status: closed
     release: media-gallery-announcement-loop-dynamic-binding
     prd: [offline-deck, operator-turn]
     fr: [FR-20, FR-15]
@@ -1880,7 +1880,7 @@ waves:
         component: registry
         satisfies: [UC-14]
         blocked_by: []
-        touches: [registry, api]
+        touches: [artifacts, uploads]
         tests:
           - internal/httpapi
           - src/components/admin/ArtifactEditor.tsx
@@ -1889,7 +1889,7 @@ waves:
         component: presenter
         satisfies: [UC-11]
         blocked_by: []
-        touches: [presenter]
+        touches: [present-channel]
         tests:
           - src/operator/present/PresenterOperator.tsx
           - src/projected/ProjectorClient.tsx
@@ -1898,7 +1898,7 @@ waves:
         component: hub
         satisfies: [UC-5, UC-14]
         blocked_by: ["SPEC-39-01"]
-        touches: [hub, registry]
+        touches: [services, slide-plan]
         tests:
           - src/lib/registry/placeholder-catalog.ts
           - src/lib/slide-plan.ts

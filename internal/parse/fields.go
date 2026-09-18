@@ -12,7 +12,7 @@ var structuredKeys = []string{
 	"themeVerse", "verseReading", "familyYouth", "familyPrayerRequest",
 	"youthPrayerRequest", "familyName", "youthName", "sermon", "specialSong", "closingPrayerPerson",
 	"songSets",
-	"sermonSpeaker", "sermonTitle",
+	"sermonSpeaker", "sermonTitle", "afternoonProgram", "afternoon_program",
 }
 
 func HasStructuredFields(body map[string]any) bool {
@@ -61,6 +61,11 @@ func ApplyStructuredFields(db *sql.DB, parsed *Rundown, body map[string]any) {
 	}
 	if _, ok := src["youthName"]; ok {
 		parsed.YouthName = coerceNullableString(src["youthName"])
+	}
+	if v, ok := src["afternoonProgram"]; ok {
+		parsed.AfternoonProgram = coerceNullableString(v)
+	} else if v, ok := src["afternoon_program"]; ok {
+		parsed.AfternoonProgram = coerceNullableString(v)
 	}
 	if v, ok := src["specialSong"]; ok {
 		parsed.SpecialSong = coerceSpecialSong(v)

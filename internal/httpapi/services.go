@@ -127,10 +127,14 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	afternoonProgram := ""
+	if parsed.AfternoonProgram != nil {
+		afternoonProgram = *parsed.AfternoonProgram
+	}
 	res, err := tx.Exec(
-		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, participants_payload, updated_at)
-		 VALUES (?, ?, ?, ?, ?, `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants,
+		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, `+db.StampNowSQL+`)`,
+		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants, afternoonProgram,
 	)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -528,8 +532,12 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	assignments := []string{`date = ?`, `raw_payload = ?`, `parsed_data = ?`, `updated_at = ` + db.StampNowSQL}
-	args := []any{newDate, storedRaw, string(parsedJSON)}
+	assignments := []string{`date = ?`, `raw_payload = ?`, `parsed_data = ?`, `afternoon_program = ?`, `updated_at = ` + db.StampNowSQL}
+	afternoonProgram := ""
+	if parsed.AfternoonProgram != nil {
+		afternoonProgram = *parsed.AfternoonProgram
+	}
+	args := []any{newDate, storedRaw, string(parsedJSON), afternoonProgram}
 	if imagesJSON != nil {
 		assignments = append(assignments, `images_payload = ?`)
 		args = append(args, *imagesJSON)
@@ -933,6 +941,10 @@ func fieldsFromParsed(p parse.Rundown) map[string]any {
 	if p.YouthName != nil {
 		youthName = *p.YouthName
 	}
+	afternoon := ""
+	if p.AfternoonProgram != nil {
+		afternoon = *p.AfternoonProgram
+	}
 	// Song sets are weekly inputs owned by song_set_inputs (DEC-004), not
 	// parsed_data overlays — the hydrate payload carries an empty map so the
 	// create form starts clean and the edit form hydrates from the Service's
@@ -948,5 +960,6 @@ func fieldsFromParsed(p parse.Rundown) map[string]any {
 		"youthPrayerRequest":  youth,
 		"familyName":          familyName,
 		"youthName":           youthName,
+		"afternoonProgram":    afternoon,
 	}
 }

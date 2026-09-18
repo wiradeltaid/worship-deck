@@ -550,11 +550,32 @@ export async function uploadImageFile(file: File): Promise<{ url: string }> {
   return { url: data.url };
 }
 
-export async function fetchBackgroundLibrary(): Promise<Array<{ id: number; url: string }>> {
+export async function fetchBackgroundLibrary(): Promise<Array<{ id: number; url: string; category?: string }>> {
   try {
     const res = await fetch('/api/admin/background-library', { credentials: 'same-origin' });
     if (!res.ok) return [];
-    const data = (await res.json()) as { images?: Array<{ id: number; url: string }> };
+    const data = (await res.json()) as { images?: Array<{ id: number; url: string; category?: string }> };
+    return data.images ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export interface MediaLibraryItem {
+  id: number;
+  url: string;
+  category?: string;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function fetchMediaLibrary(category?: string): Promise<MediaLibraryItem[]> {
+  try {
+    const query = category ? `?category=${encodeURIComponent(category)}` : '';
+    const res = await fetch(`/api/admin/media-library${query}`, { credentials: 'same-origin' });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { images?: MediaLibraryItem[] };
     return data.images ?? [];
   } catch {
     return [];

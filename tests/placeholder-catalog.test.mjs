@@ -119,6 +119,7 @@ test('catalog admits the 17 shipped General keys and excludes SongSet expansion 
     'youth_name',
     'family_photo',
     'youth_photo',
+    'afternoon_program',
   ]) {
     assert.equal(isCatalogPlaceholderKey(key), true, key);
   }
@@ -136,7 +137,7 @@ test('catalog admits the 17 shipped General keys and excludes SongSet expansion 
     ),
     ['sermon_poster', 'family_photo', 'youth_photo']
   );
-  assert.equal(keys.length, 17);
+  assert.equal(keys.length, 18);
 });
 
 test('mirrored TypeScript and Go catalogs define identical keys and types', () => {

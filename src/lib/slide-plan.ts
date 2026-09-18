@@ -18,7 +18,10 @@ import {
   hydrateArtifactFromSnapshot,
   type PlaceholderValues,
 } from '@/lib/artifacts/hydrate';
-import { catalogValuesFromWeekly } from '@/lib/registry/placeholder-catalog';
+import {
+  catalogValuesFromWeekly,
+  type CatalogWeeklyInput,
+} from '@/lib/registry/placeholder-catalog';
 import {
   findResolvedText,
   flattenArtifactPlan,
@@ -229,6 +232,7 @@ type PlanContext = {
   youthName: string | null;
   legacyCombined: string | null;
   familyBody: string | null;
+  afternoonProgram?: string | null;
 };
 
 function computePlanContext(
@@ -312,6 +316,7 @@ function computePlanContext(
     youthName,
     legacyCombined,
     familyBody,
+    afternoonProgram: parsedData.afternoonProgram ?? null,
   };
 }
 
@@ -706,11 +711,11 @@ const ROW_HANDLERS: Readonly<Record<string, (ctx: PlanContext) => RequestNode[]>
   ],
 };
 
-function catalogInputFromCtx(ctx: PlanContext) {
+function catalogInputFromCtx(ctx: PlanContext): CatalogWeeklyInput {
   return {
     serviceDate: ctx.serviceDate,
-    verseReference: ctx.verseReading?.reference ?? undefined,
-    verseText: ctx.verseReading?.text,
+    scriptureReference: ctx.verseReading?.reference ?? undefined,
+    scriptureText: ctx.verseReading?.text,
     scriptureBibleVersion: ctx.verseReading?.translation ?? undefined,
     themeReference: ctx.themeVerse?.reference ?? undefined,
     themeText: ctx.themeVerse?.text,
@@ -719,12 +724,13 @@ function catalogInputFromCtx(ctx: PlanContext) {
     sermonSpeaker: ctx.sermon?.speaker,
     sermonGraphic: ctx.sermonGraphic,
     closingPrayer: ctx.closingPrayer,
-    familyPrayer: ctx.familyPrayer || ctx.legacyCombined,
-    youthPrayer: ctx.youthPrayer,
+    familyRequest: ctx.familyPrayer || ctx.legacyCombined,
+    youthRequest: ctx.youthPrayer,
     familyName: ctx.familyName,
     youthName: ctx.youthName,
     familyPhoto: ctx.familyPhoto,
     youthPhoto: ctx.youthPhoto,
+    afternoonProgram: ctx.afternoonProgram,
   };
 }
 
@@ -733,7 +739,7 @@ function mergeGeneralValues(
   template: StoredArtifactTemplate | undefined,
   values: PlaceholderValues | undefined
 ): PlaceholderValues | undefined {
-  if (template?.baseType !== 'general') return values;
+  if (template?.baseType !== 'general' && template?.baseType !== 'announcement') return values;
   return { ...catalogValuesFromWeekly(catalogInputFromCtx(ctx)), ...values };
 }
 

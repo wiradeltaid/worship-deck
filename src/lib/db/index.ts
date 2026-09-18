@@ -527,6 +527,7 @@ export function bootstrap(database: Database.Database): void {
     parsed_data TEXT,
     images_payload TEXT,
     participants_payload TEXT,
+    afternoon_program TEXT DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -690,7 +691,8 @@ export function bootstrap(database: Database.Database): void {
     url TEXT,
     is_default INTEGER NOT NULL DEFAULT 0,
     created_at TEXT,
-    updated_at TEXT
+    updated_at TEXT,
+    category TEXT NOT NULL DEFAULT 'background'
   );
 
   CREATE TABLE IF NOT EXISTS song_books (
@@ -761,6 +763,22 @@ export function bootstrap(database: Database.Database): void {
   try {
     database.prepare(
       `ALTER TABLE accounts ADD COLUMN token_version INTEGER NOT NULL DEFAULT 1`
+    ).run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+  // SPEC-39: Media Library category column
+  try {
+    database.prepare(
+      `ALTER TABLE background_library_images ADD COLUMN category TEXT NOT NULL DEFAULT 'background'`
+    ).run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+  // SPEC-39: Weekly Afternoon Program column
+  try {
+    database.prepare(
+      `ALTER TABLE services ADD COLUMN afternoon_program TEXT DEFAULT ''`
     ).run();
   } catch (e) {
     if (!/duplicate column/i.test(String(e))) throw e;

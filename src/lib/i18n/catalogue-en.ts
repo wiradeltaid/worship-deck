@@ -193,6 +193,8 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'form.sermon.description': 'Speaker, closing prayer, and sermon graphic.',
   'form.sermonSpeaker': 'Sermon Speaker',
   'form.sermonSpeakerPlaceholder': 'e.g. Pr. John Doe',
+  'form.afternoonProgram': 'Afternoon Program',
+  'form.afternoonProgramPlaceholder': 'e.g. AY Program: Bible Bowl & Fellowship (14:30)',
   'form.closingPrayer': 'Closing Prayer Person',
   'form.closingPrayerPlaceholder': 'Name of person leading closing prayer',
   'form.closingPrayerSameAsSpeaker': 'Same as sermon speaker',
@@ -395,6 +397,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.registry.tab.songBooks': 'Song Books',
   'admin.registry.tab.announcements': 'Announcement Sets',
   'admin.registry.tab.backgrounds': 'Backgrounds',
+  'admin.registry.tab.mediaGallery': 'Media Gallery',
   'admin.registry.announcements.placeholder.title': 'Announcement Sets',
   'admin.registry.announcements.placeholder.description':
     'Announcement Sets administration is coming in the next slice.',

@@ -974,6 +974,23 @@ decisions:
       - .control/memlog/autopilot-DEC-041.md
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
+  - id: DEC-042
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-18)"
+    title: Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-39)
+    file: .control/decisions/DEC-042-daily-autopilot-mandate-continuous-engineering-routine.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-25'
+    touches:
+      - .control/memlog/autopilot-DEC-042.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
 
 
 

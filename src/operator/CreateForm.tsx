@@ -838,6 +838,19 @@ export default function CreateForm({
                   </div>
                 </div>
               </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                  {t('form.afternoonProgram')}
+                </label>
+                <Input
+                  type="text"
+                  className="text-xs"
+                  value={fields.afternoonProgram}
+                  onChange={(e) => setField('afternoonProgram', e.target.value)}
+                  placeholder={t('form.afternoonProgramPlaceholder')}
+                  disabled={isSaving}
+                />
+              </div>
               <ImageUploadField
                 label={t('form.sermonGraphic')}
                 value={sermonGraphicUrl}
