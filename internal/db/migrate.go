@@ -30,7 +30,34 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureBackgroundLibraryColumns(handle); err != nil {
 		return err
 	}
+	if err := ensureServicesAfternoonProgram(handle); err != nil {
+		return err
+	}
 	return nil
+}
+
+func ensureServicesAfternoonProgram(handle *sql.DB) error {
+	rows, err := handle.Query(`PRAGMA table_info(services)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, ctype string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == "afternoon_program" {
+			return rows.Err()
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = handle.Exec(`ALTER TABLE services ADD COLUMN afternoon_program TEXT DEFAULT ''`)
+	return err
 }
 
 func ensureBackgroundLibraryColumns(handle *sql.DB) error {

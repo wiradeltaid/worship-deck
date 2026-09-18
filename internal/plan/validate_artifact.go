@@ -34,6 +34,7 @@ var (
 		"youth_name":              "text",
 		"family_photo":            "image",
 		"youth_photo":             "image",
+		"afternoon_program":       "text",
 	}
 	allowedTemplateKeys = map[string]struct{}{
 		"schemaVersion": {}, "id": {}, "label": {}, "baseType": {}, "placeholders": {}, "layouts": {},

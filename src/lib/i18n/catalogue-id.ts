@@ -195,6 +195,8 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'form.sermon.description': 'Pembicara, doa penutup, dan grafis khotbah.',
   'form.sermonSpeaker': 'Pembicara khotbah',
   'form.sermonSpeakerPlaceholder': 'mis. Pr. John Doe',
+  'form.afternoonProgram': 'Program Sore',
+  'form.afternoonProgramPlaceholder': 'mis. Program AY: Cerdas Cermat Alkitab & Persekutuan (14:30)',
   'form.closingPrayer': 'Doa penutup',
   'form.closingPrayerPlaceholder': 'Nama yang memimpin doa penutup',
   'form.closingPrayerSameAsSpeaker': 'Sama dengan pembicara khotbah',

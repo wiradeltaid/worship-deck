@@ -527,6 +527,7 @@ export function bootstrap(database: Database.Database): void {
     parsed_data TEXT,
     images_payload TEXT,
     participants_payload TEXT,
+    afternoon_program TEXT DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -770,6 +771,14 @@ export function bootstrap(database: Database.Database): void {
   try {
     database.prepare(
       `ALTER TABLE background_library_images ADD COLUMN category TEXT NOT NULL DEFAULT 'background'`
+    ).run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+  // SPEC-39: Weekly Afternoon Program column
+  try {
+    database.prepare(
+      `ALTER TABLE services ADD COLUMN afternoon_program TEXT DEFAULT ''`
     ).run();
   } catch (e) {
     if (!/duplicate column/i.test(String(e))) throw e;

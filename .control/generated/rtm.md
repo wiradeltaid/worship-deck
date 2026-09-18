@@ -47,10 +47,10 @@ rtm:
   - src/lib/slide-plan.ts
   - internal/plan
   - tests/smoke-spec-39.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -296,10 +296,10 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-39.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -1915,10 +1915,10 @@ rtm:
   - internal/httpapi
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-39.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -1932,10 +1932,10 @@ rtm:
   - src/lib/slide-plan.ts
   - internal/plan
   - tests/smoke-spec-39.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3968,10 +3968,10 @@ rtm:
   - internal/httpapi
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-39.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -3985,10 +3985,10 @@ rtm:
   - src/lib/slide-plan.ts
   - internal/plan
   - tests/smoke-spec-39.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

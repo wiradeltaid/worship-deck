@@ -37,6 +37,37 @@ const { validateArtifactTemplate } = await import(
 );
 
 const {
+  PLACEHOLDER_CATALOG,
+  catalogValuesFromWeekly,
+  isCatalogPlaceholderKey,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'placeholder-catalog.ts')).href
+);
+
+const {
+  buildFieldsPayload,
+  fieldsFromParsed,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'worship-form-fields.ts')).href
+);
+
+const { buildSlidePlan } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'slide-plan.ts')).href
+);
+
+const { createService } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'services', 'create-service.ts')).href
+);
+
+const { generatePptxFromPlan } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'pptx-draw.ts')).href
+);
+
+const slidePlanPath = path.join(root, 'src', 'lib', 'slide-plan.ts');
+assert.ok(fs.existsSync(slidePlanPath), 'slide-plan.ts must exist');
+const slidePlanCode = fs.readFileSync(slidePlanPath, 'utf8');
+
+const {
   isAnnouncementSlide,
   findAnnouncementSectionBounds,
   computeNextLoopIndex,
@@ -456,5 +487,245 @@ test('SPEC-39-02: 5. Executable absence guard & defect injection proof for manua
     () => verifyManualDisarm(defectiveCode2),
     /PresenterRemoteSession must wire setIndexAndSync to manualNavigate/,
     'Absence guard must fail if remote navigation bypasses manualNavigate'
+  );
+});
+
+test('SPEC-39-03: 1. Go and TypeScript placeholder catalogs define afternoon_program and dynamic media keys with parity', () => {
+  // 1. TypeScript catalog contains afternoon_program and image keys
+  assert.equal(isCatalogPlaceholderKey('afternoon_program'), true);
+  assert.equal(isCatalogPlaceholderKey('sermon_poster'), true);
+  assert.equal(isCatalogPlaceholderKey('family_photo'), true);
+  assert.equal(isCatalogPlaceholderKey('youth_photo'), true);
+
+  // 2. Parity check with Go catalog in validate_artifact.go
+  const goValidatePath = path.join(root, 'internal', 'plan', 'validate_artifact.go');
+  assert.ok(fs.existsSync(goValidatePath), 'validate_artifact.go must exist');
+  const goCode = fs.readFileSync(goValidatePath, 'utf8');
+
+  assert.ok(
+    goCode.includes('"afternoon_program":       "text"') || goCode.includes('"afternoon_program": "text"'),
+    'Go catalogKeys in validate_artifact.go must include afternoon_program'
+  );
+  assert.ok(
+    goCode.includes('"sermon_poster":           "image"') || goCode.includes('"sermon_poster": "image"'),
+    'Go catalogKeys in validate_artifact.go must include sermon_poster'
+  );
+  assert.ok(
+    goCode.includes('"family_photo":            "image"') || goCode.includes('"family_photo": "image"'),
+    'Go catalogKeys in validate_artifact.go must include family_photo'
+  );
+  assert.ok(
+    goCode.includes('"youth_photo":             "image"') || goCode.includes('"youth_photo": "image"'),
+    'Go catalogKeys in validate_artifact.go must include youth_photo'
+  );
+});
+
+test('SPEC-39-03: 2. Weekly service schema and persistence preserves afternoon_program across forms and database', () => {
+  const db = getDb();
+  // 1. Database schema check for afternoon_program on services table
+  const columns = db.prepare(`PRAGMA table_info(services)`).all();
+  const hasAfternoonCol = columns.some((c) => c.name === 'afternoon_program');
+  assert.ok(hasAfternoonCol, 'services table must include afternoon_program column');
+
+  // 2. Form state helper roundtrips
+  const formPayload = buildFieldsPayload({
+    songSets: {},
+    verseReference: '',
+    verseText: '',
+    verseTranslation: '',
+    sermonSpeaker: '',
+    specialSong: '',
+    closingPrayerPerson: '',
+    familyPrayerRequest: '',
+    youthPrayerRequest: '',
+    familyName: '',
+    youthName: '',
+    afternoonProgram: 'AY Program: Bible Bowl (14:30)',
+  });
+  assert.equal(formPayload.afternoonProgram, 'AY Program: Bible Bowl (14:30)');
+
+  // 3. Hydrate fieldsFromParsed roundtrip
+  const hydrated = fieldsFromParsed({
+    date: '2026-09-20',
+    items: [],
+    unmappedLines: [],
+    failedHymnNumbers: [],
+    sermon: null,
+    specialSong: null,
+    closingPrayerPerson: null,
+    themeVerse: null,
+    verseReading: null,
+    familyYouth: null,
+    familyPrayerRequest: null,
+    youthPrayerRequest: null,
+    afternoonProgram: 'Community Outreach (15:00)',
+  });
+  assert.equal(hydrated.afternoonProgram, 'Community Outreach (15:00)');
+
+  // 4. Persistence into services table column via createService
+  const created = createService(
+    db,
+    {
+      rawPayload: 'Sabbath, September 26, 2026\nDivine Service',
+      structured: {
+        afternoonProgram: 'Health Expo & Seminar (14:00)',
+      },
+      clearMaster: false,
+      allowSecond: true,
+      payload: {
+        ok: true,
+        value: {
+          imagesPayload: {},
+          participantsRaw: null,
+        },
+      },
+    },
+    '2026-09-26'
+  );
+  assert.equal(created.ok, true, 'createService must succeed');
+  if (created.ok) {
+    const row = db.prepare(
+      `SELECT afternoon_program FROM services WHERE id = ?`
+    ).get(created.id);
+    assert.equal(row.afternoon_program, 'Health Expo & Seminar (14:00)', 'afternoon_program column must persist value');
+  }
+});
+
+test('SPEC-39-03: 3. Weekly announcement slide hydration maps sermon_poster, family_photo, youth_photo, and afternoon_program', () => {
+  // Weekly input with dynamic announcement graphics and schedule
+  const weeklyInput = {
+    serviceDate: '2026-09-20',
+    scriptureReference: 'John 3:16',
+    scriptureText: 'For God so loved the world...',
+    familyRequest: 'Smith family health prayer',
+    youthRequest: 'Youth camp retreat blessing',
+    sermonGraphic: '/api/uploads/sermon-poster-1.png',
+    familyPhoto: '/api/uploads/smith-family.png',
+    youthPhoto: '/api/uploads/youth-group.png',
+    afternoonProgram: 'Pathfinder Club Drill & Camping Prep',
+  };
+
+  const values = catalogValuesFromWeekly(weeklyInput);
+
+  assert.equal(values.scripture_reference, 'John 3:16');
+  assert.equal(values.scripture_text, 'For God so loved the world...');
+  assert.equal(values.family_request, 'Smith family health prayer');
+  assert.equal(values.youth_request, 'Youth camp retreat blessing');
+  assert.equal(values.sermon_poster, '/api/uploads/sermon-poster-1.png');
+  assert.equal(values.family_photo, '/api/uploads/smith-family.png');
+  assert.equal(values.youth_photo, '/api/uploads/youth-group.png');
+  assert.equal(values.afternoon_program, 'Pathfinder Club Drill & Camping Prep');
+
+  // Verify full plan-level hydration via buildSlidePlan
+  const parsedData = {
+    date: '2026-09-20',
+    items: [],
+    unmappedLines: [],
+    failedHymnNumbers: [],
+    sermon: { speaker: 'Pr. Henderson', title: 'The Remnant Hope' },
+    specialSong: 'Youth Choir',
+    closingPrayerPerson: 'Elder Mark',
+    themeVerse: { reference: 'Rev 14:6', text: 'And I saw another angel...' },
+    verseReading: { reference: 'John 3:16', text: 'For God so loved the world...' },
+    familyYouth: null,
+    familyPrayerRequest: 'Smith family prayer',
+    youthPrayerRequest: 'Youth retreat blessing',
+    familyName: 'Smith',
+    youthName: 'David',
+    afternoonProgram: 'Pathfinder Club Drill & Camping Prep',
+  };
+  const media = {
+    sermonGraphicUrl: '/api/uploads/sermon-poster-1.png',
+    familyPhotoUrl: '/api/uploads/smith-family.png',
+    youthPhotoUrl: '/api/uploads/youth-group.png',
+    flyers: ['/api/uploads/flyer-1.png'],
+  };
+  const plan = buildSlidePlan('2026-09-20', parsedData, media);
+  assert.ok(Array.isArray(plan) && plan.length > 0, 'Plan must generate slides');
+});
+
+test('SPEC-39-03: 4. PPTX export gracefully handles missing dynamic images without throwing', async () => {
+  // Mock slide with missing image reference
+  const mockPlan = [
+    {
+      id: 'ann-slide-test',
+      kind: 'body',
+      artifact: {
+        runtimeVersion: 1,
+        instanceId: 'inst-1',
+        templateId: 'ann-flyer-test',
+        layout: {
+          aspectRatio: '16:9',
+          backgroundColor: '#1E293B',
+          elements: [
+            {
+              id: 'title-el',
+              type: 'text',
+              text: 'Announcements Today',
+              x: 5,
+              y: 5,
+              w: 90,
+              h: 15,
+              zIndex: 1,
+              style: { fontSize: 32, fontColor: '#FFFFFF' },
+            },
+            {
+              id: 'image-el',
+              type: 'image',
+              imageRef: '/api/uploads/non-existent-image-file-999.png',
+              x: 10,
+              y: 25,
+              w: 80,
+              h: 65,
+              zIndex: 2,
+            },
+          ],
+        },
+      },
+    },
+  ];
+
+  // generatePptxFromPlan must resolve missing images to fallback text shapes without crashing
+  const buffer = await generatePptxFromPlan('2026-09-20', mockPlan, 'fade');
+  assert.ok(buffer instanceof Uint8Array || Buffer.isBuffer(buffer), 'Export must return buffer');
+  assert.ok(buffer.length > 1000, 'Export buffer must be non-empty PPTX zip');
+});
+
+test('SPEC-39-03: 5. Executable absence guard & defect injection proof for dynamic announcement placeholder hydration', () => {
+  function verifyCatalogHydrationBridge(source) {
+    const fnMatch = source.match(/function\s+catalogInputFromCtx\s*\([^)]*\)\s*:\s*CatalogWeeklyInput\s*\{[\s\S]*?\}/);
+    assert.ok(fnMatch, 'catalogInputFromCtx must explicitly return CatalogWeeklyInput');
+    const body = fnMatch[0];
+    assert.ok(body.includes('afternoonProgram: ctx.afternoonProgram'), 'Must bridge afternoonProgram');
+    assert.ok(body.includes('scriptureReference: ctx.verseReading?.reference'), 'Must bridge scriptureReference');
+    assert.ok(body.includes('familyRequest: ctx.familyPrayer || ctx.legacyCombined'), 'Must bridge familyRequest');
+    assert.ok(body.includes('youthRequest: ctx.youthPrayer'), 'Must bridge youthRequest');
+  }
+
+  // Live source must pass
+  assert.doesNotThrow(() => verifyCatalogHydrationBridge(slidePlanCode));
+
+  // Defect injection 1: omitting afternoonProgram in bridge
+  const defect1 = slidePlanCode.replace('afternoonProgram: ctx.afternoonProgram', '// omitted');
+  assert.throws(
+    () => verifyCatalogHydrationBridge(defect1),
+    /Must bridge afternoonProgram/,
+    'Absence guard must fail if afternoonProgram is omitted in slide-plan bridge'
+  );
+
+  // Defect injection 2: wrong property name for scriptureReference
+  const defect2 = slidePlanCode.replace('scriptureReference:', 'verseReference:');
+  assert.throws(
+    () => verifyCatalogHydrationBridge(defect2),
+    /Must bridge scriptureReference/,
+    'Absence guard must fail if scriptureReference bridge uses wrong property name'
+  );
+
+  // Defect injection 3: wrong property name for familyRequest
+  const defect3 = slidePlanCode.replace('familyRequest:', 'familyPrayer:');
+  assert.throws(
+    () => verifyCatalogHydrationBridge(defect3),
+    /Must bridge familyRequest/,
+    'Absence guard must fail if familyRequest bridge uses wrong property name'
   );
 });

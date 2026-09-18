@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**42 decisions** — accepted: 1 · applied: 41.
+**42 decisions** — applied: 42.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -49,4 +49,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-039` | Autopilot mandate for Cross-Surface Font Availability Parity, Multi-Context Hydration, and Unacquired Font St… | `applied` | mandate | `.control/memlog/autopilot-DEC-039.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-37-font-availability-parity-and-unacquired-status-reconciliation/SPEC.md`, `src/components/admin/ArtifactEditor.tsx`, `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, `spa/src/App.tsx`, `src/components/artifacts/ArtifactSlide.tsx`, `src/lib/fonts/embed-fonts.ts`, `src/lib/pptx-draw.ts`, `src/lib/artifacts/render-model.ts`, `src/lib/registry/font-catalog.ts`, `tests/smoke-spec-37.test.mjs`, `package.json` | `.control/decisions/DEC-039-autopilot-mandate-font-availability-parity-unacquired-status-reconciliation.md` |
 | `DEC-040` | Autopilot mandate for Canvas Undo/Redo and Line & Outline Shape Elements (SPEC-38) | `applied` | mandate | `.control/memlog/autopilot-DEC-040.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-38-canvas-undo-redo-and-line-unfilled-shape-elements/SPEC.md`, `src/components/admin/ArtifactEditor.tsx`, `src/components/artifacts/ArtifactSlide.tsx`, `src/lib/registry/types.ts`, `src/lib/registry/validate.ts`, `src/lib/pptx-draw.ts`, `internal/plan/types.go`, `internal/plan/validate_artifact.go`, `tests/smoke-spec-38.test.mjs`, `package.json` | `.control/decisions/DEC-040-autopilot-mandate-canvas-undo-redo-and-line-shapes.md` |
 | `DEC-041` | Daily Autopilot mandate for continuous engineering routine and delivery | `applied` | mandate | `.control/memlog/autopilot-DEC-041.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-041-daily-autopilot-mandate-continuous-engineering-routine.md` |
-| `DEC-042` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-39) | `accepted` | mandate | `.control/memlog/autopilot-DEC-042.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-042-daily-autopilot-mandate-continuous-engineering-routine.md` |
+| `DEC-042` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-39) | `applied` | mandate | `.control/memlog/autopilot-DEC-042.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-042-daily-autopilot-mandate-continuous-engineering-routine.md` |

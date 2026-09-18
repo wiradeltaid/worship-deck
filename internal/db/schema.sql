@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS services (
   parsed_data TEXT,
   images_payload TEXT,
   participants_payload TEXT,
+  afternoon_program TEXT DEFAULT '',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   registry_snapshot_at TEXT

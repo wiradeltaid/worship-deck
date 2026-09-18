@@ -64,18 +64,20 @@ export function createService(
       if (existing && !input.allowSecond) {
         throw new DateCollision(existing.id, serviceDate);
       }
+      const afternoonProgram = parsedData.afternoonProgram || '';
       const result = db
-        .prepare<[string, string, string, string, string | null]>(
+        .prepare<[string, string, string, string, string | null, string]>(
           `INSERT INTO services
-             (date, raw_payload, parsed_data, images_payload, participants_payload, updated_at)
-           VALUES (?, ?, ?, ?, ?, ${STAMP_NOW_SQL})`
+             (date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ${STAMP_NOW_SQL})`
         )
         .run(
           serviceDate,
           input.rawPayload,
           parsedJson,
           imagesJson,
-          payload.participantsRaw
+          payload.participantsRaw,
+          afternoonProgram
         );
       serviceId = Number(result.lastInsertRowid);
 

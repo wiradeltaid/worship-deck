@@ -49,9 +49,10 @@ type ctx struct {
 	familyPrayer   string
 	youthPrayer    string
 	familyName     string
-	youthName      string
-	legacyCombined string
-	familyBody     string
+	youthName        string
+	legacyCombined   string
+	familyBody       string
+	afternoonProgram string
 }
 
 func trimPtr(s *string) string {
@@ -177,8 +178,9 @@ func computeCtx(serviceDate string, parsed ParsedRundown, media Media) ctx {
 		closingPrayer:  trimPtr(parsed.ClosingPrayerPerson),
 		familyPrayer:   trimPtr(parsed.FamilyPrayerRequest),
 		youthPrayer:    trimPtr(parsed.YouthPrayerRequest),
-		familyName:     trimPtr(parsed.FamilyName),
-		youthName:      trimPtr(parsed.YouthName),
+		familyName:       trimPtr(parsed.FamilyName),
+		youthName:        trimPtr(parsed.YouthName),
+		afternoonProgram: trimPtr(parsed.AfternoonProgram),
 	}
 	if hasScripture(parsed.ThemeVerse) {
 		c.themeVerse = parsed.ThemeVerse
@@ -286,6 +288,9 @@ func catalogValues(c ctx) map[string]interface{} {
 		if photo := firstNonEmpty(*c.youthPhoto); photo != "" {
 			out["youth_photo"] = photo
 		}
+	}
+	if c.afternoonProgram != "" {
+		out["afternoon_program"] = c.afternoonProgram
 	}
 	return out
 }
