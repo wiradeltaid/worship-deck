@@ -29,10 +29,10 @@ export type PreviewEntry = {
   /** Operator-recognizable label; never a raw PascalCase template label. */
   label: string;
   baseType: ArtifactBaseType;
-  /** Present only on members of a group (currently SongSets). */
+  /** Present only on members of a group (SongSets or AnnouncementSets). */
   groupId?: string;
   groupLabel?: string;
-  role?: 'title' | 'lyric';
+  role?: 'title' | 'lyric' | 'announcement';
   roleLabel?: string;
 };
 
@@ -130,9 +130,17 @@ export function resolveSongSetGroupBadge(groupOrdinal?: number): string {
 }
 
 /**
- * Resolves the badge string for a preview row following DEC-004:
+ * Resolves the badge string for an AnnouncementSet group header given its ordinal.
+ */
+export function resolveAnnouncementGroupBadge(groupOrdinal?: number): string {
+  return ordinalBadge('ann-set', groupOrdinal);
+}
+
+/**
+ * Resolves the badge string for a preview row following DEC-004 and SPEC-41:
  * - song-set child with role 'title': localized role 'title'
  * - song-set child with role 'lyric': localized lyric role ('verse N', 'reff', 'chorus')
+ * - announcement-set child with role 'announcement': slide label or 'announcement'
  * - standalone song-set row: 'song-set-N' (or 'song-set' if no ordinal)
  * - standalone ann-set row: 'ann-set-N' (or 'ann-set' if no ordinal)
  * - every other row: 'general'. The badge vocabulary is a closed set, so a
@@ -145,7 +153,7 @@ export function resolvePreviewBadge(
     | {
         label?: string;
         baseType?: ArtifactBaseType;
-        role?: 'title' | 'lyric';
+        role?: 'title' | 'lyric' | 'announcement';
         groupId?: string;
         roleLabel?: string;
       }
@@ -157,7 +165,7 @@ export function resolvePreviewBadge(
     | undefined,
   t: (key: I18nKey) => string
 ): string {
-  // 1. Song set child rows
+  // 1. Group child rows
   if (entry?.groupId || entry?.role) {
     if (entry.role === 'title') {
       return t('form.preview.role.title');
@@ -180,6 +188,13 @@ export function resolvePreviewBadge(
         return lyricLabel.toLowerCase();
       }
       return t('form.preview.role.lyric');
+    }
+    if (entry.role === 'announcement') {
+      const annLabel = entry.roleLabel?.trim() || slide?.title?.trim() || '';
+      if (annLabel) {
+        return annLabel.toLowerCase();
+      }
+      return 'announcement';
     }
   }
 
@@ -207,9 +222,10 @@ export function resolvePreviewTitle(
   entry?: {
     label?: string;
     baseType?: ArtifactBaseType;
-    role?: 'title' | 'lyric';
+    role?: 'title' | 'lyric' | 'announcement';
     groupId?: string;
     groupLabel?: string;
+    roleLabel?: string;
   },
   fallback = 'Untitled slide'
 ): string {
@@ -242,6 +258,15 @@ export function resolvePreviewTitle(
     return '';
   }
 
+  // If it's an announcement child, show slide.title or roleLabel or groupLabel
+  if (entry?.role === 'announcement') {
+    const slideTitle = slide?.title?.trim();
+    if (slideTitle) return slideTitle;
+    if (entry.roleLabel?.trim()) return entry.roleLabel.trim();
+    if (entry.label?.trim() && entry.label !== 'Announcement') return entry.label.trim();
+    return '';
+  }
+
   const slideTitle = slide?.title?.trim();
   if (slideTitle) return slideTitle;
 
@@ -266,6 +291,7 @@ export function resolvePreviewTitle(
 export function previewBadgeTone(entry: PreviewEntry): PreviewBadgeTone {
   if (entry.role === 'title') return 'song-title';
   if (entry.role === 'lyric') return 'song-lyric';
+  if (entry.role === 'announcement') return 'image';
   if (SCRIPTURE_TEMPLATE_IDS.has(entry.templateId)) return 'scripture';
   // `kindChipLabel`, not `kindOf`: this runs inside SlidePreviewList's render and
   // there is no ErrorBoundary in src/, so an unrecognised key must degrade to a

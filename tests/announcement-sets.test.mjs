@@ -95,8 +95,8 @@ test('Announcement Sets and slides can be inserted and spliced into slide plan v
   const parsed = parseRundown(sample);
   const plan = buildSlidePlan('2026-08-22', parsed, []);
 
-  const slide1Instance = plan.find((s) => s.id === `ann-slide-${s1Id}`);
-  const slide2Instance = plan.find((s) => s.id === `ann-slide-${s2Id}`);
+  const slide1Instance = plan.find((s) => s.id === `ann-slide-${s1Id}` || s.id.endsWith(`ann-slide-${s1Id}`));
+  const slide2Instance = plan.find((s) => s.id === `ann-slide-${s2Id}` || s.id.endsWith(`ann-slide-${s2Id}`));
 
   assert.ok(slide1Instance, 'first announcement set slide must be spliced in plan');
   assert.ok(slide2Instance, 'second announcement set slide must be spliced in plan');
@@ -104,8 +104,8 @@ test('Announcement Sets and slides can be inserted and spliced into slide plan v
   assert.equal(slide2Instance?.title, 'Prayer Night Flyer');
 
   // Verify slide order in plan: slide 1 comes before slide 2
-  const idx1 = plan.findIndex((s) => s.id === `ann-slide-${s1Id}`);
-  const idx2 = plan.findIndex((s) => s.id === `ann-slide-${s2Id}`);
+  const idx1 = plan.findIndex((s) => s.id === `ann-slide-${s1Id}` || s.id.endsWith(`ann-slide-${s1Id}`));
+  const idx2 = plan.findIndex((s) => s.id === `ann-slide-${s2Id}` || s.id.endsWith(`ann-slide-${s2Id}`));
   assert.ok(idx1 < idx2, 'slides in set must follow position order');
 });
 

@@ -86,8 +86,8 @@ ANNOUNCEMENTS
     console.log('--- EXTRACTED PREVIEW BADGES:', badges);
 
     // 1. Invariant: Closed badge vocabulary
-    // Allowed badges: general, song-set-N, ann-set-N, title/judul, verse N/bait N, reff, chorus, lyric
-    const allowedBadgePattern = /^(general|song-set(-\d+)?|ann-set(-\d+)?|title|judul|verse\s*\d+|bait\s*\d+|reff|chorus|lyric)$/i;
+    // Allowed badges: general, song-set-N, ann-set-N, announcement, title/judul, verse N/bait N, reff, chorus, lyric
+    const allowedBadgePattern = /^(general|song-set(-\d+)?|ann-set(-\d+)?|announcement|title|judul|verse\s*\d+|bait\s*\d+|reff|chorus|lyric)$/i;
     for (const badge of badges) {
       assert.match(
         badge,

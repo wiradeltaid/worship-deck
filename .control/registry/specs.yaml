@@ -1944,7 +1944,7 @@ waves:
           - tests/smoke-spec-40.test.mjs
 
   - id: SPEC-41
-    status: open
+    status: closed
     release: announcement-set-hierarchy-and-grouping
     prd: [offline-deck, operator-turn]
     fr: [FR-09, FR-16]

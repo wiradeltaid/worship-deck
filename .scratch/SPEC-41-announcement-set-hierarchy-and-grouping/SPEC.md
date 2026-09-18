@@ -1,6 +1,6 @@
 # SPEC-41 — Announcement Set Slide Hierarchy and Grouping in Presenter Operator and Live Slide Preview
 
-> **Status:** open
+> **Status:** closed
 > **Release:** announcement-set-hierarchy-and-grouping
 > **Component:** presenter
 > **Touches:** slide-plan, present-channel, artifacts, services

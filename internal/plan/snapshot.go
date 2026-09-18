@@ -31,7 +31,12 @@ func AcceptLivePayload(id, payload string) bool {
 // loadTemplates builds a snapshot from open Rows. trio must be loaded before
 // opening rows — never query the DB from here (MaxOpenConns(1) deadlock).
 func loadTemplates(rows *sql.Rows, useTemplateID bool, trio *songSetLayoutTrio) Snapshot {
-	snap := Snapshot{ByID: map[string]Template{}, SongInputs: map[string]HymnItem{}, AnnouncementSlides: map[int][]AnnouncementSlide{}}
+	snap := Snapshot{
+		ByID:                  map[string]Template{},
+		SongInputs:            map[string]HymnItem{},
+		AnnouncementSlides:    map[int][]AnnouncementSlide{},
+		AnnouncementSetLabels: map[int]string{},
+	}
 	for rows.Next() {
 		var id, label, baseType, updatedAt string
 		var varName sql.NullString
@@ -164,6 +169,27 @@ func loadAnnouncementSlidesIntoSnapshot(db *sql.DB, serviceID int, snap *Snapsho
 	if snap.AnnouncementSlides == nil {
 		snap.AnnouncementSlides = map[int][]AnnouncementSlide{}
 	}
+	if snap.AnnouncementSetLabels == nil {
+		snap.AnnouncementSetLabels = map[int]string{}
+	}
+	setRows, err := db.Query(`SELECT id, COALESCE(name, ''), COALESCE(label, '') FROM announcement_sets`)
+	if err == nil {
+		defer setRows.Close()
+		for setRows.Next() {
+			var setID int
+			var sName, sLabel string
+			if err := setRows.Scan(&setID, &sName, &sLabel); err == nil {
+				lbl := strings.TrimSpace(sLabel)
+				if lbl == "" {
+					lbl = strings.TrimSpace(sName)
+				}
+				if lbl != "" {
+					snap.AnnouncementSetLabels[setID] = lbl
+				}
+			}
+		}
+	}
+
 	rows, err := db.Query(
 		`SELECT id, ann_set_id, label, payload, position
 		   FROM announcement_set_slides

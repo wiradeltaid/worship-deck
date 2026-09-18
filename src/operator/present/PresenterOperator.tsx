@@ -1078,9 +1078,13 @@ export default function PresenterOperator({
                   >
                     <p className="flex items-center gap-1.5 px-2 pt-1.5 pb-1 text-xs">
                       <span
-                        className={`${BADGE_CLASS} border-primary/40 bg-primary/15 text-primary`}
+                        className={`${BADGE_CLASS} ${
+                          row.groupKind === 'announcement'
+                            ? 'border-purple-400/40 bg-purple-400/15 text-purple-200 dark:border-purple-400/40 dark:bg-purple-400/15 dark:text-purple-200'
+                            : 'border-primary/40 bg-primary/15 text-primary'
+                        }`}
                       >
-                        Song Set
+                        {row.groupKind === 'announcement' ? 'Announcement' : 'Song Set'}
                       </span>
                       <span className="truncate font-medium">{row.label}</span>
                     </p>
