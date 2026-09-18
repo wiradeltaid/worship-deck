@@ -1,4 +1,4 @@
-import type { ParsedSongCandidate, ParserProfileRules } from './parser';
+import type { ParsedSongCandidate, ParserProfileRules } from './parser-rules';
 
 export interface SongSetEntrySlot {
   variableName: string;

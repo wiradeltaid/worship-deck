@@ -19,7 +19,6 @@ import {
 } from '../registry/seed';
 import { migrateServiceBoundSnapshots } from '../registry/service-snapshot';
 import { ARTIFACT_ENTRY_KEYS } from '../registry/types';
-import { setDbProvider } from '../parser';
 import { STAMP_NOW_SQL } from './stamp';
 
 let db: Database.Database | null = null;
@@ -894,7 +893,6 @@ export function getDb() {
     db = new Database(dbPath);
 
     try {
-      setDbProvider(() => db);
       bootstrap(db);
     } catch (err) {
       db.close();

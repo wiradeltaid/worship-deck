@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useT } from '@/lib/i18n/operator';
-import { parseRundownWithProfile, type ParserProfileRules } from '@/lib/parser';
+import { parseRundownWithProfile, type ParserProfileRules } from '@/lib/parser-rules';
 import { matchSongSets, type SongSetEntrySlot } from '@/lib/song-set-matching';
 
 export interface ParserProfile {
