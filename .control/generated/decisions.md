@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**45 decisions** — applied: 45.
+**46 decisions** — applied: 46.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -53,3 +53,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-043` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-40, SPEC-41, SPEC-42) | `applied` | mandate | `.control/memlog/autopilot-DEC-043.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-043-daily-autopilot-mandate-continuous-engineering-routine.md` |
 | `DEC-044` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-43) | `applied` | mandate | `.control/memlog/autopilot-DEC-044.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineering-routine.md` |
 | `DEC-045` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-44) | `applied` | mandate | `.control/memlog/autopilot-DEC-045.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `internal/db/migrate_parser_profiles.go`, `internal/httpapi/parser_profiles.go`, `internal/parse/parser.go`, `internal/parse/profile.go`, `internal/parse/song_set_matching.go`, `src/lib/parser.ts`, `src/lib/song-set-matching.ts`, `src/components/admin/ParserProfilesPanel.tsx`, `src/operator/CreateForm.tsx`, `src/operator/EditForm.tsx`, `tests/smoke-spec-44.test.mjs` | `.control/decisions/DEC-045-daily-autopilot-mandate-continuous-engineering-routine.md` |
+| `DEC-046` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-45) | `applied` | mandate | `.control/memlog/autopilot-DEC-046.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `spa/src/pages/RunSheetPage.tsx`, `src/operator/CreateForm.tsx`, `src/operator/EditForm.tsx`, `internal/httpapi/services_announcement_inserts_test.go`, `tests/smoke-spec-45.test.mjs`, `package.json` | `.control/decisions/DEC-046-daily-autopilot-mandate-continuous-engineering-routine.md` |

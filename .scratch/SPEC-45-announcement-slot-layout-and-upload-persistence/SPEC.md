@@ -1,6 +1,6 @@
 # SPEC-45 — Announcement Slot Single-Row Layout and Upload Persistence Hydration
 
-> **Status:** open
+> **Status:** closed
 > **Release:** announcement-slot-layout-and-upload-persistence
 > **Component:** hub
 > **Touches:** services

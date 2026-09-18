@@ -186,10 +186,10 @@ rtm:
   test:
   - spa/src/pages/RunSheetPage.tsx
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -202,10 +202,10 @@ rtm:
   - src/operator/CreateForm.tsx
   - src/operator/EditForm.tsx
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -216,10 +216,10 @@ rtm:
   release: announcement-slot-layout-and-upload-persistence
   test:
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -715,10 +715,10 @@ rtm:
   - src/operator/CreateForm.tsx
   - src/operator/EditForm.tsx
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -729,10 +729,10 @@ rtm:
   release: announcement-slot-layout-and-upload-persistence
   test:
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -2718,10 +2718,10 @@ rtm:
   - src/operator/CreateForm.tsx
   - src/operator/EditForm.tsx
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -2732,10 +2732,10 @@ rtm:
   release: announcement-slot-layout-and-upload-persistence
   test:
   - tests/smoke-spec-45.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27

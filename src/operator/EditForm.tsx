@@ -88,7 +88,11 @@ export default function EditForm({
   const [youthPhotoUrl, setYouthPhotoUrl] = useState(initialYouthPhotoUrl);
   const [announcementInserts, setAnnouncementInserts] = useState<string[]>(
     () => {
-      const arr = Array.isArray(initialAnnouncementInserts) ? [...initialAnnouncementInserts] : [];
+      const arr = Array.isArray(initialAnnouncementInserts)
+        ? initialAnnouncementInserts.map((x: unknown) =>
+            typeof x === 'string' ? x : ''
+          )
+        : [];
       while (arr.length < 4) arr.push('');
       return arr.slice(0, 4);
     }
@@ -1230,7 +1234,7 @@ export default function EditForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-4">
                 {[1, 2, 3, 4].map((slot) => (
                   <div
                     key={slot}

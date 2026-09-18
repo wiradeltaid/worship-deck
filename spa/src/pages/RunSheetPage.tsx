@@ -120,6 +120,11 @@ export default function RunSheetPage() {
         initialSermonGraphicUrl={images.sermonGraphicUrl || ''}
         initialFamilyPhotoUrl={images.familyPhotoUrl || ''}
         initialYouthPhotoUrl={images.youthPhotoUrl || ''}
+        initialAnnouncementInserts={
+          Array.isArray(images.announcementInserts)
+            ? images.announcementInserts.map((x: unknown) => (typeof x === 'string' ? x : ''))
+            : []
+        }
         initialParserProfileId={svc.parser_profile_id || ''}
         initialUpdatedAt={svc.updated_at}
       />
