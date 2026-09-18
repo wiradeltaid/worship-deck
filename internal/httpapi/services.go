@@ -478,10 +478,11 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
-	currentUpdatedAt := formatTimestamp(existing.updated.String)
-	if currentUpdatedAt == "" {
-		currentUpdatedAt = formatTimestamp(existing.created.String)
+	rawStoredToken := existing.updated.String
+	if rawStoredToken == "" {
+		rawStoredToken = existing.created.String
 	}
+	currentUpdatedAt := formatTimestamp(rawStoredToken)
 	clientUpdatedAt = formatTimestamp(clientUpdatedAt)
 	if clientUpdatedAt != currentUpdatedAt {
 		writeJSON(w, http.StatusConflict, map[string]any{
@@ -557,10 +558,10 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 			args = append(args, participants)
 		}
 	}
-	args = append(args, id, currentUpdatedAt)
+	args = append(args, id, currentUpdatedAt, rawStoredToken)
 	res, err := tx.Exec(
 		`UPDATE services SET `+strings.Join(assignments, ", ")+`
-		  WHERE id = ? AND COALESCE(updated_at, created_at) = ?`,
+		  WHERE id = ? AND (COALESCE(updated_at, created_at) = ? OR COALESCE(updated_at, created_at) = ?)`,
 		args...,
 	)
 	if err != nil {
