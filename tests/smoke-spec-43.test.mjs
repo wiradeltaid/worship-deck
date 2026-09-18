@@ -395,3 +395,213 @@ test('SPEC-43-01: 9. PresenterRemoteSession disconnect() followed by start() req
     session.stop();
   }
 });
+
+// Absence guard helper for presenter height clamping
+function scanPresenterHeightClamping(source) {
+  const findings = [];
+  // Match outer div of PresenterOperator return
+  const returnMatch = source.match(/return\s*\(\s*<div\s+className="([^"]*)"/);
+  if (!returnMatch) {
+    findings.push('Presenter root container not found');
+  } else {
+    const classes = returnMatch[1];
+    if (classes.includes('lg:h-dvh')) {
+      findings.push('Presenter root container contains obsolete lg:h-dvh clamping');
+    }
+    if (classes.includes('lg:overflow-hidden')) {
+      findings.push('Presenter root container contains obsolete lg:overflow-hidden clamping');
+    }
+    if (!classes.includes('overflow-y-auto')) {
+      findings.push('Presenter root container missing overflow-y-auto');
+    }
+    if (!classes.includes('min-h-dvh')) {
+      findings.push('Presenter root container missing min-h-dvh');
+    }
+    if (!classes.includes('flex-col')) {
+      findings.push('Presenter root container missing flex-col');
+    }
+  }
+  return findings;
+}
+
+// Structural scanner for panel scrollers and min-height containment
+function scanPresenterPanelContainment(source) {
+  const findings = [];
+
+  // 1. Slides section
+  const slidesMatch = source.match(
+    /<section[\s\S]*?min-h-\[16rem\][\s\S]*?<h2[^>]*>\s*Slides\s*<\/h2>[\s\S]*?<div[^>]*className="([^"]*)"/
+  );
+  if (!slidesMatch) {
+    findings.push('Slides section with min-h-[16rem] floor not found');
+  } else {
+    const scrollerClasses = slidesMatch[1];
+    if (!scrollerClasses.includes('overflow-y-auto')) {
+      findings.push('Slides panel scroller missing overflow-y-auto');
+    }
+    if (!scrollerClasses.includes('max-lg:max-h-[45vh]')) {
+      findings.push('Slides panel scroller missing max-lg:max-h-[45vh] mobile containment');
+    }
+    if (!scrollerClasses.includes('lg:max-h-[36rem]')) {
+      findings.push('Slides panel scroller missing lg:max-h-[36rem] desktop containment');
+    }
+  }
+
+  // 2. Run-Sheet section
+  const runSheetMatch = source.match(
+    /<section[\s\S]*?min-h-\[14rem\][\s\S]*?<h2[^>]*>\s*Run-Sheet\s*<\/h2>[\s\S]*?<ul[^>]*className="([^"]*)"/
+  );
+  if (!runSheetMatch) {
+    findings.push('Run-Sheet section with min-h-[14rem] floor not found');
+  } else {
+    const scrollerClasses = runSheetMatch[1];
+    if (!scrollerClasses.includes('overflow-y-auto')) {
+      findings.push('Run-Sheet panel scroller missing overflow-y-auto');
+    }
+    if (!scrollerClasses.includes('max-lg:max-h-[45vh]')) {
+      findings.push('Run-Sheet panel scroller missing max-lg:max-h-[45vh] mobile containment');
+    }
+    if (!scrollerClasses.includes('lg:max-h-[30rem]')) {
+      findings.push('Run-Sheet panel scroller missing lg:max-h-[30rem] desktop containment');
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-43-02: 10. Presenter root container eliminates lg:h-dvh and lg:overflow-hidden with overflow-y-auto', () => {
+  const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
+  const findings = scanPresenterHeightClamping(currentPresenterSource);
+  assert.deepEqual(
+    findings,
+    [],
+    'Presenter root container must not clamp height with lg:h-dvh or lg:overflow-hidden'
+  );
+});
+
+test('SPEC-43-02: 11. Defect injection proof for presenter height clamping absence guard', () => {
+  const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
+  const rootClass =
+    'className="dark flex min-h-dvh flex-col overflow-y-auto bg-background text-foreground"';
+
+  // Form 1: lg:h-dvh and lg:overflow-hidden re-introduced
+  const defective1 = currentPresenterSource.replace(
+    rootClass,
+    'className="dark flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden"'
+  );
+  assert.notEqual(defective1, currentPresenterSource, 'Defect 1 must modify source');
+  const findings1 = scanPresenterHeightClamping(defective1);
+  assert.ok(findings1.some((f) => f.includes('lg:h-dvh')), 'Must report lg:h-dvh defect');
+  assert.ok(findings1.some((f) => f.includes('lg:overflow-hidden')), 'Must report lg:overflow-hidden defect');
+
+  // Form 2: removal of min-h-dvh
+  const defective2 = currentPresenterSource.replace(
+    rootClass,
+    rootClass.replace('min-h-dvh', 'h-auto')
+  );
+  assert.notEqual(defective2, currentPresenterSource, 'Defect 2 must modify source');
+  const findings2 = scanPresenterHeightClamping(defective2);
+  assert.ok(findings2.some((f) => f.includes('missing min-h-dvh')), 'Must report missing min-h-dvh');
+
+  // Form 3: removal of flex-col
+  const defective3 = currentPresenterSource.replace(
+    rootClass,
+    rootClass.replace('flex-col', 'flex-row')
+  );
+  assert.notEqual(defective3, currentPresenterSource, 'Defect 3 must modify source');
+  const findings3 = scanPresenterHeightClamping(defective3);
+  assert.ok(findings3.some((f) => f.includes('missing flex-col')), 'Must report missing flex-col');
+
+  // Form 4: removal of overflow-y-auto
+  const defective4 = currentPresenterSource.replace(
+    rootClass,
+    rootClass.replace('overflow-y-auto', 'overflow-y-visible')
+  );
+  assert.notEqual(defective4, currentPresenterSource, 'Defect 4 must modify source');
+  const findings4 = scanPresenterHeightClamping(defective4);
+  assert.ok(findings4.some((f) => f.includes('missing overflow-y-auto')), 'Must report missing overflow-y-auto');
+});
+
+test('SPEC-43-02: 12. Presenter stage vars formula preserved and panels have structural min-height & scroll containment', () => {
+  const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
+  assert.ok(
+    currentPresenterSource.includes(
+      "'--presenter-stage': 'max(24rem, min(64rem, calc((100dvh - 30rem) * 16 / 9)))'"
+    ),
+    'STAGE_VARS must preserve formula with 24rem floor and 64rem cap'
+  );
+
+  const panelFindings = scanPresenterPanelContainment(currentPresenterSource);
+  assert.deepEqual(
+    panelFindings,
+    [],
+    'Slides and Run-Sheet panels must maintain floors and scroll containment'
+  );
+});
+
+test('SPEC-43-02: 13. Defect injection proof for panel scroll containment guard across all forms', () => {
+  const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
+
+  const cases = [
+    {
+      name: 'Slides floor removed',
+      mutate: (src) => src.replace('min-h-[16rem]', 'min-h-0'),
+      expectedSnippet: 'Slides section with min-h-[16rem]',
+    },
+    {
+      name: 'Slides overflow-y-auto removed',
+      mutate: (src) =>
+        src.replace('overflow-y-auto p-1.5', 'overflow-y-visible p-1.5'),
+      expectedSnippet: 'Slides panel scroller missing overflow-y-auto',
+    },
+    {
+      name: 'Slides desktop cap removed',
+      mutate: (src) => src.replace('lg:max-h-[36rem]', 'lg:max-h-none'),
+      expectedSnippet: 'Slides panel scroller missing lg:max-h-[36rem]',
+    },
+    {
+      name: 'Slides mobile cap removed',
+      mutate: (src) =>
+        src.replace(
+          'overflow-y-auto p-1.5 max-lg:max-h-[45vh]',
+          'overflow-y-auto p-1.5 max-lg:max-h-none'
+        ),
+      expectedSnippet: 'Slides panel scroller missing max-lg:max-h-[45vh]',
+    },
+    {
+      name: 'Run-Sheet floor removed',
+      mutate: (src) => src.replace('min-h-[14rem]', 'min-h-0'),
+      expectedSnippet: 'Run-Sheet section with min-h-[14rem]',
+    },
+    {
+      name: 'Run-Sheet overflow-y-auto removed',
+      mutate: (src) =>
+        src.replace('overflow-y-auto p-3', 'overflow-y-visible p-3'),
+      expectedSnippet: 'Run-Sheet panel scroller missing overflow-y-auto',
+    },
+    {
+      name: 'Run-Sheet desktop cap removed',
+      mutate: (src) => src.replace('lg:max-h-[30rem]', 'lg:max-h-none'),
+      expectedSnippet: 'Run-Sheet panel scroller missing lg:max-h-[30rem]',
+    },
+    {
+      name: 'Run-Sheet mobile cap removed',
+      mutate: (src) =>
+        src.replace(
+          'max-lg:max-h-[45vh] lg:max-h-[30rem]',
+          'max-lg:max-h-none lg:max-h-[30rem]'
+        ),
+      expectedSnippet: 'Run-Sheet panel scroller missing max-lg:max-h-[45vh]',
+    },
+  ];
+
+  for (const tc of cases) {
+    const mutated = tc.mutate(currentPresenterSource);
+    assert.notEqual(mutated, currentPresenterSource, `Mutation for ${tc.name} must modify source`);
+    const findings = scanPresenterPanelContainment(mutated);
+    assert.ok(
+      findings.some((f) => f.includes(tc.expectedSnippet)),
+      `scanPresenterPanelContainment must report defect for ${tc.name} (looking for ${tc.expectedSnippet}, got: ${findings.join(', ')})`
+    );
+  }
+});

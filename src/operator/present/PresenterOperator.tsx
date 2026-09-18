@@ -771,7 +771,7 @@ export default function PresenterOperator({
   };
 
   return (
-    <div className="dark flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden">
+    <div className="dark flex min-h-dvh flex-col overflow-y-auto bg-background text-foreground">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold">
@@ -1086,12 +1086,12 @@ export default function PresenterOperator({
           </section>
 
           <section
-            className={`flex min-h-0 flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
+            className={`flex min-h-[16rem] flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
           >
             <h2 className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Slides
             </h2>
-            <div className="min-h-0 flex-1 overflow-y-auto p-1.5 max-lg:max-h-[45vh]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-1.5 max-lg:max-h-[45vh] lg:max-h-[36rem]">
               {rows.map((row) =>
                 row.kind === 'slide' ? (
                   <SlideListRow
@@ -1224,12 +1224,12 @@ export default function PresenterOperator({
           </section>
 
           <section
-            className={`flex min-h-0 flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
+            className={`flex min-h-[14rem] flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
           >
             <h2 className="border-b border-border px-3 py-2 text-sm font-semibold">
               Run-Sheet
             </h2>
-            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh]">
+            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
               {runSheetItems.map((item, i) => (
                 <li key={i} className="border-b border-border/70 pb-2">
                   {item.type === 'section' ? (
