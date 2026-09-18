@@ -2081,6 +2081,72 @@ waves:
           - src/operator/EditForm.tsx
           - tests/smoke-spec-43.test.mjs
 
+  - id: SPEC-44
+    status: open
+    release: configurable-rundown-parser-and-dynamic-song-sets
+    prd: [rundown-to-service, operator-turn]
+    fr: [FR-1, FR-2, FR-27, FR-32]
+    size: M
+    depends_on: [SPEC-43]
+    spec_folder: .scratch/SPEC-44-configurable-rundown-parser-and-dynamic-song-sets/
+    spec_reviewed:
+      date: '2026-09-18'
+      sha: '332c6f9'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-44-01"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: []
+        touches: [services, db]
+        tests:
+          - internal/httpapi
+          - internal/db
+          - tests/smoke-spec-44.test.mjs
+      - id: "SPEC-44-02"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-44-01"]
+        touches: [services, hymns]
+        tests:
+          - internal/parse
+          - tests/smoke-spec-44.test.mjs
+      - id: "SPEC-44-03"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-44-02"]
+        touches: [services, hymns]
+        tests:
+          - src/lib/parser.ts
+          - tests/smoke-spec-44.test.mjs
+      - id: "SPEC-44-04"
+        component: hub
+        satisfies: [UC-5, UC-24]
+        blocked_by: ["SPEC-44-03"]
+        touches: [services, hymns, slide-plan]
+        tests:
+          - internal/plan
+          - src/lib/slide-plan.ts
+          - tests/smoke-spec-44.test.mjs
+      - id: "SPEC-44-05"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-44-04"]
+        touches: [services]
+        tests:
+          - src/components/admin
+          - tests/smoke-spec-44.test.mjs
+      - id: "SPEC-44-06"
+        component: hub
+        satisfies: [UC-2, UC-5]
+        blocked_by: ["SPEC-44-05"]
+        touches: [services, hymns]
+        tests:
+          - src/operator/CreateForm.tsx
+          - src/operator/EditForm.tsx
+          - tests/smoke-spec-44.test.mjs
+
+
 
 
 
