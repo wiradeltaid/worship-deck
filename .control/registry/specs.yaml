@@ -1943,6 +1943,48 @@ waves:
           - src/components/admin/ArtifactEditor.tsx
           - tests/smoke-spec-40.test.mjs
 
+  - id: SPEC-41
+    status: open
+    release: announcement-set-hierarchy-and-grouping
+    prd: [offline-deck, operator-turn]
+    fr: [FR-09, FR-16]
+    size: M
+    depends_on: [SPEC-40]
+    spec_folder: .scratch/SPEC-41-announcement-set-hierarchy-and-grouping/
+    spec_reviewed:
+      date: '2026-09-18'
+      sha: '17803dc'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-41-01"
+        component: hub
+        satisfies: [UC-8, UC-12]
+        blocked_by: []
+        touches: [slide-plan, artifacts]
+        tests:
+          - internal/plan
+          - src/lib/slide-plan.ts
+          - tests/smoke-spec-41.test.mjs
+      - id: "SPEC-41-02"
+        component: presenter
+        satisfies: [UC-12]
+        blocked_by: ["SPEC-41-01"]
+        touches: [present-channel, slide-plan]
+        tests:
+          - src/operator/present/presenter-model.ts
+          - src/operator/present/PresenterOperator.tsx
+          - tests/smoke-spec-41.test.mjs
+      - id: "SPEC-41-03"
+        component: presenter
+        satisfies: [UC-8, UC-12]
+        blocked_by: ["SPEC-41-02"]
+        touches: [present-channel, services]
+        tests:
+          - src/components/SlidePreviewList.tsx
+          - src/lib/artifacts/preview-model.ts
+          - tests/smoke-spec-41.test.mjs
+
+
 
 
 

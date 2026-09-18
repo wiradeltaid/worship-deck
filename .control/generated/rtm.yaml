@@ -332,6 +332,54 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-41-01
+  spec: SPEC-41
+  release: announcement-set-hierarchy-and-grouping
+  test:
+  - internal/plan
+  - src/lib/slide-plan.ts
+  - tests/smoke-spec-41.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-41-02
+  spec: SPEC-41
+  release: announcement-set-hierarchy-and-grouping
+  test:
+  - src/operator/present/presenter-model.ts
+  - src/operator/present/PresenterOperator.tsx
+  - tests/smoke-spec-41.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-41-03
+  spec: SPEC-41
+  release: announcement-set-hierarchy-and-grouping
+  test:
+  - src/components/SlidePreviewList.tsx
+  - src/lib/artifacts/preview-model.ts
+  - tests/smoke-spec-41.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live
@@ -4391,6 +4439,38 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-3
+  FR: FR-9
+  DEC: []
+  UC: UC-8
+  ticket: SPEC-41-01
+  spec: SPEC-41
+  release: announcement-set-hierarchy-and-grouping
+  test:
+  - internal/plan
+  - src/lib/slide-plan.ts
+  - tests/smoke-spec-41.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-3
+  FR: FR-9
+  DEC: []
+  UC: UC-8
+  ticket: SPEC-41-03
+  spec: SPEC-41
+  release: announcement-set-hierarchy-and-grouping
+  test:
+  - src/components/SlidePreviewList.tsx
+  - src/lib/artifacts/preview-model.ts
+  - tests/smoke-spec-41.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-3
   FR: FR-9
