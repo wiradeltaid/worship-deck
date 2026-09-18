@@ -96,12 +96,16 @@ func (h *RemoteHub) getOrCreateSession(serviceID int) *remoteSessionState {
 	return sess
 }
 
+func format6DigitCode(n int64) string {
+	return fmt.Sprintf("%06d", n%1000000)
+}
+
 func generate6DigitCode() string {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
-		return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+		return format6DigitCode(time.Now().UnixNano())
 	}
-	return fmt.Sprintf("%0604d", n.Int64()%1000000)
+	return format6DigitCode(n.Int64())
 }
 
 // 1. POST /api/present/{id}/remote/pair

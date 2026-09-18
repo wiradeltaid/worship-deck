@@ -53,6 +53,16 @@ import {
 } from '@/lib/transitions';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -313,6 +323,9 @@ export default function PresenterOperator({
   const [remoteState, setRemoteState] =
     useState<PresenterRemoteConnectionState>('idle');
   const [remoteCode, setRemoteCode] = useState<string | null>(null);
+  const [remoteDialogOpen, setRemoteDialogOpen] = useState(false);
+  const [remoteActionBusy, setRemoteActionBusy] = useState(false);
+  const remoteSessionRef = useRef<PresenterRemoteSession | null>(null);
   // The liveness verdict (`AD-29`): whether the projector is answering. Never
   // a second flag alongside it — the whole point of `nextLivenessState` is
   // that this is the only place the verdict is decided, so a boundary added
@@ -646,9 +659,11 @@ export default function PresenterOperator({
         setRemoteState(state);
       },
     });
+    remoteSessionRef.current = session;
     void session.start();
     return () => {
       session.stop();
+      remoteSessionRef.current = null;
     };
   }, [
     serviceId,
@@ -778,19 +793,36 @@ export default function PresenterOperator({
           <Button variant="outline" onClick={openProjector}>
             Open projector
           </Button>
-          {remoteCode ? (
+          <Button
+            variant="outline"
+            onClick={() => setRemoteDialogOpen(true)}
+            className="flex items-center gap-1.5"
+            title="Mobile remote control pairing"
+          >
             <span
-              className={`${BADGE_CLASS} border-border bg-muted text-muted-foreground text-xs px-2 py-1 flex items-center gap-1 font-mono`}
-              title="Remote pairing code"
-            >
-              Remote code: {remoteCode}
-            </span>
-          ) : null}
+              className={cn(
+                'inline-block h-2 w-2 rounded-full',
+                remoteState === 'connected'
+                  ? 'bg-emerald-500'
+                  : remoteState === 'pairing'
+                  ? 'bg-amber-400 animate-pulse'
+                  : remoteState === 'error' || remoteState === 'role-lost'
+                  ? 'bg-destructive'
+                  : 'bg-muted-foreground/50'
+              )}
+            />
+            <span>Remote</span>
+            {remoteCode ? (
+              <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
+                {remoteCode}
+              </span>
+            ) : null}
+          </Button>
           {/* `nativeButton={false}` because this one really is a link: Base UI
               otherwise warns that a component acting as a button was handed
               something that is not a native `<button>`. */}
           <Button
-            variant="ghost"
+            variant="outline"
             nativeButton={false}
             render={<Link href={`/services/${serviceId}`} />}
           >
@@ -1246,6 +1278,136 @@ export default function PresenterOperator({
           setGridOpen(false);
         }}
       />
+
+      <Dialog open={remoteDialogOpen} onOpenChange={setRemoteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mobile Remote Pairing</DialogTitle>
+            <DialogDescription>
+              Scan or enter this 6-digit code on a mobile device to control presentation slides remotely.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted/40 p-4">
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Pairing Code
+              </span>
+              <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em] text-foreground select-all">
+                {remoteCode || '------'}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Code expires in 60 seconds if unclaimed.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs">
+              <span className="text-muted-foreground font-medium">Status</span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <span
+                  className={cn(
+                    'inline-block h-2 w-2 rounded-full',
+                    remoteState === 'connected'
+                      ? 'bg-emerald-500'
+                      : remoteState === 'pairing'
+                      ? 'bg-amber-400 animate-pulse'
+                      : remoteState === 'error' || remoteState === 'role-lost'
+                      ? 'bg-destructive'
+                      : 'bg-muted-foreground/50'
+                  )}
+                />
+                <span className="capitalize">
+                  {remoteState === 'connected'
+                    ? 'Presenter Ready · Awaiting Mobile'
+                    : remoteState === 'pairing'
+                    ? 'Awaiting Connection'
+                    : remoteState === 'role-lost'
+                    ? 'Role Reassigned'
+                    : remoteState === 'error'
+                    ? 'Connection Error'
+                    : 'Disconnected'}
+                </span>
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">
+                Mobile URL
+              </span>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={
+                    typeof window !== 'undefined'
+                      ? `${window.location.origin}/services/${serviceId}/remote`
+                      : `/services/${serviceId}/remote`
+                  }
+                  className="font-mono text-xs select-all"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      void navigator.clipboard?.writeText(
+                        `${window.location.origin}/services/${serviceId}/remote`
+                      );
+                    }
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={remoteActionBusy}
+                onClick={async () => {
+                  setRemoteActionBusy(true);
+                  try {
+                    await remoteSessionRef.current?.start();
+                  } finally {
+                    setRemoteActionBusy(false);
+                  }
+                }}
+              >
+                Regenerate Code
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={remoteActionBusy}
+                onClick={async () => {
+                  setRemoteActionBusy(true);
+                  try {
+                    await remoteSessionRef.current?.disconnect();
+                    setRemoteCode(null);
+                  } finally {
+                    setRemoteActionBusy(false);
+                  }
+                }}
+              >
+                Disconnect
+              </Button>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setRemoteDialogOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
