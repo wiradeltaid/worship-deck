@@ -22,7 +22,9 @@ import {
   Underline,
   Undo2,
   Upload,
+  Check,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ArtifactSlide from '@/components/artifacts/ArtifactSlide';
 import type { ArtifactInstance } from '@/lib/artifacts/runtime-contract';
@@ -307,7 +309,13 @@ export default function ArtifactEditor({
   const insertCounterRef = useRef(0);
   const bgFileInputRef = useRef<HTMLInputElement | null>(null);
   const [showBgDialog, setShowBgDialog] = useState(false);
-  const [bgLibrary, setBgLibrary] = useState<Array<{ id: number; url: string }>>([]);
+  const [bgLibrary, setBgLibrary] = useState<Array<{ id: number; url: string; category?: string }>>([]);
+  const [showImageChoiceDialog, setShowImageChoiceDialog] = useState(false);
+  const [showGalleryDialog, setShowGalleryDialog] = useState(false);
+  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState<'all' | 'flyer' | 'background' | 'general'>('all');
+  const [bgCategoryFilter, setBgCategoryFilter] = useState<'all' | 'background' | 'flyer'>('all');
+  const [galleryItems, setGalleryItems] = useState<Array<{ id: number; url: string; category?: string }>>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
   const [availableSongSets, setAvailableSongSets] = useState<Array<{ variableName: string; title: string }>>([]);
   const [availableAnnSets, setAvailableAnnSets] = useState<Array<{ id: number; label: string }>>([]);
   const [newSlideType, setNewSlideType] = useState('general');
@@ -1891,6 +1899,83 @@ export default function ArtifactEditor({
     },
     [template, syncSelection, markDirty, t]
   );
+
+  const insertImageFromUrl = useCallback(
+    async (url: string) => {
+      const canvas = fabricCanvasRef.current;
+      const layout = template ? getEditableLayout(template) : null;
+      if (!canvas || !layout) return;
+
+      recordUndo();
+
+      const usedIds = new Set<string>([
+        ...layout.elements.map((e) => e.id),
+        ...addedElementsRef.current.keys(),
+        ...canvas
+          .getObjects()
+          .map(getElementId)
+          .filter((id): id is string => typeof id === 'string'),
+      ]);
+      const id = nextElementId(usedIds, insertCounterRef.current);
+      const step = insertCounterRef.current % INSERT_CASCADE_STEPS;
+      insertCounterRef.current += 1;
+
+      const size = NEW_SHAPE_SIZE_PX;
+      const offset = step * INSERT_CASCADE_PX;
+      const leftPx = (CANVAS_WIDTH - size.w) / 2 + offset;
+      const topPx = (CANVAS_HEIGHT - size.h) / 2 + offset;
+      const maxZ = [
+        ...layout.elements,
+        ...addedElementsRef.current.values(),
+      ].reduce((acc, e) => Math.max(acc, e.zIndex), -1);
+
+      const element: CanvasElement = {
+        id,
+        type: 'image',
+        required: false,
+        x: pxToPct(leftPx, CANVAS_WIDTH),
+        y: pxToPct(topPx, CANVAS_HEIGHT),
+        w: pxToPct(size.w, CANVAS_WIDTH),
+        h: pxToPct(size.h, CANVAS_HEIGHT),
+        zIndex: maxZ + 1,
+        imageRef: url,
+      };
+
+      const fabric = await import('fabric');
+      if (fabricCanvasRef.current !== canvas) {
+        return;
+      }
+
+      addedElementsRef.current.set(id, element);
+      liveElementsRef.current = [...liveElementsRef.current, element];
+      setLiveElements((prev) => [...prev, element]);
+      const obj = elementToFabricObject(fabric, element, true, { transparentProxy: true });
+      canvas.add(obj);
+      canvas.setActiveObject(obj);
+      canvas.requestRenderAll();
+      syncSelection(canvas);
+      markDirty();
+      setShowGalleryDialog(false);
+    },
+    [template, syncSelection, markDirty]
+  );
+
+  const openGalleryDialog = useCallback(async () => {
+    setShowImageChoiceDialog(false);
+    setShowGalleryDialog(true);
+    setGalleryLoading(true);
+    try {
+      const res = await fetch('/api/admin/media-library', { credentials: 'same-origin' });
+      if (res.ok) {
+        const data = (await res.json()) as { images?: Array<{ id: number; url: string; category?: string }> };
+        setGalleryItems(data.images ?? []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, []);
 
   const handleReorderLayer = useCallback(
     (action: 'forward' | 'backward' | 'front' | 'back') => {
@@ -5055,9 +5140,10 @@ export default function ArtifactEditor({
                         type="button"
                         variant="outline"
                         size="icon-sm"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setShowImageChoiceDialog(true)}
                         disabled={busy}
                         title="Image"
+                        aria-label="Insert Image"
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
                       </Button>
@@ -5917,6 +6003,127 @@ export default function ArtifactEditor({
           </>
         )}
 
+        {/* Image Action Choice Modal Dialog */}
+        {showImageChoiceDialog ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-foreground">Insert Image</h3>
+                <Button variant="outline" size="sm" onClick={() => setShowImageChoiceDialog(false)}>
+                  ✕
+                </Button>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start h-11 text-xs font-semibold gap-2.5"
+                  onClick={() => {
+                    setShowImageChoiceDialog(false);
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  <ImageIcon className="w-4 h-4 text-primary" />
+                  Upload New Image from Disk
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start h-11 text-xs font-semibold gap-2.5"
+                  onClick={() => void openGalleryDialog()}
+                >
+                  <Check className="w-4 h-4 text-primary" />
+                  Choose from Media Gallery
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Gallery Image Picker Modal Dialog */}
+        {showGalleryDialog ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-foreground">Choose Image from Gallery</h3>
+                <Button variant="outline" size="sm" onClick={() => setShowGalleryDialog(false)}>
+                  ✕
+                </Button>
+              </div>
+
+              {/* Category filter pills */}
+              <div className="flex items-center gap-1.5 border-b border-border pb-2.5">
+                {(['all', 'flyer', 'background', 'general'] as const).map((cat) => (
+                  <Button
+                    key={cat}
+                    type="button"
+                    size="sm"
+                    variant={galleryCategoryFilter === cat ? 'default' : 'outline'}
+                    className="text-xs capitalize h-7 px-2.5 font-medium"
+                    onClick={() => setGalleryCategoryFilter(cat)}
+                  >
+                    {cat === 'all' ? 'All' : cat === 'flyer' ? 'Flyers' : cat === 'background' ? 'Backgrounds' : 'General'}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-1">
+                {galleryLoading ? (
+                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
+                    <span>Loading gallery…</span>
+                  </div>
+                ) : (
+                  (() => {
+                    const filtered = galleryItems.filter(
+                      (item) => galleryCategoryFilter === 'all' || (item.category || 'background') === galleryCategoryFilter
+                    );
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="flex h-36 flex-col items-center justify-center text-xs text-muted-foreground gap-2">
+                          <p>No media found in this category.</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowGalleryDialog(false);
+                              fileInputRef.current?.click();
+                            }}
+                          >
+                            Upload from Disk Instead
+                          </Button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {filtered.map((item) => (
+                          <div
+                            key={item.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => void insertImageFromUrl(item.url)}
+                            className="group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/20 cursor-pointer transition-all bg-muted"
+                          >
+                            <img src={item.url} alt="Gallery item" className="w-full h-full object-cover" />
+                            <Badge
+                              variant="secondary"
+                              className="absolute bottom-1.5 left-1.5 text-[9px] font-semibold uppercase tracking-wider bg-background/80 backdrop-blur-xs opacity-80 group-hover:opacity-100"
+                            >
+                              {item.category || 'background'}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {/* Change Background Modal Dialog */}
         {showBgDialog ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
@@ -5948,19 +6155,46 @@ export default function ArtifactEditor({
                   </Button>
                 </div>
 
+                {/* Category filter pills for background library */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  {(['all', 'background', 'flyer'] as const).map((cat) => (
+                    <Button
+                      key={cat}
+                      type="button"
+                      size="sm"
+                      variant={bgCategoryFilter === cat ? 'default' : 'outline'}
+                      className="text-xs capitalize h-6 px-2 font-medium"
+                      onClick={() => setBgCategoryFilter(cat)}
+                    >
+                      {cat === 'all' ? 'All' : cat === 'background' ? 'Backgrounds' : 'Flyers'}
+                    </Button>
+                  ))}
+                </div>
+
                 {bgLibrary.length > 0 ? (
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-2 block">Choose from Background Library:</Label>
-                    <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
-                      {bgLibrary.map((bg) => (
+                    <Label className="text-xs text-muted-foreground mb-2 block">Choose from Media Gallery:</Label>
+                    <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
+                      {bgLibrary
+                        .filter((bg) => bgCategoryFilter === 'all' || (bg.category || 'background') === bgCategoryFilter)
+                        .map((bg) => (
                         <div
                           key={bg.id}
                           role="button"
                           tabIndex={0}
-                          onClick={() => void handleChangeBackgroundUrl(bg.url)}
-                          className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary cursor-pointer transition-all"
+                          onClick={() => {
+                            void handleChangeBackgroundUrl(bg.url);
+                            setShowBgDialog(false);
+                          }}
+                          className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/20 cursor-pointer transition-all bg-muted relative group"
                         >
                           <img src={bg.url} alt="Background" className="w-full h-full object-cover" />
+                          <Badge
+                            variant="secondary"
+                            className="absolute bottom-1 left-1 text-[8px] font-semibold uppercase tracking-wider bg-background/80 backdrop-blur-xs opacity-70 group-hover:opacity-100"
+                          >
+                            {bg.category || 'background'}
+                          </Badge>
                         </div>
                       ))}
                     </div>

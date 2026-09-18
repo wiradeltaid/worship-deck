@@ -8,25 +8,39 @@ import (
 	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
-// BackgroundLibraryImage represents one image in the background library (UC-25, S10).
+// BackgroundLibraryImage represents one image in the background or media library (UC-25, S10, SPEC-39).
 type backgroundLibraryImage struct {
 	ID        int    `json:"id"`
 	URL       string `json:"url"`
+	Category  string `json:"category"`
 	IsDefault bool   `json:"isDefault"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 }
 
-// listBackgroundLibrary serves GET /api/admin/background-library (UC-25).
+// listBackgroundLibrary serves GET /api/admin/background-library and GET /api/admin/media-library (UC-25, SPEC-39).
 func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 	if !requireAdmin(w, r) {
 		return
 	}
-	rows, err := s.DB.Query(
-		`SELECT id, COALESCE(url, ''), is_default, COALESCE(created_at, ''), COALESCE(updated_at, '')
-		   FROM background_library_images
-		  ORDER BY id ASC`,
-	)
+	category := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("category")))
+	var rows *sql.Rows
+	var err error
+	if category != "" && category != "all" {
+		rows, err = s.DB.Query(
+			`SELECT id, COALESCE(url, ''), is_default, COALESCE(created_at, ''), COALESCE(updated_at, ''), COALESCE(category, 'background')
+			   FROM background_library_images
+			  WHERE category = ?
+			  ORDER BY id ASC`,
+			category,
+		)
+	} else {
+		rows, err = s.DB.Query(
+			`SELECT id, COALESCE(url, ''), is_default, COALESCE(created_at, ''), COALESCE(updated_at, ''), COALESCE(category, 'background')
+			   FROM background_library_images
+			  ORDER BY id ASC`,
+		)
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
@@ -37,7 +51,7 @@ func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var img backgroundLibraryImage
 		var isDef int
-		if err := rows.Scan(&img.ID, &img.URL, &isDef, &img.CreatedAt, &img.UpdatedAt); err != nil {
+		if err := rows.Scan(&img.ID, &img.URL, &isDef, &img.CreatedAt, &img.UpdatedAt, &img.Category); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
@@ -51,17 +65,30 @@ func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"images": images})
 }
 
-// listBackgroundLibraryForOperator serves GET /api/background-library for any signed-in Hub user/operator (FR-32, UC-27).
+// listBackgroundLibraryForOperator serves GET /api/background-library and GET /api/media-library for any signed-in Hub user/operator (FR-32, UC-27, SPEC-39).
 func (s *Server) listBackgroundLibraryForOperator(w http.ResponseWriter, r *http.Request) {
 	if sessionFrom(r) == nil {
 		writeError(w, http.StatusForbidden, "Forbidden")
 		return
 	}
-	rows, err := s.DB.Query(
-		`SELECT id, COALESCE(url, ''), is_default
-		   FROM background_library_images
-		  ORDER BY id ASC`,
-	)
+	category := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("category")))
+	var rows *sql.Rows
+	var err error
+	if category != "" && category != "all" {
+		rows, err = s.DB.Query(
+			`SELECT id, COALESCE(url, ''), is_default, COALESCE(category, 'background')
+			   FROM background_library_images
+			  WHERE category = ?
+			  ORDER BY id ASC`,
+			category,
+		)
+	} else {
+		rows, err = s.DB.Query(
+			`SELECT id, COALESCE(url, ''), is_default, COALESCE(category, 'background')
+			   FROM background_library_images
+			  ORDER BY id ASC`,
+		)
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
@@ -71,13 +98,14 @@ func (s *Server) listBackgroundLibraryForOperator(w http.ResponseWriter, r *http
 	type opImage struct {
 		ID        int    `json:"id"`
 		URL       string `json:"url"`
+		Category  string `json:"category"`
 		IsDefault bool   `json:"isDefault"`
 	}
 	images := []opImage{}
 	for rows.Next() {
 		var img opImage
 		var isDef int
-		if err := rows.Scan(&img.ID, &img.URL, &isDef); err != nil {
+		if err := rows.Scan(&img.ID, &img.URL, &isDef, &img.Category); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
@@ -118,6 +146,14 @@ func (s *Server) createBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 		isDef = true
 	}
 
+	rawCategory, _ := body["category"].(string)
+	category := strings.ToLower(strings.TrimSpace(rawCategory))
+	if category == "" {
+		category = "background"
+	} else if category != "background" && category != "flyer" && category != "general" {
+		category = "general"
+	}
+
 	now := timeNowRFC3339Nano()
 	tx, err := s.DB.Begin()
 	if err != nil {
@@ -139,8 +175,8 @@ func (s *Server) createBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 	}
 
 	res, err := tx.Exec(
-		`INSERT INTO background_library_images (url, is_default, created_at, updated_at) VALUES (?, ?, ?, ?)`,
-		imageURL, isDefInt, now, now,
+		`INSERT INTO background_library_images (url, is_default, created_at, updated_at, category) VALUES (?, ?, ?, ?, ?)`,
+		imageURL, isDefInt, now, now, category,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -160,6 +196,7 @@ func (s *Server) createBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusCreated, backgroundLibraryImage{
 		ID:        int(id),
 		URL:       imageURL,
+		Category:  category,
 		IsDefault: isDef,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -191,9 +228,10 @@ func (s *Server) patchBackgroundLibraryImage(w http.ResponseWriter, r *http.Requ
 	var storedUpdated string
 	var currentURL string
 	var currentDef int
+	var currentCategory string
 	err = s.DB.QueryRow(
-		`SELECT url, is_default, updated_at FROM background_library_images WHERE id = ?`, id,
-	).Scan(&currentURL, &currentDef, &storedUpdated)
+		`SELECT url, is_default, updated_at, COALESCE(category, 'background') FROM background_library_images WHERE id = ?`, id,
+	).Scan(&currentURL, &currentDef, &storedUpdated, &currentCategory)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "Image not found")
 		return
@@ -207,7 +245,14 @@ func (s *Server) patchBackgroundLibraryImage(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	isDef := true
+	if rawCat, ok := body["category"].(string); ok {
+		cat := strings.ToLower(strings.TrimSpace(rawCat))
+		if cat == "background" || cat == "flyer" || cat == "general" {
+			currentCategory = cat
+		}
+	}
+
+	isDef := (currentDef == 1)
 	if v, ok := body["isDefault"].(bool); ok {
 		isDef = v
 	}
@@ -220,7 +265,7 @@ func (s *Server) patchBackgroundLibraryImage(w http.ResponseWriter, r *http.Requ
 	}
 	defer tx.Rollback()
 
-	if isDef {
+	if isDef && currentDef != 1 {
 		if _, err := tx.Exec(`UPDATE background_library_images SET is_default = 0, updated_at = ? WHERE is_default = 1 AND id != ?`, now, id); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
@@ -233,8 +278,8 @@ func (s *Server) patchBackgroundLibraryImage(w http.ResponseWriter, r *http.Requ
 	}
 
 	res, err := tx.Exec(
-		`UPDATE background_library_images SET is_default = ?, updated_at = ? WHERE id = ? AND updated_at = ?`,
-		isDefInt, now, id, updatedAt,
+		`UPDATE background_library_images SET is_default = ?, category = ?, updated_at = ? WHERE id = ? AND updated_at = ?`,
+		isDefInt, currentCategory, now, id, updatedAt,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -253,6 +298,7 @@ func (s *Server) patchBackgroundLibraryImage(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, backgroundLibraryImage{
 		ID:        int(id),
 		URL:       currentURL,
+		Category:  currentCategory,
 		IsDefault: isDef,
 		UpdatedAt: now,
 	})

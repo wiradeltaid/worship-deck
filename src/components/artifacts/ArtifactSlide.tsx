@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   assertRuntimeVersion,
   type ArtifactInstance,
@@ -232,8 +232,29 @@ function TextElement({
 
 function ImageElement({ element }: { element: ResolvedElement }) {
   const imageUrl = resolveElementImage(element);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   // An unfilled `image-placeholder` simply draws nothing.
   if (imageUrl === undefined) return null;
+
+  const loadFailed = Boolean(imageUrl && failedUrl === imageUrl);
+
+  if (loadFailed) {
+    return (
+      <div
+        data-element-id={element.id}
+        data-image-missing="true"
+        style={{
+          ...boxStyle(element),
+          border: '1px dashed rgba(160, 160, 160, 0.4)',
+          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      />
+    );
+  }
 
   return (
     <div data-element-id={element.id} style={boxStyle(element)}>
@@ -242,6 +263,7 @@ function ImageElement({ element }: { element: ResolvedElement }) {
       <img
         src={imageUrl}
         alt=""
+        onError={() => setFailedUrl(imageUrl)}
         style={{
           width: '100%',
           height: '100%',
@@ -318,7 +340,7 @@ function ArtifactElement({
       return <TextElement element={element} editorMode={editorMode} />;
     case 'image':
     case 'image-placeholder':
-      return <ImageElement element={element} />;
+      return <ImageElement key={`${element.id}-${resolveElementImage(element) ?? ''}`} element={element} />;
     case 'shape':
       return <ShapeElement element={element} />;
     case 'line':

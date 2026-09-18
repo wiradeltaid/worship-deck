@@ -397,6 +397,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.registry.tab.songBooks': 'Song Books',
   'admin.registry.tab.announcements': 'Announcement Sets',
   'admin.registry.tab.backgrounds': 'Backgrounds',
+  'admin.registry.tab.mediaGallery': 'Galeri Media',
   'admin.registry.announcements.placeholder.title': 'Announcement Sets',
   'admin.registry.announcements.placeholder.description':
     'Pengelolaan Announcement Sets akan hadir di slice berikutnya.',

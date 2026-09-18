@@ -27,6 +27,43 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureFontFacesColumns(handle); err != nil {
 		return err
 	}
+	if err := ensureBackgroundLibraryColumns(handle); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureBackgroundLibraryColumns(handle *sql.DB) error {
+	rows, err := handle.Query(`PRAGMA table_info(background_library_images)`)
+	if err != nil {
+		return err
+	}
+	have := map[string]struct{}{}
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, ctype string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			rows.Close()
+			return err
+		}
+		have[name] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	if len(have) == 0 {
+		return nil
+	}
+
+	if _, ok := have["category"]; !ok {
+		if _, err := handle.Exec(`ALTER TABLE background_library_images ADD COLUMN category TEXT NOT NULL DEFAULT 'background'`); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

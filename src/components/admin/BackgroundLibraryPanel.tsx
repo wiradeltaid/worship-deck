@@ -11,10 +11,13 @@ import { useT } from '@/lib/i18n/operator';
 export interface BackgroundImage {
   id: number;
   url: string;
+  category?: string;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
+export type MediaImage = BackgroundImage;
 
 const PICKER_CLASS =
   'w-full text-xs text-muted-foreground file:mr-3 file:cursor-pointer file:rounded-xl file:border file:border-primary/20 file:bg-primary/10 file:px-4 file:py-2 file:text-xs file:font-bold file:text-primary hover:file:bg-primary/20 disabled:opacity-60';
@@ -44,6 +47,10 @@ export function BackgroundLibraryPanel() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [picked, setPicked] = useState(false);
 
+  // Category filtering & upload category
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'flyer' | 'background' | 'general'>('all');
+  const [uploadCategory, setUploadCategory] = useState<'flyer' | 'background' | 'general'>('flyer');
+
   // Action states
   const [settingDefaultId, setSettingDefaultId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -52,7 +59,7 @@ export function BackgroundLibraryPanel() {
 
   const fetchImages = async () => {
     try {
-      const res = await fetch('/api/admin/background-library', { credentials: 'same-origin' });
+      const res = await fetch('/api/admin/media-library', { credentials: 'same-origin' });
       if (!res.ok) {
         throw new Error('Failed to load');
       }
@@ -69,13 +76,13 @@ export function BackgroundLibraryPanel() {
     void fetchImages();
   }, []);
 
-  const addImageToLibrary = async (url: string) => {
+  const addImageToLibrary = async (url: string, category: string = uploadCategory) => {
     try {
-      const res = await fetch('/api/admin/background-library', {
+      const res = await fetch('/api/admin/media-library', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, isDefault: false }),
+        body: JSON.stringify({ url, category, isDefault: false }),
       });
 
       if (!res.ok) {
@@ -229,7 +236,24 @@ export function BackgroundLibraryPanel() {
           <CardDescription>{t('admin.backgrounds.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <h3 className="text-sm font-semibold">{t('admin.backgrounds.addTitle')}</h3>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-sm font-semibold">{t('admin.backgrounds.addTitle')}</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Category:</span>
+              {(['flyer', 'background', 'general'] as const).map((cat) => (
+                <Button
+                  key={cat}
+                  type="button"
+                  size="sm"
+                  variant={uploadCategory === cat ? 'secondary' : 'outline'}
+                  className="text-xs capitalize h-6 px-2 font-medium"
+                  onClick={() => setUploadCategory(cat)}
+                >
+                  {cat === 'flyer' ? 'Flyer' : cat === 'background' ? 'Background' : 'General'}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-12 sm:items-center">
               <div className="sm:col-span-8">
@@ -308,17 +332,39 @@ export function BackgroundLibraryPanel() {
         <CardHeader>
           <CardTitle className="text-base">{t('admin.backgrounds.title')}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+            <div className="flex items-center gap-1">
+              {(['all', 'flyer', 'background', 'general'] as const).map((cat) => (
+                <Button
+                  key={cat}
+                  type="button"
+                  size="sm"
+                  variant={categoryFilter === cat ? 'default' : 'outline'}
+                  className="text-xs capitalize h-7 px-2.5"
+                  onClick={() => setCategoryFilter(cat)}
+                >
+                  {cat === 'all' ? 'All Assets' : cat === 'flyer' ? 'Flyers' : cat === 'background' ? 'Backgrounds' : 'General'}
+                </Button>
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {images.filter((img) => categoryFilter === 'all' || (img.category || 'background') === categoryFilter).length} asset{images.filter((img) => categoryFilter === 'all' || (img.category || 'background') === categoryFilter).length === 1 ? '' : 's'}
+            </span>
+          </div>
+
           {loading ? (
             <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
               <span>Loading…</span>
             </div>
-          ) : images.length === 0 ? (
+          ) : images.filter((img) => categoryFilter === 'all' || (img.category || 'background') === categoryFilter).length === 0 ? (
             <p className="text-sm text-muted-foreground">{t('admin.backgrounds.empty')}</p>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {images.map((img) => {
+              {images
+                .filter((img) => categoryFilter === 'all' || (img.category || 'background') === categoryFilter)
+                .map((img) => {
                 const isSettingDefault = settingDefaultId === img.id;
                 const isDeleting = deletingId === img.id;
 
@@ -332,18 +378,26 @@ export function BackgroundLibraryPanel() {
                     <div className="relative aspect-video w-full overflow-hidden bg-muted">
                       <img
                         src={img.url}
-                        alt={`Background #${img.id}`}
+                        alt={`Media #${img.id}`}
                         className="h-full w-full object-cover"
                       />
-                      {img.isDefault ? (
+                      <div className="absolute left-2 top-2 flex items-center gap-1.5">
                         <Badge
-                          variant="default"
-                          className="absolute left-2 top-2 shadow-sm font-semibold"
+                          variant="secondary"
+                          className="text-[10px] font-semibold uppercase tracking-wider bg-background/80 backdrop-blur-xs"
                         >
-                          <Check className="mr-1 h-3 w-3" />
-                          {t('admin.backgrounds.defaultBadge')}
+                          {img.category || 'background'}
                         </Badge>
-                      ) : null}
+                        {img.isDefault ? (
+                          <Badge
+                            variant="default"
+                            className="shadow-sm font-semibold text-[10px]"
+                          >
+                            <Check className="mr-1 h-3 w-3" />
+                            {t('admin.backgrounds.defaultBadge')}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between p-3">
@@ -386,3 +440,6 @@ export function BackgroundLibraryPanel() {
     </div>
   );
 }
+
+export const MediaGalleryPanel = BackgroundLibraryPanel;
+export default BackgroundLibraryPanel;

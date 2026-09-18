@@ -351,6 +351,7 @@ export const I18N_KEYS = [
   'admin.registry.tab.songBooks',
   'admin.registry.tab.announcements',
   'admin.registry.tab.backgrounds',
+  'admin.registry.tab.mediaGallery',
   'admin.registry.announcements.placeholder.title',
   'admin.registry.announcements.placeholder.description',
   'admin.annSets.title',

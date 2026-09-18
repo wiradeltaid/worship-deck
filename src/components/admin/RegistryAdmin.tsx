@@ -21,7 +21,7 @@ export function RegistryAdmin() {
     { id: 'songSets', label: t('admin.registry.tab.songSets') },
     { id: 'songBooks', label: t('admin.registry.tab.songBooks') },
     { id: 'announcements', label: t('admin.registry.tab.announcements') },
-    { id: 'backgrounds', label: t('admin.registry.tab.backgrounds') },
+    { id: 'backgrounds', label: t('admin.registry.tab.mediaGallery') },
   ];
 
   return (
