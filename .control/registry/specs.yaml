@@ -1984,6 +1984,37 @@ waves:
           - src/lib/artifacts/preview-model.ts
           - tests/smoke-spec-41.test.mjs
 
+  - id: SPEC-42
+    status: open
+    release: deck-sequence-song-set-deletion
+    prd: [offline-deck]
+    fr: [FR-21]
+    size: S
+    depends_on: [SPEC-41]
+    spec_folder: .scratch/SPEC-42-deck-sequence-song-set-deletion/
+    spec_reviewed:
+      date: '2026-09-18'
+      sha: '6b77331'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-42-01"
+        component: registry
+        satisfies: [UC-15]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - src/components/admin/ArtifactEditor.tsx
+          - tests/smoke-spec-42.test.mjs
+      - id: "SPEC-42-02"
+        component: registry
+        satisfies: [UC-15]
+        blocked_by: ["SPEC-42-01"]
+        touches: [artifacts, services]
+        tests:
+          - internal/httpapi
+          - tests/smoke-spec-42.test.mjs
+
+
 
 
 

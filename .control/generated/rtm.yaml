@@ -2201,6 +2201,36 @@ rtm:
   FR: FR-21
   DEC: []
   UC: UC-15
+  ticket: SPEC-42-01
+  spec: SPEC-42
+  release: deck-sequence-song-set-deletion
+  test:
+  - src/components/admin/ArtifactEditor.tsx
+  - tests/smoke-spec-42.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-42-02
+  spec: SPEC-42
+  release: deck-sequence-song-set-deletion
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-42.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
   ticket: W1-1-1
   spec: W1
   release: registry-order
