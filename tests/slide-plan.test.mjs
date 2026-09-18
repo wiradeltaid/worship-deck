@@ -18,7 +18,7 @@ delete process.env.IMAGE_URL_ALLOWLIST;
 const { parseRundown } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'parser.ts')).href
 );
-const { buildSlidePlan } = await import(
+const { buildSlidePlan, buildArtifactPlan } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'slide-plan.ts')).href
 );
 const { getDb } = await import(
@@ -293,5 +293,99 @@ test('authored General without a row handler still appears in the plan', () => {
     );
   } finally {
     db.prepare(`DELETE FROM artifact_templates WHERE id = ?`).run(created.id);
+  }
+});
+
+test('SPEC-41-01: ann-set-marker expands into structured group node with unique identities and ordered children', () => {
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  // Create an announcement set with 2 slides
+  const setRes = db
+    .prepare(`INSERT INTO announcement_sets (label, updated_at) VALUES (?, ?)`)
+    .run('Warta Jemaat', now);
+  const setId = Number(setRes.lastInsertRowid);
+
+  const slidePayload1 = JSON.stringify({
+    schemaVersion: 1,
+    label: 'Jadwal Ibadah',
+    baseType: 'general',
+    placeholders: [],
+    layouts: {
+      default: {
+        aspectRatio: '16:9',
+        backgroundColor: '#000000',
+        elements: [],
+      },
+    },
+  });
+  const slidePayload2 = JSON.stringify({
+    schemaVersion: 1,
+    label: 'Kerja Bakti',
+    baseType: 'general',
+    placeholders: [],
+    layouts: {
+      default: {
+        aspectRatio: '16:9',
+        backgroundColor: '#000000',
+        elements: [],
+      },
+    },
+  });
+  const sl1 = db
+    .prepare(
+      `INSERT INTO announcement_set_slides (ann_set_id, label, payload, position, updated_at) VALUES (?, ?, ?, 0, ?)`
+    )
+    .run(setId, 'Jadwal Ibadah', slidePayload1, now);
+  const sl2 = db
+    .prepare(
+      `INSERT INTO announcement_set_slides (ann_set_id, label, payload, position, updated_at) VALUES (?, ?, ?, 1, ?)`
+    )
+    .run(setId, 'Kerja Bakti', slidePayload2, now);
+
+  // Insert two separate marker templates referencing the same announcement set
+  const marker1Id = 'ann-marker-test-1';
+  const marker2Id = 'ann-marker-test-2';
+  db.prepare(
+    `INSERT INTO artifact_templates (id, label, base_type, ann_set_id, position, updated_at) VALUES (?, 'Ann 1', 'ann-set-marker', ?, 95, ?)`
+  ).run(marker1Id, setId, now);
+  db.prepare(
+    `INSERT INTO artifact_templates (id, label, base_type, ann_set_id, position, updated_at) VALUES (?, 'Ann 2', 'ann-set-marker', ?, 96, ?)`
+  ).run(marker2Id, setId, now);
+
+  try {
+    const parsed = parseRundown(sample);
+    const nodes = buildArtifactPlan('2026-07-11', parsed, []);
+
+    // Verify both markers emitted group nodes
+    const group1 = nodes.find((n) => n.kind === 'group' && n.id === `${marker1Id}-set-${setId}`);
+    const group2 = nodes.find((n) => n.kind === 'group' && n.id === `${marker2Id}-set-${setId}`);
+
+    assert.ok(group1, 'Marker 1 must emit a structured group node');
+    assert.ok(group2, 'Marker 2 must emit a structured group node');
+
+    // Both groups have distinct IDs despite referencing the same announcement set
+    assert.notEqual(group1.id, group2.id, 'Repeated markers must produce collision-safe group IDs');
+    assert.equal(group1.label, 'Warta Jemaat', 'Group label must inherit announcement set label');
+
+    // Children in group 1
+    assert.equal(group1.children.length, 2, 'Group 1 must contain 2 child slides');
+    const child1 = group1.children[0].instance;
+    const child2 = group1.children[1].instance;
+
+    assert.equal(child1.instanceId, `${marker1Id}-ann-slide-${sl1.lastInsertRowid}`);
+    assert.equal(child2.instanceId, `${marker1Id}-ann-slide-${sl2.lastInsertRowid}`);
+    assert.equal(child1.group?.role, 'announcement');
+    assert.equal(child1.group?.roleLabel, 'Jadwal Ibadah');
+    assert.equal(child2.group?.role, 'announcement');
+    assert.equal(child2.group?.roleLabel, 'Kerja Bakti');
+
+    // Distinct instance IDs for repeated marker
+    const child1Marker2 = group2.children[0].instance;
+    assert.notEqual(child1.instanceId, child1Marker2.instanceId, 'Child instances across repeated markers must have distinct IDs');
+  } finally {
+    db.prepare(`DELETE FROM artifact_templates WHERE id IN (?, ?)`).run(marker1Id, marker2Id);
+    db.prepare(`DELETE FROM announcement_set_slides WHERE ann_set_id = ?`).run(setId);
+    db.prepare(`DELETE FROM announcement_sets WHERE id = ?`).run(setId);
   }
 });

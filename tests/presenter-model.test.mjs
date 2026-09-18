@@ -246,3 +246,67 @@ test('only the navigation keys are claimed by the grid', () => {
     assert.equal(isGridNavigationKey(key), false, `${key} must not be claimed`);
   }
 });
+
+test('SPEC-41-02: buildPresenterRows discriminates groupKind for announcement sets and preserves active slide navigation', () => {
+  const entries = [
+    {
+      index: 0,
+      instanceId: 'ann-1',
+      templateId: 'ann-1',
+      label: 'Jadwal Ibadah',
+      baseType: 'general',
+      groupId: 'ann-marker-set-1',
+      groupLabel: 'Warta Jemaat',
+      role: 'announcement',
+      roleLabel: 'Jadwal Ibadah',
+      tone: 'image',
+    },
+    {
+      index: 1,
+      instanceId: 'ann-2',
+      templateId: 'ann-2',
+      label: 'Kerja Bakti',
+      baseType: 'general',
+      groupId: 'ann-marker-set-1',
+      groupLabel: 'Warta Jemaat',
+      role: 'announcement',
+      roleLabel: 'Kerja Bakti',
+      tone: 'image',
+    },
+    {
+      index: 2,
+      instanceId: 'song-title-1',
+      templateId: 'song-title',
+      label: 'Song Title',
+      baseType: 'song-set-entry',
+      groupId: 'song-opening',
+      groupLabel: 'Di Hadapan Hadirat-Mu',
+      role: 'title',
+      tone: 'song-title',
+    },
+  ];
+
+  const rows = buildPresenterRows(entries);
+  assert.equal(rows.length, 2, 'Should fold into 2 groups');
+
+  const annGroup = rows[0];
+  const songGroup = rows[1];
+
+  assert.equal(annGroup.kind, 'group');
+  assert.equal(annGroup.groupKind, 'announcement');
+  assert.equal(annGroup.label, 'Warta Jemaat');
+  assert.equal(annGroup.entries.length, 2);
+
+  assert.equal(songGroup.kind, 'group');
+  assert.equal(songGroup.groupKind, 'song-set');
+  assert.equal(songGroup.label, 'Di Hadapan Hadirat-Mu');
+  assert.equal(songGroup.entries.length, 1);
+
+  // Active slide navigation: index 1 is owned by the announcement group
+  assert.ok(rowContainsIndex(annGroup, 1));
+  assert.ok(!rowContainsIndex(songGroup, 1));
+
+  // Index 2 is owned by song group
+  assert.ok(rowContainsIndex(songGroup, 2));
+  assert.ok(!rowContainsIndex(annGroup, 2));
+});

@@ -96,11 +96,11 @@ export type ResolvedLayout = {
   elements: ResolvedElement[];
 };
 
-/** Back-reference from a SongSet child to its parent group. */
+/** Back-reference from a grouped child (SongSet or AnnouncementSet) to its parent group. */
 export type ArtifactGroupRef = {
   id: string;
   label: string;
-  role: 'title' | 'lyric';
+  role: 'title' | 'lyric' | 'announcement';
   roleLabel?: string;
 };
 

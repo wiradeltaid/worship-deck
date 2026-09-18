@@ -8,6 +8,7 @@
  */
 import {
   previewBadgeTone,
+  resolveAnnouncementGroupBadge,
   resolvePreviewBadge,
   resolvePreviewTitle,
   resolveSongSetGroupBadge,
@@ -81,6 +82,7 @@ type PreviewRow =
       kind: 'group';
       key: string;
       label: string;
+      groupKind: 'song-set' | 'announcement';
       groupOrdinal?: number;
       children: Array<{
         key: string;
@@ -134,12 +136,25 @@ function buildRows(
       last.children.push(child);
       continue;
     }
-    songSetCount += 1;
+
+    const isAnn =
+      entry.role === 'announcement' ||
+      (entry.groupId != null && entry.groupId.startsWith('ann-'));
+    const groupKind: 'song-set' | 'announcement' = isAnn ? 'announcement' : 'song-set';
+
+    if (groupKind === 'song-set') {
+      songSetCount += 1;
+    } else {
+      annSetCount += 1;
+    }
+    const groupOrdinal = groupKind === 'song-set' ? songSetCount : annSetCount;
+
     rows.push({
       kind: 'group',
       key: entry.groupId,
-      label: entry.groupLabel || '',
-      groupOrdinal: songSetCount,
+      label: entry.groupLabel || (groupKind === 'announcement' ? 'Announcement' : ''),
+      groupKind,
+      groupOrdinal,
       children: [child],
     });
   }
@@ -229,9 +244,15 @@ export function SlidePreviewList({
           <div key={row.key} className="bg-muted/20">
             <div className="px-3 pt-3 pb-1 flex items-center gap-1.5">
               <span
-                className={`${BADGE_CLASS} bg-primary/10 text-primary border-primary/20`}
+                className={`${BADGE_CLASS} ${
+                  row.groupKind === 'announcement'
+                    ? 'bg-purple-500/10 text-purple-600 border-purple-500/20 dark:bg-purple-400/15 dark:text-purple-200 dark:border-purple-400/40'
+                    : 'bg-primary/10 text-primary border-primary/20'
+                }`}
               >
-                {resolveSongSetGroupBadge(row.groupOrdinal)}
+                {row.groupKind === 'announcement'
+                  ? resolveAnnouncementGroupBadge(row.groupOrdinal)
+                  : resolveSongSetGroupBadge(row.groupOrdinal)}
               </span>
               {row.label ? (
                 <span className="font-bold text-xs truncate text-foreground">
@@ -239,7 +260,13 @@ export function SlidePreviewList({
                 </span>
               ) : null}
             </div>
-            <div className="ml-4 border-l-2 border-primary/30 divide-y divide-border/40">
+            <div
+              className={`ml-4 divide-y divide-border/40 ${
+                row.groupKind === 'announcement'
+                  ? 'border-l-2 border-purple-500/30 dark:border-purple-400/30'
+                  : 'border-l-2 border-primary/30'
+              }`}
+            >
               {row.children.map((child) => (
                 <SlideRow
                   key={child.key}

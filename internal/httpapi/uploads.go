@@ -108,8 +108,22 @@ func (s *Server) getUpload(w http.ResponseWriter, r *http.Request) {
 	if ct == "" {
 		ct = "application/octet-stream"
 	}
+
+	if f, err := os.Open(path); err == nil {
+		buf := make([]byte, 512)
+		if n, err := f.Read(buf); err == nil && n > 0 {
+			sniffed := http.DetectContentType(buf[:n])
+			if strings.HasPrefix(sniffed, "image/") {
+				ct = sniffed
+			}
+		}
+		f.Close()
+	}
+
 	w.Header().Set("Content-Type", ct)
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+	w.Header().Set("Last-Modified", st.ModTime().UTC().Format(http.TimeFormat))
+	w.Header().Set("ETag", fmt.Sprintf(`"%x-%x"`, st.ModTime().UnixNano(), st.Size()))
 	http.ServeFile(w, r, path)
 }
 

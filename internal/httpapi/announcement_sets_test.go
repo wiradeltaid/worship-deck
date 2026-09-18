@@ -242,13 +242,13 @@ func TestAnnouncementSetSlideSplicingInPlan(t *testing.T) {
 		t.Fatalf("BuildSlidePlan: %v", err)
 	}
 
-	// Verify the two announcement slides appear in the plan
+	// Verify the two announcement slides appear in the plan (SPEC-41 unique child instance IDs)
 	foundS1, foundS2 := false, false
 	for _, it := range items {
-		if it.Artifact.InstanceID == fmt.Sprintf("ann-slide-%d", s1ID) {
+		if strings.HasSuffix(it.Artifact.InstanceID, fmt.Sprintf("ann-slide-%d", s1ID)) {
 			foundS1 = true
 		}
-		if it.Artifact.InstanceID == fmt.Sprintf("ann-slide-%d", s2ID) {
+		if strings.HasSuffix(it.Artifact.InstanceID, fmt.Sprintf("ann-slide-%d", s2ID)) {
 			foundS2 = true
 		}
 	}

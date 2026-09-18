@@ -211,8 +211,11 @@ test('SPEC-39-01: 3. RegistryAdmin embeds Media Gallery tab and MediaGalleryPane
   );
 
   assert.ok(
-    mediaPanelCode.includes("cat === 'flyer'") || mediaPanelCode.includes('Flyers'),
-    'MediaGalleryPanel must provide Flyers category filter pill'
+    mediaPanelCode.includes("cat === 'announcement'") ||
+      mediaPanelCode.includes("cat === 'flyer'") ||
+      mediaPanelCode.includes('Announcements') ||
+      mediaPanelCode.includes('Flyers'),
+    'MediaGalleryPanel must provide Announcement/Flyer category filter pill'
   );
 
   assert.ok(

@@ -689,6 +689,7 @@ export function bootstrap(database: Database.Database): void {
   CREATE TABLE IF NOT EXISTS background_library_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT,
+    name TEXT NOT NULL DEFAULT '',
     is_default INTEGER NOT NULL DEFAULT 0,
     created_at TEXT,
     updated_at TEXT,
@@ -774,6 +775,21 @@ export function bootstrap(database: Database.Database): void {
     ).run();
   } catch (e) {
     if (!/duplicate column/i.test(String(e))) throw e;
+  }
+  // SPEC-40: Media Library name column and category reconciliation
+  try {
+    database.prepare(
+      `ALTER TABLE background_library_images ADD COLUMN name TEXT NOT NULL DEFAULT ''`
+    ).run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+  try {
+    database.prepare(
+      `UPDATE background_library_images SET category = 'announcement' WHERE category = 'flyer'`
+    ).run();
+  } catch (e) {
+    // ignore
   }
   // SPEC-39: Weekly Afternoon Program column
   try {

@@ -282,6 +282,10 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.artifacts.confirmDelete': 'Hapus "{label}" secara permanen?',
   'admin.artifacts.confirmDeleteDirty':
     'Hapus "{label}" secara permanen? Perubahan kanvas yang belum disimpan akan dibuang.',
+  'admin.artifacts.confirmDeleteSongSet':
+    'Hapus slide song set "{label}" dari urutan slide? Song set tetap tersimpan di master data Song Sets.',
+  'admin.artifacts.confirmDeleteSongSetDirty':
+    'Anda memiliki perubahan belum disimpan pada "{label}". Buang perubahan dan hapus dari urutan slide? Song set tetap tersimpan di master data Song Sets.',
   'admin.artifacts.deleteFailed': 'Gagal menghapus',
   'admin.artifacts.deleteConflict':
     '{error}. Tidak ada yang dihapus; daftar server dimuat ulang.',
@@ -567,6 +571,14 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.backgrounds.confirmDelete': 'Hapus gambar latar belakang ini secara permanen?',
   'admin.backgrounds.staleConflict':
     'Perpustakaan latar belakang telah diubah oleh sesi lain. Daftar disegarkan.',
+  'admin.backgrounds.customName': 'Nama Kustom (opsional)',
+  'admin.backgrounds.customNamePlaceholder': 'cth. Poster Khotbah Paskah',
+  'admin.backgrounds.rename': 'Ganti Nama',
+  'admin.backgrounds.nameSaved': 'Nama diperbarui',
+  'admin.backgrounds.nameFailed': 'Gagal memperbarui nama',
+  'admin.backgrounds.replace': 'Ganti Gambar',
+  'admin.backgrounds.replaced': 'Gambar berhasil diganti di tempat',
+  'admin.backgrounds.replaceFailed': 'Gagal mengganti gambar',
   'admin.songBooks.title': 'Buku Lagu',
   'admin.songBooks.description':
     'Kelola buku lagu/nyanyian yang tersedia dan atur buku default global untuk pencarian lagu.',

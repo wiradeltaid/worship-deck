@@ -30,10 +30,16 @@ export type PresenterEntry = PreviewEntry & {
   subtitle?: string;
 };
 
-/** One block of the list / grid: a standalone slide or a whole SongSet. */
+/** One block of the list / grid: a standalone slide or a whole group (SongSet or AnnouncementSet). */
 export type PresenterRow =
   | { kind: 'slide'; key: string; entry: PresenterEntry }
-  | { kind: 'group'; key: string; label: string; entries: PresenterEntry[] };
+  | {
+      kind: 'group';
+      key: string;
+      label: string;
+      groupKind: 'song-set' | 'announcement';
+      entries: PresenterEntry[];
+    };
 
 /**
  * The Presenter is handed the flattened plan, but `buildPreviewEntries` reads
@@ -77,9 +83,9 @@ export function buildPresenterEntries(
 }
 
 /**
- * Contiguous members of one SongSet collapse into a single group row so the
- * operator sees "Blessed Assurance · 5 slides" rather than five look-alikes.
- * Group children are always contiguous in the plan, so this never reorders.
+ * Contiguous members of one group (SongSet or AnnouncementSet) collapse into a
+ * single group row so the operator sees e.g. "Warta Jemaat · 3 slides" rather than
+ * three look-alikes. Group children are always contiguous in the plan, so this never reorders.
  */
 export function buildPresenterRows(
   entries: readonly PresenterEntry[]
@@ -95,10 +101,17 @@ export function buildPresenterRows(
       last.entries.push(entry);
       continue;
     }
+    const isAnn =
+      entry.role === 'announcement' ||
+      (entry.groupId != null && entry.groupId.startsWith('ann-'));
+    const groupKind: 'song-set' | 'announcement' = isAnn ? 'announcement' : 'song-set';
+    const defaultLabel = isAnn ? 'Announcement' : 'Song Set';
+
     rows.push({
       kind: 'group',
       key: entry.groupId,
-      label: entry.groupLabel || 'Song Set',
+      label: entry.groupLabel || defaultLabel,
+      groupKind,
       entries: [entry],
     });
   }
@@ -177,6 +190,7 @@ export function isGridNavigationKey(key: string): boolean {
 /** Whether a slide is an announcement slide based on templateId, baseType, or title. */
 export function isAnnouncementSlide(slide: SlidePlanItem | undefined): boolean {
   if (!slide) return false;
+  if (slide.artifact?.group?.role === 'announcement') return true;
   const templateId = slide.artifact?.templateId ?? '';
   const baseType = (slide.artifact as any)?.baseType ?? '';
   const title = slide.title?.toLowerCase() ?? '';

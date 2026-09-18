@@ -1,6 +1,6 @@
 # SPEC-42 — Deck Sequence Song Set Deletion and Master Data Decoupling Assurance
 
-> **Status:** open
+> **Status:** closed
 > **Release:** deck-sequence-song-set-deletion
 > **Component:** registry
 > **Touches:** artifacts, services

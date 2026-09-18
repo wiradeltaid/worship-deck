@@ -1,6 +1,6 @@
 # SPEC-40 — Gallery Asset In-Place Replacement, Category Reconciliation, and Ergonomic Custom Naming
 
-> **Status:** open
+> **Status:** closed
 > **Release:** gallery-asset-replacement-and-custom-name
 > **Component:** registry
 > **Touches:** artifacts, uploads, db

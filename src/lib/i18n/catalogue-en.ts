@@ -280,6 +280,10 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.artifacts.confirmDelete': 'Delete "{label}" permanently?',
   'admin.artifacts.confirmDeleteDirty':
     'Delete "{label}" permanently? Unsaved canvas changes will be discarded.',
+  'admin.artifacts.confirmDeleteSongSet':
+    'Remove song set "{label}" from the slide deck? It will remain available in Song Sets master data.',
+  'admin.artifacts.confirmDeleteSongSetDirty':
+    'You have unsaved changes on "{label}". Discard changes and remove from the slide deck? It will remain available in Song Sets master data.',
   'admin.artifacts.deleteFailed': 'Delete failed',
   'admin.artifacts.deleteConflict':
     '{error}. Nothing was deleted; the server list was reloaded.',
@@ -565,6 +569,14 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.backgrounds.confirmDelete': 'Delete this background image permanently?',
   'admin.backgrounds.staleConflict':
     'Background library was modified by another session. Refreshed list.',
+  'admin.backgrounds.customName': 'Custom Name (optional)',
+  'admin.backgrounds.customNamePlaceholder': 'e.g. Easter Sermon Poster',
+  'admin.backgrounds.rename': 'Rename',
+  'admin.backgrounds.nameSaved': 'Name updated',
+  'admin.backgrounds.nameFailed': 'Failed to update name',
+  'admin.backgrounds.replace': 'Replace Image',
+  'admin.backgrounds.replaced': 'Image replaced in place',
+  'admin.backgrounds.replaceFailed': 'Failed to replace image',
   'admin.songBooks.title': 'Song Books',
   'admin.songBooks.description':
     'Manage available hymn/song books and set the global default book for hymn lookup.',

@@ -18,7 +18,7 @@ type request struct {
 }
 
 type groupChild struct {
-	role      string
+	role      GroupRole
 	roleLabel string
 	req       request
 }
@@ -91,7 +91,7 @@ func songGroup(hymn HymnItem, idPrefix, templateID string) []node {
 		subtitle = fmt.Sprintf("%s %d (incomplete)", prefix, hymn.Number)
 	}
 	children = append(children, groupChild{
-		role: "title",
+		role: RoleTitle,
 		req: request{
 			id:         idPrefix + "-title",
 			templateID: templateID,
@@ -116,7 +116,7 @@ func songGroup(hymn HymnItem, idPrefix, templateID string) []node {
 				}
 			}
 			children = append(children, groupChild{
-				role:      "lyric",
+				role:      RoleLyric,
 				roleLabel: lyric.Label,
 				req: request{
 					id:         fmt.Sprintf("%s-lyric-%d", idPrefix, i+1),
@@ -532,20 +532,31 @@ func nodesFor(id string, c ctx, snap Snapshot) []node {
 				if len(slides) == 0 {
 					return nil
 				}
-				var out []node
+				setLabel := snap.AnnouncementSetLabels[*tmpl.AnnSetID]
+				if strings.TrimSpace(setLabel) == "" {
+					setLabel = strings.TrimSpace(tmpl.Label)
+				}
+				if strings.TrimSpace(setLabel) == "" {
+					setLabel = "Announcement"
+				}
+
+				groupID := fmt.Sprintf("%s-set-%d", tmpl.ID, *tmpl.AnnSetID)
+				var children []groupChild
 				fade := false
 				for _, sl := range slides {
-					out = append(out, node{
-						kind: "artifact",
+					childID := fmt.Sprintf("%s-ann-slide-%d", tmpl.ID, sl.ID)
+					children = append(children, groupChild{
+						role:      RoleAnnouncement,
+						roleLabel: sl.Label,
 						req: request{
-							id:         sl.Template.ID,
+							id:         childID,
 							templateID: sl.Template.ID,
 							values:     catalogValues(c),
 							fade:       &fade,
 						},
 					})
 				}
-				return out
+				return []node{{kind: "group", id: groupID, label: setLabel, children: children}}
 			}
 			if tmpl.BaseType == "general" {
 				return leaf(request{id: id, templateID: id, values: catalogValues(c)})

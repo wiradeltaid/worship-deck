@@ -85,7 +85,7 @@ type SlideRequest = {
 type RequestLeaf = { kind: 'artifact'; request: SlideRequest };
 
 type RequestGroupChild = {
-  role: 'title' | 'lyric';
+  role: 'title' | 'lyric' | 'announcement';
   roleLabel?: string;
   request: SlideRequest;
 };
@@ -802,6 +802,13 @@ function buildRequestPlan(
     }
     if (template.baseType === 'ann-set-marker') {
       if (template.annSetId !== undefined && database) {
+        const setRow = database
+          .prepare('SELECT label FROM announcement_sets WHERE id = ?')
+          .get(template.annSetId) as { label?: string } | undefined;
+        const setLabel =
+          setRow?.label?.trim() || template.label?.trim() || 'Announcement';
+        const groupId = `${template.id}-set-${template.annSetId}`;
+
         const slides = database
           .prepare(
             `SELECT id, ann_set_id, label, payload, position
@@ -816,20 +823,32 @@ function buildRequestPlan(
           payload: string;
           position: number;
         }[];
+
+        const children: RequestGroupChild[] = [];
         for (const slide of slides) {
-          const slideId = `ann-slide-${slide.id}`;
-          nodes.push(
-            leaf({
-              id: slideId,
-              templateId: slideId,
+          const slideInstanceId = `${template.id}-ann-slide-${slide.id}`;
+          children.push({
+            role: 'announcement',
+            roleLabel: slide.label,
+            request: {
+              id: slideInstanceId,
+              templateId: `ann-slide-${slide.id}`,
               values: catalogValuesFromWeekly(catalogInputFromCtx(ctx)),
               legacy: (instance) => ({
                 kind: 'body',
                 title: slide.label,
                 lines: derivedLines(instance, slide.label),
               }),
-            })
-          );
+            },
+          });
+        }
+        if (children.length > 0) {
+          nodes.push({
+            kind: 'group',
+            id: groupId,
+            label: setLabel,
+            children,
+          });
         }
       }
       continue;

@@ -344,10 +344,10 @@ rtm:
   - internal/plan
   - src/lib/slide-plan.ts
   - tests/smoke-spec-41.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -360,10 +360,10 @@ rtm:
   - src/operator/present/presenter-model.ts
   - src/operator/present/PresenterOperator.tsx
   - tests/smoke-spec-41.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -376,10 +376,10 @@ rtm:
   - src/components/SlidePreviewList.tsx
   - src/lib/artifacts/preview-model.ts
   - tests/smoke-spec-41.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1995,10 +1995,10 @@ rtm:
   test:
   - internal/httpapi
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -2010,10 +2010,10 @@ rtm:
   test:
   - src/components/admin/BackgroundLibraryPanel.tsx
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -2025,10 +2025,10 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -2212,10 +2212,10 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-42.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -2227,10 +2227,10 @@ rtm:
   test:
   - internal/httpapi
   - tests/smoke-spec-42.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -4123,10 +4123,10 @@ rtm:
   test:
   - internal/httpapi
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -4138,10 +4138,10 @@ rtm:
   test:
   - src/components/admin/BackgroundLibraryPanel.tsx
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -4153,10 +4153,10 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -4231,10 +4231,10 @@ rtm:
   test:
   - internal/httpapi
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31
@@ -4246,10 +4246,10 @@ rtm:
   test:
   - src/components/admin/BackgroundLibraryPanel.tsx
   - tests/smoke-spec-40.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31
@@ -4486,10 +4486,10 @@ rtm:
   - internal/plan
   - src/lib/slide-plan.ts
   - tests/smoke-spec-41.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-3
   FR: FR-9
@@ -4502,10 +4502,10 @@ rtm:
   - src/components/SlidePreviewList.tsx
   - src/lib/artifacts/preview-model.ts
   - tests/smoke-spec-41.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-3
   FR: FR-9

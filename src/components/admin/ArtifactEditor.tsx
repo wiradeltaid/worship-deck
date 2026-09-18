@@ -310,12 +310,12 @@ export default function ArtifactEditor({
   const insertCounterRef = useRef(0);
   const bgFileInputRef = useRef<HTMLInputElement | null>(null);
   const [showBgDialog, setShowBgDialog] = useState(false);
-  const [bgLibrary, setBgLibrary] = useState<Array<{ id: number; url: string; category?: string }>>([]);
+  const [bgLibrary, setBgLibrary] = useState<Array<{ id: number; url: string; name?: string; category?: string }>>([]);
   const [showImageChoiceDialog, setShowImageChoiceDialog] = useState(false);
   const [showGalleryDialog, setShowGalleryDialog] = useState(false);
-  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState<'all' | 'flyer' | 'background' | 'general'>('all');
-  const [bgCategoryFilter, setBgCategoryFilter] = useState<'all' | 'background' | 'flyer'>('all');
-  const [galleryItems, setGalleryItems] = useState<Array<{ id: number; url: string; category?: string }>>([]);
+  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState<'all' | 'general' | 'background' | 'announcement'>('all');
+  const [bgCategoryFilter, setBgCategoryFilter] = useState<'all' | 'general' | 'background' | 'announcement'>('all');
+  const [galleryItems, setGalleryItems] = useState<Array<{ id: number; url: string; name?: string; category?: string }>>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [availableSongSets, setAvailableSongSets] = useState<Array<{ variableName: string; title: string }>>([]);
   const [availableAnnSets, setAvailableAnnSets] = useState<Array<{ id: number; label: string }>>([]);
@@ -4246,10 +4246,17 @@ export default function ArtifactEditor({
     if (targetIds.length === 1) {
       const item = targetCandidates[0];
       const label = item?.label ?? '';
-      warning =
-        containsActive && isDirty && isEditable
-          ? t('admin.artifacts.confirmDeleteDirty').replace('{label}', label)
-          : t('admin.artifacts.confirmDelete').replace('{label}', label);
+      if (item?.baseType === 'song-set-entry') {
+        warning =
+          containsActive && isDirty && isEditable
+            ? t('admin.artifacts.confirmDeleteSongSetDirty').replace('{label}', label)
+            : t('admin.artifacts.confirmDeleteSongSet').replace('{label}', label);
+      } else {
+        warning =
+          containsActive && isDirty && isEditable
+            ? t('admin.artifacts.confirmDeleteDirty').replace('{label}', label)
+            : t('admin.artifacts.confirmDelete').replace('{label}', label);
+      }
     } else {
       warning =
         containsActive && isDirty && isEditable
@@ -4810,22 +4817,20 @@ export default function ArtifactEditor({
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
-                        {item.baseType === 'song-set-entry' ? null : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            title={t('admin.artifacts.delete')}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDeleteTemplate(item);
-                            }}
-                            disabled={busy || isDeletingSelected}
-                            className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          title={t('admin.artifacts.delete')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDeleteTemplate(item);
+                          }}
+                          disabled={busy || isDeletingSelected}
+                          className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </div>
                   </li>
@@ -6051,7 +6056,7 @@ export default function ArtifactEditor({
 
               {/* Category filter pills */}
               <div className="flex items-center gap-1.5 border-b border-border pb-2.5">
-                {(['all', 'flyer', 'background', 'general'] as const).map((cat) => (
+                {(['all', 'announcement', 'background', 'general'] as const).map((cat) => (
                   <Button
                     key={cat}
                     type="button"
@@ -6060,7 +6065,7 @@ export default function ArtifactEditor({
                     className="text-xs capitalize h-7 px-2.5 font-medium"
                     onClick={() => setGalleryCategoryFilter(cat)}
                   >
-                    {cat === 'all' ? 'All' : cat === 'flyer' ? 'Flyers' : cat === 'background' ? 'Backgrounds' : 'General'}
+                    {cat === 'all' ? 'All' : cat === 'announcement' ? 'Announcements' : cat === 'background' ? 'Backgrounds' : 'General'}
                   </Button>
                 ))}
               </div>
@@ -6096,23 +6101,31 @@ export default function ArtifactEditor({
                     }
                     return (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {filtered.map((item) => (
-                          <div
-                            key={item.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => void insertImageFromUrl(item.url)}
-                            className="group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/20 cursor-pointer transition-all bg-muted"
-                          >
-                            <img src={item.url} alt="Gallery item" className="w-full h-full object-cover" />
-                            <Badge
-                              variant="secondary"
-                              className="absolute bottom-1.5 left-1.5 text-[9px] font-semibold uppercase tracking-wider bg-background/80 backdrop-blur-xs opacity-80 group-hover:opacity-100"
+                        {filtered.map((item) => {
+                          const displayName = item.name || `Media #${item.id}`;
+                          return (
+                            <div
+                              key={item.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => void insertImageFromUrl(item.url)}
+                              className="group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/20 cursor-pointer transition-all bg-muted"
                             >
-                              {item.category || 'background'}
-                            </Badge>
-                          </div>
-                        ))}
+                              <img src={item.url} alt={displayName} className="w-full h-full object-cover" />
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 flex items-end justify-between gap-1">
+                                <span className="truncate text-[10px] font-medium text-white drop-shadow-xs" title={displayName}>
+                                  {displayName}
+                                </span>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[8px] font-semibold uppercase tracking-wider bg-background/90 shrink-0"
+                                >
+                                  {item.category || 'background'}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })()
@@ -6155,7 +6168,7 @@ export default function ArtifactEditor({
 
                 {/* Category filter pills for background library */}
                 <div className="flex items-center gap-1.5 pt-1">
-                  {(['all', 'background', 'flyer'] as const).map((cat) => (
+                  {(['all', 'announcement', 'background', 'general'] as const).map((cat) => (
                     <Button
                       key={cat}
                       type="button"
@@ -6164,7 +6177,7 @@ export default function ArtifactEditor({
                       className="text-xs capitalize h-6 px-2 font-medium"
                       onClick={() => setBgCategoryFilter(cat)}
                     >
-                      {cat === 'all' ? 'All' : cat === 'background' ? 'Backgrounds' : 'Flyers'}
+                      {cat === 'all' ? 'All' : cat === 'announcement' ? 'Announcements' : cat === 'background' ? 'Backgrounds' : 'General'}
                     </Button>
                   ))}
                 </div>
@@ -6175,26 +6188,34 @@ export default function ArtifactEditor({
                     <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto pr-1">
                       {bgLibrary
                         .filter((bg) => bgCategoryFilter === 'all' || (bg.category || 'background') === bgCategoryFilter)
-                        .map((bg) => (
-                        <div
-                          key={bg.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => {
-                            void handleChangeBackgroundUrl(bg.url);
-                            setShowBgDialog(false);
-                          }}
-                          className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/20 cursor-pointer transition-all bg-muted relative group"
-                        >
-                          <img src={bg.url} alt="Background" className="w-full h-full object-cover" />
-                          <Badge
-                            variant="secondary"
-                            className="absolute bottom-1 left-1 text-[8px] font-semibold uppercase tracking-wider bg-background/80 backdrop-blur-xs opacity-70 group-hover:opacity-100"
-                          >
-                            {bg.category || 'background'}
-                          </Badge>
-                        </div>
-                      ))}
+                        .map((bg) => {
+                          const bgName = bg.name || `Media #${bg.id}`;
+                          return (
+                            <div
+                              key={bg.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                void handleChangeBackgroundUrl(bg.url);
+                                setShowBgDialog(false);
+                              }}
+                              className="aspect-video rounded-lg overflow-hidden border border-border hover:border-primary hover:ring-2 hover:ring-primary/20 cursor-pointer transition-all bg-muted relative group"
+                            >
+                              <img src={bg.url} alt={bgName} className="w-full h-full object-cover" />
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1 flex items-end justify-between gap-1">
+                                <span className="truncate text-[9px] font-medium text-white drop-shadow-xs" title={bgName}>
+                                  {bgName}
+                                </span>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[7px] font-semibold uppercase tracking-wider bg-background/90 shrink-0 px-1 py-0"
+                                >
+                                  {bg.category || 'background'}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
                     </div>
                   </div>
                 ) : null}

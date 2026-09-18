@@ -74,11 +74,19 @@ type ResolvedLayout struct {
 	Elements        []ResolvedElement `json:"elements"`
 }
 
+type GroupRole string
+
+const (
+	RoleTitle        GroupRole = "title"
+	RoleLyric        GroupRole = "lyric"
+	RoleAnnouncement GroupRole = "announcement"
+)
+
 type GroupRef struct {
-	ID        string `json:"id"`
-	Label     string `json:"label"`
-	Role      string `json:"role"`
-	RoleLabel string `json:"roleLabel,omitempty"`
+	ID        string    `json:"id"`
+	Label     string    `json:"label"`
+	Role      GroupRole `json:"role"`
+	RoleLabel string    `json:"roleLabel,omitempty"`
 }
 
 type ArtifactInstance struct {
@@ -158,10 +166,11 @@ type AnnouncementSlide struct {
 }
 
 type Snapshot struct {
-	Order              []string
-	ByID               map[string]Template
-	SongInputs         map[string]HymnItem
-	AnnouncementSlides map[int][]AnnouncementSlide
+	Order                 []string
+	ByID                  map[string]Template
+	SongInputs            map[string]HymnItem
+	AnnouncementSlides    map[int][]AnnouncementSlide
+	AnnouncementSetLabels map[int]string
 }
 
 func (s Snapshot) Has(id string) bool {
