@@ -7,8 +7,8 @@ artifact: .control/decisions/DEC-043-daily-autopilot-mandate-continuous-engineer
 ## Resume
 
 - Iteration: 1
-- Run branch: autopilot/DEC-043
-- Stopped at: Done (SPEC-40 gallery asset replacement, custom name, and category reconciliation closed)
+- Run branch: autopilot/DEC-043 (Draft PR #80: https://github.com/wiradeltaid/worship-presenter-web/pull/80)
+- Stopped at: Done (SPEC-40 closed, Draft PR #80 opened, head 02a97b1, all tests green)
 - Blocked: —
 - Parked: —
 - Next: Iteration 2 — SPEC-41 announcement set hierarchy and grouping
