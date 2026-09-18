@@ -4,12 +4,13 @@ import { SongSetEntriesPanel } from '@/components/admin/SongSetEntriesPanel';
 import { AnnouncementSetsPanel } from '@/components/admin/AnnouncementSetsPanel';
 import { BackgroundLibraryPanel } from '@/components/admin/BackgroundLibraryPanel';
 import { SongBooksPanel } from '@/components/admin/SongBooksPanel';
+import { ParserProfilesPanel } from '@/components/admin/ParserProfilesPanel';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useT } from '@/lib/i18n/operator';
 import type { CopiedSlide } from '@/lib/registry/canvas-adapters';
 
-type RegistryTab = 'spine' | 'songSets' | 'songBooks' | 'announcements' | 'backgrounds';
+type RegistryTab = 'spine' | 'songSets' | 'songBooks' | 'announcements' | 'backgrounds' | 'parsing';
 
 export function RegistryAdmin() {
   const { t } = useT();
@@ -22,6 +23,7 @@ export function RegistryAdmin() {
     { id: 'songBooks', label: t('admin.registry.tab.songBooks') },
     { id: 'announcements', label: t('admin.registry.tab.announcements') },
     { id: 'backgrounds', label: t('admin.registry.tab.mediaGallery') },
+    { id: 'parsing', label: t('admin.registry.tab.parsing') },
   ];
 
   return (
@@ -74,6 +76,12 @@ export function RegistryAdmin() {
       {activeTab === 'backgrounds' ? (
         <div>
           <BackgroundLibraryPanel />
+        </div>
+      ) : null}
+
+      {activeTab === 'parsing' ? (
+        <div>
+          <ParserProfilesPanel />
         </div>
       ) : null}
     </div>

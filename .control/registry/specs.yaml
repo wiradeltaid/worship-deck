@@ -2082,7 +2082,7 @@ waves:
           - tests/smoke-spec-43.test.mjs
 
   - id: SPEC-44
-    status: open
+    status: closed
     release: configurable-rundown-parser-and-dynamic-song-sets
     prd: [rundown-to-service, operator-turn]
     fr: [FR-1, FR-2, FR-27, FR-32]
@@ -2098,7 +2098,7 @@ waves:
         component: hub
         satisfies: [UC-5]
         blocked_by: []
-        touches: [services, db]
+        touches: [services]
         tests:
           - internal/httpapi
           - internal/db

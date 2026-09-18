@@ -74,6 +74,16 @@ func (s *Server) postWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	profileID := db.BuiltinDefaultParserProfileID
+	profileVersion := 1
+	if p, err := parse.LoadDefaultParserProfile(s.DB); err == nil && p != nil {
+		profileID = p.ID
+		_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, p.ID).Scan(&profileVersion)
+		if profileVersion == 0 {
+			profileVersion = 1
+		}
+	}
+
 	tx, err := s.DB.Begin()
 	if err != nil {
 		log.Printf("Error processing webhook: %v", err)
@@ -82,9 +92,9 @@ func (s *Server) postWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 	res, err := tx.Exec(
-		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, afternoon_program, updated_at)
-		 VALUES (?, ?, ?, ?, '', `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), imagesJSON,
+		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, afternoon_program, parser_profile_id, parser_profile_version, updated_at)
+		 VALUES (?, ?, ?, ?, '', ?, ?, `+db.StampNowSQL+`)`,
+		serviceDate, rawPayload, string(parsedJSON), imagesJSON, profileID, profileVersion,
 	)
 	if err != nil {
 		log.Printf("Error processing webhook: %v", err)

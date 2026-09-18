@@ -94,10 +94,10 @@ rtm:
   - internal/httpapi
   - internal/db
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -109,10 +109,10 @@ rtm:
   test:
   - internal/parse
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -124,10 +124,10 @@ rtm:
   test:
   - src/lib/parser.ts
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -140,10 +140,10 @@ rtm:
   - internal/plan
   - src/lib/slide-plan.ts
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -155,10 +155,10 @@ rtm:
   test:
   - src/components/admin
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -171,10 +171,10 @@ rtm:
   - src/operator/CreateForm.tsx
   - src/operator/EditForm.tsx
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -654,10 +654,10 @@ rtm:
   - src/operator/CreateForm.tsx
   - src/operator/EditForm.tsx
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -2627,10 +2627,10 @@ rtm:
   - src/operator/CreateForm.tsx
   - src/operator/EditForm.tsx
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -2832,10 +2832,10 @@ rtm:
   - internal/plan
   - src/lib/slide-plan.ts
   - tests/smoke-spec-44.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29

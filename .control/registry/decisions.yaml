@@ -1025,6 +1025,35 @@ decisions:
       - .control/memlog/autopilot-DEC-044.md
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
+  - id: DEC-045
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-18)"
+    title: Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-44)
+    file: .control/decisions/DEC-045-daily-autopilot-mandate-continuous-engineering-routine.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-25'
+    touches:
+      - .control/memlog/autopilot-DEC-045.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - internal/db/migrate_parser_profiles.go
+      - internal/httpapi/parser_profiles.go
+      - internal/parse/parser.go
+      - internal/parse/profile.go
+      - internal/parse/song_set_matching.go
+      - src/lib/parser.ts
+      - src/lib/song-set-matching.ts
+      - src/components/admin/ParserProfilesPanel.tsx
+      - src/operator/CreateForm.tsx
+      - src/operator/EditForm.tsx
+      - tests/smoke-spec-44.test.mjs
+
 
 
 

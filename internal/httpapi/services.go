@@ -84,7 +84,45 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "raw_payload is required")
 		return
 	}
-	parsed := parse.Normalize(parse.ParseRundown(s.DB, rawPayload))
+
+	var profile *parse.ParserProfile
+	var profileID string
+	var profileVersion int
+	if pid, ok := body["parserProfileId"].(string); ok && strings.TrimSpace(pid) != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, strings.TrimSpace(pid))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("parser profile %q not found", pid))
+			return
+		}
+		profile = p
+		profileID = p.ID
+	} else if pid, ok := body["parser_profile_id"].(string); ok && strings.TrimSpace(pid) != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, strings.TrimSpace(pid))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("parser profile %q not found", pid))
+			return
+		}
+		profile = p
+		profileID = p.ID
+	}
+	if profile == nil {
+		p, err := parse.LoadDefaultParserProfile(s.DB)
+		if err == nil {
+			profile = p
+			profileID = p.ID
+		} else {
+			profile = parse.DefaultParserProfile()
+			profileID = db.BuiltinDefaultParserProfileID
+		}
+	}
+	if profile != nil && profileID != "" {
+		_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, profileID).Scan(&profileVersion)
+		if profileVersion == 0 {
+			profileVersion = 1
+		}
+	}
+
+	parsed := parse.Normalize(parse.ParseRundownWithProfile(s.DB, rawPayload, profile))
 	if parse.HasStructuredFields(body) {
 		parse.ApplyStructuredFields(s.DB, &parsed, body)
 		parsed = parse.Normalize(parsed)
@@ -128,9 +166,9 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := tx.Exec(
-		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, updated_at)
-		 VALUES (?, ?, ?, ?, ?, '', `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants,
+		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, parser_profile_id, parser_profile_version, updated_at)
+		 VALUES (?, ?, ?, ?, ?, '', ?, ?, `+db.StampNowSQL+`)`,
+		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants, profileID, profileVersion,
 	)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -319,26 +357,30 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	}
 	row := s.DB.QueryRow(
 		`SELECT id, date, raw_payload, parsed_data, images_payload, participants_payload,
+		        parser_profile_id, parser_profile_version,
 		        created_at, COALESCE(updated_at, created_at)
 		   FROM services WHERE id = ?`,
 		id,
 	)
 	var out struct {
-		ID            int             `json:"id"`
-		Date          string          `json:"date"`
-		RawPayload    string          `json:"raw_payload"`
-		ParsedData    json.RawMessage `json:"parsed_data"`
-		ImagesPayload json.RawMessage `json:"images_payload"`
-		Participants  any             `json:"participants_payload"`
-		SongSets      map[string]any  `json:"songSets"`
-		CreatedAt     string          `json:"created_at"`
-		UpdatedAt     string          `json:"updated_at"`
-		Plan          any             `json:"plan"`
-		PlanIdentity  string          `json:"plan_identity"`
-		Transition    string          `json:"transition"`
+		ID                   int             `json:"id"`
+		Date                 string          `json:"date"`
+		RawPayload           string          `json:"raw_payload"`
+		ParsedData           json.RawMessage `json:"parsed_data"`
+		ImagesPayload        json.RawMessage `json:"images_payload"`
+		Participants         any             `json:"participants_payload"`
+		SongSets             map[string]any  `json:"songSets"`
+		ParserProfileID      *string         `json:"parser_profile_id,omitempty"`
+		ParserProfileVersion *int            `json:"parser_profile_version,omitempty"`
+		CreatedAt            string          `json:"created_at"`
+		UpdatedAt            string          `json:"updated_at"`
+		Plan                 any             `json:"plan"`
+		PlanIdentity         string          `json:"plan_identity"`
+		Transition           string          `json:"transition"`
 	}
-	var parsed, images, parts sql.NullString
-	if err := row.Scan(&out.ID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &out.CreatedAt, &out.UpdatedAt); err != nil {
+	var parsed, images, parts, profileID sql.NullString
+	var profileVersion sql.NullInt64
+	if err := row.Scan(&out.ID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, "Service not found")
 			return
@@ -346,6 +388,13 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error reading service: %v", err)
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
+	}
+	if profileID.Valid && profileID.String != "" {
+		out.ParserProfileID = &profileID.String
+	}
+	if profileVersion.Valid {
+		v := int(profileVersion.Int64)
+		out.ParserProfileVersion = &v
 	}
 	out.ParsedData = nullJSON(parsed)
 	out.ImagesPayload = nullJSON(images)
@@ -462,13 +511,15 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var existing struct {
-		raw, parsed, images, participants, date, created, updated sql.NullString
+		raw, parsed, images, participants, date, created, updated, profileID sql.NullString
+		profileVersion                                                       sql.NullInt64
 	}
 	err = s.DB.QueryRow(
-		`SELECT raw_payload, parsed_data, images_payload, participants_payload, date, created_at, updated_at
+		`SELECT raw_payload, parsed_data, images_payload, participants_payload, date,
+		        parser_profile_id, parser_profile_version, created_at, updated_at
 		   FROM services WHERE id = ?`,
 		id,
-	).Scan(&existing.raw, &existing.parsed, &existing.images, &existing.participants, &existing.date, &existing.created, &existing.updated)
+	).Scan(&existing.raw, &existing.parsed, &existing.images, &existing.participants, &existing.date, &existing.profileID, &existing.profileVersion, &existing.created, &existing.updated)
 	if err == sql.ErrNoRows {
 		writeError(w, http.StatusNotFound, "Service not found")
 		return
@@ -511,21 +562,57 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	var profile *parse.ParserProfile
+	profileID := existing.profileID.String
+	profileVersion := int(existing.profileVersion.Int64)
+	if pid, ok := body["parserProfileId"].(string); ok && strings.TrimSpace(pid) != "" {
+		profileID = strings.TrimSpace(pid)
+	} else if pid, ok := body["parser_profile_id"].(string); ok && strings.TrimSpace(pid) != "" {
+		profileID = strings.TrimSpace(pid)
+	}
+
+	if profileID != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, profileID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("parser profile %q not found", profileID))
+			return
+		}
+		profile = p
+		profileID = p.ID
+		_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, p.ID).Scan(&profileVersion)
+		if profileVersion == 0 {
+			profileVersion = 1
+		}
+	}
+	if profile == nil {
+		p, err := parse.LoadDefaultParserProfile(s.DB)
+		if err == nil {
+			profile = p
+			profileID = p.ID
+			_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, p.ID).Scan(&profileVersion)
+		} else {
+			profile = parse.DefaultParserProfile()
+			profileID = db.BuiltinDefaultParserProfileID
+			profileVersion = 1
+		}
+	}
+
 	storedRaw := existing.raw.String
 	if rawPayload != nil {
 		storedRaw = *rawPayload
 	}
 	var parsed parse.Rundown
 	if rawPayload != nil {
-		parsed = parse.Normalize(parse.ParseRundown(s.DB, storedRaw))
+		parsed = parse.Normalize(parse.ParseRundownWithProfile(s.DB, storedRaw, profile))
 	} else if existing.parsed.Valid && existing.parsed.String != "" {
 		if json.Unmarshal([]byte(existing.parsed.String), &parsed) != nil {
-			parsed = parse.Normalize(parse.ParseRundown(s.DB, storedRaw))
+			parsed = parse.Normalize(parse.ParseRundownWithProfile(s.DB, storedRaw, profile))
 		} else {
 			parsed = parse.Normalize(parsed)
 		}
 	} else {
-		parsed = parse.Normalize(parse.ParseRundown(s.DB, storedRaw))
+		parsed = parse.Normalize(parse.ParseRundownWithProfile(s.DB, storedRaw, profile))
 	}
 	if parse.HasStructuredFields(body) {
 		parse.ApplyStructuredFields(s.DB, &parsed, body)
@@ -544,8 +631,8 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	assignments := []string{`date = ?`, `raw_payload = ?`, `parsed_data = ?`, `updated_at = ` + db.StampNowSQL}
-	args := []any{newDate, storedRaw, string(parsedJSON)}
+	assignments := []string{`date = ?`, `raw_payload = ?`, `parsed_data = ?`, `parser_profile_id = ?`, `parser_profile_version = ?`, `updated_at = ` + db.StampNowSQL}
+	args := []any{newDate, storedRaw, string(parsedJSON), profileID, profileVersion}
 	if imagesJSON != nil {
 		assignments = append(assignments, `images_payload = ?`)
 		args = append(args, *imagesJSON)
@@ -718,7 +805,28 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "raw_payload is required")
 		return
 	}
-	parsed := parse.Normalize(parse.ParseRundown(s.DB, rawPayload))
+	var profile *parse.ParserProfile
+	if pid, ok := body["parserProfileId"].(string); ok && pid != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, pid)
+		if err == nil {
+			profile = p
+		}
+	} else if pid, ok := body["parser_profile_id"].(string); ok && pid != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, pid)
+		if err == nil {
+			profile = p
+		}
+	}
+	if profile == nil {
+		p, err := parse.LoadDefaultParserProfile(s.DB)
+		if err == nil {
+			profile = p
+		} else {
+			profile = parse.DefaultParserProfile()
+		}
+	}
+
+	parsed := parse.Normalize(parse.ParseRundownWithProfile(s.DB, rawPayload, profile))
 	if parse.HasStructuredFields(body) {
 		parse.ApplyStructuredFields(s.DB, &parsed, body)
 		parsed = parse.Normalize(parsed)
@@ -821,12 +929,31 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		}
 		preview = append(preview, entry)
 	}
+
+	var slots []parse.SongSetEntrySlot
+	sRows, sErr := s.DB.Query(`SELECT variable_name, title, position FROM song_set_entries ORDER BY position ASC`)
+	if sErr == nil {
+		defer sRows.Close()
+		for sRows.Next() {
+			var sl parse.SongSetEntrySlot
+			if err := sRows.Scan(&sl.VariableName, &sl.Title, &sl.Position); err == nil {
+				slots = append(slots, sl)
+			}
+		}
+	}
+	matchingResult := parse.MatchSongSets(parsed.SongCandidates, slots, profile.SongSetMatching)
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"plan":              items,
-		"previewEntries":    preview,
-		"date":              *parsed.Date,
-		"failedHymnNumbers": parsed.FailedHymnNumbers,
-		"fields":            fieldsFromParsed(parsed),
+		"plan":                items,
+		"previewEntries":      preview,
+		"date":                *parsed.Date,
+		"failedHymnNumbers":   parsed.FailedHymnNumbers,
+		"fields":              fieldsFromParsed(parsed),
+		"songSetSuggestions": matchingResult.Suggestions,
+		"songOverflow":        matchingResult.SongOverflow,
+		"songSlotsUnfilled":   matchingResult.SongSlotsUnfilled,
+		"unmappedLines":       parsed.UnmappedLines,
+		"parserProfileId":     profile.ID,
 	})
 }
 
