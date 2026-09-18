@@ -40,7 +40,7 @@ const (
   "default_book": "SDAH",
   "field_rules": {
     "sermon": {
-      "pattern": "(?i)^Sermon\\s*[:\\-]\\s*(?<speaker>.+?)(?:\\s+\"(?<title>[^\"]+)\"|\\s+[“\"](?<title>[^”\"]+)[”\"])?\\s*$"
+      "pattern": "(?i)^Sermon\\s*[:\\-]\\s*(?<speaker>.+?)(?:\\s+[\"“](?<title>[^\"”]+)[\"”])?\\s*$"
     },
     "special_song": {
       "pattern": "(?i)^Special\\s+Song\\s*[:\\-]\\s*(?<value>.*)$"

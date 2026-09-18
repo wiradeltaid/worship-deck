@@ -36,7 +36,7 @@ export const BUILTIN_DEFAULT_RULES_JSON = JSON.stringify({
   field_rules: {
     sermon: {
       pattern:
-        '(?i)^Sermon\\s*[:\\-]\\s*(?<speaker>.+?)(?:\\s+"(?<title>[^"]+)"|\\s+[“"](?<title>[^”"]+)[”"])?\\s*$',
+        '(?i)^Sermon\\s*[:\\-]\\s*(?<speaker>.+?)(?:\\s+["“](?<title>[^"”]+)["”])?\\s*$',
     },
     special_song: {
       pattern: '(?i)^Special\\s+Song\\s*[:\\-]\\s*(?<value>.*)$',

@@ -572,7 +572,7 @@ export function parseRundownWithProfile(
     if (!mapped) {
       const sermRule =
         profile.field_rules?.sermon?.pattern ??
-        '^Sermon\\s*[:\\-]\\s*(?<speaker>.+?)(?:\\s+"(?<title>[^"]+)"|\\s+[“"](?<title>[^”"]+)[”"])?\\s*$';
+        '^Sermon\\s*[:\\-]\\s*(?<speaker>.+?)(?:\\s+["“](?<title>[^"”]+)["”])?\\s*$';
       const sermRE = compileProfileRegex(sermRule);
       const m = line.match(sermRE);
       if (m) {
