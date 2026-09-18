@@ -28,6 +28,8 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
+import { toast } from 'sonner';
+import { Repeat } from 'lucide-react';
 import Link from '@/components/Link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import type { ParsedItem } from '@/lib/parser';
@@ -72,6 +74,8 @@ import {
   buildPresenterEntries,
   buildPresenterRows,
   clampSlideIndex,
+  computeNextLoopIndex,
+  findAnnouncementSectionBounds,
   rowContainsIndex,
   type PresenterEntry,
 } from './presenter-model';
@@ -314,6 +318,21 @@ export default function PresenterOperator({
   // that this is the only place the verdict is decided, so a boundary added
   // here is a boundary added to the shared evaluator, not a local shortcut.
   const [liveness, setLiveness] = useState<LivenessState>(INITIAL_LIVENESS_STATE);
+  const [isLooping, setIsLooping] = useState(false);
+  const isLoopingRef = useRef(false);
+  isLoopingRef.current = isLooping;
+
+  const [loopInterval, setLoopInterval] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('wpw_presenter_loop_interval');
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        if ([5, 7, 10, 15].includes(parsed)) return parsed;
+      }
+    } catch {}
+    return 7;
+  });
+
   const channelRef = useRef<BroadcastChannel | null>(null);
   const indexRef = useRef(0);
   const blankRef = useRef(false);
@@ -462,6 +481,43 @@ export default function PresenterOperator({
     [broadcast, slides.length]
   );
 
+  const manualNavigate = useCallback(
+    (next: number) => {
+      isLoopingRef.current = false;
+      setIsLooping(false);
+      setIndexAndSync(next);
+    },
+    [setIndexAndSync]
+  );
+
+  useEffect(() => {
+    if (!isLooping) return;
+
+    const bounds = findAnnouncementSectionBounds(slides, indexRef.current);
+    if (!bounds) {
+      isLoopingRef.current = false;
+      setIsLooping(false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      if (!isLoopingRef.current) return;
+      const currentIdx = indexRef.current;
+      const curBounds = findAnnouncementSectionBounds(slides, currentIdx);
+      if (!curBounds) {
+        isLoopingRef.current = false;
+        setIsLooping(false);
+        return;
+      }
+      const nextIdx = computeNextLoopIndex(currentIdx, curBounds);
+      setIndexAndSync(nextIdx);
+    }, loopInterval * 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isLooping, loopInterval, slides, setIndexAndSync]);
+
   /**
    * Blanks or restores the projector. Takes the state it wants rather than
    * flipping whatever the receiver happens to hold, so a projector that missed
@@ -577,7 +633,7 @@ export default function PresenterOperator({
       serviceId,
       getPlanIdentity: () => planIdentityRef.current,
       handlers: {
-        setIndexAndSync,
+        setIndexAndSync: manualNavigate,
         setBlankAndSync,
         setTransitionAndSync,
         setBackgroundAndSync,
@@ -596,7 +652,7 @@ export default function PresenterOperator({
     };
   }, [
     serviceId,
-    setIndexAndSync,
+    manualNavigate,
     setBlankAndSync,
     setTransitionAndSync,
     setBackgroundAndSync,
@@ -627,10 +683,10 @@ export default function PresenterOperator({
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
         e.preventDefault();
-        setIndexAndSync(index + 1);
+        manualNavigate(index + 1);
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault();
-        setIndexAndSync(index - 1);
+        manualNavigate(index - 1);
       } else if (e.key === 'b' || e.key === 'B' || e.key === '.') {
         // PowerPoint's own black-screen keys, so an operator who already runs
         // slides does not have to learn a second habit. Modifier chords are
@@ -642,7 +698,7 @@ export default function PresenterOperator({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [gridOpen, index, setIndexAndSync, toggleBlank]);
+  }, [gridOpen, index, manualNavigate, toggleBlank]);
 
   // Keeps both slide indexes following the deck: the same mechanism for the
   // filmstrip as for the list, one axis apart. Reads and scrolls the DOM only —
@@ -798,10 +854,16 @@ export default function PresenterOperator({
               ) : null}
             </p>
             <div
-              className={`aspect-video w-full overflow-hidden rounded-lg border bg-black ${
+              className={`aspect-video w-full overflow-hidden rounded-lg border bg-black relative ${
                 blank ? 'border-amber-400/70' : 'border-border'
               }`}
             >
+              {isLooping ? (
+                <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 rounded-full bg-amber-500 text-black px-2.5 py-0.5 text-[11px] font-bold shadow-md animate-pulse">
+                  <Repeat className="w-3 h-3" />
+                  Looping ({loopInterval}s)
+                </div>
+              ) : null}
               {current ? <SlideView slide={current} /> : null}
             </div>
           </section>
@@ -809,17 +871,64 @@ export default function PresenterOperator({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => setIndexAndSync(index - 1)}
+              onClick={() => manualNavigate(index - 1)}
               disabled={index <= 0}
             >
               ← Prev
             </Button>
             <Button
-              onClick={() => setIndexAndSync(index + 1)}
+              onClick={() => manualNavigate(index + 1)}
               disabled={atEnd}
             >
               Next →
             </Button>
+            <div className="flex items-center gap-1.5 border border-border rounded-lg px-2 py-0.5 bg-card/60">
+              <Button
+                type="button"
+                variant={isLooping ? 'destructive' : 'outline'}
+                size="sm"
+                className="text-xs font-semibold gap-1.5 h-8"
+                onClick={() => {
+                  if (isLooping) {
+                    isLoopingRef.current = false;
+                    setIsLooping(false);
+                    return;
+                  }
+                  const bounds = findAnnouncementSectionBounds(slides, index);
+                  if (!bounds) {
+                    toast.error('Current slide is not in an announcement section');
+                    return;
+                  }
+                  isLoopingRef.current = true;
+                  setIsLooping(true);
+                }}
+                title={isLooping ? 'Stop Announcement Loop' : 'Start Announcement Loop'}
+                aria-pressed={isLooping}
+              >
+                <Repeat className={`w-3.5 h-3.5 ${isLooping ? 'animate-spin' : ''}`} />
+                {isLooping ? 'Stop Loop' : 'Auto Loop'}
+              </Button>
+              <Select
+                value={String(loopInterval)}
+                onValueChange={(val) => {
+                  const secs = Number(val);
+                  setLoopInterval(secs);
+                  try {
+                    localStorage.setItem('wpw_presenter_loop_interval', String(secs));
+                  } catch {}
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs font-medium w-[68px]">
+                  <SelectValue placeholder="7s" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5s</SelectItem>
+                  <SelectItem value="7">7s</SelectItem>
+                  <SelectItem value="10">10s</SelectItem>
+                  <SelectItem value="15">15s</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               variant={blank ? 'destructive' : 'outline'}
               aria-pressed={blank}
@@ -938,7 +1047,7 @@ export default function PresenterOperator({
                   entry={entry}
                   active={entry.index === index}
                   activeRef={activeFrameRef}
-                  onSelect={setIndexAndSync}
+                  onSelect={manualNavigate}
                 />
               ))}
             </div>
@@ -958,7 +1067,7 @@ export default function PresenterOperator({
                     entry={row.entry}
                     active={row.entry.index === index}
                     activeRef={activeRowRef}
-                    onSelect={setIndexAndSync}
+                    onSelect={manualNavigate}
                   />
                 ) : (
                   <div
@@ -982,7 +1091,7 @@ export default function PresenterOperator({
                           entry={entry}
                           active={entry.index === index}
                           activeRef={activeRowRef}
-                          onSelect={setIndexAndSync}
+                          onSelect={manualNavigate}
                         />
                       ))}
                     </div>
@@ -1129,7 +1238,7 @@ export default function PresenterOperator({
         entries={entries}
         currentIndex={index}
         onPick={(picked) => {
-          setIndexAndSync(picked);
+          manualNavigate(picked);
           setGridOpen(false);
         }}
       />

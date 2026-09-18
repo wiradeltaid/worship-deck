@@ -1915,7 +1915,7 @@ rtm:
   - internal/httpapi
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-39.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -3968,7 +3968,7 @@ rtm:
   - internal/httpapi
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-39.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

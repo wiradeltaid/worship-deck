@@ -36,9 +36,21 @@ const { validateArtifactTemplate } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'validate.ts')).href
 );
 
+const {
+  isAnnouncementSlide,
+  findAnnouncementSectionBounds,
+  computeNextLoopIndex,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'operator', 'present', 'presenter-model.ts')).href
+);
+
 const artifactEditorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
 assert.ok(fs.existsSync(artifactEditorPath), 'ArtifactEditor.tsx must exist');
 const editorCode = fs.readFileSync(artifactEditorPath, 'utf8');
+
+const presenterOperatorPath = path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+assert.ok(fs.existsSync(presenterOperatorPath), 'PresenterOperator.tsx must exist');
+const presenterOperatorCode = fs.readFileSync(presenterOperatorPath, 'utf8');
 
 const mediaPanelPath = path.join(root, 'src', 'components', 'admin', 'BackgroundLibraryPanel.tsx');
 assert.ok(fs.existsSync(mediaPanelPath), 'BackgroundLibraryPanel.tsx must exist');
@@ -263,5 +275,186 @@ test('SPEC-39-01: 7. Behavioral verification: ArtifactSlide resets missing-image
   assert.ok(
     artifactSlideCode.includes('failedUrl === imageUrl') || artifactSlideCode.includes('resolveElementImage(element)'),
     'ArtifactSlide must not permanently lock failure state when a new URL is provided'
+  );
+});
+
+test('SPEC-39-02: 1. findAnnouncementSectionBounds identifies contiguous announcement block and rejects non-announcement slides', () => {
+  // Mock slide deck with mixed liturgy and announcements
+  const mockSlides = [
+    { id: '1', kind: 'song-title', artifact: { templateId: 'welcome-title', baseType: 'general' } },
+    { id: '2', kind: 'scripture', artifact: { templateId: 'scripture-reading', baseType: 'general' } },
+    { id: '3', kind: 'body', artifact: { templateId: 'ann-slide-101', baseType: 'announcement' } },
+    { id: '4', kind: 'body', artifact: { templateId: 'ann-slide-102', baseType: 'announcement' } },
+    { id: '5', kind: 'body', artifact: { templateId: 'announcement-flyer', baseType: 'announcement' } },
+    { id: '6', kind: 'sermon', artifact: { templateId: 'sermon-title', baseType: 'general' } },
+    { id: '7', kind: 'body', artifact: { templateId: 'ann-slide-201', baseType: 'announcement' } },
+  ];
+
+  // 1. Non-announcement slides must return null (refusal to loop liturgy)
+  assert.equal(findAnnouncementSectionBounds(mockSlides, 0), null);
+  assert.equal(findAnnouncementSectionBounds(mockSlides, 1), null);
+  assert.equal(findAnnouncementSectionBounds(mockSlides, 5), null);
+
+  // 2. Contiguous announcement block (slides 2, 3, 4) must return [2, 4] for all constituent slides
+  assert.deepEqual(findAnnouncementSectionBounds(mockSlides, 2), [2, 4]);
+  assert.deepEqual(findAnnouncementSectionBounds(mockSlides, 3), [2, 4]);
+  assert.deepEqual(findAnnouncementSectionBounds(mockSlides, 4), [2, 4]);
+
+  // 3. Isolated single announcement slide at index 6 must return [6, 6]
+  assert.deepEqual(findAnnouncementSectionBounds(mockSlides, 6), [6, 6]);
+
+  // 4. Out-of-bounds indexes must return null safely
+  assert.equal(findAnnouncementSectionBounds(mockSlides, -1), null);
+  assert.equal(findAnnouncementSectionBounds(mockSlides, 99), null);
+});
+
+test('SPEC-39-02: 2. computeNextLoopIndex advances within section and wraps strictly from end to start', () => {
+  const bounds = [2, 4]; // announcement section spanning index 2 to 4
+
+  // Inside section: advances sequentially
+  assert.equal(computeNextLoopIndex(2, bounds), 3);
+  assert.equal(computeNextLoopIndex(3, bounds), 4);
+
+  // At section boundary (end): wraps back to start (2), NEVER overflowing into slide 5 (sermon)
+  assert.equal(computeNextLoopIndex(4, bounds), 2);
+
+  // If outside bounds: wraps back to start
+  assert.equal(computeNextLoopIndex(1, bounds), 2);
+  assert.equal(computeNextLoopIndex(5, bounds), 2);
+
+  // Single slide section: holds in place (start >= end)
+  assert.equal(computeNextLoopIndex(6, [6, 6]), 6);
+});
+
+test('SPEC-39-02: 3. PresenterOperator UI implements loop toggle, interval selector, and manual override disarm guards', () => {
+  // Loop state and storage
+  assert.ok(
+    presenterOperatorCode.includes('isLooping') && presenterOperatorCode.includes('loopInterval'),
+    'PresenterOperator must manage isLooping and loopInterval state'
+  );
+  assert.ok(
+    presenterOperatorCode.includes('wpw_presenter_loop_interval'),
+    'PresenterOperator must persist loopInterval in localStorage'
+  );
+
+  // Loop Toggle button & Interval Select
+  assert.ok(
+    presenterOperatorCode.includes('Stop Loop') && presenterOperatorCode.includes('Auto Loop'),
+    'PresenterOperator must provide Auto Loop / Stop Loop button'
+  );
+  assert.ok(
+    presenterOperatorCode.includes('findAnnouncementSectionBounds'),
+    'PresenterOperator must invoke findAnnouncementSectionBounds before starting loop'
+  );
+
+  // Manual override disarm guard: manualNavigate resets isLooping = false synchronously via ref
+  assert.ok(
+    presenterOperatorCode.includes('manualNavigate'),
+    'PresenterOperator must route manual operator navigation through manualNavigate'
+  );
+  assert.ok(
+    presenterOperatorCode.includes('isLoopingRef.current = false') &&
+    presenterOperatorCode.includes('setIsLooping(false)'),
+    'PresenterOperator must disarm isLooping and isLoopingRef synchronously on manual intervention'
+  );
+
+  // Stale timer suppression: interval callback must verify isLoopingRef.current
+  assert.ok(
+    presenterOperatorCode.includes('if (!isLoopingRef.current) return;'),
+    'Interval timer callback must guard against stale fires via isLoopingRef.current'
+  );
+
+  // Remote navigation session MUST use manualNavigate to disarm loop
+  assert.ok(
+    presenterOperatorCode.includes('setIndexAndSync: manualNavigate'),
+    'PresenterRemoteSession must wire setIndexAndSync to manualNavigate so remote navigation disarms loop'
+  );
+
+  // Timer cleanup on unmount / dependency change
+  assert.ok(
+    presenterOperatorCode.includes('clearInterval(timer)'),
+    'PresenterOperator must cleanly clear loop interval timer on unmount / disarm'
+  );
+
+  // Arrow keys must disarm loop
+  assert.ok(
+    presenterOperatorCode.includes('manualNavigate(index + 1)') &&
+    presenterOperatorCode.includes('manualNavigate(index - 1)'),
+    'Keyboard navigation must invoke manualNavigate to disarm loop'
+  );
+
+  // Filmstrip & List & Grid must disarm loop
+  assert.ok(
+    presenterOperatorCode.includes('onSelect={manualNavigate}'),
+    'Filmstrip and slide list must pass manualNavigate to onSelect'
+  );
+  assert.ok(
+    presenterOperatorCode.includes('manualNavigate(picked)'),
+    'SlideGridDialog onPick must invoke manualNavigate'
+  );
+});
+
+test('SPEC-39-02: 4. Executable absence guard & defect injection proof for announcement loop boundary wrap', () => {
+  function verifyBoundaryWrap(nextIndexFn) {
+    const bounds = [10, 14];
+    // Must advance inside section
+    assert.equal(nextIndexFn(10, bounds), 11);
+    assert.equal(nextIndexFn(11, bounds), 12);
+    assert.equal(nextIndexFn(12, bounds), 13);
+    assert.equal(nextIndexFn(13, bounds), 14);
+    // CRITICAL: At end boundary (14), MUST wrap to start (10)
+    assert.equal(nextIndexFn(14, bounds), 10, 'Must wrap to section start index');
+  }
+
+  // Live implementation must pass
+  assert.doesNotThrow(() => verifyBoundaryWrap(computeNextLoopIndex));
+
+  // Defect injection: broken wrap that leaks into next section (returns currentIndex + 1 past end)
+  const defectiveWrap = (cur, [start, end]) => {
+    return cur + 1; // Leaks past end
+  };
+  assert.throws(
+    () => verifyBoundaryWrap(defectiveWrap),
+    /Must wrap to section start index/,
+    'Absence guard must fail if announcement loop fails to wrap at boundary'
+  );
+});
+
+test('SPEC-39-02: 5. Executable absence guard & defect injection proof for manual override disarm', () => {
+  function verifyManualDisarm(code) {
+    const manualNavMatch = code.match(/const\s+manualNavigate\s*=\s*useCallback\([\s\S]*?setIndexAndSync\(next\);[\s\S]*?\},/);
+    assert.ok(manualNavMatch, 'manualNavigate function must exist');
+    assert.ok(
+      manualNavMatch[0].includes('setIsLooping(false)'),
+      'manualNavigate must disarm isLooping state'
+    );
+    assert.ok(
+      manualNavMatch[0].includes('isLoopingRef.current = false'),
+      'manualNavigate must synchronously set isLoopingRef.current to false'
+    );
+    // PresenterRemoteSession must be wired to manualNavigate
+    assert.ok(
+      code.includes('setIndexAndSync: manualNavigate'),
+      'PresenterRemoteSession must wire setIndexAndSync to manualNavigate'
+    );
+  }
+
+  // Live code must pass
+  assert.doesNotThrow(() => verifyManualDisarm(presenterOperatorCode));
+
+  // Defect injection 1: manualNavigate fails to synchronously reset isLoopingRef
+  const defectiveCode1 = presenterOperatorCode.replace('isLoopingRef.current = false;', '');
+  assert.throws(
+    () => verifyManualDisarm(defectiveCode1),
+    /manualNavigate must synchronously set isLoopingRef.current to false/,
+    'Absence guard must fail if manualNavigate does not synchronously set isLoopingRef.current to false'
+  );
+
+  // Defect injection 2: PresenterRemoteSession bypasses manualNavigate
+  const defectiveCode2 = presenterOperatorCode.replace('setIndexAndSync: manualNavigate', 'setIndexAndSync: setIndexAndSync');
+  assert.throws(
+    () => verifyManualDisarm(defectiveCode2),
+    /PresenterRemoteSession must wire setIndexAndSync to manualNavigate/,
+    'Absence guard must fail if remote navigation bypasses manualNavigate'
   );
 });

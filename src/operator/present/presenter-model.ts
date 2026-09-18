@@ -173,3 +173,65 @@ export function isGridNavigationKey(key: string): boolean {
     key === 'End'
   );
 }
+
+/** Whether a slide is an announcement slide based on templateId, baseType, or title. */
+export function isAnnouncementSlide(slide: SlidePlanItem | undefined): boolean {
+  if (!slide) return false;
+  const templateId = slide.artifact?.templateId ?? '';
+  const baseType = (slide.artifact as any)?.baseType ?? '';
+  const title = slide.title?.toLowerCase() ?? '';
+  return (
+    templateId.startsWith('ann-slide-') ||
+    templateId.startsWith('announcement') ||
+    templateId === 'announcements-header' ||
+    templateId === 'announcement-flyer' ||
+    baseType === 'announcement' ||
+    title.includes('announcement')
+  );
+}
+
+/**
+ * Computes the contiguous [startIndex, endIndex] of the announcement section
+ * enclosing currentIndex, or null if currentIndex is not within an announcement slide.
+ */
+export function findAnnouncementSectionBounds(
+  slides: readonly SlidePlanItem[],
+  currentIndex: number
+): [number, number] | null {
+  if (slides.length === 0 || currentIndex < 0 || currentIndex >= slides.length) {
+    return null;
+  }
+  if (!isAnnouncementSlide(slides[currentIndex])) {
+    return null;
+  }
+
+  let start = currentIndex;
+  while (start > 0 && isAnnouncementSlide(slides[start - 1])) {
+    start--;
+  }
+
+  let end = currentIndex;
+  while (end < slides.length - 1 && isAnnouncementSlide(slides[end + 1])) {
+    end++;
+  }
+
+  return [start, end];
+}
+
+/**
+ * Given the current slide index and the announcement section [start, end],
+ * computes the next slide index in the loop, wrapping from end to start.
+ */
+export function computeNextLoopIndex(
+  currentIndex: number,
+  bounds: [number, number]
+): number {
+  const [start, end] = bounds;
+  if (start >= end) {
+    return start;
+  }
+  if (currentIndex < start || currentIndex >= end) {
+    return start;
+  }
+  return currentIndex + 1;
+}
