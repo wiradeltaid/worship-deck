@@ -26,26 +26,39 @@ type Item struct {
 	Name       string  `json:"name,omitempty"`
 	Title      string  `json:"title,omitempty"`
 	Number     int     `json:"number,omitempty"`
+	BookCode   string  `json:"bookCode,omitempty"`
 	Lyrics     string  `json:"lyrics,omitempty"`
 	Incomplete bool    `json:"incomplete,omitempty"`
 	Timing     *string `json:"timing,omitempty"`
 }
 
+type SongCandidate struct {
+	Line       string  `json:"line"`
+	BookCode   string  `json:"bookCode"`
+	Number     int     `json:"number"`
+	Title      string  `json:"title"`
+	Lyrics     string  `json:"lyrics"`
+	Incomplete bool    `json:"incomplete"`
+	Label      string  `json:"label,omitempty"`
+	Timing     *string `json:"timing,omitempty"`
+}
+
 type Rundown struct {
-	Date                *string    `json:"date"`
-	Items               []Item     `json:"items"`
-	UnmappedLines       []string   `json:"unmappedLines"`
-	FailedHymnNumbers   []int      `json:"failedHymnNumbers"`
-	Sermon              *Sermon    `json:"sermon"`
-	SpecialSong         *string    `json:"specialSong"`
-	ClosingPrayerPerson *string    `json:"closingPrayerPerson"`
-	ThemeVerse          *Scripture `json:"themeVerse"`
-	VerseReading        *Scripture `json:"verseReading"`
-	FamilyYouth         *string    `json:"familyYouth"`
-	FamilyPrayerRequest *string    `json:"familyPrayerRequest"`
-	YouthPrayerRequest  *string    `json:"youthPrayerRequest"`
-	FamilyName          *string    `json:"familyName,omitempty"`
-	YouthName           *string    `json:"youthName,omitempty"`
+	Date                *string         `json:"date"`
+	Items               []Item          `json:"items"`
+	UnmappedLines       []string        `json:"unmappedLines"`
+	FailedHymnNumbers   []int           `json:"failedHymnNumbers"`
+	Sermon              *Sermon         `json:"sermon"`
+	SpecialSong         *string         `json:"specialSong"`
+	ClosingPrayerPerson *string         `json:"closingPrayerPerson"`
+	ThemeVerse          *Scripture      `json:"themeVerse"`
+	VerseReading        *Scripture      `json:"verseReading"`
+	FamilyYouth         *string         `json:"familyYouth"`
+	FamilyPrayerRequest *string         `json:"familyPrayerRequest"`
+	YouthPrayerRequest  *string         `json:"youthPrayerRequest"`
+	FamilyName          *string         `json:"familyName,omitempty"`
+	YouthName           *string         `json:"youthName,omitempty"`
+	SongCandidates      []SongCandidate `json:"songCandidates,omitempty"`
 }
 
 var (
@@ -110,9 +123,33 @@ func toTitleMonth(s string) string {
 	return strings.Join(parts, " ")
 }
 
-func extractTiming(line string) *string {
+func extractNamedGroups(re *regexp.Regexp, text string) map[string]string {
+	if re == nil {
+		return nil
+	}
+	match := re.FindStringSubmatch(text)
+	if match == nil {
+		return nil
+	}
+	result := make(map[string]string)
+	names := re.SubexpNames()
+	for i, name := range names {
+		if i != 0 && name != "" && i < len(match) {
+			if val := strings.TrimSpace(match[i]); val != "" || result[name] == "" {
+				result[name] = val
+			}
+		}
+	}
+	return result
+}
+
+func extractTimingWithProfile(line string, profile *ParserProfile) *string {
+	timingREs := []*regexp.Regexp{timingRange, timingMinutes, timingM}
+	if profile != nil && len(profile.timingREs) > 0 {
+		timingREs = profile.timingREs
+	}
 	var found []string
-	for _, re := range []*regexp.Regexp{timingRange, timingMinutes, timingM} {
+	for _, re := range timingREs {
 		for _, m := range re.FindAllString(line, -1) {
 			m = strings.TrimPrefix(m, "(")
 			m = strings.TrimSuffix(m, ")")
@@ -126,15 +163,34 @@ func extractTiming(line string) *string {
 	return &joined
 }
 
-func stripTimings(line string) string {
-	line = timingRange.ReplaceAllString(line, "")
-	line = timingMinutes.ReplaceAllString(line, "")
-	line = timingM.ReplaceAllString(line, "")
+func extractTiming(line string) *string {
+	return extractTimingWithProfile(line, nil)
+}
+
+func stripTimingsWithProfile(line string, profile *ParserProfile) string {
+	timingREs := []*regexp.Regexp{timingRange, timingMinutes, timingM}
+	if profile != nil && len(profile.timingREs) > 0 {
+		timingREs = profile.timingREs
+	}
+	for _, re := range timingREs {
+		line = re.ReplaceAllString(line, "")
+	}
 	return strings.Join(strings.Fields(line), " ")
 }
 
-func stripPrefixes(line string) string {
+func stripTimings(line string) string {
+	return stripTimingsWithProfile(line, nil)
+}
+
+func stripPrefixesWithProfile(line string, profile *ParserProfile) string {
 	line = strings.TrimSpace(line)
+	if profile != nil && len(profile.stripPrefixREs) > 0 {
+		for _, re := range profile.stripPrefixREs {
+			line = re.ReplaceAllString(line, "")
+			line = strings.TrimSpace(line)
+		}
+		return strings.TrimSpace(line)
+	}
 	line = strings.TrimPrefix(line, "》")
 	line = strings.TrimSpace(line)
 	if strings.HasPrefix(line, "[") {
@@ -143,8 +199,16 @@ func stripPrefixes(line string) string {
 	return strings.TrimSpace(line)
 }
 
+func stripPrefixes(line string) string {
+	return stripPrefixesWithProfile(line, nil)
+}
+
+func cleanLineWithProfile(line string, profile *ParserProfile) string {
+	return stripTimingsWithProfile(stripPrefixesWithProfile(line, profile), profile)
+}
+
 func cleanLine(line string) string {
-	return stripTimings(stripPrefixes(line))
+	return cleanLineWithProfile(line, nil)
 }
 
 // resolveDefaultBook resolves the song book code from the database using the
@@ -195,23 +259,55 @@ func LookupHymn(db *sql.DB, number int) (title, lyrics string, incomplete bool) 
 	return LookupHymnInBook(db, "", number)
 }
 
-func ParseScriptureValue(raw string) *Scripture {
+func ParseScriptureValueWithProfile(raw string, profile *ParserProfile) *Scripture {
 	value := strings.TrimSpace(raw)
 	if value == "" || value == "-" || value == "—" {
 		return nil
 	}
-	if m := scriptureSplit.FindStringSubmatch(value); m != nil {
-		ref := strings.TrimSpace(m[1]) + " " + strings.TrimSpace(m[2])
-		return &Scripture{Reference: &ref, Text: strings.TrimSpace(m[3])}
+	splitRE := scriptureSplit
+	refRE := scriptureRef
+	if profile != nil && profile.scriptureSplitRE != nil {
+		splitRE = profile.scriptureSplitRE
 	}
-	if m := scriptureRef.FindStringSubmatch(value); m != nil {
-		ref := strings.TrimSpace(m[1]) + " " + strings.TrimSpace(m[2])
-		return &Scripture{Reference: &ref, Text: ""}
+	if profile != nil && profile.scriptureRefRE != nil {
+		refRE = profile.scriptureRefRE
+	}
+	if m := splitRE.FindStringSubmatch(value); m != nil {
+		groups := extractNamedGroups(splitRE, value)
+		if bc, ok := groups["book_chapter"]; ok && groups["text"] != "" {
+			t := strings.TrimSpace(groups["text"])
+			return &Scripture{Reference: &bc, Text: t}
+		}
+		if len(m) >= 4 {
+			ref := strings.TrimSpace(m[1]) + " " + strings.TrimSpace(m[2])
+			return &Scripture{Reference: &ref, Text: strings.TrimSpace(m[3])}
+		}
+	}
+	if m := refRE.FindStringSubmatch(value); m != nil {
+		groups := extractNamedGroups(refRE, value)
+		if bc, ok := groups["book_chapter"]; ok && bc != "" {
+			return &Scripture{Reference: &bc, Text: ""}
+		}
+		if len(m) >= 3 {
+			ref := strings.TrimSpace(m[1]) + " " + strings.TrimSpace(m[2])
+			return &Scripture{Reference: &ref, Text: ""}
+		}
 	}
 	return &Scripture{Reference: nil, Text: value}
 }
 
+func ParseScriptureValue(raw string) *Scripture {
+	return ParseScriptureValueWithProfile(raw, nil)
+}
+
 func ParseRundown(db *sql.DB, rawText string) Rundown {
+	return ParseRundownWithProfile(db, rawText, DefaultParserProfile())
+}
+
+func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile) Rundown {
+	if profile == nil {
+		profile = DefaultParserProfile()
+	}
 	normalized := strings.ReplaceAll(strings.ReplaceAll(rawText, "\r\n", "\n"), "\r", "\n")
 	var lines []string
 	for _, l := range strings.Split(normalized, "\n") {
@@ -224,30 +320,53 @@ func ParseRundown(db *sql.DB, rawText string) Rundown {
 		Items:             []Item{},
 		UnmappedLines:     []string{},
 		FailedHymnNumbers: []int{},
+		SongCandidates:    []SongCandidate{},
 	}
-	if m := dateRE.FindString(normalized); m != "" {
+	dRE := dateRE
+	if profile.dateRE != nil {
+		dRE = profile.dateRE
+	}
+	if m := dRE.FindString(normalized); m != "" {
 		parsed.Date = parseCalendarDate(m)
 	}
 	var sermonSpeaker string
 	for _, rawLine := range lines {
-		if dateRE.MatchString(rawLine) && !strings.Contains(rawLine, ":") {
+		if dRE.MatchString(rawLine) && !strings.Contains(rawLine, ":") {
 			continue
 		}
-		timing := extractTiming(stripPrefixes(rawLine))
-		line := cleanLine(rawLine)
+		timing := extractTimingWithProfile(stripPrefixesWithProfile(rawLine, profile), profile)
+		line := cleanLineWithProfile(rawLine, profile)
 		if line == "" {
 			continue
 		}
 		mapped := false
-		if sectionRE.MatchString(line) {
+
+		// 1. Section Delimiters
+		secRE := sectionRE
+		if profile.sectionDelimiterRE != nil {
+			secRE = profile.sectionDelimiterRE
+		}
+		if secRE.MatchString(line) {
 			title := strings.TrimSpace(regexp.MustCompile(`\s*\(.*\)\s*$`).ReplaceAllString(line, ""))
 			title = strings.Join(strings.Fields(title), " ")
 			parsed.Items = append(parsed.Items, withTiming(Item{Type: "section", Title: title}, timing))
 			mapped = true
 		}
+
+		// 2. Special Song
 		if !mapped {
-			if m := specialRE.FindStringSubmatch(line); m != nil {
-				v := strings.TrimSpace(m[1])
+			spRE := specialRE
+			if re, ok := profile.fieldREs["special_song"]; ok && re != nil {
+				spRE = re
+			}
+			if m := spRE.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(spRE, line)
+				v := ""
+				if val, ok := groups["value"]; ok {
+					v = strings.TrimSpace(val)
+				} else if len(m) > 1 {
+					v = strings.TrimSpace(m[1])
+				}
 				if v == "" || v == "-" || v == "—" || strings.EqualFold(v, "none") {
 					parsed.SpecialSong = nil
 				} else {
@@ -256,21 +375,59 @@ func ParseRundown(db *sql.DB, rawText string) Rundown {
 				mapped = true
 			}
 		}
+
+		// 3. Theme Verse
 		if !mapped {
-			if m := themeRE.FindStringSubmatch(line); m != nil {
-				parsed.ThemeVerse = ParseScriptureValue(m[1])
+			thRE := themeRE
+			if re, ok := profile.fieldREs["theme_verse"]; ok && re != nil {
+				thRE = re
+			}
+			if m := thRE.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(thRE, line)
+				v := ""
+				if val, ok := groups["value"]; ok {
+					v = strings.TrimSpace(val)
+				} else if len(m) > 1 {
+					v = strings.TrimSpace(m[1])
+				}
+				parsed.ThemeVerse = ParseScriptureValueWithProfile(v, profile)
 				mapped = true
 			}
 		}
+
+		// 4. Verse Reading
 		if !mapped {
-			if m := verseRE.FindStringSubmatch(line); m != nil {
-				parsed.VerseReading = ParseScriptureValue(m[1])
+			vrRE := verseRE
+			if re, ok := profile.fieldREs["verse_reading"]; ok && re != nil {
+				vrRE = re
+			}
+			if m := vrRE.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(vrRE, line)
+				v := ""
+				if val, ok := groups["value"]; ok {
+					v = strings.TrimSpace(val)
+				} else if len(m) > 1 {
+					v = strings.TrimSpace(m[1])
+				}
+				parsed.VerseReading = ParseScriptureValueWithProfile(v, profile)
 				mapped = true
 			}
 		}
+
+		// 5. Family Youth
 		if !mapped {
-			if m := familyRE.FindStringSubmatch(line); m != nil {
-				v := strings.TrimSpace(m[1])
+			famRE := familyRE
+			if re, ok := profile.fieldREs["family_youth"]; ok && re != nil {
+				famRE = re
+			}
+			if m := famRE.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(famRE, line)
+				v := ""
+				if val, ok := groups["value"]; ok {
+					v = strings.TrimSpace(val)
+				} else if len(m) > 1 {
+					v = strings.TrimSpace(m[1])
+				}
 				if v == "" || v == "-" || v == "—" {
 					parsed.FamilyYouth = nil
 				} else {
@@ -279,14 +436,30 @@ func ParseRundown(db *sql.DB, rawText string) Rundown {
 				mapped = true
 			}
 		}
+
+		// 6. Sermon
 		if !mapped {
-			if m := sermonRE.FindStringSubmatch(line); m != nil {
-				speaker := strings.TrimSpace(regexp.MustCompile(`\s+"[^"]*"\s*$`).ReplaceAllString(m[1], ""))
+			sermRE := sermonRE
+			if re, ok := profile.fieldREs["sermon"]; ok && re != nil {
+				sermRE = re
+			}
+			if m := sermRE.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(sermRE, line)
+				speaker := ""
 				title := ""
-				if m[2] != "" {
-					title = strings.TrimSpace(m[2])
-				} else if m[3] != "" {
-					title = strings.TrimSpace(m[3])
+				if sp, ok := groups["speaker"]; ok {
+					speaker = strings.TrimSpace(regexp.MustCompile(`\s+"[^"]*"\s*$`).ReplaceAllString(sp, ""))
+				} else if len(m) > 1 {
+					speaker = strings.TrimSpace(regexp.MustCompile(`\s+"[^"]*"\s*$`).ReplaceAllString(m[1], ""))
+				}
+				if ti, ok := groups["title"]; ok {
+					title = strings.TrimSpace(ti)
+				} else {
+					if len(m) > 2 && m[2] != "" {
+						title = strings.TrimSpace(m[2])
+					} else if len(m) > 3 && m[3] != "" {
+						title = strings.TrimSpace(m[3])
+					}
 				}
 				if speaker != "" {
 					parsed.Sermon = &Sermon{Speaker: speaker, Title: title}
@@ -300,48 +473,102 @@ func ParseRundown(db *sql.DB, rawText string) Rundown {
 				}
 			}
 		}
+
+		// 7. Hymn & Song Matching
 		if !mapped {
-			if m := hymnRE.FindStringSubmatch(line); m != nil {
-				number, _ := strconv.Atoi(m[1])
-				title, lyrics, incomplete := LookupHymn(db, number)
-				item := Item{Type: "hymn", Number: number, Title: title, Lyrics: lyrics, Incomplete: incomplete}
-				parsed.Items = append(parsed.Items, withTiming(item, timing))
-				if incomplete && !containsInt(parsed.FailedHymnNumbers, number) {
-					parsed.FailedHymnNumbers = append(parsed.FailedHymnNumbers, number)
+			hymnREs := profile.hymnREs
+			if len(hymnREs) == 0 {
+				hymnREs = []*regexp.Regexp{hymnRE}
+			}
+			for _, hre := range hymnREs {
+				if m := hre.FindStringSubmatch(line); m != nil {
+					groups := extractNamedGroups(hre, line)
+					numStr := ""
+					bookStr := ""
+					if n, ok := groups["number"]; ok {
+						numStr = n
+					}
+					if b, ok := groups["book"]; ok {
+						bookStr = b
+					}
+					if numStr == "" && len(m) > 1 {
+						for _, sm := range m[1:] {
+							if _, err := strconv.Atoi(strings.TrimSpace(sm)); err == nil {
+								numStr = strings.TrimSpace(sm)
+								break
+							}
+						}
+					}
+					if numStr != "" {
+						number, _ := strconv.Atoi(numStr)
+						bookCode := profile.ResolveBook(bookStr)
+						title, lyrics, incomplete := LookupHymnInBook(db, bookCode, number)
+						item := Item{
+							Type:       "hymn",
+							BookCode:   bookCode,
+							Number:     number,
+							Title:      title,
+							Lyrics:     lyrics,
+							Incomplete: incomplete,
+						}
+						parsed.Items = append(parsed.Items, withTiming(item, timing))
+						if incomplete && !containsInt(parsed.FailedHymnNumbers, number) {
+							parsed.FailedHymnNumbers = append(parsed.FailedHymnNumbers, number)
+						}
+						candidate := SongCandidate{
+							Line:       rawLine,
+							BookCode:   bookCode,
+							Number:     number,
+							Title:      title,
+							Lyrics:     lyrics,
+							Incomplete: incomplete,
+							Timing:     timing,
+						}
+						parsed.SongCandidates = append(parsed.SongCandidates, candidate)
+						mapped = true
+						break
+					}
 				}
-				mapped = true
 			}
 		}
+
+		// 8. Role line matching
 		if !mapped {
-			if role := parseRoleLine(line); role != nil {
+			if role := parseRoleLineWithProfile(line, profile); role != nil {
 				name := role.Name
-				if regexp.MustCompile(`(?i)^Closing\s+Prayer$`).MatchString(role.Role) &&
+				if regexp.MustCompile(`(?i)^(?:Closing\s+Prayer|Doa\s+(?:Tutup|Penutup))$`).MatchString(role.Role) &&
 					regexp.MustCompile(`(?i)^The\s+Speaker$`).MatchString(name) {
 					if sermonSpeaker != "" {
 						name = sermonSpeaker
 					}
 				}
-				if regexp.MustCompile(`(?i)^Closing\s+Prayer$`).MatchString(role.Role) {
+				if regexp.MustCompile(`(?i)^(?:Closing\s+Prayer|Doa\s+(?:Tutup|Penutup))$`).MatchString(role.Role) {
 					parsed.ClosingPrayerPerson = &name
 				}
 				parsed.Items = append(parsed.Items, withTiming(Item{Type: "role", Role: role.Role, Name: name}, timing))
 				mapped = true
 			}
 		}
-		if !mapped && dateRE.MatchString(line) {
+
+		// 9. Stray standalone date line
+		if !mapped && dRE.MatchString(line) {
 			mapped = true
 		}
+
+		// 10. Unmapped line
 		if !mapped {
 			parsed.UnmappedLines = append(parsed.UnmappedLines, rawLine)
 		}
 	}
+
+	// Closing prayer speaker resolution
 	if parsed.ClosingPrayerPerson != nil &&
 		regexp.MustCompile(`(?i)^The\s+Speaker$`).MatchString(*parsed.ClosingPrayerPerson) &&
 		sermonSpeaker != "" {
 		parsed.ClosingPrayerPerson = &sermonSpeaker
 		for i, item := range parsed.Items {
 			if item.Type == "role" &&
-				regexp.MustCompile(`(?i)^Closing\s+Prayer$`).MatchString(item.Role) &&
+				regexp.MustCompile(`(?i)^(?:Closing\s+Prayer|Doa\s+(?:Tutup|Penutup))$`).MatchString(item.Role) &&
 				regexp.MustCompile(`(?i)^The\s+Speaker$`).MatchString(item.Name) {
 				parsed.Items[i].Name = sermonSpeaker
 			}
@@ -355,10 +582,17 @@ type roleLine struct {
 	Name string
 }
 
-func parseRoleLine(line string) *roleLine {
-	if hymnHintRE.MatchString(line) {
+func parseRoleLineWithProfile(line string, profile *ParserProfile) *roleLine {
+	if profile != nil && len(profile.hymnREs) > 0 {
+		for _, re := range profile.hymnREs {
+			if re.MatchString(line) {
+				return nil
+			}
+		}
+	} else if hymnHintRE.MatchString(line) {
 		return nil
 	}
+
 	if regexp.MustCompile(`(?i)^Sermon\s*[:\-]`).MatchString(line) {
 		return nil
 	}
@@ -374,23 +608,45 @@ func parseRoleLine(line string) *roleLine {
 	if regexp.MustCompile(`(?i)^(?:Family(?:\s*&\s*|\s+and\s+|/\s*)Youth|Family\s+of\s+the\s+Week|Youth\s+of\s+the\s+Week|Keluarga)`).MatchString(line) {
 		return nil
 	}
-	if sectionRE.MatchString(line) && !strings.Contains(line, ":") {
+	secRE := sectionRE
+	if profile != nil && profile.sectionDelimiterRE != nil {
+		secRE = profile.sectionDelimiterRE
+	}
+	if secRE.MatchString(line) && !strings.Contains(line, ":") {
 		return nil
 	}
+
+	bRoleRE := bracketRole
+	cRoleRE := colonRole
+	ckRoleRE := clockRole
+	if profile != nil && profile.bracketRoleRE != nil {
+		bRoleRE = profile.bracketRoleRE
+	}
+	if profile != nil && profile.colonRoleRE != nil {
+		cRoleRE = profile.colonRoleRE
+	}
+	if profile != nil && profile.clockRoleRE != nil {
+		ckRoleRE = profile.clockRoleRE
+	}
+
 	var m []string
-	if b := bracketRole.FindStringSubmatch(line); b != nil {
+	if b := bRoleRE.FindStringSubmatch(line); b != nil {
 		m = b
-	} else if c := colonRole.FindStringSubmatch(line); c != nil {
+	} else if c := cRoleRE.FindStringSubmatch(line); c != nil {
 		m = c
 	} else {
 		return nil
 	}
 	role := strings.TrimSpace(m[1])
 	name := strings.TrimSpace(m[2])
-	if role == "" || name == "" || clockRole.MatchString(role) {
+	if role == "" || name == "" || ckRoleRE.MatchString(role) {
 		return nil
 	}
 	return &roleLine{Role: role, Name: name}
+}
+
+func parseRoleLine(line string) *roleLine {
+	return parseRoleLineWithProfile(line, nil)
 }
 
 func withTiming(item Item, timing *string) Item {

@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -142,6 +143,21 @@ export default function CreateForm({
             setSongBooks(data.books);
           }
         }
+        try {
+          const profilesRes = await fetch('/api/parser-profiles', { credentials: 'same-origin' });
+          if (profilesRes.ok) {
+            const pData = (await profilesRes.json()) as {
+              profiles?: Array<{ id: string; slug: string; title: string; isDefault: boolean }>;
+            };
+            if (active && Array.isArray(pData.profiles)) {
+              setParserProfiles(pData.profiles);
+              const def = pData.profiles.find((p) => p.isDefault) || pData.profiles[0];
+              if (def) setSelectedProfileId(def.id);
+            }
+          }
+        } catch {
+          // ignore
+        }
       } catch {
         // Non-blocking: fallback to whatever entries form has
       }
@@ -150,6 +166,12 @@ export default function CreateForm({
       active = false;
     };
   }, []);
+
+  const [parserProfiles, setParserProfiles] = useState<Array<{ id: string; slug: string; title: string; isDefault: boolean }>>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [songSetSuggestions, setSongSetSuggestions] = useState<Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>>({});
+  const [songOverflow, setSongOverflow] = useState<Array<{ line: string; number: number; bookCode: string }>>([]);
+  const [unmappedLines, setUnmappedLines] = useState<string[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [parseLoading, setParseLoading] = useState(false);
@@ -304,6 +326,21 @@ export default function CreateForm({
     setFields((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleAcceptAllSuggestions = () => {
+    setFields((prev) => {
+      const updated = { ...prev.songSets };
+      for (const [vn, sug] of Object.entries(songSetSuggestions)) {
+        updated[vn] = {
+          ...(updated[vn] || { background: '', lyricText: '' }),
+          songNumber: String(sug.songNumber),
+          songBookCode: sug.songBookCode || updated[vn]?.songBookCode || '',
+        };
+      }
+      fieldsRef.current = { ...fieldsRef.current, songSets: updated };
+      return { ...prev, songSets: updated };
+    });
+  };
+
   const handleParse = async () => {
     if (!payload.trim()) {
       setError('Raw Rundown Text is required to parse');
@@ -323,6 +360,7 @@ export default function CreateForm({
           familyPhotoUrl: familyPhotoUrl || null,
           youthPhotoUrl: youthPhotoUrl || null,
           announcementInserts: announcementInserts.map((s) => s.trim()),
+          parserProfileId: selectedProfileId || undefined,
         }),
       });
       const data = (await res.json()) as {
@@ -332,10 +370,16 @@ export default function CreateForm({
         date?: string | null;
         failedHymnNumbers?: number[];
         fields?: unknown;
+        songSetSuggestions?: Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>;
+        songOverflow?: Array<{ line: string; number: number; bookCode: string }>;
+        unmappedLines?: string[];
       };
       if (!res.ok) {
         throw new Error(data.error || t('form.error.parse'));
       }
+      setSongSetSuggestions(data.songSetSuggestions || {});
+      setSongOverflow(data.songOverflow || []);
+      setUnmappedLines(data.unmappedLines || []);
       const hydrated = coerceHydrateFields(data.fields);
       if (hydrated) {
         fieldsRef.current = hydrated;
@@ -552,9 +596,38 @@ export default function CreateForm({
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-semibold mb-2 block text-muted-foreground">
-                  {t('form.rundown.label')}
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-muted-foreground">
+                    {t('form.rundown.label')}
+                  </label>
+                  {parserProfiles.length > 0 ? (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">{t('form.parser.profile')}:</span>
+                      {parserProfiles.length > 1 ? (
+                        <Select
+                          value={selectedProfileId}
+                          onValueChange={(val) => setSelectedProfileId(val ?? '')}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger className="h-7 text-xs px-2 min-w-[140px]">
+                            <SelectValue placeholder={t('form.parser.profile')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {parserProfiles.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.title} {p.isDefault ? `(${t('admin.parsing.defaultBadge')})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] font-normal">
+                          {parserProfiles[0]?.title}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
                 <Textarea
                   className="h-72 font-mono text-xs"
                   value={payload}
@@ -563,7 +636,7 @@ export default function CreateForm({
                   required
                   disabled={isSaving}
                 />
-                <div className="mt-2 flex items-center justify-between gap-3">
+                <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
                   {detectedDate ? (
                     <p className="text-xs text-primary font-semibold">
                       {t('form.detectedDate').replace('{date}', detectedDate)}
@@ -571,15 +644,60 @@ export default function CreateForm({
                   ) : (
                     <span />
                   )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => void handleParse()}
-                    disabled={isSaving || parseLoading || !payload.trim()}
-                  >
-                    {parseLoading ? t('form.parsing') : t('form.parse')}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {Object.keys(songSetSuggestions).length > 0 ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleAcceptAllSuggestions}
+                        disabled={isSaving}
+                      >
+                        {t('form.parser.acceptAll')} ({Object.keys(songSetSuggestions).length})
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void handleParse()}
+                      disabled={isSaving || parseLoading || !payload.trim()}
+                    >
+                      {parseLoading ? t('form.parsing') : t('form.parse')}
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Diagnostics: Unmapped lines warning */}
+                {unmappedLines.length > 0 ? (
+                  <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <span className="text-base">⚠️</span> {t('form.parser.unmappedWarning')}
+                    </p>
+                    <ul className="list-disc pl-5 font-mono text-[11px] max-h-24 overflow-y-auto space-y-0.5">
+                      {unmappedLines.map((line, idx) => (
+                        <li key={idx} className="truncate">
+                          {line}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {/* Diagnostics: Song overflow warning */}
+                {songOverflow.length > 0 ? (
+                  <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-700 dark:text-amber-300">
+                    <p className="font-semibold">
+                      ⚠️ {t('form.parser.overflowWarning')}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5 font-mono text-[11px]">
+                      {songOverflow.map((s, idx) => (
+                        <Badge key={idx} variant="outline" className="border-amber-500/50">
+                          {s.bookCode} #{s.number}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -721,6 +839,43 @@ export default function CreateForm({
                               }
                               disabled={isSaving}
                             />
+                          </div>
+                        ) : null}
+
+                        {songSetSuggestions[entry.variableName] ? (
+                          <div className="mt-2 flex items-center justify-between gap-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded text-xs">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="text-blue-700 dark:text-blue-300 font-semibold">
+                                {t('form.parser.suggested')}:
+                              </span>
+                              <span className="font-mono font-medium">
+                                {songSetSuggestions[entry.variableName].songBookCode} #{songSetSuggestions[entry.variableName].songNumber}
+                              </span>
+                              {songSetSuggestions[entry.variableName].title ? (
+                                <span className="text-muted-foreground truncate">
+                                  ({songSetSuggestions[entry.variableName].title})
+                                </span>
+                              ) : null}
+                              <Badge variant="outline" className="text-[10px] h-4 py-0 px-1 ml-1">
+                                {songSetSuggestions[entry.variableName].matchKind}
+                              </Badge>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-6 px-2.5 text-xs font-semibold shrink-0"
+                              onClick={() => {
+                                const sug = songSetSuggestions[entry.variableName];
+                                setSongSetField(entry.variableName, 'songNumber', String(sug.songNumber));
+                                if (sug.songBookCode) {
+                                  setSongSetField(entry.variableName, 'songBookCode', sug.songBookCode);
+                                }
+                              }}
+                              disabled={isSaving}
+                            >
+                              {t('form.parser.accept')}
+                            </Button>
                           </div>
                         ) : null}
                       </div>

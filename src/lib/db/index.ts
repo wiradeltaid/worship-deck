@@ -19,6 +19,7 @@ import {
 } from '../registry/seed';
 import { migrateServiceBoundSnapshots } from '../registry/service-snapshot';
 import { ARTIFACT_ENTRY_KEYS } from '../registry/types';
+import { setDbProvider } from '../parser';
 import { STAMP_NOW_SQL } from './stamp';
 
 let db: Database.Database | null = null;
@@ -735,6 +736,20 @@ export function bootstrap(database: Database.Database): void {
     PRIMARY KEY (service_id, variable_name),
     FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
   );
+
+  -- SPEC-44: Configurable rundown parser profiles
+  CREATE TABLE IF NOT EXISTS rundown_parser_profiles (
+    id TEXT PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    rules_json TEXT NOT NULL,
+    is_builtin INTEGER NOT NULL DEFAULT 0,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
   `);
 
   // Migrate older DBs that predate images_payload / updated_at / participants_payload
@@ -853,6 +868,7 @@ export function bootstrap(database: Database.Database): void {
   migrateSongSetInputsDec004(database);
   migrateAnnouncementItemsCascade(database);
   migrateSongBookRow(database);
+  migrateParserProfiles(database);
 
   // --- corpus load ---
   // DEC-005/AD-36: upsertHymns is a bootstrap-once seed and MUST run after
@@ -878,6 +894,7 @@ export function getDb() {
     db = new Database(dbPath);
 
     try {
+      setDbProvider(() => db);
       bootstrap(db);
     } catch (err) {
       db.close();
@@ -1567,6 +1584,50 @@ export function migrateSongBookRow(database: Database.Database): void {
 
   tx.immediate();
   console.info(`[registry] migration 10->11: song_books row migration complete (data_version=11)`);
+}
+
+export {
+  BUILTIN_DEFAULT_PARSER_PROFILE_ID,
+  BUILTIN_DEFAULT_PARSER_PROFILE_SLUG,
+  BUILTIN_DEFAULT_PARSER_PROFILE_TITLE,
+  BUILTIN_DEFAULT_PARSER_PROFILE_DESC,
+  BUILTIN_DEFAULT_RULES_JSON,
+} from '../parser-constants';
+
+export function migrateParserProfiles(database: Database.Database): void {
+  try {
+    database.prepare('ALTER TABLE services ADD COLUMN parser_profile_id TEXT').run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+  try {
+    database.prepare('ALTER TABLE services ADD COLUMN parser_profile_version INTEGER').run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+
+  const existing = database
+    .prepare(`SELECT COUNT(*) AS count FROM rundown_parser_profiles WHERE slug = ?`)
+    .get(BUILTIN_DEFAULT_PARSER_PROFILE_SLUG) as { count: number } | undefined;
+
+  if (!existing || existing.count === 0) {
+    database
+      .prepare(`
+        INSERT INTO rundown_parser_profiles (
+          id, slug, title, description, rules_json, is_builtin, is_default, version, created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?, ?, 1, 1, 1, ${STAMP_NOW_SQL}, ${STAMP_NOW_SQL}
+        )
+      `)
+      .run(
+        BUILTIN_DEFAULT_PARSER_PROFILE_ID,
+        BUILTIN_DEFAULT_PARSER_PROFILE_SLUG,
+        BUILTIN_DEFAULT_PARSER_PROFILE_TITLE,
+        BUILTIN_DEFAULT_PARSER_PROFILE_DESC,
+        BUILTIN_DEFAULT_RULES_JSON
+      );
+    console.info(`[parser] seeded builtin-default rundown parser profile`);
+  }
 }
 
 /** Story 25.2: stamp the write-path grain change without rewriting rows. */

@@ -33,6 +33,9 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureServicesAfternoonProgram(handle); err != nil {
 		return err
 	}
+	if err := ensureRundownParserProfiles(handle); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -718,7 +718,28 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "raw_payload is required")
 		return
 	}
-	parsed := parse.Normalize(parse.ParseRundown(s.DB, rawPayload))
+	var profile *parse.ParserProfile
+	if pid, ok := body["parserProfileId"].(string); ok && pid != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, pid)
+		if err == nil {
+			profile = p
+		}
+	} else if pid, ok := body["parser_profile_id"].(string); ok && pid != "" {
+		p, err := parse.LoadParserProfileByID(s.DB, pid)
+		if err == nil {
+			profile = p
+		}
+	}
+	if profile == nil {
+		p, err := parse.LoadDefaultParserProfile(s.DB)
+		if err == nil {
+			profile = p
+		} else {
+			profile = parse.DefaultParserProfile()
+		}
+	}
+
+	parsed := parse.Normalize(parse.ParseRundownWithProfile(s.DB, rawPayload, profile))
 	if parse.HasStructuredFields(body) {
 		parse.ApplyStructuredFields(s.DB, &parsed, body)
 		parsed = parse.Normalize(parsed)
@@ -821,12 +842,31 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		}
 		preview = append(preview, entry)
 	}
+
+	var slots []parse.SongSetEntrySlot
+	sRows, sErr := s.DB.Query(`SELECT variable_name, title, position FROM song_set_entries ORDER BY position ASC`)
+	if sErr == nil {
+		defer sRows.Close()
+		for sRows.Next() {
+			var sl parse.SongSetEntrySlot
+			if err := sRows.Scan(&sl.VariableName, &sl.Title, &sl.Position); err == nil {
+				slots = append(slots, sl)
+			}
+		}
+	}
+	matchingResult := parse.MatchSongSets(parsed.SongCandidates, slots, profile.SongSetMatching)
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"plan":              items,
-		"previewEntries":    preview,
-		"date":              *parsed.Date,
-		"failedHymnNumbers": parsed.FailedHymnNumbers,
-		"fields":            fieldsFromParsed(parsed),
+		"plan":                items,
+		"previewEntries":      preview,
+		"date":                *parsed.Date,
+		"failedHymnNumbers":   parsed.FailedHymnNumbers,
+		"fields":              fieldsFromParsed(parsed),
+		"songSetSuggestions": matchingResult.Suggestions,
+		"songOverflow":        matchingResult.SongOverflow,
+		"songSlotsUnfilled":   matchingResult.SongSlotsUnfilled,
+		"unmappedLines":       parsed.UnmappedLines,
+		"parserProfileId":     profile.ID,
 	})
 }
 

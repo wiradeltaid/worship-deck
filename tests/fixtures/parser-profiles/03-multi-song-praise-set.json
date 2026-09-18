@@ -1,0 +1,13 @@
+{
+  "name": "03-multi-song-praise-set",
+  "description": "Synthetic multi-song praise set rundown with custom multi-book hymn markers",
+  "rundown": "September 20, 2026\nDIVINE SERVICE\nOpening Song: SDAH 100\nPraise 1: SDAH 159\nPraise 2: Hymn 250\nPraise 3: # 330\nSermon: Elder Jonathan \"Faith and Power\"\nClosing song: SDAH 1\nNotice for congregation meeting this afternoon",
+  "profile": null,
+  "expected": {
+    "date": "2026-09-20",
+    "sermon_speaker": "Elder Jonathan",
+    "sermon_title": "Faith and Power",
+    "hymn_numbers": [100, 159, 250, 330, 1],
+    "unmapped_lines": ["Notice for congregation meeting this afternoon"]
+  }
+}

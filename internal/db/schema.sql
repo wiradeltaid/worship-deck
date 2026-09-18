@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS services (
   images_payload TEXT,
   participants_payload TEXT,
   afternoon_program TEXT DEFAULT '',
+  parser_profile_id TEXT,
+  parser_profile_version INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   registry_snapshot_at TEXT
@@ -214,4 +216,19 @@ CREATE TABLE IF NOT EXISTS font_faces (
   is_restricted INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- SPEC-44: Configurable rundown parser profiles
+CREATE TABLE IF NOT EXISTS rundown_parser_profiles (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  rules_json TEXT NOT NULL,
+  is_builtin INTEGER NOT NULL DEFAULT 0,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 
