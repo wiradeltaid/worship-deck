@@ -45,7 +45,7 @@ var (
 	}
 	allowedElementKeys = map[string]struct{}{
 		"id": {}, "type": {}, "required": {}, "x": {}, "y": {}, "w": {}, "h": {}, "zIndex": {},
-		"content": {}, "wrapLines": {}, "longestWordPx": {}, "measuredWith": {}, "placeholderKey": {}, "imageRef": {}, "style": {},
+		"content": {}, "wrapLines": {}, "longestWordPx": {}, "measuredWith": {}, "placeholderKey": {}, "imageRef": {}, "rotation": {}, "style": {},
 		}
 		allowedMeasuredWithKeys = map[string]struct{}{
 			"fontFamily": {}, "fontSize": {}, "fontWeight": {}, "fontStyle": {},
@@ -459,6 +459,15 @@ func parseElement(raw any, label, repoRoot string) (CanvasElement, error) {
 		}
 		el.ImageRef = &s
 	}
+	if v, ok := obj["rotation"]; ok && v != nil {
+		rot, err := asNumber(v, label+".rotation")
+		if err != nil {
+			return CanvasElement{}, err
+		}
+		mod := math.Mod(math.Mod(rot, 360)+360, 360)
+		normalized := int(math.Round(mod)) % 360
+		el.Rotation = &normalized
+	}
 	style, err := parseStyle(obj["style"], label+".style")
 	if err != nil {
 		return CanvasElement{}, err
@@ -794,6 +803,9 @@ func marshalLayout(layout Layout) map[string]any {
 		}
 		if el.ImageRef != nil {
 			item["imageRef"] = *el.ImageRef
+		}
+		if el.Rotation != nil && *el.Rotation != 0 {
+			item["rotation"] = *el.Rotation
 		}
 		if len(el.Style) > 0 {
 			item["style"] = el.Style

@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineer
 
 ## Resume
 
-- Iteration: 4
+- Iteration: 5
 - Run branch: autopilot/DEC-044 (Draft PR #81: https://github.com/wiradeltaid/worship-presenter-web/pull/81)
-- Stopped at: Done (SPEC-43-04 closed and verified green across all test suites)
+- Stopped at: Done (SPEC-43-05 closed and verified green across all test suites)
 - Blocked: —
 - Parked: —
-- Next: I-5 (SPEC-43-05)
+- Next: I-6 (SPEC-43-06)
 
 ## Decisions
 
@@ -28,3 +28,5 @@ artifact: .control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineer
 | I-3 (peer-review) | smoke & tests | Add sync reload parity tests and exact-boundary scaling defect proofs (59/60, 119/120, 199/200 chars) with structural Current stage mirroring guards (Terra review) | disconnected projector reload losing live scripture or undetected layout shifts | high | tests/smoke-spec-43.test.mjs |
 | I-4 (SPEC-43-04) | EditForm & CreateForm | Redesign song set inputs from cramped 2-column grid cards into orderly 1-row-per-song layout with bounded elements (Title, Book, Hymn, Background, Lyrics toggle) and flex-wrap responsiveness | cramped 2-column cards causing visual noise and desktop overflow | high | src/operator/EditForm.tsx, src/operator/CreateForm.tsx, tests/smoke-spec-43.test.mjs |
 | I-4 (peer-review) | smoke & tests | Add real-file disk defect injection tests across EditForm.tsx and CreateForm.tsx covering outer grid, row slot, and inner sm:grid-cols-2 elimination with try/finally restoration (Terra review) | in-memory only string mutations bypassing real target file verification | high | tests/smoke-spec-43.test.mjs |
+| I-5 (SPEC-43-05) | Canvas 2D Rotation | Implement full-stack 2D element rotation across Go/TS schemas, validate and hydrate normalized [0, 360) degrees, unlock Fabric canvas rotation handles, and support CSS transform and PPTX export across text, image, shape, and line | inability to rotate canvas typography or maintain rotation in PPTX export | high | src/lib/registry/types.ts, src/lib/artifacts/runtime-contract.ts, internal/plan/types.go, internal/plan/validate_artifact.go, internal/plan/hydrate.go, src/lib/artifacts/hydrate.ts, src/lib/registry/validate.ts, src/lib/registry/canvas-utils.ts, src/components/admin/ArtifactEditor.tsx, src/components/artifacts/ArtifactSlide.tsx, src/lib/pptx-draw.ts |
+| I-5 (peer-review) | validate & editor & tests | Ensure Go marshalLayout preserves rotation, project rotation in ArtifactEditor liveInstance, canonicalize 359.5° to 0° via modulo reduction, and add real-file defect injection test (Terra review) | Go persistence dropping rotation on PATCH, un-rotated editor live preview, or non-canonical 360° rotation output | high | internal/plan/validate_artifact.go, internal/plan/validate_artifact_test.go, src/components/admin/ArtifactEditor.tsx, src/lib/registry/canvas-utils.ts, tests/smoke-spec-43.test.mjs |

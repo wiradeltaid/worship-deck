@@ -190,10 +190,11 @@ export function buildTextFabricOptions(
     top,
     width,
     height,
+    angle: typeof element.rotation === 'number' ? element.rotation : 0,
     selectable: editable,
     evented: editable,
     hasControls: editable,
-    lockRotation: true,
+    lockRotation: false,
     data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
   };
 
@@ -1307,6 +1308,15 @@ export function serializeCanvas(
     const clampedW = isHealing ? w : Math.max(MIN_ELEMENT_W_PCT, w);
     const clampedH = isHealing ? h : (source.type === 'line' ? Math.max(0, h) : Math.max(MIN_ELEMENT_H_PCT, h));
 
+    const rawAngle = typeof obj.angle === 'number' && Number.isFinite(obj.angle) ? obj.angle : undefined;
+    let rotation: number | undefined = source.rotation;
+    if (rawAngle !== undefined) {
+      const normalized = Math.round(((rawAngle % 360) + 360) % 360) % 360;
+      if (normalized > 0 || source.rotation !== undefined) {
+        rotation = normalized;
+      }
+    }
+
     const next: CanvasElement = {
       ...source,
       x: computedX,
@@ -1314,6 +1324,7 @@ export function serializeCanvas(
       w: clampedW,
       h: clampedH,
       zIndex: isHealing ? source.zIndex : (isOrderModified ? canvasIndex : source.zIndex),
+      ...(rotation !== undefined ? { rotation } : {}),
     };
 
     if (isText) {

@@ -110,6 +110,9 @@ function baseResolvedElement(element: CanvasElement): ResolvedElement {
           measuredWith: { ...element.measuredWith },
         }
       : {}),
+    ...(typeof element.rotation === 'number'
+      ? { rotation: ((Math.round(element.rotation) % 360) + 360) % 360 }
+      : {}),
   };
 }
 

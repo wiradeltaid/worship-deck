@@ -928,3 +928,275 @@ test('SPEC-43-04: 20. Song set row layout aligns book selector, hymn autocomplet
     );
   }
 });
+
+test('SPEC-43-05: 21. Schema validation and hydration support rotation on elements', async () => {
+  const { validateArtifactTemplate } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'validate.ts')).href
+  );
+  const { hydrateArtifact } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'artifacts', 'hydrate.ts')).href
+  );
+
+  const rawTemplate = {
+    schemaVersion: 1,
+    id: 'test-rotation-template',
+    label: 'Test Rotation Template',
+    baseType: 'general',
+    placeholders: [],
+    layouts: {
+      default: {
+        aspectRatio: '16:9',
+        backgroundColor: '#000000',
+        elements: [
+          {
+            id: 't1',
+            type: 'text',
+            required: false,
+            x: 10,
+            y: 10,
+            w: 80,
+            h: 20,
+            zIndex: 1,
+            content: 'Rotated Heading',
+            rotation: 45,
+          },
+          {
+            id: 't2',
+            type: 'text',
+            required: false,
+            x: 10,
+            y: 40,
+            w: 80,
+            h: 20,
+            zIndex: 2,
+            content: 'Normalized Heading',
+            rotation: 405, // 405 % 360 = 45
+          },
+          {
+            id: 't3',
+            type: 'text',
+            required: false,
+            x: 10,
+            y: 70,
+            w: 80,
+            h: 20,
+            zIndex: 3,
+            content: 'Negative fractional',
+            rotation: -0.5, // -0.5 normalizes to 0 (359.5 -> 360 -> 0)
+          },
+          {
+            id: 't4',
+            type: 'text',
+            required: false,
+            x: 10,
+            y: 90,
+            w: 80,
+            h: 20,
+            zIndex: 4,
+            content: 'Negative one and a half',
+            rotation: -1.5, // -1.5 normalizes to 359
+          },
+          {
+            id: 't5',
+            type: 'text',
+            required: false,
+            x: 10,
+            y: 110,
+            w: 80,
+            h: 20,
+            zIndex: 5,
+            content: 'Three fifty-nine and a half',
+            rotation: 359.5, // 359.5 normalizes to 0 (360 -> 0)
+          },
+        ],
+      },
+    },
+  };
+
+  // 1. Validation preserves and normalizes rotation across boundary and negative cases
+  const validated = validateArtifactTemplate(rawTemplate);
+  assert.equal(validated.layouts.default.elements[0].rotation, 45);
+  assert.equal(validated.layouts.default.elements[1].rotation, 45);
+  assert.equal(validated.layouts.default.elements[2].rotation, 0);
+  assert.equal(validated.layouts.default.elements[3].rotation, 359);
+  assert.equal(validated.layouts.default.elements[4].rotation, 0);
+
+  // 2. Hydration preserves rotation into ResolvedElement
+  const instance = hydrateArtifact(validated, 'inst-1', 'default', {});
+  assert.equal(instance.layout.elements[0].rotation, 45);
+  assert.equal(instance.layout.elements[1].rotation, 45);
+  assert.equal(instance.layout.elements[2].rotation, 0);
+  assert.equal(instance.layout.elements[3].rotation, 359);
+  assert.equal(instance.layout.elements[4].rotation, 0);
+});
+
+test('SPEC-43-05: 22. Canvas utilities unlock text rotation and serialize angle state', async () => {
+  const { buildTextFabricOptions, serializeCanvas } = await import(
+    pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts')).href
+  );
+
+  // 1. buildTextFabricOptions unlocks rotation and passes initial angle
+  const elementWithRotation = {
+    id: 't-rot',
+    type: 'text',
+    required: false,
+    x: 10,
+    y: 10,
+    w: 50,
+    h: 20,
+    zIndex: 1,
+    content: 'Title',
+    rotation: 90,
+  };
+  const fabricOpts = buildTextFabricOptions(elementWithRotation, { editable: true });
+  assert.equal(fabricOpts.lockRotation, false, 'Text element must have lockRotation: false');
+  assert.equal(fabricOpts.angle, 90, 'Initial angle must equal element.rotation');
+
+  // 2. serializeCanvas preserves live object angle into rotation
+  const fakeCanvas = {
+    getObjects: () => [
+      {
+        data: { elementId: 't-rot', authoredWidth: 480, authoredHeight: 108 },
+        left: 96,
+        top: 54,
+        scaleX: 1,
+        scaleY: 1,
+        angle: 180,
+        text: 'Title',
+      },
+    ],
+  };
+  const layout = {
+    aspectRatio: '16:9',
+    backgroundColor: '#000000',
+    elements: [elementWithRotation],
+  };
+
+  const serialized = serializeCanvas(fakeCanvas, layout, new Map());
+  assert.equal(serialized[0].rotation, 180, 'serializeCanvas must serialize angle as rotation');
+
+  // 3. serializeCanvas canonicalizes 359.5 angle to 0
+  const fakeCanvas359 = {
+    getObjects: () => [
+      {
+        data: { elementId: 't-rot', authoredWidth: 480, authoredHeight: 108 },
+        left: 96,
+        top: 54,
+        scaleX: 1,
+        scaleY: 1,
+        angle: 359.5,
+        text: 'Title',
+      },
+    ],
+  };
+  const serialized359 = serializeCanvas(fakeCanvas359, layout, new Map());
+  assert.equal(serialized359[0].rotation, 0, 'serializeCanvas must canonicalize 359.5 to 0');
+});
+
+test('SPEC-43-05: 23. CSS renderer, PPTX export, and ArtifactEditor support 2D rotation across all element kinds', () => {
+  const slidePath = path.join(root, 'src', 'components', 'artifacts', 'ArtifactSlide.tsx');
+  const pptxPath = path.join(root, 'src', 'lib', 'pptx-draw.ts');
+  const editorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
+  const slideSource = fs.readFileSync(slidePath, 'utf8');
+  const pptxSource = fs.readFileSync(pptxPath, 'utf8');
+  const editorSource = fs.readFileSync(editorPath, 'utf8');
+
+  // 1. ArtifactSlide CSS transform
+  assert.ok(
+    slideSource.includes('rotate(${element.rotation}deg)'),
+    'ArtifactSlide must apply CSS transform rotate with element.rotation'
+  );
+  assert.ok(
+    slideSource.includes("transformOrigin: 'center center'"),
+    'ArtifactSlide must set transformOrigin center center'
+  );
+
+  // 2. PPTX export rotate property on text, image, shape, and line
+  assert.ok(
+    /function renderTextElement[\s\S]*?rotate:\s*typeof element\.rotation ===/.test(pptxSource),
+    'pptx-draw must map element.rotation to slide.addText rotate'
+  );
+  assert.ok(
+    /function renderImageElement[\s\S]*?rotate:\s*typeof element\.rotation ===/.test(pptxSource),
+    'pptx-draw must map element.rotation to slide.addImage rotate'
+  );
+  assert.ok(
+    /function renderShapeElement[\s\S]*?rotate:\s*typeof element\.rotation ===/.test(pptxSource),
+    'pptx-draw must map element.rotation to slide.addShape rect rotate'
+  );
+  assert.ok(
+    /function renderLineElement[\s\S]*?rotate:\s*typeof element\.rotation ===/.test(pptxSource),
+    'pptx-draw must map element.rotation to slide.addShape line rotate'
+  );
+
+  // 3. ArtifactEditor property panel rotation control and liveInstance projection
+  assert.ok(
+    editorSource.includes('data-testid="element-rotation"'),
+    'ArtifactEditor must provide element-rotation input control'
+  );
+  assert.ok(
+    editorSource.includes('rotation: el.rotation,'),
+    'ArtifactEditor liveInstance projection must include rotation: el.rotation'
+  );
+  assert.ok(
+    editorSource.includes('disabled={busy}'),
+    'ArtifactEditor rotation control must be guarded by disabled={busy}'
+  );
+  assert.ok(
+    editorSource.includes('if (busy) return;'),
+    'ArtifactEditor handleRotationChange must guard if (busy) return'
+  );
+});
+
+function scanTextRotationUnlock(fileOrSource) {
+  let source;
+  if (typeof fileOrSource === 'string' && fs.existsSync(fileOrSource)) {
+    source = fs.readFileSync(fileOrSource, 'utf8');
+  } else {
+    source = String(fileOrSource);
+  }
+
+  const findings = [];
+  const buildTextMatch = source.match(
+    /export function buildTextFabricOptions[\s\S]*?lockRotation:\s*(true|false)/
+  );
+  if (!buildTextMatch) {
+    findings.push('buildTextFabricOptions lockRotation property not found');
+  } else if (buildTextMatch[1] === 'true') {
+    findings.push('buildTextFabricOptions locks rotation on text elements (lockRotation: true)');
+  }
+  return findings;
+}
+
+test('SPEC-43-05: 24. Real-file defect injection proof for text rotation unlock absence guard', () => {
+  const canvasUtilsPath = path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts');
+  const pristine = fs.readFileSync(canvasUtilsPath, 'utf8');
+
+  try {
+    // 1. Pristine real file must be clean
+    const cleanFindings = scanTextRotationUnlock(canvasUtilsPath);
+    assert.deepEqual(cleanFindings, [], 'Current canvas-utils.ts on disk must unlock text rotation');
+
+    // 2. Inject lockRotation: true into real file on disk
+    const defective = pristine.replace(
+      /export function buildTextFabricOptions[\s\S]*?lockRotation:\s*false/,
+      (match) => match.replace('lockRotation: false', 'lockRotation: true')
+    );
+    assert.notEqual(defective, pristine, 'Mutation must change file content');
+    fs.writeFileSync(canvasUtilsPath, defective, 'utf8');
+
+    // 3. Scan real file and assert defect detection
+    const findings = scanTextRotationUnlock(canvasUtilsPath);
+    assert.ok(
+      findings.some((f) => f.includes('locks rotation on text elements')),
+      'scanTextRotationUnlock on real file must detect lockRotation: true defect'
+    );
+
+    // 4. Restore and verify clean again
+    fs.writeFileSync(canvasUtilsPath, pristine, 'utf8');
+    const restoredFindings = scanTextRotationUnlock(canvasUtilsPath);
+    assert.deepEqual(restoredFindings, []);
+  } finally {
+    fs.writeFileSync(canvasUtilsPath, pristine, 'utf8');
+  }
+});

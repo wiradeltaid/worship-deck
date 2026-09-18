@@ -2136,7 +2136,7 @@ rtm:
   - src/components/artifacts/ArtifactSlide.tsx
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -4312,7 +4312,7 @@ rtm:
   - src/components/artifacts/ArtifactSlide.tsx
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: closed
   exempt: false
   green: false
   broken_at: status

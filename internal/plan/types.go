@@ -29,6 +29,7 @@ type CanvasElement struct {
 	MeasuredWith   *MeasuredWith          `json:"measuredWith,omitempty"`
 	PlaceholderKey *string                `json:"placeholderKey"`
 	ImageRef       *string                `json:"imageRef"`
+	Rotation       *int                   `json:"rotation,omitempty"`
 	Style          map[string]interface{} `json:"style"`
 }
 
@@ -64,6 +65,7 @@ type ResolvedElement struct {
 	MeasuredWith   *MeasuredWith          `json:"measuredWith,omitempty"`
 	ImageURL       *string                `json:"imageUrl,omitempty"`
 	PlaceholderKey *string                `json:"placeholderKey,omitempty"`
+	Rotation       *int                   `json:"rotation,omitempty"`
 	Style          map[string]interface{} `json:"style"`
 }
 

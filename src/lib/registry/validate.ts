@@ -57,6 +57,7 @@ const ALLOWED_ELEMENT_KEYS = new Set([
   'measuredWith',
   'placeholderKey',
   'imageRef',
+  'rotation',
   'style',
 ]);
 
@@ -417,6 +418,11 @@ function parseElement(raw: unknown, label: string): CanvasElement {
       throw new RegistryValidationError(`${label}.imageRef is unsafe or invalid`);
     }
     element.imageRef = obj.imageRef;
+  }
+  if (obj.rotation !== undefined) {
+    const rot = parseFiniteNumber(obj.rotation, `${label}.rotation`);
+    const normalized = Math.round(((rot % 360) + 360) % 360) % 360;
+    element.rotation = normalized;
   }
   const style = parseStyle(obj.style, `${label}.style`);
   if (style && Object.keys(style).length > 0) {

@@ -85,6 +85,8 @@ export type ResolvedElement = {
    * address resolved values by meaning instead of by element id.
    */
   placeholderKey?: string;
+  /** SPEC-43: Optional 2D planar rotation in degrees [0, 360) */
+  rotation?: number;
   style: ResolvedStyle;
 };
 
