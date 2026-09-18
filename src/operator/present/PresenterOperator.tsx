@@ -835,12 +835,14 @@ export default function PresenterOperator({
                   : 'bg-muted-foreground/50'
               )}
             />
-            <span>Remote</span>
-            {remoteCode ? (
-              <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
-                {remoteCode}
-              </span>
-            ) : null}
+            <span>
+              Remote code:{' '}
+              {remoteCode ? (
+                <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
+                  {remoteCode}
+                </span>
+              ) : null}
+            </span>
           </Button>
           {/* `nativeButton={false}` because this one really is a link: Base UI
               otherwise warns that a component acting as a button was handed
@@ -911,7 +913,7 @@ export default function PresenterOperator({
               {scriptureOverlay ? (
                 <span
                   role="status"
-                  className={`${BADGE_CLASS} border-emerald-400/50 bg-emerald-400/15 text-emerald-300`}
+                  className={`${BADGE_CLASS} border-emerald-400/50 bg-emerald-400/15 text-emerald-700 dark:text-emerald-300`}
                 >
                   Scripture live
                 </span>

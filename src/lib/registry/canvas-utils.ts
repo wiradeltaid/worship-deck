@@ -252,10 +252,11 @@ export function buildShapeFabricOptions(
     top,
     width,
     height,
+    angle: typeof element.rotation === 'number' ? element.rotation : 0,
     selectable: editable,
     evented: editable,
     hasControls: editable,
-    lockRotation: true,
+    lockRotation: false,
     data: {
       elementId: element.id,
       authoredWidth: width,
@@ -461,10 +462,11 @@ export function elementToFabricObject(
     top,
     width,
     height,
+    angle: typeof element.rotation === 'number' ? element.rotation : 0,
     selectable: editable,
     evented: editable,
     hasControls: editable,
-    lockRotation: true,
+    lockRotation: false,
     data: { elementId: element.id, authoredWidth: width, authoredHeight: height },
     ...(isProxy
       ? {

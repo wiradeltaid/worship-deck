@@ -409,8 +409,8 @@ func (s *Server) deleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res, err := s.DB.Exec(
-		`DELETE FROM services WHERE id = ? AND COALESCE(updated_at, created_at) = ?`,
-		id, token,
+		`DELETE FROM services WHERE id = ? AND (COALESCE(updated_at, created_at) = ? OR COALESCE(updated_at, created_at) = ?)`,
+		id, snap.UpdatedAt, snap.RawStoredToken,
 	)
 	if err != nil {
 		log.Printf("Error deleting service: %v", err)

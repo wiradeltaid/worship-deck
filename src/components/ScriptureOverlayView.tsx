@@ -4,14 +4,12 @@ import { getScriptureScaling } from '@/lib/scripture-scaling';
 export interface ScriptureOverlayViewProps {
   reference: string;
   text: string;
-  className?: string;
   style?: CSSProperties;
 }
 
 export default function ScriptureOverlayView({
   reference,
   text,
-  className = '',
   style,
 }: ScriptureOverlayViewProps) {
   const scaling = getScriptureScaling(text);
@@ -19,7 +17,7 @@ export default function ScriptureOverlayView({
   return (
     <div
       data-slot="scripture-overlay"
-      className={`flex h-full w-full items-center justify-center overflow-hidden bg-[#0B1220] ${className}`}
+      className="flex h-full w-full items-center justify-center overflow-hidden bg-[#0B1220]"
       style={{ containerType: 'size', ...style }}
     >
       <div

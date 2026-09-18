@@ -3075,7 +3075,6 @@ export default function ArtifactEditor({
       if (!canvas) return;
       let updated = false;
       for (const obj of canvas.getActiveObjects()) {
-        if (!isFabricTextObject(obj)) continue;
         obj.set({ angle: newRotation });
         obj.setCoords();
         updated = true;

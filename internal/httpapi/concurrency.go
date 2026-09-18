@@ -26,11 +26,12 @@ func concurrencyToken(r *http.Request, body map[string]any) string {
 }
 
 type serviceSnapshot struct {
-	ID         int
-	Date       string
-	RawPayload string
-	ParsedData json.RawMessage
-	UpdatedAt  string
+	ID             int
+	Date           string
+	RawPayload     string
+	ParsedData     json.RawMessage
+	UpdatedAt      string
+	RawStoredToken string
 }
 
 func (s *Server) loadServiceSnapshot(id int) (*serviceSnapshot, error) {
@@ -42,20 +43,22 @@ func (s *Server) loadServiceSnapshot(id int) (*serviceSnapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	token := formatTimestamp(updated.String)
-	if token == "" {
-		token = formatTimestamp(created.String)
+	rawToken := updated.String
+	if rawToken == "" {
+		rawToken = created.String
 	}
+	token := formatTimestamp(rawToken)
 	parsedJSON := json.RawMessage("null")
 	if parsed.Valid && parsed.String != "" {
 		parsedJSON = json.RawMessage(parsed.String)
 	}
 	return &serviceSnapshot{
-		ID:         id,
-		Date:       date.String,
-		RawPayload: raw.String,
-		ParsedData: parsedJSON,
-		UpdatedAt:  token,
+		ID:             id,
+		Date:           date.String,
+		RawPayload:     raw.String,
+		ParsedData:     parsedJSON,
+		UpdatedAt:      token,
+		RawStoredToken: rawToken,
 	}, nil
 }
 
