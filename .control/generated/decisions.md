@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**44 decisions** — accepted: 1 · applied: 43.
+**44 decisions** — applied: 44.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -51,4 +51,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-041` | Daily Autopilot mandate for continuous engineering routine and delivery | `applied` | mandate | `.control/memlog/autopilot-DEC-041.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-041-daily-autopilot-mandate-continuous-engineering-routine.md` |
 | `DEC-042` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-39) | `applied` | mandate | `.control/memlog/autopilot-DEC-042.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-042-daily-autopilot-mandate-continuous-engineering-routine.md` |
 | `DEC-043` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-40, SPEC-41, SPEC-42) | `applied` | mandate | `.control/memlog/autopilot-DEC-043.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-043-daily-autopilot-mandate-continuous-engineering-routine.md` |
-| `DEC-044` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-43) | `accepted` | mandate | `.control/memlog/autopilot-DEC-044.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineering-routine.md` |
+| `DEC-044` | Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-43) | `applied` | mandate | `.control/memlog/autopilot-DEC-044.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineering-routine.md` |

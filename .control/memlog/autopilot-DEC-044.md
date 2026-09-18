@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineer
 
 ## Resume
 
-- Iteration: 5
+- Iteration: 6 (Final)
 - Run branch: autopilot/DEC-044 (Draft PR #81: https://github.com/wiradeltaid/worship-presenter-web/pull/81)
-- Stopped at: Done (SPEC-43-05 closed and verified green across all test suites)
+- Stopped at: Done (Mandate DEC-044 closed: all 6 tickets of SPEC-43 delivered, tested, peer-reviewed, and verified green)
 - Blocked: —
 - Parked: —
-- Next: I-6 (SPEC-43-06)
+- Next: Ready for maintainer final review and PR #81 squash-merge to main
 
 ## Decisions
 
@@ -30,3 +30,6 @@ artifact: .control/decisions/DEC-044-daily-autopilot-mandate-continuous-engineer
 | I-4 (peer-review) | smoke & tests | Add real-file disk defect injection tests across EditForm.tsx and CreateForm.tsx covering outer grid, row slot, and inner sm:grid-cols-2 elimination with try/finally restoration (Terra review) | in-memory only string mutations bypassing real target file verification | high | tests/smoke-spec-43.test.mjs |
 | I-5 (SPEC-43-05) | Canvas 2D Rotation | Implement full-stack 2D element rotation across Go/TS schemas, validate and hydrate normalized [0, 360) degrees, unlock Fabric canvas rotation handles, and support CSS transform and PPTX export across text, image, shape, and line | inability to rotate canvas typography or maintain rotation in PPTX export | high | src/lib/registry/types.ts, src/lib/artifacts/runtime-contract.ts, internal/plan/types.go, internal/plan/validate_artifact.go, internal/plan/hydrate.go, src/lib/artifacts/hydrate.ts, src/lib/registry/validate.ts, src/lib/registry/canvas-utils.ts, src/components/admin/ArtifactEditor.tsx, src/components/artifacts/ArtifactSlide.tsx, src/lib/pptx-draw.ts |
 | I-5 (peer-review) | validate & editor & tests | Ensure Go marshalLayout preserves rotation, project rotation in ArtifactEditor liveInstance, canonicalize 359.5° to 0° via modulo reduction, and add real-file defect injection test (Terra review) | Go persistence dropping rotation on PATCH, un-rotated editor live preview, or non-canonical 360° rotation output | high | internal/plan/validate_artifact.go, internal/plan/validate_artifact_test.go, src/components/admin/ArtifactEditor.tsx, src/lib/registry/canvas-utils.ts, tests/smoke-spec-43.test.mjs |
+| I-6 (SPEC-43-06) | Announcements & Forms | Prune afternoonProgram across forms, schemas, catalogs, parsers, and plan builders, add 4 weekly announcement poster upload slots, implement announcement slide placeholder designation (Slot 1..4), and evaluate placeholder expansion and empty-slot omission in TS and Go | obsolete afternoon text cluttering forms and inability to insert weekly dynamic announcement posters | high | src/operator/EditForm.tsx, src/operator/CreateForm.tsx, src/components/admin/AnnouncementSetsPanel.tsx, src/lib/images.ts, src/lib/slide-plan.ts, internal/plan/media.go, internal/plan/plan.go, internal/httpapi/services.go, internal/httpapi/announcement_sets.go, tests/smoke-spec-43.test.mjs |
+| I-6 (peer-review) | validation & tests | Enforce placeholder metadata validation requiring integer slot 1..4, exercise normalization-to-plan legacy service read, and add real-file Go omission absence guard mutation proof (Terra review rounds 1-4) | invalid placeholder slots rendering as static slides or undetected omission bypass | high | src/lib/registry/validate.ts, internal/plan/validate_artifact.go, internal/plan/validate_artifact_test.go, tests/smoke-spec-43.test.mjs |
+| I-6 (finish) | closeout | Mark SPEC-43 status: closed in specs.yaml, DEC-044 status: applied in decisions.yaml, cancel recurring loop cron task 487d814f, and run baseline validator generation | unclosed mandate/spec or uncancelled background loop tasks | low | .control/registry/specs.yaml, .control/registry/decisions.yaml, .control/memlog/autopilot-DEC-044.md |

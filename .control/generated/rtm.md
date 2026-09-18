@@ -62,10 +62,10 @@ rtm:
   test:
   - src/operator/EditForm.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -78,10 +78,10 @@ rtm:
   - src/lib/slide-plan.ts
   - src/operator/EditForm.tsx
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -423,10 +423,10 @@ rtm:
   - internal/httpapi
   - src/operator/present/PresenterOperator.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -438,10 +438,10 @@ rtm:
   test:
   - src/operator/present/PresenterOperator.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -454,10 +454,10 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -515,10 +515,10 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -2136,10 +2136,10 @@ rtm:
   - src/components/artifacts/ArtifactSlide.tsx
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -2429,10 +2429,10 @@ rtm:
   - src/operator/present/PresenterOperator.tsx
   - src/projected/ProjectorClient.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -2691,10 +2691,10 @@ rtm:
   test:
   - src/operator/EditForm.tsx
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -4312,10 +4312,10 @@ rtm:
   - src/components/artifacts/ArtifactSlide.tsx
   - src/lib/pptx-draw.ts
   - tests/smoke-spec-43.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -4421,10 +4421,10 @@ rtm:
   - src/lib/slide-plan.ts
   - src/operator/EditForm.tsx
   - tests/smoke-spec-43.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31
