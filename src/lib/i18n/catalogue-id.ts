@@ -282,6 +282,10 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.artifacts.confirmDelete': 'Hapus "{label}" secara permanen?',
   'admin.artifacts.confirmDeleteDirty':
     'Hapus "{label}" secara permanen? Perubahan kanvas yang belum disimpan akan dibuang.',
+  'admin.artifacts.confirmDeleteSongSet':
+    'Hapus slide song set "{label}" dari urutan slide? Song set tetap tersimpan di master data Song Sets.',
+  'admin.artifacts.confirmDeleteSongSetDirty':
+    'Anda memiliki perubahan belum disimpan pada "{label}". Buang perubahan dan hapus dari urutan slide? Song set tetap tersimpan di master data Song Sets.',
   'admin.artifacts.deleteFailed': 'Gagal menghapus',
   'admin.artifacts.deleteConflict':
     '{error}. Tidak ada yang dihapus; daftar server dimuat ulang.',

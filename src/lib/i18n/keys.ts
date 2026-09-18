@@ -250,6 +250,8 @@ export const I18N_KEYS = [
   'admin.artifacts.resetDone',
   'admin.artifacts.confirmDelete',
   'admin.artifacts.confirmDeleteDirty',
+  'admin.artifacts.confirmDeleteSongSet',
+  'admin.artifacts.confirmDeleteSongSetDirty',
   'admin.artifacts.deleteFailed',
   'admin.artifacts.deleteConflict',
   'admin.artifacts.deleteMissing',

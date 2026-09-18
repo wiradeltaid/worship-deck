@@ -280,6 +280,10 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.artifacts.confirmDelete': 'Delete "{label}" permanently?',
   'admin.artifacts.confirmDeleteDirty':
     'Delete "{label}" permanently? Unsaved canvas changes will be discarded.',
+  'admin.artifacts.confirmDeleteSongSet':
+    'Remove song set "{label}" from the slide deck? It will remain available in Song Sets master data.',
+  'admin.artifacts.confirmDeleteSongSetDirty':
+    'You have unsaved changes on "{label}". Discard changes and remove from the slide deck? It will remain available in Song Sets master data.',
   'admin.artifacts.deleteFailed': 'Delete failed',
   'admin.artifacts.deleteConflict':
     '{error}. Nothing was deleted; the server list was reloaded.',

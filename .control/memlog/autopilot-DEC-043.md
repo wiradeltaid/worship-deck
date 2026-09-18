@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-043-daily-autopilot-mandate-continuous-engineer
 
 ## Resume
 
-- Iteration: 2
+- Iteration: 3 (final)
 - Run branch: autopilot/DEC-043 (Draft PR #80: https://github.com/wiradeltaid/worship-presenter-web/pull/80)
-- Stopped at: Done (SPEC-41 closed, all tests green)
+- Stopped at: Done (mandate applied, all tickets in SPEC-40, SPEC-41, and SPEC-42 closed and verified green across all test suites)
 - Blocked: —
 - Parked: —
-- Next: Iteration 3 — SPEC-42 deck sequence song set deletion
+- Next: Finish — owner merges PR
 
 ## Decisions
 
@@ -26,3 +26,6 @@ artifact: .control/decisions/DEC-043-daily-autopilot-mandate-continuous-engineer
 | I-2 (peer-review) | plan & presenter-model | Type GroupRole enum in Go, prioritize role over convention in groupKind detection, and add dark-theme contrast defect injection proof (Terra review) | untyped string roles in Go, brittle ID-pattern group discrimination, or untested contrast floors | high | internal/plan/types.go, internal/plan/plan.go, src/operator/present/presenter-model.ts, src/components/SlidePreviewList.tsx, tests/smoke-spec-41.test.mjs |
 | I-2 (SPEC-41-02) | PresenterOperator | Implement dynamic group header badging for announcement vs song-set with purple tone and indented child slides | hardcoding Song Set badge for announcement groups or flat list | medium | src/operator/present/PresenterOperator.tsx, src/operator/present/presenter-model.ts, tests/presenter-model.test.mjs |
 | I-2 (SPEC-41-03) | SlidePreviewList & smoke | Group announcement sets with [Announcement] header and theme-safe contrast, and verify with smoke tests and defect injection | mismatched preview structure or illegible badges in dark theme | medium | src/components/SlidePreviewList.tsx, tests/smoke-spec-41.test.mjs, tests/announcement-sets.test.mjs |
+| I-3 (SPEC-42-01) | ArtifactEditor & i18n | Expose unconditional per-row delete button for song set slides in deck sequence with informative confirmation copy | inability to delete song set slides from main spine or confusing delete warnings | medium | src/components/admin/ArtifactEditor.tsx, src/lib/i18n/keys.ts, src/lib/i18n/catalogue-en.ts, src/lib/i18n/catalogue-id.ts |
+| I-3 (peer-review) | smoke & tests | Strengthen regex absence guard in smoke-spec-42 to verify entire button block without baseType suppression (Terra review) | understated absence guard proofs or undetected conditional regressions | high | tests/smoke-spec-42.test.mjs |
+| I-3 (SPEC-42-02) | song-set-entries & smoke | Verify exact master data invariance and multi-instance independence on deck sequence deletion via Go and Node smoke suites | accidental master catalog mutations when adjusting slide order | high | internal/httpapi/song_set_entries_test.go, tests/smoke-spec-42.test.mjs, package.json |

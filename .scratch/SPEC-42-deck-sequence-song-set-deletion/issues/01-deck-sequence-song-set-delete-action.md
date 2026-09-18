@@ -5,9 +5,9 @@ Remove the hardcoded exclusion of `song-set-entry` slides from the Deck Sequence
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Artifact Editor UI (`src/components/admin/ArtifactEditor.tsx`):
+- [x] Artifact Editor UI (`src/components/admin/ArtifactEditor.tsx`):
   - In `templates.map`, remove any conditional checking `item.baseType === 'song-set-entry'` around the delete button.
   - Render the delete button uniformly for all items:
     ```tsx
@@ -32,7 +32,7 @@ Remove the hardcoded exclusion of `song-set-entry` slides from the Deck Sequence
       - Otherwise: `t('admin.artifacts.confirmDeleteSongSet')`.
     - For bulk deletion containing song set items, confirm removal from the deck sequence without implying master data loss.
     - Guarantee that the Deck Sequence UI never calls `/api/admin/song-set-entries/{id}`.
-- [ ] Localization (`src/lib/i18n/catalogue-en.ts` and `src/lib/i18n/catalogue-id.ts`):
+- [x] Localization (`src/lib/i18n/catalogue-en.ts` and `src/lib/i18n/catalogue-id.ts`):
   - Add `admin.artifacts.confirmDeleteSongSet`:
     - EN: `"Remove song set \"{label}\" from the slide deck? It will remain available in Song Sets master data."`
     - ID: `"Hapus slide song set \"{label}\" dari urutan slide? Song set tetap tersimpan di master data Song Sets."`

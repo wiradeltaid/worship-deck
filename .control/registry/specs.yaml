@@ -1985,7 +1985,7 @@ waves:
           - tests/smoke-spec-41.test.mjs
 
   - id: SPEC-42
-    status: open
+    status: closed
     release: deck-sequence-song-set-deletion
     prd: [offline-deck]
     fr: [FR-21]

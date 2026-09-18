@@ -434,15 +434,17 @@ func TestSongSetMasterDataDeckSequenceDecoupling(t *testing.T) {
 	ts, handle, _ := newSongSetTestServer(t)
 	cookie := songSetLogin(t, ts)
 
-	// 1. Initially, opening_song_bt exists in song_set_entries AND in artifact_templates
-	var entryCount int
-	if err := handle.QueryRow(`SELECT COUNT(*) FROM song_set_entries WHERE variable_name = 'opening_song_bt'`).Scan(&entryCount); err != nil || entryCount == 0 {
-		t.Fatalf("expected opening_song_bt in song_set_entries, got count=%d, err=%v", entryCount, err)
+	// 1. Snapshot complete master record (variable_name, title, position, updated_at) before deletion
+	var snapVn, snapTitle, snapUpdated string
+	var snapPos int
+	err := handle.QueryRow(`SELECT variable_name, title, position, updated_at FROM song_set_entries WHERE variable_name = 'opening_song_bt'`).Scan(&snapVn, &snapTitle, &snapPos, &snapUpdated)
+	if err != nil {
+		t.Fatalf("expected opening_song_bt in song_set_entries: %v", err)
 	}
 
 	// Find the slide in artifact_templates
 	var slideID, updatedAt string
-	err := handle.QueryRow(`SELECT id, updated_at FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = 'opening_song_bt' LIMIT 1`).Scan(&slideID, &updatedAt)
+	err = handle.QueryRow(`SELECT id, updated_at FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = 'opening_song_bt' LIMIT 1`).Scan(&slideID, &updatedAt)
 	if err != nil {
 		t.Fatalf("expected slide in artifact_templates for opening_song_bt: %v", err)
 	}
@@ -462,41 +464,60 @@ func TestSongSetMasterDataDeckSequenceDecoupling(t *testing.T) {
 		t.Errorf("slide should be deleted from artifact_templates, but count=%d", countInDeck)
 	}
 
-	// 4. Confirm opening_song_bt is STILL intact in master data (song_set_entries)
-	listRes := songSetRequest(t, ts, "GET", "/api/admin/song-set-entries", "", cookie)
-	if listRes.StatusCode != http.StatusOK {
-		t.Fatalf("list master entries failed: %d", listRes.StatusCode)
+	// 4. Exact master data invariance: assert all 4 master record fields are strictly identical (zero mutation)
+	var postVn, postTitle, postUpdated string
+	var postPos int
+	err = handle.QueryRow(`SELECT variable_name, title, position, updated_at FROM song_set_entries WHERE variable_name = 'opening_song_bt'`).Scan(&postVn, &postTitle, &postPos, &postUpdated)
+	if err != nil {
+		t.Fatalf("master record opening_song_bt disappeared after slide deletion: %v", err)
 	}
-	body := songSetJSON(t, listRes)
-	entries, _ := body["entries"].([]any)
-	foundMaster := false
-	for _, raw := range entries {
-		e, _ := raw.(map[string]any)
-		if e["variableName"] == "opening_song_bt" {
-			foundMaster = true
-			break
-		}
-	}
-	if !foundMaster {
-		t.Errorf("master entry opening_song_bt disappeared after slide was deleted from deck sequence!")
+	if postVn != snapVn || postTitle != snapTitle || postPos != snapPos || postUpdated != snapUpdated {
+		t.Fatalf("master record was mutated on deck sequence slide deletion: got (%s, %s, %d, %s), want (%s, %s, %d, %s)",
+			postVn, postTitle, postPos, postUpdated, snapVn, snapTitle, snapPos, snapUpdated)
 	}
 
-	// 5. Re-add the slide to the Deck Sequence via POST /api/admin/artifacts
-	addRes := songSetRequest(t, ts, "POST", "/api/admin/artifacts", `{"baseType":"song-set-entry","variableName":"opening_song_bt"}`, cookie)
-	if addRes.StatusCode != http.StatusCreated {
-		b, _ := io.ReadAll(addRes.Body)
-		t.Fatalf("re-adding song-set-entry to deck sequence failed: status=%d, body=%s", addRes.StatusCode, b)
+	// 5. Multi-instance resilience: insert two deck instances for the same song set
+	res1 := songSetRequest(t, ts, "POST", "/api/admin/artifacts", `{"baseType":"song-set-entry","variableName":"opening_song_bt"}`, cookie)
+	if res1.StatusCode != http.StatusCreated {
+		t.Fatalf("insert instance 1 failed: %d", res1.StatusCode)
 	}
-	addBody := songSetJSON(t, addRes)
-	newSlideID, _ := addBody["id"].(string)
-	if newSlideID == "" {
-		t.Fatalf("re-added slide has empty id: %v", addBody)
+	body1 := songSetJSON(t, res1)
+	inst1ID := body1["id"].(string)
+	inst1Updated := body1["updatedAt"].(string)
+
+	res2 := songSetRequest(t, ts, "POST", "/api/admin/artifacts", `{"baseType":"song-set-entry","variableName":"opening_song_bt"}`, cookie)
+	if res2.StatusCode != http.StatusCreated {
+		t.Fatalf("insert instance 2 failed: %d", res2.StatusCode)
+	}
+	body2 := songSetJSON(t, res2)
+	inst2ID := body2["id"].(string)
+
+	if inst1ID == inst2ID {
+		t.Fatalf("multiple insertions must produce distinct IDs: got %s", inst1ID)
 	}
 
-	// 6. Verify the slide is back in artifact_templates
-	_ = handle.QueryRow(`SELECT COUNT(*) FROM artifact_templates WHERE id = ? AND variable_name = 'opening_song_bt'`, newSlideID).Scan(&countInDeck)
-	if countInDeck != 1 {
-		t.Errorf("re-added slide not found in artifact_templates: count=%d", countInDeck)
+	// Delete instance 1
+	delInst1 := songSetRequest(t, ts, "DELETE", "/api/admin/artifacts/"+inst1ID, fmt.Sprintf(`{"updatedAt":%q}`, inst1Updated), cookie)
+	if delInst1.StatusCode != http.StatusOK {
+		t.Fatalf("delete instance 1 failed: %d", delInst1.StatusCode)
+	}
+	delInst1.Body.Close()
+
+	// Verify instance 1 is gone, but instance 2 STILL survives in artifact_templates
+	var c1, c2 int
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM artifact_templates WHERE id = ?`, inst1ID).Scan(&c1)
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM artifact_templates WHERE id = ?`, inst2ID).Scan(&c2)
+	if c1 != 0 {
+		t.Errorf("instance 1 still exists in deck sequence")
+	}
+	if c2 != 1 {
+		t.Errorf("instance 2 was erroneously deleted when instance 1 was removed")
+	}
+
+	// Master data remains untouched
+	err = handle.QueryRow(`SELECT variable_name FROM song_set_entries WHERE variable_name = 'opening_song_bt'`).Scan(&postVn)
+	if err != nil {
+		t.Fatalf("master record missing after multi-instance deletion: %v", err)
 	}
 }
 

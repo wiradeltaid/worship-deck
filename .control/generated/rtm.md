@@ -2212,10 +2212,10 @@ rtm:
   test:
   - src/components/admin/ArtifactEditor.tsx
   - tests/smoke-spec-42.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -2227,10 +2227,10 @@ rtm:
   test:
   - internal/httpapi
   - tests/smoke-spec-42.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21

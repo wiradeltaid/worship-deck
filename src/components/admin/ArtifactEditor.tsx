@@ -4246,10 +4246,17 @@ export default function ArtifactEditor({
     if (targetIds.length === 1) {
       const item = targetCandidates[0];
       const label = item?.label ?? '';
-      warning =
-        containsActive && isDirty && isEditable
-          ? t('admin.artifacts.confirmDeleteDirty').replace('{label}', label)
-          : t('admin.artifacts.confirmDelete').replace('{label}', label);
+      if (item?.baseType === 'song-set-entry') {
+        warning =
+          containsActive && isDirty && isEditable
+            ? t('admin.artifacts.confirmDeleteSongSetDirty').replace('{label}', label)
+            : t('admin.artifacts.confirmDeleteSongSet').replace('{label}', label);
+      } else {
+        warning =
+          containsActive && isDirty && isEditable
+            ? t('admin.artifacts.confirmDeleteDirty').replace('{label}', label)
+            : t('admin.artifacts.confirmDelete').replace('{label}', label);
+      }
     } else {
       warning =
         containsActive && isDirty && isEditable
@@ -4810,22 +4817,20 @@ export default function ArtifactEditor({
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
-                        {item.baseType === 'song-set-entry' ? null : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            title={t('admin.artifacts.delete')}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDeleteTemplate(item);
-                            }}
-                            disabled={busy || isDeletingSelected}
-                            className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          title={t('admin.artifacts.delete')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDeleteTemplate(item);
+                          }}
+                          disabled={busy || isDeletingSelected}
+                          className="h-7 w-7 p-1 text-destructive hover:text-destructive hover:bg-destructive/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </div>
                   </li>
