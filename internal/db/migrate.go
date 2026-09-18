@@ -91,6 +91,15 @@ func ensureBackgroundLibraryColumns(handle *sql.DB) error {
 			return err
 		}
 	}
+	if _, ok := have["name"]; !ok {
+		if _, err := handle.Exec(`ALTER TABLE background_library_images ADD COLUMN name TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
+	}
+	// SPEC-40: Idempotently migrate legacy 'flyer' category to 'announcement'
+	if _, err := handle.Exec(`UPDATE background_library_images SET category = 'announcement' WHERE category = 'flyer'`); err != nil {
+		return err
+	}
 	return nil
 }
 

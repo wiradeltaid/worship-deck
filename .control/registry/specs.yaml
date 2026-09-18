@@ -1906,7 +1906,7 @@ waves:
           - tests/smoke-spec-39.test.mjs
 
   - id: SPEC-40
-    status: open
+    status: closed
     release: gallery-asset-replacement-and-custom-name
     prd: [offline-deck, operator-turn]
     fr: [FR-20, FR-31]
@@ -1922,7 +1922,7 @@ waves:
         component: registry
         satisfies: [UC-14, UC-25]
         blocked_by: []
-        touches: [uploads, db]
+        touches: [uploads, artifacts]
         tests:
           - internal/httpapi
           - tests/smoke-spec-40.test.mjs

@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS announcement_set_slides (
 CREATE TABLE IF NOT EXISTS background_library_images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   url TEXT,
+  name TEXT NOT NULL DEFAULT '',
   is_default INTEGER NOT NULL DEFAULT 0,
   created_at TEXT,
   updated_at TEXT,

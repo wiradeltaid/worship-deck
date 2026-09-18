@@ -565,6 +565,14 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'admin.backgrounds.confirmDelete': 'Delete this background image permanently?',
   'admin.backgrounds.staleConflict':
     'Background library was modified by another session. Refreshed list.',
+  'admin.backgrounds.customName': 'Custom Name (optional)',
+  'admin.backgrounds.customNamePlaceholder': 'e.g. Easter Sermon Poster',
+  'admin.backgrounds.rename': 'Rename',
+  'admin.backgrounds.nameSaved': 'Name updated',
+  'admin.backgrounds.nameFailed': 'Failed to update name',
+  'admin.backgrounds.replace': 'Replace Image',
+  'admin.backgrounds.replaced': 'Image replaced in place',
+  'admin.backgrounds.replaceFailed': 'Failed to replace image',
   'admin.songBooks.title': 'Song Books',
   'admin.songBooks.description':
     'Manage available hymn/song books and set the global default book for hymn lookup.',

@@ -1,16 +1,26 @@
 package httpapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"testing"
 	"time"
 )
 
 func jsonDecode(r io.Reader, v any) error {
 	return json.NewDecoder(r).Decode(v)
+}
+
+func createImagePart(w *multipart.Writer, fieldname, filename, contentType string) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldname, filename))
+	h.Set("Content-Type", contentType)
+	return w.CreatePart(h)
 }
 
 func TestBackgroundLibrary_AdminCRUDAndOperatorList(t *testing.T) {
@@ -146,7 +156,7 @@ func TestMediaLibrary_CategoryFilteringAndUnifiedEndpoints(t *testing.T) {
 	ts, _, _ := newSongSetTestServer(t)
 	cookie := songSetLogin(t, ts)
 
-	// 1. POST flyer image via /api/admin/media-library
+	// 1. POST flyer image via /api/admin/media-library (normalized to announcement, SPEC-40)
 	res := songSetRequest(t, ts, "POST", "/api/admin/media-library", `{"url":"/assets/welcome-bg.png","category":"flyer"}`, cookie)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("POST flyer = %d, want 201", res.StatusCode)
@@ -154,8 +164,8 @@ func TestMediaLibrary_CategoryFilteringAndUnifiedEndpoints(t *testing.T) {
 	var flyerResp map[string]any
 	_ = jsonDecode(res.Body, &flyerResp)
 	res.Body.Close()
-	if flyerResp["category"] != "flyer" {
-		t.Fatalf("flyer category = %v, want flyer", flyerResp["category"])
+	if flyerResp["category"] != "announcement" {
+		t.Fatalf("flyer category = %v, want announcement (normalized)", flyerResp["category"])
 	}
 
 	// 2. POST background image via /api/admin/background-library
@@ -170,7 +180,7 @@ func TestMediaLibrary_CategoryFilteringAndUnifiedEndpoints(t *testing.T) {
 		t.Fatalf("bg category = %v, want background", bgResp["category"])
 	}
 
-	// 3. Filter category=flyer
+	// 3. Filter category=flyer (normalizes to announcement query)
 	res = songSetRequest(t, ts, "GET", "/api/admin/media-library?category=flyer", "", cookie)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("GET category=flyer = %d, want 200", res.StatusCode)
@@ -182,8 +192,21 @@ func TestMediaLibrary_CategoryFilteringAndUnifiedEndpoints(t *testing.T) {
 	if len(fImages) != 1 {
 		t.Fatalf("flyer images count = %d, want 1", len(fImages))
 	}
-	if fImages[0].(map[string]any)["category"] != "flyer" {
-		t.Fatalf("expected flyer category, got %v", fImages[0])
+	if fImages[0].(map[string]any)["category"] != "announcement" {
+		t.Fatalf("expected announcement category, got %v", fImages[0])
+	}
+
+	// 3b. Filter category=announcement explicitly
+	res = songSetRequest(t, ts, "GET", "/api/admin/media-library?category=announcement", "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET category=announcement = %d, want 200", res.StatusCode)
+	}
+	var annList map[string]any
+	_ = jsonDecode(res.Body, &annList)
+	res.Body.Close()
+	aImages := annList["images"].([]any)
+	if len(aImages) != 1 || aImages[0].(map[string]any)["category"] != "announcement" {
+		t.Fatalf("expected announcement category, got %v", aImages)
 	}
 
 	// 4. Filter category=background
@@ -265,4 +288,337 @@ func TestMediaLibrary_CategoryFilteringAndUnifiedEndpoints(t *testing.T) {
 	if len(vbImages) != 1 || vbImages[0].(map[string]any)["isDefault"] != true {
 		t.Fatalf("background should still be default, got %v", vbImages)
 	}
+}
+
+func TestMediaLibrary_InPlaceReplacementAndCustomName(t *testing.T) {
+	t.Setenv("UPLOADS_DIR", t.TempDir())
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. Upload initial file to /api/uploads
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	fw, err := createImagePart(mw, "file", "initial-graphic.png", "image/png")
+	if err != nil {
+		t.Fatalf("createImagePart error: %v", err)
+	}
+	initialBytes := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82")
+	if _, err := fw.Write(initialBytes); err != nil {
+		t.Fatalf("fw.Write error: %v", err)
+	}
+	mw.Close()
+
+	req, _ := http.NewRequest("POST", ts.URL+"/api/upload", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.AddCookie(cookie)
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("POST /api/upload error: %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(res.Body)
+		t.Fatalf("POST /api/upload status = %d, want 200, body: %s", res.StatusCode, string(b))
+	}
+	var uploadResp map[string]any
+	_ = jsonDecode(res.Body, &uploadResp)
+	res.Body.Close()
+	uploadURL := uploadResp["url"].(string)
+
+	// Verify initial upload can be fetched with no-cache header
+	reqGet, _ := http.NewRequest("GET", ts.URL+uploadURL, nil)
+	reqGet.AddCookie(cookie)
+	res, err = client.Do(reqGet)
+	if err != nil {
+		t.Fatalf("GET initial upload error: %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET initial upload status = %d, want 200", res.StatusCode)
+	}
+	cc := res.Header.Get("Cache-Control")
+	if cc != "no-cache, must-revalidate" {
+		t.Errorf("Cache-Control = %q, want 'no-cache, must-revalidate'", cc)
+	}
+	gotBytes, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	if !bytes.Equal(gotBytes, initialBytes) {
+		t.Fatalf("gotBytes != initialBytes")
+	}
+
+	// 2. Register media in gallery with custom name
+	res = songSetRequest(t, ts, "POST", "/api/admin/media-library", fmt.Sprintf(`{"url":%q,"name":"Easter Banner","category":"announcement"}`, uploadURL), cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("POST /api/admin/media-library status = %d, want 201", res.StatusCode)
+	}
+	var created map[string]any
+	_ = jsonDecode(res.Body, &created)
+	res.Body.Close()
+	assetID := int(created["id"].(float64))
+	assetURL := created["url"].(string)
+	assetName := created["name"].(string)
+	updatedAt := created["updatedAt"].(string)
+
+	if assetName != "Easter Banner" {
+		t.Fatalf("assetName = %q, want 'Easter Banner'", assetName)
+	}
+	if assetURL != uploadURL {
+		t.Fatalf("assetURL = %q, want %q", assetURL, uploadURL)
+	}
+
+	// 3. Rename media asset via PATCH
+	res = songSetRequest(t, ts, "PATCH", fmt.Sprintf("/api/admin/media-library/%d", assetID), fmt.Sprintf(`{"name":"Easter 2026 Poster","updatedAt":%q}`, updatedAt), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("PATCH media name = %d, want 200", res.StatusCode)
+	}
+	var patchResp map[string]any
+	_ = jsonDecode(res.Body, &patchResp)
+	res.Body.Close()
+	if patchResp["name"] != "Easter 2026 Poster" {
+		t.Fatalf("patched name = %v, want 'Easter 2026 Poster'", patchResp["name"])
+	}
+	updatedAt2 := patchResp["updatedAt"].(string)
+
+	// 4. In-place replace attempt with STALE updatedAt -> 409 Conflict
+	var replaceBody bytes.Buffer
+	rwStale := multipart.NewWriter(&replaceBody)
+	rfwStale, _ := rwStale.CreateFormFile("file", "replacement.png")
+	rfwStale.Write([]byte("fake-replacement-bytes"))
+	rwStale.WriteField("updatedAt", updatedAt) // Stale timestamp!
+	rwStale.Close()
+
+	req, _ = http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, assetID), &replaceBody)
+	req.Header.Set("Content-Type", rwStale.FormDataContentType())
+	req.AddCookie(cookie)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("replace request error: %v", err)
+	}
+	if res.StatusCode != http.StatusConflict {
+		t.Fatalf("replace with stale timestamp = %d, want 409", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 5. In-place replace with FRESH updatedAt -> 200 OK
+	replacementBytes := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x02\x00\x00\x00\x02\x08\x06\x00\x00\x00v\x22\xde\x88\x00\x00\x00\rIDATx\x9cc\xfc\xff\xff?\x03\x00\x08\xfc\x02\xfe\xa7\x9a\xa0\xa0\x00\x00\x00\x00IEND\xaeB`\x82")
+	var replaceFresh bytes.Buffer
+	rwFresh := multipart.NewWriter(&replaceFresh)
+	rfwFresh, _ := createImagePart(rwFresh, "file", "fresh.png", "image/png")
+	rfwFresh.Write(replacementBytes)
+	rwFresh.WriteField("updatedAt", updatedAt2)
+	rwFresh.Close()
+
+	req, _ = http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, assetID), &replaceFresh)
+	req.Header.Set("Content-Type", rwFresh.FormDataContentType())
+	req.AddCookie(cookie)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("replace fresh request error: %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("replace fresh status = %d, want 200", res.StatusCode)
+	}
+	var replaceResp map[string]any
+	_ = jsonDecode(res.Body, &replaceResp)
+	res.Body.Close()
+
+	// Invariant: ID and URL path must be strictly identical!
+	if int(replaceResp["id"].(float64)) != assetID {
+		t.Fatalf("replaced ID = %v, want %d", replaceResp["id"], assetID)
+	}
+	if replaceResp["url"] != assetURL {
+		t.Fatalf("replaced URL = %q, want strictly identical URL %q", replaceResp["url"], assetURL)
+	}
+
+	// 6. Fetching the URL returns the replacement bytes directly
+	reqGetReplaced, _ := http.NewRequest("GET", ts.URL+assetURL, nil)
+	reqGetReplaced.AddCookie(cookie)
+	res, err = client.Do(reqGetReplaced)
+	if err != nil {
+		t.Fatalf("GET replaced URL error: %v", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET replaced URL status = %d, want 200", res.StatusCode)
+	}
+	newFetchedBytes, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	if !bytes.Equal(newFetchedBytes, replacementBytes) {
+		t.Fatalf("newFetchedBytes does not match replacementBytes!")
+	}
+
+	// 7. Attempt replace on non-upload image (bundled asset) -> 400 Bad Request
+	resNonUpload := songSetRequest(t, ts, "POST", "/api/admin/media-library", `{"url":"/assets/welcome-bg.png"}`, cookie)
+	var nonUploadCreated map[string]any
+	_ = jsonDecode(resNonUpload.Body, &nonUploadCreated)
+	resNonUpload.Body.Close()
+	nonUploadID := int(nonUploadCreated["id"].(float64))
+	nonUploadUpdated := nonUploadCreated["updatedAt"].(string)
+
+	var replaceNonUpBody bytes.Buffer
+	rwNonUp := multipart.NewWriter(&replaceNonUpBody)
+	rfwNonUp, _ := createImagePart(rwNonUp, "file", "fresh.png", "image/png")
+	rfwNonUp.Write(replacementBytes)
+	rwNonUp.WriteField("updatedAt", nonUploadUpdated)
+	rwNonUp.Close()
+
+	req, _ = http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, nonUploadID), &replaceNonUpBody)
+	req.Header.Set("Content-Type", rwNonUp.FormDataContentType())
+	req.AddCookie(cookie)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("replace non-upload error: %v", err)
+	}
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("replace non-upload status = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 8. Rejection of external URLs and path-traversal / malformed upload filenames
+	nowTime := time.Now().UTC().Format(time.RFC3339)
+	resExt, _ := handle.Exec(`INSERT INTO background_library_images (url, name, category, is_default, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
+		"https://example.com/photo.png", "External Pic", "general", nowTime, nowTime)
+	extID, _ := resExt.LastInsertId()
+
+	var replaceExtBody bytes.Buffer
+	rwExt := multipart.NewWriter(&replaceExtBody)
+	rfwExt, _ := createImagePart(rwExt, "file", "fresh.png", "image/png")
+	rfwExt.Write(replacementBytes)
+	rwExt.WriteField("updatedAt", nowTime)
+	rwExt.Close()
+
+	req, _ = http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, extID), &replaceExtBody)
+	req.Header.Set("Content-Type", rwExt.FormDataContentType())
+	req.AddCookie(cookie)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("replace external error: %v", err)
+	}
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("replace external URL status = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Path traversal attempt in stored URL
+	resTrav, _ := handle.Exec(`INSERT INTO background_library_images (url, name, category, is_default, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)`,
+		"/api/uploads/../../escape.png", "Traversal Attempt", "general", nowTime, nowTime)
+	travID, _ := resTrav.LastInsertId()
+
+	var replaceTravBody bytes.Buffer
+	rwTrav := multipart.NewWriter(&replaceTravBody)
+	rfwTrav, _ := createImagePart(rwTrav, "file", "fresh.png", "image/png")
+	rfwTrav.Write(replacementBytes)
+	rwTrav.WriteField("updatedAt", nowTime)
+	rwTrav.Close()
+
+	req, _ = http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, travID), &replaceTravBody)
+	req.Header.Set("Content-Type", rwTrav.FormDataContentType())
+	req.AddCookie(cookie)
+	res, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("replace traversal error: %v", err)
+	}
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("replace traversal status = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 9. Legacy stored category='flyer' row verification
+	legacyTime := time.Now().UTC().Format(time.RFC3339)
+	resLegacy, _ := handle.Exec(`INSERT INTO background_library_images (url, name, category, is_default, created_at, updated_at) VALUES (?, ?, 'flyer', 0, ?, ?)`,
+		"/assets/legacy-flyer.png", "Legacy Event Flyer", legacyTime, legacyTime)
+	legacyID, _ := resLegacy.LastInsertId()
+
+	// Querying ?category=announcement selects the legacy flyer row and normalizes response to 'announcement'
+	res = songSetRequest(t, ts, "GET", "/api/admin/media-library?category=announcement", "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET category=announcement = %d, want 200", res.StatusCode)
+	}
+	var legList map[string]any
+	_ = jsonDecode(res.Body, &legList)
+	res.Body.Close()
+	foundLegacy := false
+	for _, raw := range legList["images"].([]any) {
+		m := raw.(map[string]any)
+		if int(m["id"].(float64)) == int(legacyID) {
+			foundLegacy = true
+			if m["category"] != "announcement" {
+				t.Fatalf("legacy item category in response = %v, want announcement", m["category"])
+			}
+		}
+	}
+	if !foundLegacy {
+		t.Fatalf("legacy flyer item not found in announcement query")
+	}
+
+	// PATCH legacy flyer row with name only -> normalizes stored category to announcement
+	res = songSetRequest(t, ts, "PATCH", fmt.Sprintf("/api/admin/media-library/%d", legacyID), fmt.Sprintf(`{"name":"Updated Legacy Name","updatedAt":%q}`, legacyTime), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("PATCH legacy item = %d, want 200", res.StatusCode)
+	}
+	var patchLegResp map[string]any
+	_ = jsonDecode(res.Body, &patchLegResp)
+	res.Body.Close()
+	if patchLegResp["category"] != "announcement" {
+		t.Fatalf("patched legacy category = %v, want announcement", patchLegResp["category"])
+	}
+
+	var storedCategory string
+	_ = handle.QueryRow(`SELECT category FROM background_library_images WHERE id = ?`, legacyID).Scan(&storedCategory)
+	if storedCategory != "announcement" {
+		t.Fatalf("storedCategory after PATCH = %q, want announcement", storedCategory)
+	}
+
+	// 10. Concurrency race protection: second contender with same token gets 409 and does NOT overwrite file
+	var freshWinnerAt string
+	_ = handle.QueryRow(`SELECT updated_at FROM background_library_images WHERE id = ?`, assetID).Scan(&freshWinnerAt)
+
+	// Contender 1 wins
+	winnerBytes := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x03\x00\x00\x00\x03\x08\x06\x00\x00\x00\xe6e\x3cQ\x00\x00\x00\rIDATx\x9cc\xfc\xff\xff?\x03\x00\x08\xfc\x02\xfe\xa7\x9a\xa0\xa0\x00\x00\x00\x00IEND\xaeB`\x82")
+	var rw1Body bytes.Buffer
+	rw1 := multipart.NewWriter(&rw1Body)
+	rfw1, _ := createImagePart(rw1, "file", "winner.png", "image/png")
+	rfw1.Write(winnerBytes)
+	rw1.WriteField("updatedAt", freshWinnerAt)
+	rw1.Close()
+
+	req1, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, assetID), &rw1Body)
+	req1.Header.Set("Content-Type", rw1.FormDataContentType())
+	req1.AddCookie(cookie)
+	res1, err := client.Do(req1)
+	if err != nil || res1.StatusCode != http.StatusOK {
+		t.Fatalf("contender 1 status = %d, want 200 (err: %v)", res1.StatusCode, err)
+	}
+	res1.Body.Close()
+
+	// Contender 2 (stale token = freshWinnerAt before contender 1 changed it) -> 409 Conflict
+	loserBytes := []byte("malicious-or-loser-bytes-that-must-not-land-on-disk")
+	var rw2Body bytes.Buffer
+	rw2 := multipart.NewWriter(&rw2Body)
+	rfw2, _ := createImagePart(rw2, "file", "loser.png", "image/png")
+	rfw2.Write(loserBytes)
+	rw2.WriteField("updatedAt", freshWinnerAt) // same token, now stale!
+	rw2.Close()
+
+	req2, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/admin/media-library/%d/replace", ts.URL, assetID), &rw2Body)
+	req2.Header.Set("Content-Type", rw2.FormDataContentType())
+	req2.AddCookie(cookie)
+	res2, err := client.Do(req2)
+	if err != nil {
+		t.Fatalf("contender 2 error: %v", err)
+	}
+	if res2.StatusCode != http.StatusConflict {
+		t.Fatalf("contender 2 status = %d, want 409", res2.StatusCode)
+	}
+	res2.Body.Close()
+
+	// Assert the disk file STILL contains winnerBytes, NOT loserBytes!
+	reqCheck, _ := http.NewRequest("GET", ts.URL+assetURL, nil)
+	reqCheck.AddCookie(cookie)
+	resCheck, _ := client.Do(reqCheck)
+	diskBytes, _ := io.ReadAll(resCheck.Body)
+	resCheck.Body.Close()
+
+	if !bytes.Equal(diskBytes, winnerBytes) {
+		t.Fatalf("file on disk was corrupted by losing contender!")
+	}
+	_ = handle
 }

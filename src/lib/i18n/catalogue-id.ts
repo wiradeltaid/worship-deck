@@ -567,6 +567,14 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'admin.backgrounds.confirmDelete': 'Hapus gambar latar belakang ini secara permanen?',
   'admin.backgrounds.staleConflict':
     'Perpustakaan latar belakang telah diubah oleh sesi lain. Daftar disegarkan.',
+  'admin.backgrounds.customName': 'Nama Kustom (opsional)',
+  'admin.backgrounds.customNamePlaceholder': 'cth. Poster Khotbah Paskah',
+  'admin.backgrounds.rename': 'Ganti Nama',
+  'admin.backgrounds.nameSaved': 'Nama diperbarui',
+  'admin.backgrounds.nameFailed': 'Gagal memperbarui nama',
+  'admin.backgrounds.replace': 'Ganti Gambar',
+  'admin.backgrounds.replaced': 'Gambar berhasil diganti di tempat',
+  'admin.backgrounds.replaceFailed': 'Gagal mengganti gambar',
   'admin.songBooks.title': 'Buku Lagu',
   'admin.songBooks.description':
     'Kelola buku lagu/nyanyian yang tersedia dan atur buku default global untuk pencarian lagu.',

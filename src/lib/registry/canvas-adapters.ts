@@ -564,6 +564,7 @@ export async function fetchBackgroundLibrary(): Promise<Array<{ id: number; url:
 export interface MediaLibraryItem {
   id: number;
   url: string;
+  name?: string;
   category?: string;
   isDefault?: boolean;
   createdAt?: string;

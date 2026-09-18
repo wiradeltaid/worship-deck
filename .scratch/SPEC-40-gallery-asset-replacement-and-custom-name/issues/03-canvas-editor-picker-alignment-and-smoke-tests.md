@@ -5,13 +5,13 @@ Reconcile category filters and custom name display in `ArtifactEditor.tsx`'s "Ch
 
 **Blocked by:** 02-gallery-input-ergonomics-category-badging-and-replace-ui
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Align Gallery Picker in Canvas Editor (`src/components/admin/ArtifactEditor.tsx`):
+- [x] Align Gallery Picker in Canvas Editor (`src/components/admin/ArtifactEditor.tsx`):
   - Update `galleryCategoryFilter` options from `['all', 'flyer', 'background', 'general']` to `['all', 'general', 'background', 'announcement']`.
   - Update category filter tab buttons to display "General", "Background", "Announcement".
   - Render asset custom `name` (with fallback to `Media #<id>`) in the gallery picker thumbnail grid so slide authors can visually identify assets by their custom title.
-- [ ] End-to-End Conformance & Smoke Tests (`tests/smoke-spec-40.test.mjs`):
+- [x] End-to-End Conformance & Smoke Tests (`tests/smoke-spec-40.test.mjs`):
   - **Category Reconciliation Test:** Ensure `'announcement'` is returned by `GET /api/admin/media-library` and incoming `'flyer'` payloads are normalized to `'announcement'`.
   - **Custom Name Persistence Test:** Verify creating and patching media items persists `name` in DB and returns it in JSON; verify unsupplied name stores `""` and falls back to `Media #<id>` in UI.
   - **In-Place Image Replacement Invariant Test:**
