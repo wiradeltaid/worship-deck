@@ -82,6 +82,99 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-44-01
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - internal/httpapi
+  - internal/db
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-44-02
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - internal/parse
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-44-03
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - src/lib/parser.ts
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-44-04
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - internal/plan
+  - src/lib/slide-plan.ts
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-44-05
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - src/components/admin
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-44-06
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops
@@ -544,6 +637,22 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-44-06
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -2506,6 +2615,22 @@ rtm:
   FR: FR-27
   DEC: []
   UC: UC-2
+  ticket: SPEC-44-06
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-44.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -2686,6 +2811,22 @@ rtm:
   test:
   - src/operator/EditForm.tsx
   - tests/smoke-spec-43.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-44-04
+  spec: SPEC-44
+  release: configurable-rundown-parser-and-dynamic-song-sets
+  test:
+  - internal/plan
+  - src/lib/slide-plan.ts
+  - tests/smoke-spec-44.test.mjs
   status: ready-for-agent
   exempt: false
   green: false

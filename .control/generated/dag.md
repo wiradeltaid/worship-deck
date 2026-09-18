@@ -328,6 +328,20 @@ dag:
     - SPEC-43-06
   - parallel:
     - SPEC-43-03
+- spec: SPEC-44
+  order:
+  - parallel:
+    - SPEC-44-01
+  - parallel:
+    - SPEC-44-02
+  - parallel:
+    - SPEC-44-03
+  - parallel:
+    - SPEC-44-04
+  - parallel:
+    - SPEC-44-05
+  - parallel:
+    - SPEC-44-06
 - spec: W1
   order:
   - parallel:
