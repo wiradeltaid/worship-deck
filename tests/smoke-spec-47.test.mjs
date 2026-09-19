@@ -5,8 +5,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -131,4 +133,271 @@ test('SPEC-47-01: Executable Absence Guard & Physical Real-File Defect Injection
   const defectHostResult = validateDesktopBindHost('0.0.0.0');
   assert.strictEqual(defectHostResult.valid, false, 'Defect proof: 0.0.0.0 must be rejected');
   assert.strictEqual(defectHostResult.reason, 'must_bind_loopback');
+});
+
+test('SPEC-47-02: internal/pptx/worker.go resolves bundled runtime/node.exe before falling back to PATH', () => {
+  const workerGoPath = path.join(root, 'internal', 'pptx', 'worker.go');
+  assert.ok(fs.existsSync(workerGoPath), 'internal/pptx/worker.go must exist');
+  const workerSource = fs.readFileSync(workerGoPath, 'utf8');
+
+  // Verify ResolveNodeBinary exists and looks into {root}/runtime/node.exe
+  assert.match(workerSource, /func ResolveNodeBinary/);
+  assert.match(workerSource, /filepath\.Join\(root,\s*"runtime",\s*"node\.exe"\)/);
+  assert.match(workerSource, /filepath\.Join\(root,\s*"runtime",\s*"node"\)/);
+
+  // Verify worker execution sets absolute root directory
+  assert.match(workerSource, /absRoot.*filepath\.Abs/);
+  assert.match(workerSource, /cmd\.Dir\s*=\s*absRoot/);
+});
+
+test('SPEC-47-02: Staging portable node helper prepares runtime and isolates workers', async () => {
+  const stageScriptPath = path.join(root, 'scripts', 'stage-portable-node.mjs');
+  assert.ok(fs.existsSync(stageScriptPath), 'scripts/stage-portable-node.mjs must exist');
+
+  const { stagePortableNode, getDependencyClosure, PINNED_NODE_VERSION, PINNED_NODE_ARCH } = await import('../scripts/stage-portable-node.mjs');
+  assert.strictEqual(PINNED_NODE_VERSION, 'v22.12.0');
+  assert.strictEqual(PINNED_NODE_ARCH, 'win-x64');
+
+  // Stage into isolated temp directory outside repository
+  const tmpOut = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-staged-spec-'));
+  try {
+    const { runtimeDir, targetNodeExe, workersTarget, srcTarget, fullClosure } = await stagePortableNode(tmpOut);
+    assert.ok(fs.existsSync(runtimeDir), 'runtime directory must be created');
+    assert.ok(
+      fs.existsSync(targetNodeExe) ||
+        fs.existsSync(path.join(runtimeDir, 'runtime-manifest.json')),
+      'node.exe or runtime-manifest.json must be present in staged runtime'
+    );
+
+    // Verify workers/pptx/draw.mjs and register.mjs are staged
+    assert.ok(
+      fs.existsSync(path.join(workersTarget, 'pptx', 'draw.mjs')),
+      'workers/pptx/draw.mjs must be staged'
+    );
+    assert.ok(
+      fs.existsSync(path.join(workersTarget, 'pptx', 'register.mjs')),
+      'workers/pptx/register.mjs must be staged'
+    );
+
+    // Verify src/ dependency graph is staged for draw.mjs
+    assert.ok(
+      fs.existsSync(path.join(srcTarget, 'lib', 'pptx-draw.ts')),
+      'src/lib/pptx-draw.ts must be staged for worker self-containment'
+    );
+    assert.ok(
+      fs.existsSync(path.join(tmpOut, 'package.json')),
+      'package.json must be staged in target directory'
+    );
+
+    // Verify complete dependency closure is staged
+    assert.strictEqual(fullClosure.length, 19, 'full dependency closure must contain exactly 19 packages');
+    const closureNames = fullClosure.map((e) => e.name);
+    assert.ok(closureNames.includes('pptxgenjs'), 'closure must contain pptxgenjs');
+    assert.ok(closureNames.includes('jszip'), 'closure must contain jszip');
+    assert.ok(closureNames.includes('image-size'), 'closure must contain image-size');
+    assert.ok(closureNames.includes('readable-stream'), 'closure must contain readable-stream');
+    assert.ok(closureNames.includes('isarray'), 'closure must contain isarray');
+
+    // Verify EVERY closure package manifest physically exists at its exact relative path in target node_modules
+    for (const entry of fullClosure) {
+      const manifestTarget = path.join(tmpOut, 'node_modules', entry.relPath, 'package.json');
+      assert.ok(
+        fs.existsSync(manifestTarget),
+        `package.json must exist at staged location: node_modules/${entry.relPath}/package.json`
+      );
+    }
+
+    // Explicitly verify the nested readable-stream/node_modules/isarray path
+    const isarrayNestedPath = path.join(
+      tmpOut,
+      'node_modules',
+      'readable-stream',
+      'node_modules',
+      'isarray',
+      'package.json'
+    );
+    assert.ok(
+      fs.existsSync(isarrayNestedPath),
+      'readable-stream/node_modules/isarray/package.json must exist in isolated package'
+    );
+  } finally {
+    fs.rmSync(tmpOut, { recursive: true, force: true });
+  }
+
+  // Defect injection 1: missing targetDir throws error
+  await assert.rejects(
+    async () => {
+      await stagePortableNode('');
+    },
+    /targetDir is required/,
+    'Defect proof 1: empty targetDir must throw an error'
+  );
+
+  // Defect injection 2: missing workers directory throws error
+  const emptySourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-empty-src-'));
+  try {
+    await assert.rejects(
+      async () => {
+        await stagePortableNode(path.join(emptySourceRoot, 'target'), {
+          sourceRoot: emptySourceRoot,
+          strict: false,
+        });
+      },
+      /Required workers source directory does not exist/,
+      'Defect proof 2: missing workers source directory must throw an error'
+    );
+  } finally {
+    fs.rmSync(emptySourceRoot, { recursive: true, force: true });
+  }
+
+  // Defect injection 3: missing src directory throws error
+  const sourceWithWorkersOnly = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-workers-only-'));
+  try {
+    fs.mkdirSync(path.join(sourceWithWorkersOnly, 'workers'));
+    await assert.rejects(
+      async () => {
+        await stagePortableNode(path.join(sourceWithWorkersOnly, 'target'), {
+          sourceRoot: sourceWithWorkersOnly,
+          strict: false,
+        });
+      },
+      /Required src source directory does not exist/,
+      'Defect proof 3: missing src source directory must throw an error'
+    );
+  } finally {
+    fs.rmSync(sourceWithWorkersOnly, { recursive: true, force: true });
+  }
+
+  // Defect injection 4: missing declared dependency manifest fails closed
+  const dummyModules = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-dummy-mods-'));
+  try {
+    assert.throws(
+      () => getDependencyClosure(['nonexistent-pkg'], dummyModules),
+      /Required dependency manifest missing/,
+      'Defect proof 4: missing dependency manifest must fail closed'
+    );
+  } finally {
+    fs.rmSync(dummyModules, { recursive: true, force: true });
+  }
+
+  // Defect injection 5: malformed dependency package.json fails closed
+  const corruptModules = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-corrupt-mods-'));
+  try {
+    const corruptPkgDir = path.join(corruptModules, 'bad-pkg');
+    fs.mkdirSync(corruptPkgDir);
+    fs.writeFileSync(path.join(corruptPkgDir, 'package.json'), '{ invalid json', 'utf8');
+    assert.throws(
+      () => getDependencyClosure(['bad-pkg'], corruptModules),
+      /Invalid package\.json for dependency/,
+      'Defect proof 5: malformed dependency package.json must fail closed'
+    );
+  } finally {
+    fs.rmSync(corruptModules, { recursive: true, force: true });
+  }
+
+  // Defect injection 6: arbitrary multi-level nested dependency resolution
+  const nestedFixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-nested-fixture-'));
+  try {
+    // Structure:
+    // pkg-a/package.json -> dependencies: { "pkg-b": "^1.0.0" }
+    // pkg-a/node_modules/pkg-b/package.json -> dependencies: { "pkg-c": "^1.0.0" }
+    // pkg-a/node_modules/pkg-b/node_modules/pkg-c/package.json
+    const pkgADir = path.join(nestedFixtureDir, 'pkg-a');
+    const pkgBDir = path.join(pkgADir, 'node_modules', 'pkg-b');
+    const pkgCDir = path.join(pkgBDir, 'node_modules', 'pkg-c');
+    fs.mkdirSync(pkgCDir, { recursive: true });
+
+    fs.writeFileSync(
+      path.join(pkgADir, 'package.json'),
+      JSON.stringify({ name: 'pkg-a', dependencies: { 'pkg-b': '^1.0.0' } })
+    );
+    fs.writeFileSync(
+      path.join(pkgBDir, 'package.json'),
+      JSON.stringify({ name: 'pkg-b', dependencies: { 'pkg-c': '^1.0.0' } })
+    );
+    fs.writeFileSync(
+      path.join(pkgCDir, 'package.json'),
+      JSON.stringify({ name: 'pkg-c', version: '1.0.0' })
+    );
+
+    const fixtureClosure = getDependencyClosure(['pkg-a'], nestedFixtureDir);
+    assert.strictEqual(fixtureClosure.length, 3, 'closure must contain pkg-a, pkg-b, and pkg-c');
+
+    const fixtureRelPaths = fixtureClosure.map((c) => c.relPath);
+    assert.ok(fixtureRelPaths.includes('pkg-a'));
+    assert.ok(fixtureRelPaths.some((p) => p.includes('pkg-a/node_modules/pkg-b') || p.includes('pkg-a\\node_modules\\pkg-b')));
+    assert.ok(fixtureRelPaths.some((p) => p.includes('pkg-b/node_modules/pkg-c') || p.includes('pkg-b\\node_modules\\pkg-c')));
+  } finally {
+    fs.rmSync(nestedFixtureDir, { recursive: true, force: true });
+  }
+});
+
+test('SPEC-47-02: Isolated runtime renders PPTX with PATH cleared of system Node', async () => {
+  const { stagePortableNode } = await import('../scripts/stage-portable-node.mjs');
+  // Stage to an external temporary directory outside the repo tree to prevent parent directory resolution
+  const tmpOut = fs.mkdtempSync(path.join(os.tmpdir(), 'wpw-staged-node-'));
+
+  try {
+    const { targetNodeExe } = await stagePortableNode(tmpOut);
+    if (!fs.existsSync(targetNodeExe)) {
+      // Non-Windows environment without host node.exe fallback
+      return;
+    }
+
+    const payload = JSON.stringify({
+      serviceDate: '2026-09-19',
+      transition: 'fade',
+      plan: [
+        {
+          index: 0,
+          kind: 'general',
+          artifact: {
+            runtimeVersion: 1,
+            layout: {
+              elements: [
+                {
+                  id: 'elem-1',
+                  type: 'text',
+                  content: 'Worship Service',
+                  x: 10,
+                  y: 10,
+                  w: 80,
+                  h: 20,
+                  style: { fontSize: 32, bold: true, color: '#000000' },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    // Execute the staged node.exe with PATH completely cleared of any system Node directory
+    const env = {
+      SystemRoot: process.env.SystemRoot || 'C:\\Windows',
+      TEMP: process.env.TEMP || tmpOut,
+      PATH: '', // Purposely cleared PATH proving zero global Node dependency
+    };
+
+    const res = spawnSync(
+      targetNodeExe,
+      ['--import', './workers/pptx/register.mjs', '--experimental-strip-types', './workers/pptx/draw.mjs'],
+      {
+        cwd: tmpOut,
+        input: payload,
+        env,
+        maxBuffer: 20 * 1024 * 1024,
+      }
+    );
+
+    assert.strictEqual(res.status, 0, `Worker failed: ${res.stderr?.toString()}`);
+    assert.ok(res.stdout && res.stdout.length > 100, 'Worker must produce PPTX binary output');
+    // Verify PK zip header bytes
+    assert.strictEqual(res.stdout[0], 0x50, 'Byte 0 must be P');
+    assert.strictEqual(res.stdout[1], 0x4b, 'Byte 1 must be K');
+  } finally {
+    if (fs.existsSync(tmpOut)) {
+      fs.rmSync(tmpOut, { recursive: true, force: true });
+    }
+  }
 });

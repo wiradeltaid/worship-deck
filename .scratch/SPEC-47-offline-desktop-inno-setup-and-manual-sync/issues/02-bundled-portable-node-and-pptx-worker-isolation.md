@@ -12,10 +12,10 @@ Enable PPTX export to execute reliably offline on target machines that do not ha
 
 **Blocked by:** 01-desktop-launcher-mutex-and-data-dir-resolution.md
 
-**Status:** open
+**Status:** closed
 
-- [ ] Update `internal/pptx/worker.go` to locate `{root}/runtime/node.exe` before falling back to system `PATH`.
-- [ ] Add defensive error logging and timeout reporting if the bundled Node binary is missing or times out.
-- [ ] Ensure `workers/pptx` loads only read-only code and never evaluates user-uploaded scripts from `uploads/`.
-- [ ] Add unit test in `internal/pptx/worker_test.go` verifying that explicit custom `NODE_BIN` paths are correctly honored.
-- [ ] Human verification check: Run a PPTX export test with `PATH` cleared of Node.js, proving that PPTX files render successfully using the bundled runtime.
+- [x] Update `internal/pptx/worker.go` to locate `{root}/runtime/node.exe` before falling back to system `PATH`.
+- [x] Add defensive error logging and timeout reporting if the bundled Node binary is missing or times out.
+- [x] Ensure `workers/pptx` loads only read-only code and never evaluates user-uploaded scripts from `uploads/`.
+- [x] Add unit test in `internal/pptx/worker_test.go` verifying that explicit custom `NODE_BIN` paths are correctly honored.
+- [x] Human verification check: Run a PPTX export test with `PATH` cleared of Node.js, proving that PPTX files render successfully using the bundled runtime.
