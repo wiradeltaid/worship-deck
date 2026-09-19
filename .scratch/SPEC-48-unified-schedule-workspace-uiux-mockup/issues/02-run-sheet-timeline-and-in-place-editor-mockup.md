@@ -24,9 +24,9 @@ Implement the interactive timeline and contextual in-place item editor:
 
 **Blocked by:** 01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Build timeline component in `src/operator` with item selection and drag-handle affordance.
-- [ ] Build contextual item editor form adapting to Song, Announcement, and Sermon selections.
-- [ ] Implement in-place modal drawers for adding songs and uploading flyers without leaving the workspace.
-- [ ] Add smoke tests verifying item selection updates center form context.
+- [x] Build timeline component in `src/operator` with item selection and drag-handle affordance.
+- [x] Build contextual item editor form adapting to Song, Announcement, and Sermon selections.
+- [x] Implement in-place modal drawers for adding songs and uploading flyers without leaving the workspace.
+- [x] Add smoke tests verifying item selection updates center form context.
