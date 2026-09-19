@@ -2184,6 +2184,71 @@ waves:
         tests:
           - tests/smoke-spec-45.test.mjs
 
+  - id: SPEC-46
+    status: closed
+    release: configurable-form-layout-and-predefined-fields
+    prd: [operator-turn, offline-deck]
+    fr: [FR-20, FR-21, FR-32]
+    size: M
+    depends_on: [SPEC-45]
+    spec_folder: .scratch/SPEC-46-configurable-form-layout-and-predefined-fields/
+    spec_reviewed:
+      date: '2026-09-19'
+      sha: '94db19d'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-46-01"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - internal/db
+          - internal/httpapi
+          - tests/smoke-spec-46.test.mjs
+      - id: "SPEC-46-02"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-46-01"]
+        touches: [services]
+        tests:
+          - internal/httpapi
+          - tests/smoke-spec-46.test.mjs
+      - id: "SPEC-46-03"
+        component: hub
+        satisfies: [UC-5, UC-24]
+        blocked_by: ["SPEC-46-02"]
+        touches: [services, slide-plan]
+        tests:
+          - internal/plan
+          - tests/smoke-spec-46.test.mjs
+      - id: "SPEC-46-04"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-46-03"]
+        touches: [services, hymns]
+        tests:
+          - internal/parse
+          - src/lib/parser.ts
+          - tests/smoke-spec-46.test.mjs
+      - id: "SPEC-46-05"
+        component: hub
+        satisfies: [UC-2, UC-5]
+        blocked_by: ["SPEC-46-04"]
+        touches: [services, hymns]
+        tests:
+          - src/operator/CreateForm.tsx
+          - src/operator/EditForm.tsx
+          - tests/smoke-spec-46.test.mjs
+      - id: "SPEC-46-06"
+        component: hub
+        satisfies: [UC-2, UC-5]
+        blocked_by: ["SPEC-46-05"]
+        touches: [services, artifacts]
+        tests:
+          - src/components/admin
+          - tests/smoke-spec-46.test.mjs
+
 
 
 

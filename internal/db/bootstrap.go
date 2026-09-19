@@ -125,6 +125,9 @@ func seedHub(handle *sql.DB, root string) error {
 	if err := ensureDataVersionCurrent(handle); err != nil {
 		return err
 	}
+	if _, err := SeedDefaultFormLayout(handle); err != nil {
+		return err
+	}
 	return EnsureSongSetLayoutSeeds(handle, root)
 }
 

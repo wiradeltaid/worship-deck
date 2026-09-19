@@ -722,6 +722,20 @@ func ExtractInlineTokens(content string) []string {
 	return out
 }
 
+// RegisterCatalogToken dynamically registers a token into catalogKeys for artifact validation
+func RegisterCatalogToken(variableName, fieldType string) {
+	if fieldType == "" {
+		fieldType = "text"
+	}
+	catalogKeys[variableName] = fieldType
+}
+
+// IsValidCatalogToken reports whether variableName is a recognized predefined field token
+func IsValidCatalogToken(variableName string) bool {
+	_, ok := catalogKeys[variableName]
+	return ok
+}
+
 // FindUnknownPredefinedFieldTokens returns a list of warning messages for unrecognized tokens.
 func FindUnknownPredefinedFieldTokens(t Template) []string {
 	var warnings []string

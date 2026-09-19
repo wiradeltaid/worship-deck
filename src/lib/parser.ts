@@ -1,6 +1,8 @@
 import { getDb } from './db/index';
 import {
   parseRundownWithProfile as parseWithRules,
+  extractPredefinedFields,
+  extractSongSetEntries,
   type ParserProfileRules,
   type ParsedRundown,
 } from './parser-rules';
@@ -58,12 +60,42 @@ export function lookupHymn(
 }
 
 export function parseRundown(rawText: string): ParsedRundown {
-  return parseWithRules(rawText, null, lookupHymn);
+  return parseRundownWithProfile(rawText, null);
 }
 
 export function parseRundownWithProfile(
   rawText: string,
   profile?: ParserProfileRules | null
 ): ParsedRundown {
-  return parseWithRules(rawText, profile, lookupHymn);
+  const parsed = parseWithRules(rawText, profile, lookupHymn);
+
+  try {
+    const database = getDb();
+    const fields = database
+      .prepare(
+        `SELECT variable_name, extraction_regex FROM predefined_fields WHERE is_active = 1 AND extraction_regex IS NOT NULL`
+      )
+      .all() as Array<{ variable_name: string; extraction_regex: string | null }>;
+    if (fields && fields.length > 0) {
+      parsed.fieldSuggestions = extractPredefinedFields(rawText, fields);
+    }
+
+    const entries = database
+      .prepare(
+        `SELECT variable_name, extraction_regex FROM song_set_entries WHERE extraction_regex IS NOT NULL`
+      )
+      .all() as Array<{ variable_name: string; extraction_regex: string | null }>;
+    if (entries && entries.length > 0) {
+      parsed.songSetSuggestions = extractSongSetEntries(
+        rawText,
+        entries,
+        lookupHymn,
+        resolveSongBookCode()
+      );
+    }
+  } catch {
+    // safely ignore if tables or db not initialized
+  }
+
+  return parsed;
 }

@@ -47,6 +47,7 @@ import {
   type HymnIndexEntry,
   type WorshipFormFields,
 } from '@/lib/worship-form-fields';
+import { DynamicFormBody, type FormLayoutData } from './DynamicFormBody';
 
 /** Module-level so the default keeps a stable identity across renders. */
 const EMPTY_HYMN_INDEX: HymnIndexEntry[] = [];
@@ -60,6 +61,8 @@ export default function EditForm({
   initialFamilyPhotoUrl = '',
   initialYouthPhotoUrl = '',
   initialAnnouncementInserts = [],
+  initialFieldValues,
+  initialLayoutSnapshot,
   initialParserProfileId = '',
   initialUpdatedAt,
   hymnIndex = EMPTY_HYMN_INDEX,
@@ -73,6 +76,8 @@ export default function EditForm({
   initialFamilyPhotoUrl?: string;
   initialYouthPhotoUrl?: string;
   initialAnnouncementInserts?: string[];
+  initialFieldValues?: Record<string, string>;
+  initialLayoutSnapshot?: unknown;
   initialParserProfileId?: string;
   /** Accepted for page compat; edit no longer mutates participants_payload. */
   initialParticipantsRaw?: string;
@@ -97,6 +102,37 @@ export default function EditForm({
       return arr.slice(0, 4);
     }
   );
+
+  const [layoutData, setLayoutData] = useState<FormLayoutData | null>(() => {
+    if (initialLayoutSnapshot && typeof initialLayoutSnapshot === 'object') {
+      const snap = initialLayoutSnapshot as Partial<FormLayoutData>;
+      if (Array.isArray(snap.groupings) && snap.groupings.length > 0) {
+        return snap as FormLayoutData;
+      }
+    }
+    return null;
+  });
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>(() => {
+    const base: Record<string, string> = initialFieldValues ? { ...initialFieldValues } : {};
+    if (initialSermonGraphicUrl && !base.sermon_poster) base.sermon_poster = initialSermonGraphicUrl;
+    if (initialFamilyPhotoUrl && !base.family_photo) base.family_photo = initialFamilyPhotoUrl;
+    if (initialYouthPhotoUrl && !base.youth_photo) base.youth_photo = initialYouthPhotoUrl;
+    return base;
+  });
+  const [fieldSuggestions, setFieldSuggestions] = useState<Record<string, string>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const fetchLayout = async () => {
+    try {
+      const res = await fetch('/api/worship-form-layout');
+      if (res.ok) {
+        const data = (await res.json()) as FormLayoutData;
+        setLayoutData(data);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const [fields, setFields] = useState<WorshipFormFields>(() => ({
     ...fieldsFromParsed(initialParsed),
@@ -232,6 +268,18 @@ export default function EditForm({
           }
         } catch {
           // ignore
+        }
+        try {
+          const sessRes = await fetch('/api/session');
+          if (sessRes.ok) {
+            const s = (await sessRes.json()) as { role?: string };
+            if (active) setIsAdmin(s.role === 'admin');
+          }
+        } catch {
+          // ignore
+        }
+        if (!layoutData) {
+          void fetchLayout();
         }
       } catch {
         // Non-blocking fallback
@@ -385,6 +433,35 @@ export default function EditForm({
     fieldsRef.current = fields;
   }, [fields]);
 
+  const handleFieldValueChange = (varName: string, val: string) => {
+    setFieldValues((prev) => ({ ...prev, [varName]: val }));
+    if (varName === 'sermon_speaker_name') {
+      onSermonSpeakerChange(val);
+    } else if (varName === 'scripture_reference') {
+      setField('verseReference', val);
+    } else if (varName === 'scripture_text') {
+      setField('verseText', val);
+    } else if (varName === 'special_song') {
+      setField('specialSong', val);
+    } else if (varName === 'closing_prayer_person') {
+      setField('closingPrayerPerson', val);
+    } else if (varName === 'family_name') {
+      setField('familyName', val);
+    } else if (varName === 'family_request') {
+      setField('familyPrayerRequest', val);
+    } else if (varName === 'youth_name') {
+      setField('youthName', val);
+    } else if (varName === 'youth_request') {
+      setField('youthPrayerRequest', val);
+    } else if (varName === 'sermon_poster') {
+      setSermonGraphicUrl(val);
+    } else if (varName === 'family_photo') {
+      setFamilyPhotoUrl(val);
+    } else if (varName === 'youth_photo') {
+      setYouthPhotoUrl(val);
+    }
+  };
+
   const setSongSetField = (
     variableName: string,
     subField: 'songNumber' | 'songBookCode' | 'background' | 'lyricText',
@@ -415,18 +492,29 @@ export default function EditForm({
   };
 
   const handleAcceptAllSuggestions = () => {
-    setFields((prev) => {
-      const updated = { ...prev.songSets };
-      for (const [vn, sug] of Object.entries(songSetSuggestions)) {
-        updated[vn] = {
-          ...(updated[vn] || { background: '', lyricText: '' }),
-          songNumber: String(sug.songNumber),
-          songBookCode: sug.songBookCode || updated[vn]?.songBookCode || '',
-        };
+    if (Object.keys(songSetSuggestions).length > 0) {
+      setFields((prev) => {
+        const updated = { ...prev.songSets };
+        for (const [vn, sug] of Object.entries(songSetSuggestions)) {
+          if (!updated[vn]?.songNumber || updated[vn]?.songNumber.trim() === '') {
+            updated[vn] = {
+              ...(updated[vn] || { background: '', lyricText: '' }),
+              songNumber: String(sug.songNumber),
+              songBookCode: sug.songBookCode || updated[vn]?.songBookCode || '',
+            };
+          }
+        }
+        fieldsRef.current = { ...fieldsRef.current, songSets: updated };
+        return { ...prev, songSets: updated };
+      });
+    }
+    if (Object.keys(fieldSuggestions).length > 0) {
+      for (const [vn, val] of Object.entries(fieldSuggestions)) {
+        if (!fieldValues[vn] || fieldValues[vn].trim() === '') {
+          handleFieldValueChange(vn, val);
+        }
       }
-      fieldsRef.current = { ...fieldsRef.current, songSets: updated };
-      return { ...prev, songSets: updated };
-    });
+    }
   };
 
   const handleParse = async () => {
@@ -459,6 +547,7 @@ export default function EditForm({
         date?: string | null;
         failedHymnNumbers?: number[];
         fields?: unknown;
+        fieldSuggestions?: Record<string, string>;
         songSetSuggestions?: Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>;
         songOverflow?: Array<{ line: string; number: number; bookCode: string }>;
         unmappedLines?: string[];
@@ -467,6 +556,9 @@ export default function EditForm({
         throw new Error(data.error || t('form.error.parse'));
       }
       setSongSetSuggestions(data.songSetSuggestions || {});
+      if (data.fieldSuggestions) {
+        setFieldSuggestions(data.fieldSuggestions);
+      }
       setSongOverflow(data.songOverflow || []);
       setUnmappedLines(data.unmappedLines || []);
       const hydrated = coerceHydrateFields(data.fields);
@@ -713,6 +805,7 @@ export default function EditForm({
           announcementInserts: announcementInserts.map((s) => s.trim()),
           parserProfileId: selectedProfileId || null,
           fields: buildFieldsPayload(fieldsRef.current),
+          field_values: fieldValues,
         }),
       });
 
@@ -829,7 +922,7 @@ export default function EditForm({
                     <span />
                   )}
                   <div className="flex items-center gap-2">
-                    {Object.keys(songSetSuggestions).length > 0 ? (
+                    {(Object.keys(songSetSuggestions).length + Object.keys(fieldSuggestions).length) > 0 ? (
                       <Button
                         type="button"
                         variant="secondary"
@@ -837,7 +930,7 @@ export default function EditForm({
                         onClick={handleAcceptAllSuggestions}
                         disabled={isSaving}
                       >
-                        {t('form.parser.acceptAll')} ({Object.keys(songSetSuggestions).length})
+                        {t('form.parser.acceptAll')} ({Object.keys(songSetSuggestions).length + Object.keys(fieldSuggestions).length})
                       </Button>
                     ) : null}
                     <Button
@@ -886,6 +979,44 @@ export default function EditForm({
             </CardContent>
           </Card>
 
+          {layoutData && layoutData.groupings && layoutData.groupings.length > 0 ? (
+            <DynamicFormBody
+              layoutData={layoutData}
+              fieldValues={fieldValues}
+              onFieldValueChange={handleFieldValueChange}
+              songSetValues={fields.songSets}
+              onSongSetChange={setSongSetField}
+              announcementInserts={announcementInserts}
+              onAnnouncementInsertChange={(idx, url) => {
+                setAnnouncementInserts((prev) => {
+                  const next = [...prev];
+                  while (next.length < 4) next.push('');
+                  next[idx] = url;
+                  return next;
+                });
+              }}
+              songSetEntries={songSetEntries}
+              songBooks={songBooks}
+              backgroundLibrary={backgroundLibrary}
+              openLyricEditors={openLyricEditors}
+              onToggleLyricEditor={toggleLyricEditor}
+              savingBookStatus={savingBookStatus}
+              onSaveToBook={handleSaveToBook}
+              fieldSuggestions={fieldSuggestions}
+              onAcceptFieldSuggestion={handleFieldValueChange}
+              songSetSuggestions={songSetSuggestions}
+              onAcceptSongSetSuggestion={(varName, sug) => {
+                setSongSetField(varName, 'songNumber', String(sug.songNumber || sug.number || ''));
+                if (sug.songBookCode) setSongSetField(varName, 'songBookCode', sug.songBookCode);
+                if (sug.lyrics || sug.lyricText) setSongSetField(varName, 'lyricText', sug.lyrics || sug.lyricText);
+              }}
+              disabled={isSaving}
+              isAdmin={isAdmin}
+              onRefreshLayout={fetchLayout}
+              hymnIndex={hymnIndex}
+            />
+          ) : (
+            <>
           <Card className="border-border/80 shadow-md bg-card/60 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="text-lg font-bold">
@@ -1354,6 +1485,8 @@ export default function EditForm({
               </div>
             </CardContent>
           </Card>
+            </>
+          )}
         </div>
 
         <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">

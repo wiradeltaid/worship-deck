@@ -749,7 +749,79 @@ export function bootstrap(database: Database.Database): void {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- SPEC-46: Configurable Form Layout and Predefined Fields
+  CREATE TABLE IF NOT EXISTS form_layouts (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS form_groupings (
+    id TEXT PRIMARY KEY,
+    layout_id TEXT NOT NULL REFERENCES form_layouts(id) ON DELETE CASCADE,
+    label TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(layout_id, sort_order)
+  );
+
+  CREATE TABLE IF NOT EXISTS form_group_slots (
+    id TEXT PRIMARY KEY,
+    layout_id TEXT NOT NULL REFERENCES form_layouts(id) ON DELETE CASCADE,
+    grouping_id TEXT NOT NULL REFERENCES form_groupings(id) ON DELETE CASCADE,
+    sort_order INTEGER NOT NULL,
+    widget_kind TEXT NOT NULL CHECK (widget_kind IN ('predefined_field', 'song_set_entry', 'announcement_slot')),
+    ref_key TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(grouping_id, sort_order),
+    UNIQUE(layout_id, widget_kind, ref_key)
+  );
+
+  CREATE TABLE IF NOT EXISTS predefined_fields (
+    id TEXT PRIMARY KEY,
+    variable_name TEXT NOT NULL UNIQUE,
+    shown_text TEXT NOT NULL,
+    field_type TEXT NOT NULL CHECK (field_type IN ('text', 'text_area', 'image')),
+    input_length INTEGER,
+    initial_lines INTEGER,
+    extraction_regex TEXT,
+    seed_key TEXT UNIQUE,
+    is_system INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CHECK (field_type != 'image' OR extraction_regex IS NULL)
+  );
+
+  CREATE TABLE IF NOT EXISTS service_field_values (
+    service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+    variable_name TEXT NOT NULL,
+    value_text TEXT NOT NULL DEFAULT '',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (service_id, variable_name)
+  );
+
+  CREATE TABLE IF NOT EXISTS service_form_layout_snapshots (
+    service_id TEXT PRIMARY KEY REFERENCES services(id) ON DELETE CASCADE,
+    layout_version INTEGER NOT NULL DEFAULT 1,
+    snapshot_json TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
   `);
+
+  try {
+    database.prepare('ALTER TABLE song_set_entries ADD COLUMN extraction_regex TEXT').run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
 
   // Migrate older DBs that predate images_payload / updated_at / participants_payload
   try {
@@ -868,6 +940,7 @@ export function bootstrap(database: Database.Database): void {
   migrateAnnouncementItemsCascade(database);
   migrateSongBookRow(database);
   migrateParserProfiles(database);
+  migrateFormLayout(database);
 
   // --- corpus load ---
   // DEC-005/AD-36: upsertHymns is a bootstrap-once seed and MUST run after
@@ -1633,6 +1706,263 @@ export function migrateParserProfiles(database: Database.Database): void {
         BUILTIN_DEFAULT_RULES_JSON
       );
     console.info(`[parser] seeded builtin-default rundown parser profile`);
+  }
+}
+
+export function migrateFormLayout(database: Database.Database): void {
+  try {
+    database.prepare('ALTER TABLE song_set_entries ADD COLUMN extraction_regex TEXT').run();
+  } catch (e) {
+    if (!/duplicate column/i.test(String(e))) throw e;
+  }
+
+  const existingLayout = database
+    .prepare(`SELECT COUNT(*) AS count FROM form_layouts WHERE id = 'default-layout'`)
+    .get() as { count: number } | undefined;
+
+  if (!existingLayout || existingLayout.count === 0) {
+    database.prepare(`
+      INSERT OR IGNORE INTO form_layouts (id, title, description, is_active, version)
+      VALUES ('default-layout', 'Default Form Layout', 'Standard layout for worship services', 1, 1)
+    `).run();
+
+    const fields = [
+      {
+        seedKey: 'default.verse_reference',
+        variableName: 'scripture_reference',
+        shownText: 'Verse Reading Reference',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: '(?i)^(?:Verse\\s+Reading|Memory\\s+(?:Verse|Text)|Ayat\\s+Bacaan)\\s*[:\\-]\\s*(?<value>.*)$',
+      },
+      {
+        seedKey: 'default.verse_text',
+        variableName: 'scripture_text',
+        shownText: 'Verse Reading Text',
+        fieldType: 'text_area',
+        inputLength: null,
+        initialLines: 5,
+        extractionRegex: null,
+      },
+      {
+        seedKey: 'default.sermon_speaker',
+        variableName: 'sermon_speaker_name',
+        shownText: 'Sermon Speaker',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: '(?i)^Sermon\\s*[:\\-]\\s*(?<value>.+?)(?:\\s+[\"“](?<title>[^\"”]+)[\"”])?\\s*$',
+      },
+      {
+        seedKey: 'default.sermon_title',
+        variableName: 'sermon_title',
+        shownText: 'Sermon Title',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: null,
+      },
+      {
+        seedKey: 'default.sermon_graphic',
+        variableName: 'sermon_poster',
+        shownText: 'Sermon Poster',
+        fieldType: 'image',
+        inputLength: null,
+        initialLines: null,
+        extractionRegex: null,
+      },
+      {
+        seedKey: 'default.closing_prayer',
+        variableName: 'closing_prayer_person',
+        shownText: 'Closing Prayer',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: '(?i)^(?:Closing\\s+Prayer|Doa\\s+Tutup)\\s*[:\\-]\\s*(?<value>.*)$',
+      },
+      {
+        seedKey: 'default.special_song',
+        variableName: 'special_song',
+        shownText: 'Special Song',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: '(?i)^Special\\s+Song\\s*[:\\-]\\s*(?<value>.*)$',
+      },
+      {
+        seedKey: 'default.family_photo',
+        variableName: 'family_photo',
+        shownText: 'Family Photo',
+        fieldType: 'image',
+        inputLength: null,
+        initialLines: null,
+        extractionRegex: null,
+      },
+      {
+        seedKey: 'default.family_name',
+        variableName: 'family_name',
+        shownText: 'Family Name',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: '(?i)^(?:Family(?:\\s*&\\s*|\\s+and\\s+|/\\s*)Youth|Family\\s+of\\s+the\\s+Week|Keluarga)\\s*[:\\-]\\s*(?<value>.*)$',
+      },
+      {
+        seedKey: 'default.family_request',
+        variableName: 'family_request',
+        shownText: 'Family Prayer Request',
+        fieldType: 'text_area',
+        inputLength: null,
+        initialLines: 5,
+        extractionRegex: null,
+      },
+      {
+        seedKey: 'default.youth_photo',
+        variableName: 'youth_photo',
+        shownText: 'Youth Photo',
+        fieldType: 'image',
+        inputLength: null,
+        initialLines: null,
+        extractionRegex: null,
+      },
+      {
+        seedKey: 'default.youth_name',
+        variableName: 'youth_name',
+        shownText: 'Youth Name',
+        fieldType: 'text',
+        inputLength: 100,
+        initialLines: null,
+        extractionRegex: '(?i)^(?:Youth(?:\\s+of\\s+the\\s+Week)?|Pemuda)\\s*[:\\-]\\s*(?<value>.*)$',
+      },
+      {
+        seedKey: 'default.youth_request',
+        variableName: 'youth_request',
+        shownText: 'Youth Prayer Request',
+        fieldType: 'text_area',
+        inputLength: null,
+        initialLines: 5,
+        extractionRegex: null,
+      },
+    ];
+
+    const insertField = database.prepare(`
+      INSERT OR IGNORE INTO predefined_fields (
+        id, variable_name, shown_text, field_type, input_length, initial_lines, extraction_regex, seed_key, is_system, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1)
+    `);
+
+    for (const f of fields) {
+      const fieldId = 'field-' + f.variableName.replace(/_/g, '-');
+      insertField.run(
+        fieldId,
+        f.variableName,
+        f.shownText,
+        f.fieldType,
+        f.inputLength,
+        f.initialLines,
+        f.extractionRegex,
+        f.seedKey
+      );
+    }
+
+    const groupings = [
+      {
+        id: 'grouping-song-set',
+        label: 'Song Set',
+        description: 'Dynamic congregation song sets and hymns',
+        sortOrder: 1,
+        slots: [
+          { id: 'slot-song-set-1', sortOrder: 1, widgetKind: 'song_set_entry', refKey: 'ds_opening_song' },
+          { id: 'slot-song-set-2', sortOrder: 2, widgetKind: 'song_set_entry', refKey: 'praise_song_1' },
+          { id: 'slot-song-set-3', sortOrder: 3, widgetKind: 'song_set_entry', refKey: 'praise_song_2' },
+          { id: 'slot-song-set-4', sortOrder: 4, widgetKind: 'song_set_entry', refKey: 'ds_closing_song' },
+        ],
+      },
+      {
+        id: 'grouping-bible-talk',
+        label: 'Bible Talk',
+        description: 'Scripture reading and thematic memory verse',
+        sortOrder: 2,
+        slots: [
+          { id: 'slot-bible-talk-1', sortOrder: 1, widgetKind: 'predefined_field', refKey: 'scripture_reference' },
+          { id: 'slot-bible-talk-2', sortOrder: 2, widgetKind: 'predefined_field', refKey: 'scripture_text' },
+        ],
+      },
+      {
+        id: 'grouping-divine-worship',
+        label: 'Divine Worship',
+        description: 'Liturgical music and special ministry items',
+        sortOrder: 3,
+        slots: [
+          { id: 'slot-divine-worship-1', sortOrder: 1, widgetKind: 'predefined_field', refKey: 'special_song' },
+        ],
+      },
+      {
+        id: 'grouping-sermon',
+        label: 'Sermon',
+        description: 'Spoken ministry, title, speaker, and closing prayer',
+        sortOrder: 4,
+        slots: [
+          { id: 'slot-sermon-1', sortOrder: 1, widgetKind: 'predefined_field', refKey: 'sermon_speaker_name' },
+          { id: 'slot-sermon-2', sortOrder: 2, widgetKind: 'predefined_field', refKey: 'sermon_title' },
+          { id: 'slot-sermon-3', sortOrder: 3, widgetKind: 'predefined_field', refKey: 'closing_prayer_person' },
+          { id: 'slot-sermon-4', sortOrder: 4, widgetKind: 'predefined_field', refKey: 'sermon_poster' },
+        ],
+      },
+      {
+        id: 'grouping-announcement-posters',
+        label: 'Weekly Announcement Posters',
+        description: 'Weekly slide announcement poster slots',
+        sortOrder: 5,
+        slots: [
+          { id: 'slot-ann-1', sortOrder: 1, widgetKind: 'announcement_slot', refKey: '1' },
+          { id: 'slot-ann-2', sortOrder: 2, widgetKind: 'announcement_slot', refKey: '2' },
+          { id: 'slot-ann-3', sortOrder: 3, widgetKind: 'announcement_slot', refKey: '3' },
+          { id: 'slot-ann-4', sortOrder: 4, widgetKind: 'announcement_slot', refKey: '4' },
+        ],
+      },
+      {
+        id: 'grouping-family-of-the-week',
+        label: 'Family of the Week',
+        description: 'Weekly highlighted family photo and prayer request',
+        sortOrder: 6,
+        slots: [
+          { id: 'slot-family-1', sortOrder: 1, widgetKind: 'predefined_field', refKey: 'family_photo' },
+          { id: 'slot-family-2', sortOrder: 2, widgetKind: 'predefined_field', refKey: 'family_name' },
+          { id: 'slot-family-3', sortOrder: 3, widgetKind: 'predefined_field', refKey: 'family_request' },
+        ],
+      },
+      {
+        id: 'grouping-youth-of-the-week',
+        label: 'Youth of the Week',
+        description: 'Weekly highlighted youth photo and prayer request',
+        sortOrder: 7,
+        slots: [
+          { id: 'slot-youth-1', sortOrder: 1, widgetKind: 'predefined_field', refKey: 'youth_photo' },
+          { id: 'slot-youth-2', sortOrder: 2, widgetKind: 'predefined_field', refKey: 'youth_name' },
+          { id: 'slot-youth-3', sortOrder: 3, widgetKind: 'predefined_field', refKey: 'youth_request' },
+        ],
+      },
+    ];
+
+    const insertGrouping = database.prepare(`
+      INSERT OR IGNORE INTO form_groupings (id, layout_id, label, description, sort_order)
+      VALUES (?, 'default-layout', ?, ?, ?)
+    `);
+
+    const insertSlot = database.prepare(`
+      INSERT OR IGNORE INTO form_group_slots (id, layout_id, grouping_id, sort_order, widget_kind, ref_key)
+      VALUES (?, 'default-layout', ?, ?, ?, ?)
+    `);
+
+    for (const g of groupings) {
+      insertGrouping.run(g.id, g.label, g.description, g.sortOrder);
+      for (const s of g.slots) {
+        insertSlot.run(s.id, g.id, s.sortOrder, s.widgetKind, s.refKey);
+      }
+    }
+    console.info(`[form-layout] seeded default-layout with groupings and predefined fields`);
   }
 }
 

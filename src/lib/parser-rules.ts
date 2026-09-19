@@ -91,6 +91,8 @@ export interface ParsedRundown {
   /** Youth-of-the-week name (Slide 56). */
   youthName?: string | null;
   songCandidates?: ParsedSongCandidate[];
+  fieldSuggestions?: Record<string, string>;
+  songSetSuggestions?: Record<string, any>;
 }
 
 export type HymnLookupFn = (
@@ -638,3 +640,110 @@ export function parseRundownWithProfile(
 
   return parsed;
 }
+
+/**
+ * Extracts values for predefined fields from rundown raw text using configured extraction_regex (SPEC-46).
+ */
+export function extractPredefinedFields(
+  rawText: string,
+  fields: Array<{ variable_name: string; extraction_regex?: string | null }>
+): Record<string, string> {
+  const suggestions: Record<string, string> = {};
+  if (!rawText || !fields) return suggestions;
+  const lines = rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  for (const f of fields) {
+    if (!f.extraction_regex || !f.extraction_regex.trim()) continue;
+    try {
+      const re = compileProfileRegex(f.extraction_regex.trim());
+      let found = false;
+      for (const line of lines) {
+        const m = line.match(re);
+        if (m) {
+          const val = m.groups?.value || (m[1] !== undefined ? m[1] : m[0]);
+          if (val && val.trim()) {
+            suggestions[f.variable_name] = val.trim();
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        const m = rawText.match(re);
+        if (m) {
+          const val = m.groups?.value || (m[1] !== undefined ? m[1] : m[0]);
+          if (val && val.trim()) {
+            suggestions[f.variable_name] = val.trim();
+          }
+        }
+      }
+    } catch {
+      // safely ignore invalid regex
+    }
+  }
+  return suggestions;
+}
+
+/**
+ * Extracts per-entry song sets using song_set_entries.extraction_regex (SPEC-46).
+ */
+export function extractSongSetEntries(
+  rawText: string,
+  entries: Array<{ variable_name: string; extraction_regex?: string | null }>,
+  lookupHymnFn?: HymnLookupFn,
+  defaultBook = 'SDAH'
+): Record<string, any> {
+  const suggestions: Record<string, any> = {};
+  if (!rawText || !entries) return suggestions;
+  const lines = rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  for (const e of entries) {
+    if (!e.extraction_regex || !e.extraction_regex.trim()) continue;
+    try {
+      const re = compileProfileRegex(e.extraction_regex.trim());
+      for (const line of lines) {
+        const m = line.match(re);
+        if (m) {
+          const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+          const bookStr = m.groups?.book || defaultBook;
+          if (numStr) {
+            const num = parseInt(numStr, 10);
+            if (num > 0) {
+              const bookCode = (bookStr || defaultBook).trim().toUpperCase();
+              let hymnInfo: { title: string; lyrics: string; incomplete?: boolean } = {
+                title: `${bookCode} ${num}`,
+                lyrics: '',
+                incomplete: true,
+              };
+              if (lookupHymnFn) {
+                hymnInfo = lookupHymnFn(num, bookCode);
+              }
+              suggestions[e.variable_name] = {
+                songNumber: num,
+                songBookCode: bookCode,
+                songTitle: hymnInfo.title,
+                lyricText: hymnInfo.lyrics,
+                incomplete: hymnInfo.incomplete,
+              };
+              break;
+            }
+          }
+        }
+      }
+    } catch {
+      // safely ignore invalid regex
+    }
+  }
+  return suggestions;
+}
+

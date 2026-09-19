@@ -47,6 +47,7 @@ import {
   type HymnIndexEntry,
   type WorshipFormFields,
 } from '@/lib/worship-form-fields';
+import { DynamicFormBody, type FormLayoutData } from './DynamicFormBody';
 
 /** Module-level so the default keeps a stable identity across renders. */
 const EMPTY_HYMN_INDEX: HymnIndexEntry[] = [];
@@ -83,6 +84,22 @@ export default function CreateForm({
   >([]);
   const [openLyricEditors, setOpenLyricEditors] = useState<Record<string, boolean>>({});
   const [savingBookStatus, setSavingBookStatus] = useState<Record<string, boolean>>({});
+  const [layoutData, setLayoutData] = useState<FormLayoutData | null>(null);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [fieldSuggestions, setFieldSuggestions] = useState<Record<string, string>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const fetchLayout = async () => {
+    try {
+      const res = await fetch('/api/worship-form-layout');
+      if (res.ok) {
+        const data = (await res.json()) as FormLayoutData;
+        setLayoutData(data);
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const toggleLyricEditor = async (variableName: string) => {
     const isOpening = !openLyricEditors[variableName];
@@ -158,6 +175,16 @@ export default function CreateForm({
         } catch {
           // ignore
         }
+        try {
+          const sessRes = await fetch('/api/session');
+          if (sessRes.ok) {
+            const s = (await sessRes.json()) as { role?: string };
+            if (active) setIsAdmin(s.role === 'admin');
+          }
+        } catch {
+          // ignore
+        }
+        void fetchLayout();
       } catch {
         // Non-blocking: fallback to whatever entries form has
       }
@@ -297,6 +324,35 @@ export default function CreateForm({
     fieldsRef.current = fields;
   }, [fields]);
 
+  const handleFieldValueChange = (varName: string, val: string) => {
+    setFieldValues((prev) => ({ ...prev, [varName]: val }));
+    if (varName === 'sermon_speaker_name') {
+      onSermonSpeakerChange(val);
+    } else if (varName === 'scripture_reference') {
+      setField('verseReference', val);
+    } else if (varName === 'scripture_text') {
+      setField('verseText', val);
+    } else if (varName === 'special_song') {
+      setField('specialSong', val);
+    } else if (varName === 'closing_prayer_person') {
+      setField('closingPrayerPerson', val);
+    } else if (varName === 'family_name') {
+      setField('familyName', val);
+    } else if (varName === 'family_request') {
+      setField('familyPrayerRequest', val);
+    } else if (varName === 'youth_name') {
+      setField('youthName', val);
+    } else if (varName === 'youth_request') {
+      setField('youthPrayerRequest', val);
+    } else if (varName === 'sermon_poster') {
+      setSermonGraphicUrl(val);
+    } else if (varName === 'family_photo') {
+      setFamilyPhotoUrl(val);
+    } else if (varName === 'youth_photo') {
+      setYouthPhotoUrl(val);
+    }
+  };
+
   const setSongSetField = (
     variableName: string,
     subField: 'songNumber' | 'songBookCode' | 'background' | 'lyricText',
@@ -327,18 +383,29 @@ export default function CreateForm({
   };
 
   const handleAcceptAllSuggestions = () => {
-    setFields((prev) => {
-      const updated = { ...prev.songSets };
-      for (const [vn, sug] of Object.entries(songSetSuggestions)) {
-        updated[vn] = {
-          ...(updated[vn] || { background: '', lyricText: '' }),
-          songNumber: String(sug.songNumber),
-          songBookCode: sug.songBookCode || updated[vn]?.songBookCode || '',
-        };
+    if (Object.keys(songSetSuggestions).length > 0) {
+      setFields((prev) => {
+        const updated = { ...prev.songSets };
+        for (const [vn, sug] of Object.entries(songSetSuggestions)) {
+          if (!updated[vn]?.songNumber || updated[vn]?.songNumber.trim() === '') {
+            updated[vn] = {
+              ...(updated[vn] || { background: '', lyricText: '' }),
+              songNumber: String(sug.songNumber),
+              songBookCode: sug.songBookCode || updated[vn]?.songBookCode || '',
+            };
+          }
+        }
+        fieldsRef.current = { ...fieldsRef.current, songSets: updated };
+        return { ...prev, songSets: updated };
+      });
+    }
+    if (Object.keys(fieldSuggestions).length > 0) {
+      for (const [vn, val] of Object.entries(fieldSuggestions)) {
+        if (!fieldValues[vn] || fieldValues[vn].trim() === '') {
+          handleFieldValueChange(vn, val);
+        }
       }
-      fieldsRef.current = { ...fieldsRef.current, songSets: updated };
-      return { ...prev, songSets: updated };
-    });
+    }
   };
 
   const handleParse = async () => {
@@ -378,6 +445,9 @@ export default function CreateForm({
         throw new Error(data.error || t('form.error.parse'));
       }
       setSongSetSuggestions(data.songSetSuggestions || {});
+      if ((data as any).fieldSuggestions) {
+        setFieldSuggestions((data as any).fieldSuggestions);
+      }
       setSongOverflow(data.songOverflow || []);
       setUnmappedLines(data.unmappedLines || []);
       const hydrated = coerceHydrateFields(data.fields);
@@ -491,6 +561,7 @@ export default function CreateForm({
         announcementInserts: announcementInserts.map((s) => s.trim()),
         parserProfileId: selectedProfileId || null,
         fields: buildFieldsPayload(fieldsRef.current),
+        field_values: fieldValues,
       };
       if (allowSecond) bodyPayload.allowSecond = true;
 
@@ -646,7 +717,7 @@ export default function CreateForm({
                     <span />
                   )}
                   <div className="flex items-center gap-2">
-                    {Object.keys(songSetSuggestions).length > 0 ? (
+                    {(Object.keys(songSetSuggestions).length + Object.keys(fieldSuggestions).length) > 0 ? (
                       <Button
                         type="button"
                         variant="secondary"
@@ -654,7 +725,7 @@ export default function CreateForm({
                         onClick={handleAcceptAllSuggestions}
                         disabled={isSaving}
                       >
-                        {t('form.parser.acceptAll')} ({Object.keys(songSetSuggestions).length})
+                        {t('form.parser.acceptAll')} ({Object.keys(songSetSuggestions).length + Object.keys(fieldSuggestions).length})
                       </Button>
                     ) : null}
                     <Button
@@ -703,6 +774,43 @@ export default function CreateForm({
             </CardContent>
           </Card>
 
+          {layoutData && layoutData.groupings && layoutData.groupings.length > 0 ? (
+            <DynamicFormBody
+              layoutData={layoutData}
+              fieldValues={fieldValues}
+              onFieldValueChange={handleFieldValueChange}
+              songSetValues={fields.songSets}
+              onSongSetChange={setSongSetField}
+              announcementInserts={announcementInserts}
+              onAnnouncementInsertChange={(idx, url) => {
+                setAnnouncementInserts((prev) => {
+                  const next = [...prev];
+                  while (next.length < 4) next.push('');
+                  next[idx] = url;
+                  return next;
+                });
+              }}
+              songSetEntries={songSetEntries}
+              songBooks={songBooks}
+              backgroundLibrary={backgroundLibrary}
+              openLyricEditors={openLyricEditors}
+              onToggleLyricEditor={toggleLyricEditor}
+              savingBookStatus={savingBookStatus}
+              fieldSuggestions={fieldSuggestions}
+              onAcceptFieldSuggestion={handleFieldValueChange}
+              songSetSuggestions={songSetSuggestions}
+              onAcceptSongSetSuggestion={(varName, sug) => {
+                setSongSetField(varName, 'songNumber', String(sug.songNumber || sug.number || ''));
+                if (sug.songBookCode) setSongSetField(varName, 'songBookCode', sug.songBookCode);
+                if (sug.lyrics || sug.lyricText) setSongSetField(varName, 'lyricText', sug.lyrics || sug.lyricText);
+              }}
+              disabled={isSaving}
+              isAdmin={isAdmin}
+              onRefreshLayout={fetchLayout}
+              hymnIndex={hymnIndex}
+            />
+          ) : (
+            <>
           <Card className="border-border/80 shadow-md bg-card/60 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="text-lg font-bold">
@@ -1159,6 +1267,8 @@ export default function CreateForm({
               </div>
             </CardContent>
           </Card>
+            </>
+          )}
         </div>
 
         <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">

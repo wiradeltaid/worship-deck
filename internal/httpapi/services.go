@@ -143,6 +143,10 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 
 	parsedJSON, _ := json.Marshal(parsed)
 	imagesJSON, _ := json.Marshal(images)
+	activeLayoutID := "default-layout"
+	_ = s.DB.QueryRow(`SELECT id FROM form_layouts WHERE is_active = 1 LIMIT 1`).Scan(&activeLayoutID)
+	snapJSON, _ := db.BuildFormLayoutSnapshot(s.DB, activeLayoutID)
+
 	tx, err := s.DB.Begin()
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -182,6 +186,16 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
+	}
+	if fields := fieldValuesFromBody(body); len(fields) > 0 {
+		if err := upsertFieldValues(tx, id, fields); err != nil {
+			log.Printf("Error creating field values: %v", err)
+			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	}
+	if snapJSON != "" {
+		_, _ = tx.Exec(`INSERT OR IGNORE INTO service_form_layout_snapshots (service_id, layout_version, snapshot_json, created_at) VALUES (?, 1, ?, CURRENT_TIMESTAMP)`, id, snapJSON)
 	}
 	if err := tx.Commit(); err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -274,6 +288,181 @@ func upsertSongSetInputs(tx *sql.Tx, serviceID int64, sets map[string]any) error
 		}
 	}
 	return nil
+}
+
+func fieldValuesFromBody(body map[string]any) map[string]any {
+	out := make(map[string]any)
+	if fv, ok := body["field_values"].(map[string]any); ok {
+		for k, v := range fv {
+			out[k] = v
+		}
+	} else if fv, ok := body["fieldValues"].(map[string]any); ok {
+		for k, v := range fv {
+			out[k] = v
+		}
+	} else if f, ok := body["fields"].(map[string]any); ok {
+		if fv, ok := f["field_values"].(map[string]any); ok {
+			for k, v := range fv {
+				out[k] = v
+			}
+		} else if fv, ok := f["fieldValues"].(map[string]any); ok {
+			for k, v := range fv {
+				out[k] = v
+			}
+		}
+	}
+
+	checkSet := func(canonical string, val any) {
+		if _, exists := out[canonical]; !exists {
+			if s, ok := val.(string); ok && strings.TrimSpace(s) != "" {
+				out[canonical] = strings.TrimSpace(s)
+			}
+		}
+	}
+
+	if vr, ok := body["verseReading"].(map[string]any); ok {
+		checkSet("scripture_reference", vr["reference"])
+		checkSet("scripture_text", vr["text"])
+		checkSet("scripture_bible_version", vr["translation"])
+	}
+	if sermon, ok := body["sermon"].(map[string]any); ok {
+		checkSet("sermon_speaker_name", sermon["speaker"])
+		checkSet("sermon_title", sermon["title"])
+	}
+	checkSet("sermon_poster", body["sermonGraphicUrl"])
+	checkSet("closing_prayer_person", body["closingPrayerPerson"])
+	checkSet("special_song", body["specialSong"])
+	checkSet("family_name", body["familyName"])
+	checkSet("family_photo", body["familyPhotoUrl"])
+	checkSet("family_request", body["familyPrayerRequest"])
+	checkSet("youth_name", body["youthName"])
+	checkSet("youth_photo", body["youthPhotoUrl"])
+	checkSet("youth_request", body["youthPrayerRequest"])
+
+	return out
+}
+
+func upsertFieldValues(tx *sql.Tx, serviceID int64, fieldValues map[string]any) error {
+	if len(fieldValues) == 0 {
+		return nil
+	}
+	stmt, err := tx.Prepare(`
+		INSERT INTO service_field_values (service_id, variable_name, value_text, updated_at)
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(service_id, variable_name) DO UPDATE SET
+			value_text = excluded.value_text,
+			updated_at = CURRENT_TIMESTAMP
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for k, v := range fieldValues {
+		k = strings.TrimSpace(k)
+		if k == "" {
+			continue
+		}
+		var valStr string
+		if s, ok := v.(string); ok {
+			valStr = s
+		} else if v != nil {
+			valStr = fmt.Sprintf("%v", v)
+		}
+		if _, err := stmt.Exec(serviceID, k, valStr); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) storedFieldValues(serviceID int, parsedJSON, imagesJSON string) map[string]string {
+	fields := make(map[string]string)
+	rows, err := s.DB.Query(`SELECT variable_name, value_text FROM service_field_values WHERE service_id = ?`, serviceID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var k, v string
+			if err := rows.Scan(&k, &v); err == nil {
+				fields[k] = v
+			}
+		}
+	}
+	if len(fields) > 0 {
+		return fields
+	}
+
+	// Dual-read fallback from legacy parsed_data and images_payload
+	if parsedJSON != "" {
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(parsedJSON), &parsed); err == nil {
+			if vr, ok := parsed["verseReading"].(map[string]any); ok {
+				if ref, ok := vr["reference"].(string); ok && ref != "" {
+					fields["scripture_reference"] = ref
+				}
+				if text, ok := vr["text"].(string); ok && text != "" {
+					fields["scripture_text"] = text
+				}
+				if trans, ok := vr["translation"].(string); ok && trans != "" {
+					fields["scripture_bible_version"] = trans
+				}
+			}
+			if sermon, ok := parsed["sermon"].(map[string]any); ok {
+				if sp, ok := sermon["speaker"].(string); ok && sp != "" {
+					fields["sermon_speaker_name"] = sp
+				}
+				if title, ok := sermon["title"].(string); ok && title != "" {
+					fields["sermon_title"] = title
+				}
+			}
+			if cpp, ok := parsed["closingPrayerPerson"].(string); ok && cpp != "" {
+				fields["closing_prayer_person"] = cpp
+			}
+			if ss, ok := parsed["specialSong"].(string); ok && ss != "" {
+				fields["special_song"] = ss
+			}
+			if fn, ok := parsed["familyName"].(string); ok && fn != "" {
+				fields["family_name"] = fn
+			}
+			if fpr, ok := parsed["familyPrayerRequest"].(string); ok && fpr != "" {
+				fields["family_request"] = fpr
+			}
+			if yn, ok := parsed["youthName"].(string); ok && yn != "" {
+				fields["youth_name"] = yn
+			}
+			if ypr, ok := parsed["youthPrayerRequest"].(string); ok && ypr != "" {
+				fields["youth_request"] = ypr
+			}
+		}
+	}
+	if imagesJSON != "" {
+		var images map[string]any
+		if err := json.Unmarshal([]byte(imagesJSON), &images); err == nil {
+			if sp, ok := images["sermonGraphicUrl"].(string); ok && sp != "" {
+				fields["sermon_poster"] = sp
+			}
+			if fp, ok := images["familyPhotoUrl"].(string); ok && fp != "" {
+				fields["family_photo"] = fp
+			}
+			if yp, ok := images["youthPhotoUrl"].(string); ok && yp != "" {
+				fields["youth_photo"] = yp
+			}
+		}
+	}
+	return fields
+}
+
+func (s *Server) storedLayoutSnapshot(serviceID int) json.RawMessage {
+	var snap string
+	err := s.DB.QueryRow(`SELECT snapshot_json FROM service_form_layout_snapshots WHERE service_id = ?`, serviceID).Scan(&snap)
+	if err == nil && snap != "" {
+		return json.RawMessage(snap)
+	}
+	snap, err = db.BuildFormLayoutSnapshot(s.DB, "default-layout")
+	if err == nil && snap != "" {
+		return json.RawMessage(snap)
+	}
+	return json.RawMessage("null")
 }
 
 func narrowCreatePayload(body map[string]any) (images map[string]any, participants any, errMsg string) {
@@ -375,8 +564,10 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		CreatedAt            string          `json:"created_at"`
 		UpdatedAt            string          `json:"updated_at"`
 		Plan                 any             `json:"plan"`
-		PlanIdentity         string          `json:"plan_identity"`
-		Transition           string          `json:"transition"`
+		PlanIdentity         string            `json:"plan_identity"`
+		Transition           string            `json:"transition"`
+		FieldValues          map[string]string `json:"field_values"`
+		FormLayoutSnapshot   json.RawMessage   `json:"form_layout_snapshot"`
 	}
 	var parsed, images, parts, profileID sql.NullString
 	var profileVersion sql.NullInt64
@@ -399,6 +590,8 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	out.ParsedData = nullJSON(parsed)
 	out.ImagesPayload = nullJSON(images)
 	out.SongSets = s.storedSongSets(id)
+	out.FieldValues = s.storedFieldValues(id, parsed.String, images.String)
+	out.FormLayoutSnapshot = s.storedLayoutSnapshot(id)
 	if parts.Valid {
 		out.Participants = parts.String
 	}
@@ -505,7 +698,13 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	if rawValue != "" {
 		rawPayload = &rawValue
 	}
-	if rawPayload == nil && !parse.HasStructuredFields(body) {
+	hasFieldValues := false
+	if fv, ok := body["field_values"].(map[string]any); ok && len(fv) > 0 {
+		hasFieldValues = true
+	} else if fv, ok := body["fieldValues"].(map[string]any); ok && len(fv) > 0 {
+		hasFieldValues = true
+	}
+	if rawPayload == nil && !parse.HasStructuredFields(body) && !hasFieldValues {
 		writeError(w, http.StatusBadRequest, "Missing raw_payload or structured fields")
 		return
 	}
@@ -667,6 +866,13 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	if sets := songSetInputsFromBody(body); sets != nil {
 		if err := upsertSongSetInputs(tx, int64(id), sets); err != nil {
 			log.Printf("Error updating service: %v", err)
+			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	}
+	if fields := fieldValuesFromBody(body); len(fields) > 0 {
+		if err := upsertFieldValues(tx, int64(id), fields); err != nil {
+			log.Printf("Error updating field values: %v", err)
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
@@ -942,6 +1148,9 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	matchingResult := parse.MatchSongSets(parsed.SongCandidates, slots, profile.SongSetMatching)
+	for k, v := range parsed.SongSetSuggestions {
+		matchingResult.Suggestions[k] = v
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"plan":                items,
@@ -949,6 +1158,7 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		"date":                *parsed.Date,
 		"failedHymnNumbers":   parsed.FailedHymnNumbers,
 		"fields":              fieldsFromParsed(parsed),
+		"fieldSuggestions":    parsed.FieldSuggestions,
 		"songSetSuggestions": matchingResult.Suggestions,
 		"songOverflow":        matchingResult.SongOverflow,
 		"songSlotsUnfilled":   matchingResult.SongSlotsUnfilled,

@@ -53,6 +53,7 @@ type ctx struct {
 	legacyCombined   string
 	familyBody          string
 	announcementInserts []string
+	fieldValues         map[string]string
 }
 
 func trimPtr(s *string) string {
@@ -137,7 +138,7 @@ func fixedLyric(id string) []node {
 	return leaf(request{id: id, templateID: id})
 }
 
-func computeCtx(serviceDate string, parsed ParsedRundown, media Media) ctx {
+func computeCtx(serviceDate string, parsed ParsedRundown, media Media, snap Snapshot) ctx {
 	var flyers []string
 	for _, u := range media.Flyers {
 		if isAnnouncementImageURL(u) {
@@ -187,6 +188,7 @@ func computeCtx(serviceDate string, parsed ParsedRundown, media Media) ctx {
 		youthPrayer:    trimPtr(parsed.YouthPrayerRequest),
 		familyName:          trimPtr(parsed.FamilyName),
 		youthName:           trimPtr(parsed.YouthName),
+		fieldValues:         snap.FieldValues,
 	}
 	if hasScripture(parsed.ThemeVerse) {
 		c.themeVerse = parsed.ThemeVerse
@@ -293,6 +295,11 @@ func catalogValues(c ctx) map[string]interface{} {
 	if c.youthPhoto != nil {
 		if photo := firstNonEmpty(*c.youthPhoto); photo != "" {
 			out["youth_photo"] = photo
+		}
+	}
+	for k, v := range c.fieldValues {
+		if trimmed := strings.TrimSpace(v); trimmed != "" {
+			out[k] = trimmed
 		}
 	}
 	return out
@@ -657,7 +664,7 @@ func hydrateOne(snap Snapshot, r request, group *GroupRef, c ctx) (*DrawItem, er
 }
 
 func BuildSlidePlan(serviceDate string, parsed ParsedRundown, media Media, snap Snapshot) ([]DrawItem, error) {
-	c := computeCtx(serviceDate, parsed, media)
+	c := computeCtx(serviceDate, parsed, media, snap)
 	var items []DrawItem
 	for _, id := range snap.Order {
 		for _, n := range nodesFor(id, c, snap) {

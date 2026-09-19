@@ -231,4 +231,71 @@ CREATE TABLE IF NOT EXISTS rundown_parser_profiles (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- SPEC-46: Configurable Form Layout and Predefined Fields
+CREATE TABLE IF NOT EXISTS form_layouts (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS form_groupings (
+  id TEXT PRIMARY KEY,
+  layout_id TEXT NOT NULL REFERENCES form_layouts(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  sort_order INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(layout_id, sort_order)
+);
+
+CREATE TABLE IF NOT EXISTS form_group_slots (
+  id TEXT PRIMARY KEY,
+  layout_id TEXT NOT NULL REFERENCES form_layouts(id) ON DELETE CASCADE,
+  grouping_id TEXT NOT NULL REFERENCES form_groupings(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL,
+  widget_kind TEXT NOT NULL CHECK (widget_kind IN ('predefined_field', 'song_set_entry', 'announcement_slot')),
+  ref_key TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(grouping_id, sort_order),
+  UNIQUE(layout_id, widget_kind, ref_key)
+);
+
+CREATE TABLE IF NOT EXISTS predefined_fields (
+  id TEXT PRIMARY KEY,
+  variable_name TEXT NOT NULL UNIQUE,
+  shown_text TEXT NOT NULL,
+  field_type TEXT NOT NULL CHECK (field_type IN ('text', 'text_area', 'image')),
+  input_length INTEGER,
+  initial_lines INTEGER,
+  extraction_regex TEXT,
+  seed_key TEXT UNIQUE,
+  is_system INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CHECK (field_type != 'image' OR extraction_regex IS NULL)
+);
+
+CREATE TABLE IF NOT EXISTS service_field_values (
+  service_id TEXT NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+  variable_name TEXT NOT NULL,
+  value_text TEXT NOT NULL DEFAULT '',
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (service_id, variable_name)
+);
+
+CREATE TABLE IF NOT EXISTS service_form_layout_snapshots (
+  service_id TEXT PRIMARY KEY REFERENCES services(id) ON DELETE CASCADE,
+  layout_version INTEGER NOT NULL DEFAULT 1,
+  snapshot_json TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
 
