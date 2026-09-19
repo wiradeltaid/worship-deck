@@ -9,6 +9,34 @@ rtm:
   FR: FR-1
   DEC: []
   UC: UC-1
+  ticket: SPEC-47-01
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-11
+  FR: FR-1
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-47-03
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-11
+  FR: FR-1
+  DEC: []
+  UC: UC-1
   ticket: W10-01
   spec: W10
   release: intake-lyrics
@@ -318,6 +346,48 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-47-04
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-47-05
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-47-06
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops
@@ -480,6 +550,20 @@ rtm:
   FR: FR-13
   DEC: []
   UC: UC-6
+  ticket: SPEC-47-02
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-13
+  DEC: []
+  UC: UC-6
   ticket: W8-04
   spec: W8
   release: hub-service-ops
@@ -562,6 +646,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
+  ticket: SPEC-47-05
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -765,6 +863,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-47-01
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-47-03
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -2448,6 +2574,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-47-02
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-47-06
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -4732,6 +4886,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-47-02
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-47-06
+  spec: SPEC-47
+  release: offline-desktop-inno-setup-and-manual-sync
+  test:
+  - tests/smoke-spec-47.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
