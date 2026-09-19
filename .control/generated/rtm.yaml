@@ -414,6 +414,67 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-49-01
+  spec: SPEC-49
+  release: unified-schedule-workspace-full-prototype
+  test:
+  - src/operator/workspace/MockupCanvasDesignerModal.tsx
+  - tests/smoke-spec-49.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-49-02
+  spec: SPEC-49
+  release: unified-schedule-workspace-full-prototype
+  test:
+  - src/operator/workspace/MockupTimeline.tsx
+  - src/operator/workspace/MockupEditor.tsx
+  - tests/smoke-spec-49.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-49-03
+  spec: SPEC-49
+  release: unified-schedule-workspace-full-prototype
+  test:
+  - src/operator/workspace/MockupDutyRosterDrawer.tsx
+  - tests/smoke-spec-49.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-49-04
+  spec: SPEC-49
+  release: unified-schedule-workspace-full-prototype
+  test:
+  - src/operator/workspace/MockupMediaGalleryDrawer.tsx
+  - tests/smoke-spec-49.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops

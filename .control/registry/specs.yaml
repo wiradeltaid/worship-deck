@@ -2345,6 +2345,54 @@ waves:
           - src/operator/workspace/MockupCanvasPreview.tsx
           - tests/smoke-spec-48.test.mjs
 
+  - id: SPEC-49
+    status: draft
+    release: unified-schedule-workspace-full-prototype
+    prd: [operator-turn, offline-deck]
+    fr: [FR-20, FR-21, FR-32]
+    size: M
+    depends_on: [SPEC-48]
+    spec_folder: .scratch/SPEC-49-unified-schedule-workspace-full-milestone-prototype/
+    spec_reviewed:
+      date: '2026-09-19'
+      sha: 'c6f23ef'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-49-01"
+        component: registry
+        satisfies: [UC-5]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - src/operator/workspace/MockupCanvasDesignerModal.tsx
+          - tests/smoke-spec-49.test.mjs
+      - id: "SPEC-49-02"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-49-01"]
+        touches: [services, artifacts]
+        tests:
+          - src/operator/workspace/MockupTimeline.tsx
+          - src/operator/workspace/MockupEditor.tsx
+          - tests/smoke-spec-49.test.mjs
+      - id: "SPEC-49-03"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-49-02"]
+        touches: [services]
+        tests:
+          - src/operator/workspace/MockupDutyRosterDrawer.tsx
+          - tests/smoke-spec-49.test.mjs
+      - id: "SPEC-49-04"
+        component: registry
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-49-03"]
+        touches: [artifacts, uploads]
+        tests:
+          - src/operator/workspace/MockupMediaGalleryDrawer.tsx
+          - tests/smoke-spec-49.test.mjs
+
+
 
 
 
