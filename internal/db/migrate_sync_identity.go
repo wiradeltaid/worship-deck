@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -133,17 +134,27 @@ func RecordTombstone(handle *sql.DB, globalID, entityType string) error {
 	return err
 }
 
-// RecordTombstoneTx records a deleted entity within an active transaction.
-func RecordTombstoneTx(tx *sql.Tx, globalID, entityType string) error {
+// ExecerContext abstracts both *sql.Tx and *sql.Conn for executing SQL statements.
+type ExecerContext interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// RecordTombstoneExec records a deleted entity within an active transaction or connection.
+func RecordTombstoneExec(ctx context.Context, execer ExecerContext, globalID, entityType string) error {
 	if globalID == "" {
 		return nil
 	}
-	_, err := tx.Exec(`
+	_, err := execer.ExecContext(ctx, `
 		INSERT INTO sync_tombstones (global_id, entity_type, deleted_at, source_rev)
 		VALUES (?, ?, CURRENT_TIMESTAMP, 1)
 		ON CONFLICT(global_id) DO UPDATE SET deleted_at = CURRENT_TIMESTAMP
 	`, globalID, entityType)
 	return err
+}
+
+// RecordTombstoneTx records a deleted entity within an active transaction.
+func RecordTombstoneTx(tx *sql.Tx, globalID, entityType string) error {
+	return RecordTombstoneExec(context.Background(), tx, globalID, entityType)
 }
 
 // GetGlobalID returns the global_id for an entity row.

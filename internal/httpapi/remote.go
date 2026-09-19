@@ -73,8 +73,9 @@ type remoteSessionState struct {
 }
 
 type RemoteHub struct {
-	mu       sync.Mutex
-	sessions map[int]*remoteSessionState // keyed by serviceID
+	mu         sync.Mutex
+	sessions   map[int]*remoteSessionState // keyed by serviceID
+	syncActive bool
 }
 
 var globalRemoteHub = &RemoteHub{
@@ -94,6 +95,69 @@ func (h *RemoteHub) getOrCreateSession(serviceID int) *remoteSessionState {
 		h.sessions[serviceID] = sess
 	}
 	return sess
+}
+
+var testPresenterActiveOverride bool
+var testPresenterOverrideMutex sync.Mutex
+
+// SetActivePresenterForTest allows simulated testing of the Presenter Liveness Guard.
+func SetActivePresenterForTest(active bool) {
+	testPresenterOverrideMutex.Lock()
+	defer testPresenterOverrideMutex.Unlock()
+	testPresenterActiveOverride = active
+}
+
+// HasActivePresenter reports whether any presenter session is actively projecting.
+func (h *RemoteHub) HasActivePresenter() bool {
+	testPresenterOverrideMutex.Lock()
+	if testPresenterActiveOverride {
+		testPresenterOverrideMutex.Unlock()
+		return true
+	}
+	testPresenterOverrideMutex.Unlock()
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, sess := range h.sessions {
+		sess.mu.Lock()
+		activePresenters := len(sess.presenterChans)
+		sess.mu.Unlock()
+		if activePresenters > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// TryAcquireSyncLock atomically checks for active presenters and reserves the sync lock.
+// It returns a release function and true if acquired, or nil and false if a presenter is actively projecting.
+func (h *RemoteHub) TryAcquireSyncLock() (func(), bool) {
+	testPresenterOverrideMutex.Lock()
+	if testPresenterActiveOverride {
+		testPresenterOverrideMutex.Unlock()
+		return nil, false
+	}
+	testPresenterOverrideMutex.Unlock()
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for _, sess := range h.sessions {
+		sess.mu.Lock()
+		active := len(sess.presenterChans)
+		sess.mu.Unlock()
+		if active > 0 {
+			return nil, false
+		}
+	}
+
+	h.syncActive = true
+	release := func() {
+		h.mu.Lock()
+		h.syncActive = false
+		h.mu.Unlock()
+	}
+	return release, true
 }
 
 func format6DigitCode(n int64) string {
@@ -256,6 +320,15 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 
 	ch := make(clientChan, 16)
 	if role == "presenter" {
+		globalRemoteHub.mu.Lock()
+		if globalRemoteHub.syncActive {
+			globalRemoteHub.mu.Unlock()
+			state.mu.Unlock()
+			writeError(w, http.StatusServiceUnavailable, "Sync in progress — presentation stream temporarily delayed")
+			return
+		}
+		globalRemoteHub.mu.Unlock()
+
 		// Close existing presenter streams when same role reconnects
 		for oldCh := range state.presenterChans {
 			close(oldCh)

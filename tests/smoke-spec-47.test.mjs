@@ -672,3 +672,232 @@ test('SPEC-47-04: Executable Absence Guard & Physical Real-File Defect Injection
   assert.deepEqual(fs.readFileSync(songSetPath), originalSongSetBytes, 'song_set_entries.go must be restored byte-for-byte');
   assert.deepEqual(scanTombstoneRecording(fs.readFileSync(servicesPath, 'utf8'), fs.readFileSync(songSetPath, 'utf8')), [], 'Restored files must pass cleanly');
 });
+
+export function scanPresenterLivenessGuard(syncSource) {
+  const findings = [];
+  const pushMatch = syncSource.match(/func\s+\(s\s+\*Server\)\s+syncPush[\s\S]*?(?=\r?\n\/\/ GET \/api\/sync\/pull|\r?\nfunc\s+\(s\s+\*Server\)\s+syncPull)/);
+  if (!pushMatch) {
+    findings.push('Missing syncPush handler in sync.go');
+    return findings;
+  }
+  const pushBody = pushMatch[0];
+  if (!pushBody.includes('globalRemoteHub.TryAcquireSyncLock()')) {
+    findings.push('Missing globalRemoteHub.TryAcquireSyncLock() guard in syncPush body');
+  }
+  if (!pushBody.includes('defer releaseSync()')) {
+    findings.push('syncPush must defer releaseSync() to release presenter synchronization lock');
+  }
+  if (!pushBody.includes('"presenter_active"') || !pushBody.includes('http.StatusConflict')) {
+    findings.push('syncPush must return 409 Conflict with presenter_active error when presenter is projecting');
+  }
+  const lockIndex = pushBody.indexOf('TryAcquireSyncLock');
+  const beginIndex = pushBody.indexOf('BEGIN IMMEDIATE');
+  if (lockIndex !== -1 && beginIndex !== -1 && lockIndex > beginIndex) {
+    findings.push('TryAcquireSyncLock must be called before BEGIN IMMEDIATE transaction start');
+  }
+  return findings;
+}
+
+test('SPEC-47-05: Go HTTP API sync endpoints and TypeScript client export integration', async () => {
+  const syncGoPath = path.join(root, 'internal', 'httpapi', 'sync.go');
+  assert.ok(fs.existsSync(syncGoPath), 'internal/httpapi/sync.go must exist');
+  const syncSource = fs.readFileSync(syncGoPath, 'utf8');
+
+  // Verify syncPush, syncPull, syncStatus
+  assert.match(syncSource, /func \(s \*Server\) syncPush/);
+  assert.match(syncSource, /func \(s \*Server\) syncPull/);
+  assert.match(syncSource, /func \(s \*Server\) syncStatus/);
+
+  // Verify client runner exports
+  const syncClientPath = path.join(root, 'src', 'lib', 'sync', 'client.ts');
+  assert.ok(fs.existsSync(syncClientPath), 'src/lib/sync/client.ts must exist');
+
+  const { pushSync, pullSync, getSyncStatus } = await import('../src/lib/sync/client.ts');
+  assert.strictEqual(typeof pushSync, 'function');
+  assert.strictEqual(typeof pullSync, 'function');
+  assert.strictEqual(typeof getSyncStatus, 'function');
+});
+
+test('SPEC-47-05: Executable Absence Guard & Physical Real-File Defect Injection for Presenter Liveness Guard', () => {
+  const syncPath = path.join(root, 'internal', 'httpapi', 'sync.go');
+  const originalSyncBytes = fs.readFileSync(syncPath);
+  const originalSync = originalSyncBytes.toString('utf8');
+
+  // Baseline: Real file on disk must pass with zero findings
+  assert.deepEqual(scanPresenterLivenessGuard(originalSync), []);
+
+  try {
+    // Physical defect injection 1: Disable TryAcquireSyncLock guard inside syncPush handler
+    const defectiveSync1 = originalSync.replace(
+      'releaseSync, ok := globalRemoteHub.TryAcquireSyncLock()',
+      'releaseSync, ok := func(){}, true /* lock bypassed */'
+    );
+    assert.notEqual(defectiveSync1, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync1, 'utf8');
+
+    const diskSync1 = fs.readFileSync(syncPath, 'utf8');
+    const findings1 = scanPresenterLivenessGuard(diskSync1);
+    assert.ok(
+      findings1.some((f) => f.includes('TryAcquireSyncLock')),
+      'Defect proof 1: Scanner must detect missing TryAcquireSyncLock guard'
+    );
+
+    // Physical defect injection 2: Missing defer releaseSync()
+    const defectiveSync2 = originalSync.replace(
+      'defer releaseSync()',
+      '/* release sync omitted */'
+    );
+    assert.notEqual(defectiveSync2, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync2, 'utf8');
+
+    const diskSync2 = fs.readFileSync(syncPath, 'utf8');
+    const findings2 = scanPresenterLivenessGuard(diskSync2);
+    assert.ok(
+      findings2.some((f) => f.includes('defer releaseSync()')),
+      'Defect proof 2: Scanner must detect missing defer releaseSync()'
+    );
+
+    // Physical defect injection 3: Lock check moved after BEGIN IMMEDIATE
+    const defectiveSync3 = originalSync
+      .replace('releaseSync, ok := globalRemoteHub.TryAcquireSyncLock()', '/* moved */')
+      .replace(
+        'if _, err := conn.ExecContext(r.Context(), `BEGIN IMMEDIATE`); err != nil {',
+        'releaseSync, ok := globalRemoteHub.TryAcquireSyncLock()\n\tif _, err := conn.ExecContext(r.Context(), `BEGIN IMMEDIATE`); err != nil {'
+      );
+    assert.notEqual(defectiveSync3, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync3, 'utf8');
+
+    const diskSync3 = fs.readFileSync(syncPath, 'utf8');
+    const findings3 = scanPresenterLivenessGuard(diskSync3);
+    assert.ok(
+      findings3.some((f) => f.includes('before BEGIN IMMEDIATE')),
+      'Defect proof 3: Scanner must detect TryAcquireSyncLock called after BEGIN IMMEDIATE'
+    );
+  } finally {
+    // Restore pristine file byte-for-byte
+    fs.writeFileSync(syncPath, originalSyncBytes);
+  }
+
+  // Prove byte-for-byte restoration
+  const restoredBytes = fs.readFileSync(syncPath);
+  assert.deepEqual(restoredBytes, originalSyncBytes, 'sync.go must be restored byte-for-byte');
+  const restoredSync = restoredBytes.toString('utf8');
+  assert.deepEqual(scanPresenterLivenessGuard(restoredSync), [], 'Restored sync.go must pass cleanly');
+});
+
+export function scanSyncImmediateAndForeignKeys(syncSource) {
+  const findings = [];
+  const pushMatch = syncSource.match(/func\s+\(s\s+\*Server\)\s+syncPush[\s\S]*?(?=\r?\n\/\/ GET \/api\/sync\/pull|\r?\nfunc\s+\(s\s+\*Server\)\s+syncPull)/);
+  if (!pushMatch) {
+    findings.push('Missing syncPush handler in sync.go');
+    return findings;
+  }
+  const pushBody = pushMatch[0];
+  if (!pushBody.includes('s.DB.Conn(r.Context())')) {
+    findings.push('syncPush must acquire dedicated sql.Conn to ensure transaction connection isolation');
+  }
+  if (!pushBody.includes('BEGIN IMMEDIATE')) {
+    findings.push('syncPush must acquire BEGIN IMMEDIATE transaction on dedicated connection to eliminate concurrency races');
+  }
+  const beginIndex = pushBody.indexOf('BEGIN IMMEDIATE');
+  const idempotencyIndex = pushBody.indexOf('SELECT value FROM sync_state WHERE key = ?');
+  if (beginIndex === -1 || idempotencyIndex === -1 || idempotencyIndex < beginIndex) {
+    findings.push('Idempotency check must occur inside the BEGIN IMMEDIATE transaction');
+  }
+  if (!pushBody.includes('localServiceID = sid')) {
+    findings.push('syncPush must assign resolved service ID via localServiceID = sid');
+  }
+  if (!pushBody.includes('localServiceID, item.SortOrder')) {
+    findings.push('syncPush announcement_items insert must bind resolved localServiceID');
+  }
+
+  // Check pull handler includes LEFT JOIN services
+  const pullMatch = syncSource.match(/func\s+\(s\s+\*Server\)\s+syncPull[\s\S]*?(?=\r?\n\/\/ GET \/api\/sync\/status|\r?\nfunc\s+\(s\s+\*Server\)\s+syncStatus)/);
+  if (!pullMatch) {
+    findings.push('Missing syncPull handler in sync.go');
+    return findings;
+  }
+  const pullBody = pullMatch[0];
+  if (!pullBody.includes('LEFT JOIN services s ON a.service_id = s.id')) {
+    findings.push('syncPull must reconstruct service_global_id via LEFT JOIN services');
+  }
+
+  return findings;
+}
+
+test('SPEC-47-05: Executable Absence Guard & Physical Real-File Defect Injection for BEGIN IMMEDIATE and Service Global ID Mapping', () => {
+  const syncPath = path.join(root, 'internal', 'httpapi', 'sync.go');
+  const originalSyncBytes = fs.readFileSync(syncPath);
+  const originalSync = originalSyncBytes.toString('utf8');
+
+  // Baseline: Real file on disk must pass with zero findings
+  assert.deepEqual(scanSyncImmediateAndForeignKeys(originalSync), []);
+
+  try {
+    // 1. Defect injection: Missing dedicated sql.Conn
+    const defectiveSync1 = originalSync.replace(
+      's.DB.Conn(r.Context())',
+      'nil, errors.New("conn disabled") /* bypass dedicated conn */'
+    );
+    assert.notEqual(defectiveSync1, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync1, 'utf8');
+
+    const diskSync1 = fs.readFileSync(syncPath, 'utf8');
+    const findings1 = scanSyncImmediateAndForeignKeys(diskSync1);
+    assert.ok(
+      findings1.some((f) => f.includes('dedicated sql.Conn')),
+      'Defect proof 1: Scanner must detect missing dedicated sql.Conn'
+    );
+
+    // 2. Defect injection: Missing BEGIN IMMEDIATE (using deferred transaction)
+    const defectiveSync2 = originalSync.replaceAll('BEGIN IMMEDIATE', 'BEGIN DEFERRED');
+    assert.notEqual(defectiveSync2, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync2, 'utf8');
+
+    const diskSync2 = fs.readFileSync(syncPath, 'utf8');
+    const findings2 = scanSyncImmediateAndForeignKeys(diskSync2);
+    assert.ok(
+      findings2.some((f) => f.includes('BEGIN IMMEDIATE')),
+      'Defect proof 2: Scanner must detect missing BEGIN IMMEDIATE'
+    );
+
+    // 3. Defect injection: Missing localServiceID = sid assignment
+    const defectiveSync3 = originalSync.replace(
+      'localServiceID = sid',
+      '/* sid assignment omitted */'
+    );
+    assert.notEqual(defectiveSync3, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync3, 'utf8');
+
+    const diskSync3 = fs.readFileSync(syncPath, 'utf8');
+    const findings3 = scanSyncImmediateAndForeignKeys(diskSync3);
+    assert.ok(
+      findings3.some((f) => f.includes('localServiceID = sid')),
+      'Defect proof 3: Scanner must detect missing localServiceID assignment'
+    );
+
+    // 4. Defect injection: Missing LEFT JOIN services in pull query
+    const defectiveSync4 = originalSync.replace(
+      'LEFT JOIN services s ON a.service_id = s.id',
+      '/* join omitted */'
+    );
+    assert.notEqual(defectiveSync4, originalSync);
+    fs.writeFileSync(syncPath, defectiveSync4, 'utf8');
+
+    const diskSync4 = fs.readFileSync(syncPath, 'utf8');
+    const findings4 = scanSyncImmediateAndForeignKeys(diskSync4);
+    assert.ok(
+      findings4.some((f) => f.includes('LEFT JOIN services')),
+      'Defect proof 4: Scanner must detect missing LEFT JOIN services in pull query'
+    );
+  } finally {
+    // Restore pristine file byte-for-byte
+    fs.writeFileSync(syncPath, originalSyncBytes);
+  }
+
+  // Prove byte-for-byte restoration
+  const restoredBytes = fs.readFileSync(syncPath);
+  assert.deepEqual(restoredBytes, originalSyncBytes, 'sync.go must be restored byte-for-byte');
+  const restoredSync = restoredBytes.toString('utf8');
+  assert.deepEqual(scanSyncImmediateAndForeignKeys(restoredSync), [], 'Restored sync.go must pass cleanly');
+});
