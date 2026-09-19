@@ -1177,6 +1177,31 @@ decisions:
       - src/operator/workspace/MockupEditor.tsx
       - src/operator/workspace/MockupCanvasPreview.tsx
       - tests/smoke-spec-48.test.mjs
+  - id: DEC-050
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-19)"
+    title: Daily Autopilot mandate for Unified Schedule Workspace Full Milestone Prototype (SPEC-49)
+    file: .control/decisions/DEC-050-daily-autopilot-mandate-unified-schedule-workspace-full-prototype.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-26'
+    touches:
+      - .control/memlog/autopilot-DEC-050.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-49-unified-schedule-workspace-full-milestone-prototype/SPEC.md
+      - src/operator/workspace/MockupCanvasDesignerModal.tsx
+      - src/operator/workspace/MockupDutyRosterDrawer.tsx
+      - src/operator/workspace/MockupMediaGalleryDrawer.tsx
+      - src/operator/workspace/MockupTimeline.tsx
+      - src/operator/workspace/MockupEditor.tsx
+      - src/operator/workspace/MockupCanvasPreview.tsx
+      - tests/smoke-spec-49.test.mjs
 
 
 
