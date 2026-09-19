@@ -18,6 +18,8 @@
     "smoke:spec-47": "node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/smoke-spec-47.test.mjs",
     "smoke:spec-46": "node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/smoke-spec-46.test.mjs",
     "smoke:spec-45": "node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/smoke-spec-45.test.mjs",
+    "prepare:desktop": "node scripts/build-desktop.mjs",
+    "package:installer": "node scripts/build-desktop.mjs --installer",
     "setup": "node scripts/setup.mjs",
     "seed:demo": "node scripts/seed-demo.mjs",
     "auth:unlock": "node scripts/auth-unlock.mjs",

@@ -401,3 +401,177 @@ test('SPEC-47-02: Isolated runtime renders PPTX with PATH cleared of system Node
     }
   }
 });
+
+export function scanInnoSetupDataPreservation(issSource) {
+  const findings = [];
+  // Ensure AppMutex includes the expected mutex
+  if (!issSource.includes('Local\\WorshipPresenter.SingleInstance')) {
+    findings.push('Missing Local\\WorshipPresenter.SingleInstance in AppMutex');
+  }
+  // Ensure CloseApplications is enabled
+  if (!/CloseApplications\s*=\s*yes/i.test(issSource)) {
+    findings.push('Inno Setup must configure CloseApplications=yes');
+  }
+  // Guard 1: Inno Setup [UninstallDelete] must never delete {localappdata} or {userappdata}
+  const uninstallDeleteMatch = issSource.match(/\[UninstallDelete\]([\s\S]*?)(\[\w+\]|$)/);
+  if (uninstallDeleteMatch) {
+    const section = uninstallDeleteMatch[1];
+    const uncommentedLines = section
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith(';'));
+    for (const line of uncommentedLines) {
+      if (/\{localappdata\}|\{userappdata\}/i.test(line)) {
+        findings.push(`UninstallDelete directive violates data preservation: ${line}`);
+      }
+    }
+  }
+  // Guard 2: Inno Setup [Code] must never invoke destructive procedures on user data directory
+  const codeMatch = issSource.match(/\[Code\]([\s\S]*$)/);
+  if (codeMatch) {
+    const codeSection = codeMatch[1];
+    const destructiveCalls = [
+      /\bDelTree\s*\([^)]*(?:DataDir|localappdata|userappdata|WorshipPresenter)/i,
+      /\bRemoveDir\s*\([^)]*(?:DataDir|localappdata|userappdata|WorshipPresenter)/i,
+      /\bDeleteFile\s*\([^)]*(?:DataDir|localappdata|userappdata|WorshipPresenter|data\.db)/i,
+    ];
+    for (const pattern of destructiveCalls) {
+      if (pattern.test(codeSection)) {
+        findings.push('Pascal script [Code] violates data preservation by invoking destructive deletion routines on user data directory');
+      }
+    }
+  }
+  return findings;
+}
+
+test('SPEC-47-03: Inno Setup script and desktop packaging pipeline integration', () => {
+  const issPath = path.join(root, 'installer', 'worship-presenter.iss');
+  assert.ok(fs.existsSync(issPath), 'installer/worship-presenter.iss must exist');
+  const issSource = fs.readFileSync(issPath, 'utf8');
+
+  // Verify setup metadata
+  assert.match(issSource, /MyAppName "Worship Presenter Web"/);
+  assert.match(issSource, /AppName=\{#MyAppName\}/);
+  assert.match(issSource, /worship-presenter\.exe/);
+  assert.match(issSource, /AppMutex=Local\\WorshipPresenter\.SingleInstance/);
+  assert.match(issSource, /CloseApplications=yes/);
+
+  // Verify build script exists and is wired
+  const buildScriptPath = path.join(root, 'scripts', 'build-desktop.mjs');
+  assert.ok(fs.existsSync(buildScriptPath), 'scripts/build-desktop.mjs must exist');
+  const buildSource = fs.readFileSync(buildScriptPath, 'utf8');
+  assert.match(buildSource, /spa:build/);
+  assert.match(buildSource, /stagePortableNode/);
+  assert.match(buildSource, /ISCC/);
+  assert.match(buildSource, /requireInstaller/);
+});
+
+test('SPEC-47-03: Executable Absence Guard & Physical Real-File Defect Injection for Inno Setup Data Preservation', () => {
+  const issPath = path.join(root, 'installer', 'worship-presenter.iss');
+  const originalBytes = fs.readFileSync(issPath);
+  const originalSource = originalBytes.toString('utf8');
+
+  // Baseline: Real file on disk must pass with zero findings
+  assert.deepEqual(scanInnoSetupDataPreservation(originalSource), []);
+
+  try {
+    // Physical defect injection 1: Accidental deletion of user localappdata in [UninstallDelete]
+    const defectiveSource1 = originalSource.replace(
+      '[UninstallDelete]',
+      '[UninstallDelete]\nType: filesandordirs; Name: "{localappdata}\\WorshipPresenter"'
+    );
+    assert.notEqual(defectiveSource1, originalSource);
+    fs.writeFileSync(issPath, defectiveSource1, 'utf8');
+
+    const diskSource1 = fs.readFileSync(issPath, 'utf8');
+    const defectFindings1 = scanInnoSetupDataPreservation(diskSource1);
+    assert.ok(
+      defectFindings1.some((f) => f.includes('violates data preservation')),
+      'Defect proof 1: Scanner must detect deletion of user data in UninstallDelete'
+    );
+
+    // Physical defect injection 2: Missing CloseApplications=yes
+    const defectiveSource2 = originalSource.replace(
+      'CloseApplications=yes',
+      'CloseApplications=no'
+    );
+    assert.notEqual(defectiveSource2, originalSource);
+    fs.writeFileSync(issPath, defectiveSource2, 'utf8');
+
+    const diskSource2 = fs.readFileSync(issPath, 'utf8');
+    const defectFindings2 = scanInnoSetupDataPreservation(diskSource2);
+    assert.ok(
+      defectFindings2.some((f) => f.includes('CloseApplications=yes')),
+      'Defect proof 2: Scanner must detect missing CloseApplications=yes'
+    );
+
+    // Physical defect injection 3: Missing/corrupted Local AppMutex
+    const defectiveSource3 = originalSource.replace(
+      'Local\\WorshipPresenter.SingleInstance',
+      'SomeOtherApp.Mutex'
+    );
+    assert.notEqual(defectiveSource3, originalSource);
+    fs.writeFileSync(issPath, defectiveSource3, 'utf8');
+
+    const diskSource3 = fs.readFileSync(issPath, 'utf8');
+    const defectFindings3 = scanInnoSetupDataPreservation(diskSource3);
+    assert.ok(
+      defectFindings3.some((f) => f.includes('Missing Local\\WorshipPresenter.SingleInstance')),
+      'Defect proof 3: Scanner must detect missing Local AppMutex'
+    );
+
+    // Physical defect injection 4: Destructive Pascal Script in [Code] invoking DelTree
+    const defectiveSource4 = originalSource.replace(
+      'Log(\'Data preservation invariant: Preserving user data directory at \' + DataDir);',
+      'DelTree(DataDir, True, True, True);'
+    );
+    assert.notEqual(defectiveSource4, originalSource);
+    fs.writeFileSync(issPath, defectiveSource4, 'utf8');
+
+    const diskSource4 = fs.readFileSync(issPath, 'utf8');
+    const defectFindings4 = scanInnoSetupDataPreservation(diskSource4);
+    assert.ok(
+      defectFindings4.some((f) => f.includes('Pascal script [Code] violates data preservation')),
+      'Defect proof 4: Scanner must detect destructive Pascal Script DelTree call'
+    );
+
+    // Physical defect injection 5: Destructive Pascal Script in [Code] invoking RemoveDir
+    const defectiveSource5 = originalSource.replace(
+      'Log(\'Data preservation invariant: Preserving user data directory at \' + DataDir);',
+      'RemoveDir(DataDir);'
+    );
+    assert.notEqual(defectiveSource5, originalSource);
+    fs.writeFileSync(issPath, defectiveSource5, 'utf8');
+
+    const diskSource5 = fs.readFileSync(issPath, 'utf8');
+    const defectFindings5 = scanInnoSetupDataPreservation(diskSource5);
+    assert.ok(
+      defectFindings5.some((f) => f.includes('Pascal script [Code] violates data preservation')),
+      'Defect proof 5: Scanner must detect destructive Pascal Script RemoveDir call'
+    );
+
+    // Physical defect injection 6: Destructive Pascal Script in [Code] invoking DeleteFile
+    const defectiveSource6 = originalSource.replace(
+      'Log(\'Data preservation invariant: Preserving user data directory at \' + DataDir);',
+      'DeleteFile(DataDir + \'\\data.db\');'
+    );
+    assert.notEqual(defectiveSource6, originalSource);
+    fs.writeFileSync(issPath, defectiveSource6, 'utf8');
+
+    const diskSource6 = fs.readFileSync(issPath, 'utf8');
+    const defectFindings6 = scanInnoSetupDataPreservation(diskSource6);
+    assert.ok(
+      defectFindings6.some((f) => f.includes('Pascal script [Code] violates data preservation')),
+      'Defect proof 6: Scanner must detect destructive Pascal Script DeleteFile call'
+    );
+  } finally {
+    // Always restore pristine file on disk byte-for-byte
+    fs.writeFileSync(issPath, originalBytes);
+  }
+
+  // Prove byte-for-byte restoration
+  const restoredBytes = fs.readFileSync(issPath);
+  assert.deepEqual(restoredBytes, originalBytes, 'installer/worship-presenter.iss must be restored byte-for-byte');
+  const restoredSource = restoredBytes.toString('utf8');
+  assert.deepEqual(scanInnoSetupDataPreservation(restoredSource), [], 'Restored file must pass cleanly');
+});
