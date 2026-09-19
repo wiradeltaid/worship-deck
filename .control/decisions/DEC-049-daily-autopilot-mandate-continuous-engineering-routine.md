@@ -1,7 +1,8 @@
 ---
 type: mandate
 id: DEC-049
-status: accepted
+status: applied
+applied_at: '2026-09-19'
 accepted_by: 'kodesh87 (2026-09-19)'
 touches:
   - .control/memlog/autopilot-DEC-049.md
