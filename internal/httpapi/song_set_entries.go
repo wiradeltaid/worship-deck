@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
 	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
@@ -543,4 +544,59 @@ func (s *Server) resetSongSetLayout(w http.ResponseWriter, r *http.Request) {
 	var out any
 	_ = json.Unmarshal(payload, &out)
 	writeJSON(w, http.StatusOK, map[string]any{"role": role, "layout": out, "updatedAt": now})
+}
+
+func (s *Server) updateSongSetEntryExtractionRegex(w http.ResponseWriter, r *http.Request) {
+	if !requireAdmin(w, r) {
+		return
+	}
+
+	variableName := strings.TrimSpace(r.PathValue("variableName"))
+	if variableName == "" {
+		writeError(w, http.StatusBadRequest, "variableName is required")
+		return
+	}
+
+	var req struct {
+		ExtractionRegex string `json:"extraction_regex"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	pattern := strings.TrimSpace(req.ExtractionRegex)
+	if pattern != "" {
+		if _, err := parse.ValidateAndTranslateRegex(pattern); err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid regex pattern: %v", err))
+			return
+		}
+	}
+
+	var sqlVal any = pattern
+	if pattern == "" {
+		sqlVal = nil
+	}
+
+	res, err := s.DB.Exec(`
+		UPDATE song_set_entries
+		SET extraction_regex = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE variable_name = ?
+	`, sqlVal, variableName)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update song set entry regex: %v", err))
+		return
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("Song set entry with variable_name %q not found", variableName))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":               true,
+		"variable_name":    variableName,
+		"extraction_regex": sqlVal,
+	})
 }

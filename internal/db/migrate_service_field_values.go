@@ -83,6 +83,22 @@ func BuildFormLayoutSnapshot(handle *sql.DB, layoutID string) (string, error) {
 		sRows.Close()
 	}
 
+	pfRows, err := handle.Query(`
+		SELECT id, variable_name, shown_text, field_type, input_length, initial_lines, extraction_regex, seed_key, is_system, is_active, created_at, updated_at
+		FROM predefined_fields
+		WHERE is_active = 1
+		ORDER BY created_at ASC
+	`)
+	if err == nil {
+		defer pfRows.Close()
+		for pfRows.Next() {
+			var pf PredefinedField
+			if err := pfRows.Scan(&pf.ID, &pf.VariableName, &pf.ShownText, &pf.FieldType, &pf.InputLength, &pf.InitialLines, &pf.ExtractionRegex, &pf.SeedKey, &pf.IsSystem, &pf.IsActive, &pf.CreatedAt, &pf.UpdatedAt); err == nil {
+				layout.PredefinedFields = append(layout.PredefinedFields, pf)
+			}
+		}
+	}
+
 	b, err := json.Marshal(layout)
 	if err != nil {
 		return "", err

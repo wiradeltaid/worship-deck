@@ -68,14 +68,15 @@ type FormGrouping struct {
 }
 
 type FormLayout struct {
-	ID          string         `json:"id"`
-	Title       string         `json:"title"`
-	Description string         `json:"description"`
-	IsActive    int            `json:"is_active"`
-	Version     int            `json:"version"`
-	CreatedAt   string         `json:"created_at"`
-	UpdatedAt   string         `json:"updated_at"`
-	Groupings   []FormGrouping `json:"groupings,omitempty"`
+	ID               string            `json:"id"`
+	Title            string            `json:"title"`
+	Description      string            `json:"description"`
+	IsActive         int               `json:"is_active"`
+	Version          int               `json:"version"`
+	CreatedAt        string            `json:"created_at"`
+	UpdatedAt        string            `json:"updated_at"`
+	Groupings        []FormGrouping    `json:"groupings,omitempty"`
+	PredefinedFields []PredefinedField `json:"predefined_fields,omitempty"`
 }
 
 type SeedReport struct {

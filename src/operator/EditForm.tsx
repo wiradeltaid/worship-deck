@@ -107,7 +107,11 @@ export default function EditForm({
     if (initialLayoutSnapshot && typeof initialLayoutSnapshot === 'object') {
       const snap = initialLayoutSnapshot as Partial<FormLayoutData>;
       if (Array.isArray(snap.groupings) && snap.groupings.length > 0) {
-        return snap as FormLayoutData;
+        return {
+          layout: snap.layout || { id: 'default-layout', title: 'Default', description: '', is_active: 1, version: 1 },
+          groupings: snap.groupings,
+          predefined_fields: Array.isArray(snap.predefined_fields) ? snap.predefined_fields : [],
+        };
       }
     }
     return null;
@@ -127,7 +131,15 @@ export default function EditForm({
       const res = await fetch('/api/worship-form-layout');
       if (res.ok) {
         const data = (await res.json()) as FormLayoutData;
-        setLayoutData(data);
+        setLayoutData((prev) => {
+          if (prev && prev.groupings && prev.groupings.length > 0) {
+            return {
+              ...prev,
+              predefined_fields: data.predefined_fields || [],
+            };
+          }
+          return data;
+        });
       }
     } catch {
       // ignore
@@ -278,7 +290,7 @@ export default function EditForm({
         } catch {
           // ignore
         }
-        if (!layoutData) {
+        if (!layoutData || !layoutData.predefined_fields || layoutData.predefined_fields.length === 0) {
           void fetchLayout();
         }
       } catch {

@@ -162,7 +162,7 @@ export function DynamicFormBody({
 
   const fieldDefsByVarName = React.useMemo(() => {
     const map = new Map<string, PredefinedFieldDef>();
-    for (const f of layoutData.predefined_fields) {
+    for (const f of (layoutData.predefined_fields || [])) {
       map.set(f.variable_name, f);
     }
     return map;
@@ -372,7 +372,7 @@ export function DynamicFormBody({
       )}
 
       {/* Render each Card Grouping */}
-      {layoutData.groupings.map((grouping, groupIdx) => (
+      {(layoutData.groupings || []).map((grouping, groupIdx) => (
         <Card
           key={grouping.id}
           className="border-border/80 shadow-md bg-card/60 backdrop-blur-md"
