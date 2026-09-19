@@ -9,11 +9,11 @@ Implement the standalone desktop runtime launcher and environment resolution in 
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Add CLI flag `--data-dir` and env var `DATA_DIR` parsing in `cmd/api/main.go`, defaulting to `%LocalAppData%\WorshipPresenter` on Windows when running as installed binary.
-- [ ] Implement single-instance Windows Named Mutex check in `cmd/api` using `golang.org/x/sys/windows`.
-- [ ] Implement fallback port listener scanning range `3000-3010` when port 3000 is occupied, logging chosen address.
-- [ ] Implement automatic browser opener on first startup launching the resolved loopback URL.
-- [ ] Add unit and integration tests verifying loopback binding, data directory fallback, and mutex behavior.
-- [ ] Human verification check: Start the executable twice in succession; verify that the second invocation exits cleanly without error while focusing the browser on the primary instance.
+- [x] Add CLI flag `--data-dir` and env var `DATA_DIR` parsing in `cmd/api/main.go`, defaulting to `%LocalAppData%\WorshipPresenter` on Windows when running as installed binary.
+- [x] Implement single-instance Windows Named Mutex check in `cmd/api` using `golang.org/x/sys/windows`.
+- [x] Implement fallback port listener scanning range `3000-3010` when port 3000 is occupied, logging chosen address.
+- [x] Implement automatic browser opener on first startup launching the resolved loopback URL.
+- [x] Add unit and integration tests verifying loopback binding, data directory fallback, and mutex behavior.
+- [x] Human verification check: Start the executable twice in succession; verify that the second invocation exits cleanly without error while focusing the browser on the primary instance.

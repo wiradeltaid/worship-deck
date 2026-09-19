@@ -261,6 +261,7 @@ func (s *Server) fallback(w http.ResponseWriter, r *http.Request) {
 	rel := strings.TrimPrefix(r.URL.Path, "/")
 	candidates := []string{
 		filepath.Join(s.Root, "spa", "dist", rel),
+		filepath.Join(s.Root, "dist", rel),
 		filepath.Join(s.Root, "public", rel),
 		filepath.Join(s.Root, "spa", rel),
 	}
@@ -268,6 +269,7 @@ func (s *Server) fallback(w http.ResponseWriter, r *http.Request) {
 		strings.HasPrefix(rel, "admin") || strings.HasSuffix(rel, "/") {
 		candidates = append([]string{
 			filepath.Join(s.Root, "spa", "dist", indexName),
+			filepath.Join(s.Root, "dist", indexName),
 			filepath.Join(s.Root, "spa", indexName),
 			filepath.Join(s.Root, "public", "index.html"),
 		}, candidates...)
