@@ -17,7 +17,7 @@ import (
 	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
-var uploadRef = regexp.MustCompile(`(?i)^[a-f0-9]{32}\.(jpe?g|png|gif|webp)$`)
+var uploadRef = regexp.MustCompile(`(?i)^[a-f0-9]{32,64}\.(jpe?g|png|gif|webp|bin|ttf|otf|woff2?)$`)
 
 func uploadsDir() string {
 	if d := strings.TrimSpace(os.Getenv("UPLOADS_DIR")); d != "" {

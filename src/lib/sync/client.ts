@@ -154,3 +154,77 @@ export async function getSyncStatus(
   }
   return (await res.json()) as SyncStatusResponse;
 }
+
+export interface SyncAssetsCheckResponse {
+  missing: string[];
+}
+
+export interface SyncAssetUploadResponse {
+  ok: boolean;
+  sha256: string;
+  url: string;
+  filename: string;
+}
+
+export async function checkSyncAssets(
+  baseUrl: string,
+  hashes: string[],
+  headers: Record<string, string> = {}
+): Promise<SyncAssetsCheckResponse> {
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/sync/assets/check`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+    body: JSON.stringify({ hashes }),
+  });
+  if (!res.ok) {
+    throw new Error(`Check sync assets failed with status ${res.status}`);
+  }
+  return (await res.json()) as SyncAssetsCheckResponse;
+}
+
+export async function uploadSyncAsset(
+  baseUrl: string,
+  fileBytes: Uint8Array | ArrayBuffer,
+  sha256: string,
+  filename = '',
+  headers: Record<string, string> = {}
+): Promise<SyncAssetUploadResponse> {
+  const query = filename ? `?filename=${encodeURIComponent(filename)}` : '';
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/sync/assets/upload${query}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Content-SHA256': sha256,
+      'Content-Type': 'application/octet-stream',
+      ...headers,
+    },
+    body: fileBytes,
+  });
+  if (!res.ok) {
+    throw new Error(`Upload sync asset failed with status ${res.status}`);
+  }
+  return (await res.json()) as SyncAssetUploadResponse;
+}
+
+export async function downloadSyncAsset(
+  baseUrl: string,
+  sha256: string,
+  headers: Record<string, string> = {}
+): Promise<ArrayBuffer> {
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/sync/assets/${encodeURIComponent(sha256)}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      ...headers,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Download sync asset failed with status ${res.status}`);
+  }
+  return await res.arrayBuffer();
+}
+

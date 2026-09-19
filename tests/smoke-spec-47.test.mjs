@@ -901,3 +901,201 @@ test('SPEC-47-05: Executable Absence Guard & Physical Real-File Defect Injection
   const restoredSync = restoredBytes.toString('utf8');
   assert.deepEqual(scanSyncImmediateAndForeignKeys(restoredSync), [], 'Restored sync.go must pass cleanly');
 });
+
+export function scanAdminSyncUIAbsenceOfTimers(source) {
+  const findings = [];
+  if (source.includes('setInterval')) {
+    findings.push('AdminSyncPage must not contain setInterval or automatic background sync timers');
+  }
+  // Check that on-demand buttons exist
+  if (!source.includes('Push to Cloud') || !source.includes('Pull from Cloud')) {
+    findings.push('AdminSyncPage must provide explicit on-demand Push to Cloud and Pull from Cloud buttons');
+  }
+  return findings;
+}
+
+export function scanConflictModalOptions(source) {
+  const findings = [];
+  if (!source.includes('Keep Local Version')) {
+    findings.push('Conflict resolution dialog must provide "Keep Local Version" option');
+  }
+  if (!source.includes('Use Cloud Version')) {
+    findings.push('Conflict resolution dialog must provide "Use Cloud Version" option');
+  }
+  if (!source.includes('Save Both (Duplicate)')) {
+    findings.push('Conflict resolution dialog must provide "Save Both (Duplicate)" option');
+  }
+  return findings;
+}
+
+test('SPEC-47-06: Content-addressed media sync endpoints and TypeScript client exports', async () => {
+  const syncAssetsGoPath = path.join(root, 'internal', 'httpapi', 'sync_assets.go');
+  assert.ok(fs.existsSync(syncAssetsGoPath), 'internal/httpapi/sync_assets.go must exist');
+  const syncAssetsSource = fs.readFileSync(syncAssetsGoPath, 'utf8');
+
+  // Verify SHA256 content-addressing handlers
+  assert.match(syncAssetsSource, /func \(s \*Server\) syncAssetsCheck/);
+  assert.match(syncAssetsSource, /func \(s \*Server\) syncAssetUpload/);
+  assert.match(syncAssetsSource, /func \(s \*Server\) syncAssetDownload/);
+  assert.match(syncAssetsSource, /X-Content-SHA256/);
+
+  // Verify TypeScript client asset exports
+  const { checkSyncAssets, uploadSyncAsset, downloadSyncAsset } = await import('../src/lib/sync/client.ts');
+  assert.strictEqual(typeof checkSyncAssets, 'function');
+  assert.strictEqual(typeof uploadSyncAsset, 'function');
+  assert.strictEqual(typeof downloadSyncAsset, 'function');
+});
+
+test('SPEC-47-06: Admin Sync UI structure, routes, and on-demand trigger controls', () => {
+  const syncPagePath = path.join(root, 'spa', 'src', 'pages', 'AdminSyncPage.tsx');
+  assert.ok(fs.existsSync(syncPagePath), 'spa/src/pages/AdminSyncPage.tsx must exist');
+  const syncPageSource = fs.readFileSync(syncPagePath, 'utf8');
+
+  // Verify status cards and triggers
+  assert.match(syncPageSource, /Push to Cloud/);
+  assert.match(syncPageSource, /Pull from Cloud/);
+  assert.match(syncPageSource, /Last Synced/);
+  assert.match(syncPageSource, /Tombstones/);
+
+  // Verify route registration in App.tsx
+  const appPath = path.join(root, 'spa', 'src', 'App.tsx');
+  const appSource = fs.readFileSync(appPath, 'utf8');
+  assert.match(appSource, /path="\/admin\/sync"/);
+  assert.match(appSource, /<AdminSyncPage/);
+
+  // Verify nav link in Header.tsx
+  const headerPath = path.join(root, 'src', 'components', 'Header.tsx');
+  const headerSource = fs.readFileSync(headerPath, 'utf8');
+  assert.match(headerSource, /href="\/admin\/sync"/);
+});
+
+test('SPEC-47-06: Executable Absence Guard & Physical Real-File Defect Injection for No Background Timers & Conflict Modal Options', () => {
+  const syncPagePath = path.join(root, 'spa', 'src', 'pages', 'AdminSyncPage.tsx');
+  const originalBytes = fs.readFileSync(syncPagePath);
+  const originalSource = originalBytes.toString('utf8');
+
+  // Baseline: Real file on disk must pass with zero findings
+  assert.deepEqual(scanAdminSyncUIAbsenceOfTimers(originalSource), []);
+  assert.deepEqual(scanConflictModalOptions(originalSource), []);
+
+  try {
+    // 1. Defect injection: Accidental setInterval background polling timer
+    const defectiveSource1 = originalSource.replace(
+      'useEffect(() => {',
+      'useEffect(() => {\n    setInterval(() => { void handlePull(); }, 5000);'
+    );
+    assert.notEqual(defectiveSource1, originalSource);
+    fs.writeFileSync(syncPagePath, defectiveSource1, 'utf8');
+
+    const diskSource1 = fs.readFileSync(syncPagePath, 'utf8');
+    const findings1 = scanAdminSyncUIAbsenceOfTimers(diskSource1);
+    assert.ok(
+      findings1.some((f) => f.includes('setInterval')),
+      'Defect proof 1: Scanner must detect forbidden setInterval background timer'
+    );
+
+    // 2. Defect injection: Missing "Save Both (Duplicate)" conflict option
+    const defectiveSource2 = originalSource.replace(
+      'Save Both (Duplicate)',
+      '/* save both removed */'
+    );
+    assert.notEqual(defectiveSource2, originalSource);
+    fs.writeFileSync(syncPagePath, defectiveSource2, 'utf8');
+
+    const diskSource2 = fs.readFileSync(syncPagePath, 'utf8');
+    const findings2 = scanConflictModalOptions(diskSource2);
+    assert.ok(
+      findings2.some((f) => f.includes('Save Both (Duplicate)')),
+      'Defect proof 2: Scanner must detect missing "Save Both (Duplicate)" conflict option'
+    );
+  } finally {
+    // Restore pristine file byte-for-byte
+    fs.writeFileSync(syncPagePath, originalBytes);
+  }
+
+  // Prove byte-for-byte restoration
+  const restoredBytes = fs.readFileSync(syncPagePath);
+  assert.deepEqual(restoredBytes, originalBytes, 'AdminSyncPage.tsx must be restored byte-for-byte');
+  const restoredSource = restoredBytes.toString('utf8');
+  assert.deepEqual(scanAdminSyncUIAbsenceOfTimers(restoredSource), [], 'Restored file must pass timer check');
+  assert.deepEqual(scanConflictModalOptions(restoredSource), [], 'Restored file must pass conflict options check');
+});
+
+export function scanSyncAssetsGuards(source) {
+  const findings = [];
+  if (!source.includes('X-Content-SHA256 header is required')) {
+    findings.push('syncAssetUpload must require X-Content-SHA256 header');
+  }
+  if (!source.includes('findAssetBySHA256(dir, expectedHash)')) {
+    findings.push('syncAssetUpload must short-circuit deduplicated uploads when hash already exists');
+  }
+  if (!source.includes('os.CreateTemp(dir, "upload-*.tmp")')) {
+    findings.push('syncAssetUpload must write atomically via unique os.CreateTemp file');
+  }
+  return findings;
+}
+
+test('SPEC-47-06: Executable Absence Guard & Physical Real-File Defect Injection for Content-Addressing, Deduplication, and Atomic Temp Files', () => {
+  const syncAssetsPath = path.join(root, 'internal', 'httpapi', 'sync_assets.go');
+  const originalBytes = fs.readFileSync(syncAssetsPath);
+  const originalSource = originalBytes.toString('utf8');
+
+  // Baseline: Real file on disk must pass with zero findings
+  assert.deepEqual(scanSyncAssetsGuards(originalSource), []);
+
+  try {
+    // 1. Defect injection: Missing X-Content-SHA256 requirement
+    const defectiveSource1 = originalSource.replace(
+      'X-Content-SHA256 header is required',
+      '/* optional sha header */'
+    );
+    assert.notEqual(defectiveSource1, originalSource);
+    fs.writeFileSync(syncAssetsPath, defectiveSource1, 'utf8');
+
+    const diskSource1 = fs.readFileSync(syncAssetsPath, 'utf8');
+    const findings1 = scanSyncAssetsGuards(diskSource1);
+    assert.ok(
+      findings1.some((f) => f.includes('X-Content-SHA256 header')),
+      'Defect proof 1: Scanner must detect missing X-Content-SHA256 header requirement'
+    );
+
+    // 2. Defect injection: Missing deduplication short-circuit
+    const defectiveSource2 = originalSource.replace(
+      'findAssetBySHA256(dir, expectedHash)',
+      '/* dedup bypassed */ "", os.ErrNotExist'
+    );
+    assert.notEqual(defectiveSource2, originalSource);
+    fs.writeFileSync(syncAssetsPath, defectiveSource2, 'utf8');
+
+    const diskSource2 = fs.readFileSync(syncAssetsPath, 'utf8');
+    const findings2 = scanSyncAssetsGuards(diskSource2);
+    assert.ok(
+      findings2.some((f) => f.includes('short-circuit deduplicated uploads')),
+      'Defect proof 2: Scanner must detect missing deduplication short-circuit'
+    );
+
+    // 3. Defect injection: Non-atomic / non-unique temp file write (using fixed temp name)
+    const defectiveSource3 = originalSource.replace(
+      'os.CreateTemp(dir, "upload-*.tmp")',
+      '/* non-unique temp */ nil, errors.New("static")'
+    );
+    assert.notEqual(defectiveSource3, originalSource);
+    fs.writeFileSync(syncAssetsPath, defectiveSource3, 'utf8');
+
+    const diskSource3 = fs.readFileSync(syncAssetsPath, 'utf8');
+    const findings3 = scanSyncAssetsGuards(diskSource3);
+    assert.ok(
+      findings3.some((f) => f.includes('os.CreateTemp')),
+      'Defect proof 3: Scanner must detect missing os.CreateTemp atomic file creation'
+    );
+  } finally {
+    // Restore pristine file byte-for-byte
+    fs.writeFileSync(syncAssetsPath, originalBytes);
+  }
+
+  // Prove byte-for-byte restoration
+  const restoredBytes = fs.readFileSync(syncAssetsPath);
+  assert.deepEqual(restoredBytes, originalBytes, 'sync_assets.go must be restored byte-for-byte');
+  const restoredSource = restoredBytes.toString('utf8');
+  assert.deepEqual(scanSyncAssetsGuards(restoredSource), [], 'Restored sync_assets.go must pass cleanly');
+});

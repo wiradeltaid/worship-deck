@@ -110,9 +110,17 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
                 {t('chrome.nav.artifacts')}
               </CustomLink>
               <CustomLink
+                href="/admin/sync"
+                className={getLinkClass(pathname.startsWith('/admin/sync'))}
+              >
+                Sync
+              </CustomLink>
+              <CustomLink
                 href="/admin"
                 className={getLinkClass(
-                  pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
+                  pathname.startsWith('/admin') &&
+                    !pathname.startsWith('/admin/artifacts') &&
+                    !pathname.startsWith('/admin/sync')
                 )}
               >
                 {t('chrome.nav.settings')}
