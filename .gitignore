@@ -133,3 +133,7 @@ data.db.bak-*
 /.what-rendered/
 /.how-rendered/
 
+# Ephemeral execution scratch and raw tool dumps
+.work/*.txt
+.work/*.log
+.work/tmp/
