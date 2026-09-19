@@ -1125,6 +1125,33 @@ decisions:
       - src/components/admin/RegistryAdmin.tsx
       - tests/smoke-spec-46.test.mjs
       - package.json
+  - id: DEC-048
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-19)"
+    title: Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-47)
+    file: .control/decisions/DEC-048-daily-autopilot-mandate-continuous-engineering-routine.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-26'
+    touches:
+      - .control/memlog/autopilot-DEC-048.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-47-offline-desktop-inno-setup-and-manual-sync/SPEC.md
+      - cmd/api/main.go
+      - cmd/desktop/main.go
+      - internal/db
+      - internal/httpapi
+      - internal/sync
+      - scripts/build-desktop.mjs
+      - installer/worship-presenter.iss
+      - src/components/admin
+      - tests/smoke-spec-47.test.mjs
 
 
 
