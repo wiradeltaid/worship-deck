@@ -315,20 +315,21 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 		state.mu.Unlock()
 	}
 
+	if role == "presenter" {
+		globalRemoteHub.mu.Lock()
+		if globalRemoteHub.syncActive {
+			globalRemoteHub.mu.Unlock()
+			writeError(w, http.StatusServiceUnavailable, "Sync in progress — presentation stream temporarily delayed")
+			return
+		}
+		globalRemoteHub.mu.Unlock()
+	}
+
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 	state.mu.Lock()
 
 	ch := make(clientChan, 16)
 	if role == "presenter" {
-		globalRemoteHub.mu.Lock()
-		if globalRemoteHub.syncActive {
-			globalRemoteHub.mu.Unlock()
-			state.mu.Unlock()
-			writeError(w, http.StatusServiceUnavailable, "Sync in progress — presentation stream temporarily delayed")
-			return
-		}
-		globalRemoteHub.mu.Unlock()
-
 		// Close existing presenter streams when same role reconnects
 		for oldCh := range state.presenterChans {
 			close(oldCh)

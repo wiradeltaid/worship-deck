@@ -110,7 +110,10 @@ export async function pushSync(
     if (res.status === 409 && data.error === 'presenter_active') {
       throw new Error('Presenter actively projecting — sync paused until presentation completes');
     }
-    throw new Error(data.message || `Sync push failed with status ${res.status}`);
+    const err = new Error(data.message || `Sync push failed with status ${res.status}`);
+    (err as any).conflict = data;
+    (err as any).status = res.status;
+    throw err;
   }
   return data;
 }

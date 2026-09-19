@@ -217,15 +217,24 @@ export default function AdminSyncPage() {
           text: `Pull completed successfully! Applied ${applyRes.applied_count ?? 0} updates from cloud.`,
         });
       } catch (applyErr: any) {
-        if (applyErr.message?.includes('newer remote edits') || applyErr.message?.includes('conflict')) {
-          // Open interactive conflict resolution modal
+        if (applyErr.conflict || applyErr.message?.includes('newer remote edits') || applyErr.message?.includes('conflict')) {
+          // Open interactive conflict resolution modal with real conflicting entity data
+          const conf = applyErr.conflict || {};
+          const confGid = conf.global_id;
+          let localSvc: any = null;
+          try {
+            const localPull = await pullSync(window.location.origin);
+            localSvc = (localPull.changes.services as any[])?.find((s) => !confGid || s.global_id === confGid);
+          } catch {}
+          const remoteSvc = (remoteData.changes.services as any[])?.find((s) => !confGid || s.global_id === confGid);
+
           setActiveConflict({
-            global_id: 'conflict-service',
-            date: new Date().toISOString().split('T')[0],
-            local_updated_at: new Date().toISOString(),
-            server_updated_at: remoteData.server_timestamp,
-            local_payload: 'Local modified worship service',
-            server_payload: 'Cloud modified worship service',
+            global_id: confGid || localSvc?.global_id || remoteSvc?.global_id || 'conflict-service',
+            date: localSvc?.date || remoteSvc?.date || new Date().toISOString().split('T')[0],
+            local_updated_at: localSvc?.updated_at || new Date().toISOString(),
+            server_updated_at: conf.server_updated_at || remoteSvc?.updated_at || remoteData.server_timestamp,
+            local_payload: localSvc?.raw_payload || 'Local modified worship service',
+            server_payload: remoteSvc?.raw_payload || 'Cloud modified worship service',
           });
           setConflictModalOpen(true);
           return;
@@ -249,7 +258,7 @@ export default function AdminSyncPage() {
     try {
       const nowStr = new Date().toISOString();
       const payload: SyncPushPayload = {
-        client_device_id: status?.device_id || getOrCreateDeviceId(),
+        client_device_id: getOrCreateDeviceId(),
         mutation_id: 'resolve-local-' + Date.now(),
         mutations: {
           services: [
@@ -285,7 +294,7 @@ export default function AdminSyncPage() {
     setSyncing(true);
     try {
       const payload: SyncPushPayload = {
-        client_device_id: 'resolve-cloud',
+        client_device_id: getOrCreateDeviceId(),
         mutation_id: 'resolve-cloud-' + Date.now(),
         mutations: {
           services: [
@@ -323,7 +332,7 @@ export default function AdminSyncPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date: activeConflict.date,
-          rawPayload: duplicatePayload,
+          raw_payload: duplicatePayload,
         }),
       });
       if (!createRes.ok) {
@@ -332,7 +341,7 @@ export default function AdminSyncPage() {
 
       // 2. Accept cloud version for original service
       const payload: SyncPushPayload = {
-        client_device_id: 'resolve-save-both',
+        client_device_id: getOrCreateDeviceId(),
         mutation_id: 'resolve-both-' + Date.now(),
         mutations: {
           services: [

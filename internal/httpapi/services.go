@@ -81,6 +81,9 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 	}
 	rawPayload, _ := body["raw_payload"].(string)
 	if strings.TrimSpace(rawPayload) == "" {
+		rawPayload, _ = body["rawPayload"].(string)
+	}
+	if strings.TrimSpace(rawPayload) == "" {
 		writeError(w, http.StatusBadRequest, "raw_payload is required")
 		return
 	}

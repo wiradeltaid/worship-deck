@@ -452,7 +452,7 @@ func TestSync_TombstoneFailureRollback(t *testing.T) {
 
 	// Verify rollback: mutation_id is not recorded in sync_state
 	var mutationRecorded int
-	_ = handle.QueryRow(`SELECT COUNT(*) FROM sync_state WHERE key = ?`, fmt.Sprintf("mutation:dev-rollback:%s", mutationID)).Scan(&mutationRecorded)
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM sync_state WHERE key = ?`, fmt.Sprintf("mutation:failing-client:%s", mutationID)).Scan(&mutationRecorded)
 	if mutationRecorded != 0 {
 		t.Fatalf("expected mutation_id not to be committed in sync_state after rollback, got %d", mutationRecorded)
 	}
