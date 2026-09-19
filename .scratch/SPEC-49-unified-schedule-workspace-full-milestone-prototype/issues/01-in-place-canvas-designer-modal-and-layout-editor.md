@@ -28,9 +28,9 @@ Implement the in-place visual canvas designer modal for the unified schedule wor
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Create MockupCanvasDesignerModal in `src/operator/workspace`.
-- [ ] Implement bounding box alignment, typography, and color controls.
-- [ ] Connect modal triggers from editor and canvas preview.
-- [ ] Ensure "Terapkan" updates the sticky live canvas preview while "Batal" discards edits cleanly.
+- [x] Create MockupCanvasDesignerModal in `src/operator/workspace`.
+- [x] Implement bounding box alignment, typography, and color controls.
+- [x] Connect modal triggers from editor and canvas preview.
+- [x] Ensure "Terapkan" updates the sticky live canvas preview while "Batal" discards edits cleanly.

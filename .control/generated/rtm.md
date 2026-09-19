@@ -425,10 +425,10 @@ rtm:
   test:
   - src/operator/workspace/MockupCanvasDesignerModal.tsx
   - tests/smoke-spec-49.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -441,10 +441,10 @@ rtm:
   - src/operator/workspace/MockupTimeline.tsx
   - src/operator/workspace/MockupEditor.tsx
   - tests/smoke-spec-49.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -456,10 +456,10 @@ rtm:
   test:
   - src/operator/workspace/MockupDutyRosterDrawer.tsx
   - tests/smoke-spec-49.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -471,10 +471,10 @@ rtm:
   test:
   - src/operator/workspace/MockupMediaGalleryDrawer.tsx
   - tests/smoke-spec-49.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11

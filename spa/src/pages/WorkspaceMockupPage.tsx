@@ -220,6 +220,27 @@ export default function WorkspaceMockupPage() {
           },
         };
         break;
+      case 'custom_slide':
+        newItem = {
+          id: nextId,
+          type: 'custom_slide',
+          title: 'Slide Bebas Baru',
+          subtitle: 'Kustom Konten',
+          duration: '10:50',
+          slidesCount: 1,
+          customSlideData: {
+            title: 'Slide Bebas Baru',
+            content: 'Ketik nats, puisi, atau responsif warta di sini...',
+            subtitle: 'Kustom Konten',
+            backgroundUrl: '/assets/background-navy.jpg',
+            style: {
+              alignment: 'center',
+              fontSize: 28,
+              color: 'white',
+            },
+          },
+        };
+        break;
       case 'general':
       default:
         newItem = {
@@ -446,6 +467,58 @@ export default function WorkspaceMockupPage() {
         </div>
       </div>
 
+      {/* Blank Slate Workflow Banner for Non-Preset */}
+      {preset === 'custom-non-preset' && (
+        <div
+          className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 flex-wrap"
+          data-testid="blank-slate-banner"
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                Mode Jadwal Bebas (Non-Preset) Aktif
+              </p>
+              <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                Mulai dari jadwal kosong untuk menyusun urutan ibadah mandiri tanpa template bawaan.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
+              onClick={() => {
+                setItems([]);
+                setSelectedItemId('');
+                toast.success('Jadwal ibadah dikosongkan (Blank Slate)');
+              }}
+              data-testid="blank-slate-clear-button"
+            >
+              Mulai dari Jadwal Kosong (Blank Slate)
+            </Button>
+            {items.length === 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setItems(DEFAULT_TIMELINE_ITEMS);
+                  setSelectedItemId('item-1');
+                  toast.success('Template contoh dimuat');
+                }}
+                data-testid="blank-slate-load-sample-button"
+              >
+                Gunakan Template Contoh
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 3-Panel Unified Workspace Layout with Strict Enforced Pixel Widths */}
       <div
         className="flex flex-col lg:flex-row gap-4 flex-1 items-start w-full"
@@ -482,6 +555,7 @@ export default function WorkspaceMockupPage() {
             item={selectedItem}
             quickScriptureOpen={quickScriptureOpen}
             onSetQuickScriptureOpen={setQuickScriptureOpen}
+            onUpdateItem={handleUpdateCurrentItem}
           />
         </div>
       </div>

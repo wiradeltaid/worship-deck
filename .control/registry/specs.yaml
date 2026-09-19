@@ -2346,7 +2346,7 @@ waves:
           - tests/smoke-spec-48.test.mjs
 
   - id: SPEC-49
-    status: ready-for-dev
+    status: closed
     release: unified-schedule-workspace-full-prototype
     prd: [operator-turn, offline-deck]
     fr: [FR-20, FR-21, FR-32]

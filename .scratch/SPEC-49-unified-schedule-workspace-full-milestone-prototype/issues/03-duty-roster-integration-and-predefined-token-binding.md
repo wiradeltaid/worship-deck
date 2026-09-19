@@ -23,9 +23,9 @@ Implement the duty roster integration and predefined token dynamic binding:
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Create MockupDutyRosterDrawer in `src/operator/workspace` with synthetic church personnel roster.
-- [ ] Connect roster selection to sermon speaker and predefined tokens.
-- [ ] Implement inline addition of new synthetic roster personnel.
-- [ ] Verify token binding updates the live canvas preview immediately.
+- [x] Create MockupDutyRosterDrawer in `src/operator/workspace` with synthetic church personnel roster.
+- [x] Connect roster selection to sermon speaker and predefined tokens.
+- [x] Implement inline addition of new synthetic roster personnel.
+- [x] Verify token binding updates the live canvas preview immediately.
