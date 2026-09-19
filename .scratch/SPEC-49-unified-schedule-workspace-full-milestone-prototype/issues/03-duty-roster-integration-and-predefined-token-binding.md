@@ -10,7 +10,7 @@ Implement the duty roster integration and predefined token dynamic binding:
      - Pemimpin Acara (Liturgist / Elder)
    - Personnel selector using **strictly synthetic identities** per `.constitution/project/public-repository.md`:
      - Pdt. Yohanes Timotius (Sintetis)
-     - Diaken Andreas Markus (Sintetis)
+     - Diaken Natanael Markus (Sintetis)
      - Sdr. Barnabas Lukas (Sintetis)
      - Sdri. Maria Marta (Sintetis)
      - Penatua Simon Petrus (Sintetis)

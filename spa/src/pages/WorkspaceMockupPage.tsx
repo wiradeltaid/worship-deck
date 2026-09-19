@@ -344,12 +344,13 @@ export default function WorkspaceMockupPage() {
               aria-label="Status Jadwal Ibadah"
               data-testid="status-badges-group"
             >
-              <button
+              <Button
                 type="button"
                 role="radio"
+                variant="ghost"
                 aria-checked={status === 'draft'}
                 onClick={() => setStatus('draft')}
-                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'draft'
                     ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 shadow-xs'
                     : 'bg-muted/40 text-muted-foreground border-transparent hover:border-border'
@@ -357,13 +358,14 @@ export default function WorkspaceMockupPage() {
                 data-testid="status-badge-draft"
               >
                 Draft
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 role="radio"
+                variant="ghost"
                 aria-checked={status === 'ready'}
                 onClick={() => setStatus('ready')}
-                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'ready'
                     ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs'
                     : 'bg-muted/40 text-muted-foreground border-transparent hover:border-border'
@@ -371,13 +373,14 @@ export default function WorkspaceMockupPage() {
                 data-testid="status-badge-ready"
               >
                 Siap Tayang
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 role="radio"
+                variant="ghost"
                 aria-checked={status === 'live'}
                 onClick={() => setStatus('live')}
-                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'live'
                     ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50 shadow-xs animate-pulse'
                     : 'bg-muted/40 text-muted-foreground border-transparent hover:border-border'
@@ -385,7 +388,7 @@ export default function WorkspaceMockupPage() {
                 data-testid="status-badge-live"
               >
                 ● Live
-              </button>
+              </Button>
             </div>
           </div>
         </div>

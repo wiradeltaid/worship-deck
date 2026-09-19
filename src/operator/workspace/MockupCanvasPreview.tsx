@@ -17,6 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -94,30 +101,34 @@ export default function MockupCanvasPreview({
 
         {/* Presenter Split Toggle: Operator Confidence vs Projector Clean Output */}
         <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             data-testid="toggle-operator-view"
             onClick={() => setPresenterSplitMode('operator')}
-            className={`px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
+            className={`h-auto px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
               presenterSplitMode === 'operator'
                 ? 'bg-card text-foreground shadow-2xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Operator Display
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             data-testid="toggle-projector-view"
             onClick={() => setPresenterSplitMode('projector')}
-            className={`px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
+            className={`h-auto px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
               presenterSplitMode === 'projector'
                 ? 'bg-card text-foreground shadow-2xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Projector Clean
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -150,16 +161,17 @@ export default function MockupCanvasPreview({
                 <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-black rounded uppercase tracking-wider">
                   ⚡ Ayat Kilat Overlay
                 </span>
-                <p className="text-xs md:text-sm font-serif italic text-amber-200 whitespace-pre-line leading-relaxed">
+                <p className="text-xs md:text-sm font-serif italic text-amber-200 dark:text-amber-200 whitespace-pre-line leading-relaxed">
                   {activeOverlayVerse}
                 </p>
-                <button
+                <Button
                   type="button"
+                  variant="link"
                   onClick={handleClearOverlay}
-                  className="mt-2 text-[10px] text-zinc-400 hover:text-white underline"
+                  className="mt-2 text-[10px] text-zinc-400 hover:text-white underline p-0 h-auto"
                 >
                   Tutup Overlay
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -172,7 +184,7 @@ export default function MockupCanvasPreview({
             <div className="relative z-10 p-6 text-center max-w-lg space-y-2">
               {item.type === 'song' && (
                 <div className="space-y-1">
-                  <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
+                  <span className="text-[11px] font-mono text-cyan-400 dark:text-cyan-400 uppercase tracking-wider font-semibold">
                     {item.subtitle || 'SDAH 123'} • Bait {safeSlideIndex + 1}
                   </span>
                   <h3 className="text-sm md:text-base font-extrabold text-white">
@@ -186,7 +198,7 @@ export default function MockupCanvasPreview({
 
               {item.type === 'announcement' && (
                 <div className="space-y-2">
-                  <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-semibold">
+                  <span className="text-[10px] font-mono text-purple-400 dark:text-purple-400 uppercase tracking-wider font-semibold">
                     Warta Jemaat • Slide {safeSlideIndex + 1} of {totalSlides}
                   </span>
                   <div className="p-3 bg-white/10 rounded-lg backdrop-blur-xs border border-white/20">
@@ -202,13 +214,13 @@ export default function MockupCanvasPreview({
 
               {item.type === 'sermon' && (
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-semibold">
+                  <span className="text-[10px] font-mono text-amber-400 dark:text-amber-400 uppercase tracking-wider font-semibold">
                     Khotbah Sabat
                   </span>
                   <h2 className="text-base font-extrabold text-white">
                     {item.title}
                   </h2>
-                  <p className="text-xs text-amber-200/90 font-medium">
+                  <p className="text-xs text-amber-200/90 dark:text-amber-200/90 font-medium">
                     {item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe'}
                   </p>
                   <p className="text-[11px] text-zinc-400 font-serif italic">
@@ -219,13 +231,13 @@ export default function MockupCanvasPreview({
 
               {item.type === 'scripture' && (
                 <div className="space-y-2">
-                  <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-wider font-semibold">
+                  <span className="text-[10px] font-mono text-indigo-400 dark:text-indigo-400 uppercase tracking-wider font-semibold">
                     Pembacaan Alkitab
                   </span>
                   <p className="text-xs md:text-sm font-serif italic text-zinc-200 leading-relaxed">
                     "Karena begitu besar kasih Allah akan dunia ini, sehingga Ia telah mengaruniakan Anak-Nya yang tunggal..."
                   </p>
-                  <span className="text-xs font-bold text-indigo-300">
+                  <span className="text-xs font-bold text-indigo-300 dark:text-indigo-300">
                     Yohanes 3:16 (TB2)
                   </span>
                 </div>
@@ -294,19 +306,20 @@ export default function MockupCanvasPreview({
             data-testid="filmstrip-container"
           >
             {Array.from({ length: totalSlides }).map((_, idx) => (
-              <button
+              <Button
                 key={idx}
                 type="button"
+                variant="outline"
                 data-testid={`filmstrip-slide-${idx}`}
                 onClick={() => setCurrentSlideIndex(idx)}
-                className={`relative shrink-0 w-24 aspect-video rounded-md border text-[10px] font-mono font-bold flex items-center justify-center transition-all ${
+                className={`relative shrink-0 w-24 aspect-video rounded-md border text-[10px] font-mono font-bold flex items-center justify-center transition-all p-0 h-auto ${
                   idx === safeSlideIndex
                     ? 'border-primary ring-1 ring-primary bg-primary/10 text-primary'
                     : 'border-border/80 bg-background/60 text-muted-foreground hover:border-foreground'
                 }`}
               >
                 #{idx + 1}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -391,16 +404,24 @@ export default function MockupCanvasPreview({
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Versi Alkitab</Label>
-              <select
+              <Select
                 value={selectedTranslation}
-                onChange={(e) => setSelectedTranslation(e.target.value)}
-                className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background"
-                data-testid="scripture-translation-select"
+                onValueChange={(val) => {
+                  if (val) setSelectedTranslation(val);
+                }}
               >
-                <option value="TB2">TB2 — Terjemahan Baru Edisi 2</option>
-                <option value="KJV">KJV — King James Version</option>
-                <option value="BIS">BIS — Bahasa Indonesia Sehari-hari</option>
-              </select>
+                <SelectTrigger
+                  className="w-full h-8 text-xs"
+                  data-testid="scripture-translation-select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TB2">TB2 — Terjemahan Baru Edisi 2</SelectItem>
+                  <SelectItem value="KJV">KJV — King James Version</SelectItem>
+                  <SelectItem value="BIS">BIS — Bahasa Indonesia Sehari-hari</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
