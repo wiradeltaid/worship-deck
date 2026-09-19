@@ -345,6 +345,18 @@ dag:
     - SPEC-45-02
   - parallel:
     - SPEC-45-03
+- spec: SPEC-47
+  order:
+  - parallel:
+    - SPEC-47-01
+  - parallel:
+    - SPEC-47-02
+    - SPEC-47-04
+  - parallel:
+    - SPEC-47-03
+    - SPEC-47-05
+  - parallel:
+    - SPEC-47-06
 - spec: W1
   order:
   - parallel:

@@ -2184,6 +2184,62 @@ waves:
         tests:
           - tests/smoke-spec-45.test.mjs
 
+  - id: SPEC-47
+    status: open
+    release: offline-desktop-inno-setup-and-manual-sync
+    prd: [offline-deck, operator-turn]
+    fr: [FR-20, FR-21]
+    size: L
+    depends_on: [SPEC-45]
+    spec_folder: .scratch/SPEC-47-offline-desktop-inno-setup-and-manual-sync/
+    spec_reviewed:
+      date: '2026-09-19'
+      sha: '94db19d'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-47-01"
+        component: hub
+        satisfies: [UC-1]
+        blocked_by: []
+        touches: [settings, db]
+        tests:
+          - tests/smoke-spec-47.test.mjs
+      - id: "SPEC-47-02"
+        component: registry
+        satisfies: [UC-6, UC-14]
+        blocked_by: ["SPEC-47-01"]
+        touches: [pptx]
+        tests:
+          - tests/smoke-spec-47.test.mjs
+      - id: "SPEC-47-03"
+        component: hub
+        satisfies: [UC-1]
+        blocked_by: ["SPEC-47-02"]
+        touches: [settings]
+        tests:
+          - tests/smoke-spec-47.test.mjs
+      - id: "SPEC-47-04"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-47-01"]
+        touches: [db]
+        tests:
+          - tests/smoke-spec-47.test.mjs
+      - id: "SPEC-47-05"
+        component: hub
+        satisfies: [UC-5, UC-11]
+        blocked_by: ["SPEC-47-04"]
+        touches: [services]
+        tests:
+          - tests/smoke-spec-47.test.mjs
+      - id: "SPEC-47-06"
+        component: registry
+        satisfies: [UC-5, UC-14]
+        blocked_by: ["SPEC-47-03", "SPEC-47-05"]
+        touches: [uploads, artifacts]
+        tests:
+          - tests/smoke-spec-47.test.mjs
+
 
 
 
