@@ -110,6 +110,17 @@ export async function stagePortableNode(targetDir, options = {}) {
     console.log(`[stage-node] Copying host node executable from ${process.execPath}...`);
     fs.copyFileSync(process.execPath, targetNodeExe);
     stagedBinary = true;
+  } else if (fs.existsSync(process.execPath)) {
+    console.log(`[stage-node] Copying host node executable for testing from ${process.execPath}...`);
+    fs.copyFileSync(process.execPath, targetNodeExe);
+    // On POSIX, also create runtime/node with executable mode
+    const targetNodeUnix = path.join(runtimeDir, 'node');
+    try {
+      fs.copyFileSync(process.execPath, targetNodeUnix);
+      fs.chmodSync(targetNodeUnix, 0o755);
+      fs.chmodSync(targetNodeExe, 0o755);
+    } catch {}
+    stagedBinary = true;
   }
 
   if (!stagedBinary) {

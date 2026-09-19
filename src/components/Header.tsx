@@ -1,6 +1,6 @@
 import { usePathname } from '@/lib/navigation';
 import { useState } from 'react';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, RefreshCw } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 import ThemeToggle from './ThemeToggle';
 import { CustomLink } from './navigation-blocker';
@@ -110,17 +110,9 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
                 {t('chrome.nav.artifacts')}
               </CustomLink>
               <CustomLink
-                href="/admin/sync"
-                className={getLinkClass(pathname.startsWith('/admin/sync'))}
-              >
-                Sync
-              </CustomLink>
-              <CustomLink
                 href="/admin"
                 className={getLinkClass(
-                  pathname.startsWith('/admin') &&
-                    !pathname.startsWith('/admin/artifacts') &&
-                    !pathname.startsWith('/admin/sync')
+                  pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
                 )}
               >
                 {t('chrome.nav.settings')}
@@ -148,6 +140,12 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
               <KeyRound className="size-4" />
               {t('chrome.password.change')}
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => { window.location.href = '/admin/sync'; }}>
+                <RefreshCw className="size-4" />
+                <a href="/admin/sync">Sync</a>
+              </DropdownMenuItem>
+            )}
             <LogoutButton variant="menu" />
           </DropdownMenuContent>
         </DropdownMenu>
