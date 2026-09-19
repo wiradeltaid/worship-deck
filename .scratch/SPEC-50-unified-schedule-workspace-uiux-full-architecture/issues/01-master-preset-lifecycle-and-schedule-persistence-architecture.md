@@ -34,9 +34,9 @@ Implement the Master Preset Lifecycle and Schedule Persistence Architecture in t
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement workspace mode switcher between Schedule Instance and Master Preset Builder.
-- [ ] Implement Master Preset state machine (draft -> published -> retired) and CRUD with deletion dependency guard.
-- [ ] Implement local instance override isolation protecting master presets from ad-hoc edits while bumping revision.
-- [ ] Implement explicit "Simpan Jadwal" action, non-destructive rundown merge, and Schedule History drawer.
+- [x] Implement workspace mode switcher between Schedule Instance and Master Preset Builder.
+- [x] Implement Master Preset state machine (draft -> published -> retired) and CRUD with deletion dependency guard.
+- [x] Implement local instance override isolation protecting master presets from ad-hoc edits while bumping revision.
+- [x] Implement explicit "Simpan Jadwal" action, non-destructive rundown merge, and Schedule History drawer.

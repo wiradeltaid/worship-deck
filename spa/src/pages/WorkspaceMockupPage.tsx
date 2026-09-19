@@ -8,6 +8,10 @@ import {
   CheckCircle2,
   Layers,
   ChevronDown,
+  Save,
+  FolderOpen,
+  ShieldCheck,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +26,18 @@ import {
   TimelineItem,
   TimelineItemType,
   WorkspaceStatus,
+  WorkspaceMode,
+  MasterPreset,
+  ScheduledServiceRecord,
+  SYNTHETIC_MASTER_PRESETS,
+  SYNTHETIC_SCHEDULED_SERVICES,
 } from '@/operator/workspace/types';
 import { computePresetDate } from '@/operator/workspace/utils';
 import MockupTimeline from '@/operator/workspace/MockupTimeline';
 import MockupEditor from '@/operator/workspace/MockupEditor';
 import MockupCanvasPreview from '@/operator/workspace/MockupCanvasPreview';
+import MockupMasterPresetDrawer from '@/operator/workspace/MockupMasterPresetDrawer';
+import MockupScheduleHistoryDrawer from '@/operator/workspace/MockupScheduleHistoryDrawer';
 import { toast } from 'sonner';
 
 const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
@@ -134,13 +145,52 @@ const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
 ];
 
 export default function WorkspaceMockupPage() {
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('instance');
+  const [isMasterPresetDrawerOpen, setIsMasterPresetDrawerOpen] = useState(false);
+  const [isScheduleHistoryDrawerOpen, setIsScheduleHistoryDrawerOpen] = useState(false);
+  const [scheduleRevision, setScheduleRevision] = useState(1);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState('10:45 WIB');
+
+  // Shared master presets and scheduled services state
+  const [masterPresets, setMasterPresets] = useState<MasterPreset[]>(SYNTHETIC_MASTER_PRESETS);
+  const [scheduledServices, setScheduledServices] = useState<ScheduledServiceRecord[]>(
+    SYNTHETIC_SCHEDULED_SERVICES
+  );
+
   const [preset, setPreset] = useState<WorshipPreset>('sabbath-morning');
   const [serviceDate, setServiceDate] = useState('2026-09-19');
   const [status, setStatus] = useState<WorkspaceStatus>('ready');
 
-  const [items, setItems] = useState<TimelineItem[]>(DEFAULT_TIMELINE_ITEMS);
+  // Local instance items vs Master blueprint items isolation
+  const [instanceItems, setInstanceItems] = useState<TimelineItem[]>(DEFAULT_TIMELINE_ITEMS);
+  const [masterBlueprintItems, setMasterBlueprintItems] = useState<Record<string, TimelineItem[]>>({
+    'sabbath-morning': JSON.parse(JSON.stringify(DEFAULT_TIMELINE_ITEMS)),
+  });
+
   const [selectedItemId, setSelectedItemId] = useState<string>('item-1');
   const [quickScriptureOpen, setQuickScriptureOpen] = useState(false);
+
+  // Active items depend strictly on workspaceMode
+  const items =
+    workspaceMode === 'instance'
+      ? instanceItems
+      : masterBlueprintItems[preset] || DEFAULT_TIMELINE_ITEMS;
+
+  const setItems = (action: TimelineItem[] | ((prev: TimelineItem[]) => TimelineItem[])) => {
+    if (workspaceMode === 'instance') {
+      setInstanceItems(action);
+    } else {
+      setMasterBlueprintItems((prevMap) => {
+        const currentBlueprint = prevMap[preset] || DEFAULT_TIMELINE_ITEMS;
+        const nextBlueprint = typeof action === 'function' ? action(currentBlueprint) : action;
+        return {
+          ...prevMap,
+          [preset]: nextBlueprint,
+        };
+      });
+    }
+  };
 
   const selectedItem =
     items.find((i) => i.id === selectedItemId) || items[0] || DEFAULT_TIMELINE_ITEMS[0];
@@ -148,11 +198,73 @@ export default function WorkspaceMockupPage() {
   const currentPresetMeta =
     PRESET_OPTIONS.find((p) => p.id === preset) || PRESET_OPTIONS[0];
 
+  const handleSaveSchedule = () => {
+    setScheduleRevision((prev) => prev + 1);
+    setHasUnsavedChanges(false);
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+    setLastSavedTime(timeStr);
+
+    // Synchronize to scheduled services history with full items snapshot
+    setScheduledServices((prev) => {
+      const existingIdx = prev.findIndex(
+        (s) => s.serviceDate === serviceDate && s.presetId === preset
+      );
+      const title =
+        items.find((i) => i.type === 'sermon')?.sermonData?.title ||
+        `Kebaktian ${currentPresetMeta.label}`;
+
+      const updatedRecord: ScheduledServiceRecord = {
+        id: existingIdx !== -1 ? prev[existingIdx].id : `srv-${Date.now()}`,
+        presetId: preset,
+        presetLabel: currentPresetMeta.label,
+        serviceDate,
+        serviceTitle: title,
+        status,
+        itemsCount: items.length,
+        scheduleRevision: scheduleRevision + 1,
+        updatedAt: `${serviceDate} ${timeStr}`,
+        items: JSON.parse(JSON.stringify(items)),
+      };
+
+      if (existingIdx !== -1) {
+        const copy = [...prev];
+        copy[existingIdx] = updatedRecord;
+        return copy;
+      }
+      return [updatedRecord, ...prev];
+    });
+
+    toast.success(
+      `Jadwal ibadah berhasil disimpan & tersinkron ke Riwayat Jadwal (Revisi ${scheduleRevision + 1} • ${timeStr})`
+    );
+  };
+
+  const handleOpenHistoricalService = (service: ScheduledServiceRecord) => {
+    const matchedPreset = PRESET_OPTIONS.find((p) => p.id === service.presetId);
+    if (matchedPreset) {
+      setPreset(matchedPreset.id);
+    }
+    setServiceDate(service.serviceDate);
+    setStatus(service.status);
+    setScheduleRevision(service.scheduleRevision);
+
+    // Restore full timeline items snapshot from historical service
+    if (service.items && service.items.length > 0) {
+      setInstanceItems(JSON.parse(JSON.stringify(service.items)));
+      setSelectedItemId(service.items[0].id);
+    }
+
+    setHasUnsavedChanges(false);
+    toast.info(`Jadwal tanggal ${service.serviceDate} berhasil dimuat ke workspace.`);
+  };
+
   const handleSelectPreset = (newPreset: WorshipPreset) => {
     setPreset(newPreset);
     const meta = PRESET_OPTIONS.find((p) => p.id === newPreset);
     const nextDate = computePresetDate(newPreset);
     setServiceDate(nextDate);
+    setHasUnsavedChanges(true);
     toast.info(`Preset diubah ke: ${meta?.label} (${nextDate} • ${meta?.defaultTime})`);
   };
 
@@ -256,6 +368,7 @@ export default function WorkspaceMockupPage() {
 
     setItems((prev) => [...prev, newItem]);
     setSelectedItemId(nextId);
+    setHasUnsavedChanges(true);
     toast.success(`Berhasil menambahkan ${newItem.title} ke timeline!`);
   };
 
@@ -263,6 +376,7 @@ export default function WorkspaceMockupPage() {
     setItems((prev) =>
       prev.map((it) => (it.id === selectedItemId ? { ...it, ...updated } : it))
     );
+    setHasUnsavedChanges(true);
   };
 
   const handleMoveItem = (id: string, direction: 'up' | 'down') => {
@@ -277,6 +391,7 @@ export default function WorkspaceMockupPage() {
       copy[targetIdx] = temp;
       return copy;
     });
+    setHasUnsavedChanges(true);
   };
 
   return (
@@ -284,6 +399,135 @@ export default function WorkspaceMockupPage() {
       data-testid="workspace-mockup"
       className="flex flex-col gap-4 w-full min-h-[calc(100vh-140px)]"
     >
+      {/* Top Workspace Navigation Bar: Mode Switcher & History / Master Preset Management */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
+        {/* Workspace Mode Switcher */}
+        <div
+          data-testid="workspace-mode-switcher"
+          className="flex items-center gap-1 p-1 bg-card/90 rounded-xl border border-border shadow-2xs"
+          role="tablist"
+          aria-label="Mode Workspace"
+        >
+          <Button
+            type="button"
+            role="tab"
+            variant="ghost"
+            size="sm"
+            aria-selected={workspaceMode === 'instance'}
+            onClick={() => {
+              setWorkspaceMode('instance');
+              toast.info('Beralih ke Mode: Jadwal Ibadah (Instance Operasional)');
+            }}
+            className={`h-8 text-xs font-bold gap-1.5 rounded-lg px-3 transition-colors ${
+              workspaceMode === 'instance'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            data-testid="mode-instance-button"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>● Jadwal Ibadah (Instance)</span>
+          </Button>
+
+          <Button
+            type="button"
+            role="tab"
+            variant="ghost"
+            size="sm"
+            aria-selected={workspaceMode === 'master_preset'}
+            onClick={() => {
+              setWorkspaceMode('master_preset');
+              toast.info('Beralih ke Mode: Master Preset Builder (Cetak Biru Baku)');
+            }}
+            className={`h-8 text-xs font-bold gap-1.5 rounded-lg px-3 transition-colors ${
+              workspaceMode === 'master_preset'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            data-testid="mode-master-preset-button"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>○ Master Preset Builder</span>
+          </Button>
+        </div>
+
+        {/* Global Toolbar: History & Master Preset Drawers */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsScheduleHistoryDrawerOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="schedule-history-drawer-button"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-primary" />
+            <span>📂 Riwayat Jadwal</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMasterPresetDrawerOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="manage-presets-button"
+          >
+            <Layers className="w-3.5 h-3.5 text-primary" />
+            <span>⚙️ Kelola Master Preset</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Mode Information & Local Override Isolation Banner */}
+      {workspaceMode === 'master_preset' ? (
+        <div
+          data-testid="master-preset-banner"
+          className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 flex-wrap animate-in fade-in"
+        >
+          <div className="flex items-center gap-2.5">
+            <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                Mode Master Preset Builder Aktif — Blueprint: {currentPresetMeta.label}
+              </p>
+              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                Perubahan pada susunan timeline dan konfigurasi slide di sini menjadi cetak biru baku bagi seluruh jadwal ibadah mendatang.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+            onClick={() => setIsMasterPresetDrawerOpen(true)}
+          >
+            Buka Daftar Master Preset
+          </Button>
+        </div>
+      ) : (
+        <div
+          data-testid="local-override-isolation-badge"
+          className="px-3.5 py-2 rounded-xl bg-card/60 border border-border/80 text-[11px] text-muted-foreground flex items-center justify-between gap-3 shadow-2xs"
+        >
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>
+              Perubahan lokal pada jadwal ini tidak mengubah master preset{' '}
+              <strong className="text-foreground font-semibold">"{currentPresetMeta.label}"</strong>.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-[10px]">
+            <span className="px-2 py-0.5 rounded-md bg-muted text-foreground font-semibold">
+              Revisi: rev.{scheduleRevision}
+            </span>
+            <span className="text-muted-foreground">
+              {hasUnsavedChanges ? '● Belum Disimpan' : `✓ ${lastSavedTime}`}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Top Workspace Header Bar */}
       <div
         data-testid="workspace-header-bar"
@@ -341,7 +585,10 @@ export default function WorkspaceMockupPage() {
               <input
                 type="date"
                 value={serviceDate}
-                onChange={(e) => setServiceDate(e.target.value)}
+                onChange={(e) => {
+                  setServiceDate(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
                 className="h-9 text-xs px-3 rounded-lg border border-border bg-background/90 font-medium text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
                 data-testid="service-date-input"
               />
@@ -370,7 +617,10 @@ export default function WorkspaceMockupPage() {
                 role="radio"
                 variant="ghost"
                 aria-checked={status === 'draft'}
-                onClick={() => setStatus('draft')}
+                onClick={() => {
+                  setStatus('draft');
+                  setHasUnsavedChanges(true);
+                }}
                 className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'draft'
                     ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 shadow-xs'
@@ -385,7 +635,10 @@ export default function WorkspaceMockupPage() {
                 role="radio"
                 variant="ghost"
                 aria-checked={status === 'ready'}
-                onClick={() => setStatus('ready')}
+                onClick={() => {
+                  setStatus('ready');
+                  setHasUnsavedChanges(true);
+                }}
                 className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'ready'
                     ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs'
@@ -400,7 +653,10 @@ export default function WorkspaceMockupPage() {
                 role="radio"
                 variant="ghost"
                 aria-checked={status === 'live'}
-                onClick={() => setStatus('live')}
+                onClick={() => {
+                  setStatus('live');
+                  setHasUnsavedChanges(true);
+                }}
                 className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'live'
                     ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50 shadow-xs animate-pulse'
@@ -455,6 +711,35 @@ export default function WorkspaceMockupPage() {
             <Download className="w-3.5 h-3.5" />
             <span>⬇ Unduh PPTX</span>
           </Button>
+
+          {/* Explicit Save Schedule Action */}
+          <Button
+            size="sm"
+            variant={hasUnsavedChanges ? 'default' : 'outline'}
+            className="h-9 text-xs font-bold gap-1.5"
+            onClick={handleSaveSchedule}
+            data-testid="save-schedule-button"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>💾 Simpan Jadwal</span>
+          </Button>
+
+          {/* Auto-Save Status Indicator */}
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-muted-foreground"
+            data-testid="auto-save-indicator"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                hasUnsavedChanges ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+              }`}
+            />
+            <span>
+              {hasUnsavedChanges
+                ? `Ada perubahan belum disimpan (rev. ${scheduleRevision})`
+                : `Tersimpan otomatis ${lastSavedTime} (rev. ${scheduleRevision})`}
+            </span>
+          </div>
 
           {/* Sync Status Indicator */}
           <div
@@ -542,6 +827,7 @@ export default function WorkspaceMockupPage() {
             onUpdateItem={handleUpdateCurrentItem}
             onReplaceItems={(newItems) => {
               setItems(newItems);
+              setHasUnsavedChanges(true);
               if (newItems.length > 0) {
                 setSelectedItemId(newItems[0].id);
               }
@@ -559,6 +845,32 @@ export default function WorkspaceMockupPage() {
           />
         </div>
       </div>
+
+      {/* Master Preset Management Drawer */}
+      <MockupMasterPresetDrawer
+        isOpen={isMasterPresetDrawerOpen}
+        onClose={() => setIsMasterPresetDrawerOpen(false)}
+        presets={masterPresets}
+        onUpdatePresets={setMasterPresets}
+        scheduledServices={scheduledServices}
+        onSelectPresetForBlueprint={(p) => {
+          const matched = PRESET_OPTIONS.find((opt) => opt.id === p.slug);
+          if (matched) {
+            setPreset(matched.id);
+          }
+          setWorkspaceMode('master_preset');
+          toast.info(`Memuat cetak biru: ${p.title}`);
+        }}
+      />
+
+      {/* Schedule History Drawer */}
+      <MockupScheduleHistoryDrawer
+        isOpen={isScheduleHistoryDrawerOpen}
+        onClose={() => setIsScheduleHistoryDrawerOpen(false)}
+        services={scheduledServices}
+        onUpdateServices={setScheduledServices}
+        onOpenService={handleOpenHistoricalService}
+      />
     </div>
   );
 }
