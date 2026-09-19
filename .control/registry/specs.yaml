@@ -2392,6 +2392,48 @@ waves:
           - src/operator/workspace/MockupMediaGalleryDrawer.tsx
           - tests/smoke-spec-49.test.mjs
 
+  - id: SPEC-50
+    status: open
+    release: unified-schedule-workspace-full-architecture
+    prd: [operator-turn, offline-deck]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
+    size: M
+    depends_on: [SPEC-49]
+    spec_folder: .scratch/SPEC-50-unified-schedule-workspace-uiux-full-architecture/
+    spec_reviewed:
+      date: '2026-09-20'
+      sha: '36d335f'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-50-01"
+        component: hub
+        satisfies: [UC-5, UC-14]
+        blocked_by: []
+        touches: [services, operator]
+        tests:
+          - tests/smoke-spec-50.test.mjs
+      - id: "SPEC-50-02"
+        component: registry
+        satisfies: [UC-14, UC-24]
+        blocked_by: ["SPEC-50-01"]
+        touches: [artifacts, services, operator]
+        tests:
+          - tests/smoke-spec-50.test.mjs
+      - id: "SPEC-50-03"
+        component: presenter
+        satisfies: [UC-11, UC-12, UC-13]
+        blocked_by: ["SPEC-50-02"]
+        touches: [presenter, operator]
+        tests:
+          - tests/smoke-spec-50.test.mjs
+      - id: "SPEC-50-04"
+        component: hub
+        satisfies: [UC-5, UC-14]
+        blocked_by: ["SPEC-50-03"]
+        touches: [sync, operator, admin]
+        tests:
+          - tests/smoke-spec-50.test.mjs
+
 
 
 
