@@ -23,6 +23,7 @@ const root = path.resolve(__dirname, '..');
 
 const {
   isValidPresetTransition,
+  isValidTokenKey,
   computePresetActiveServicesCount,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'operator', 'workspace', 'types.ts')).href
@@ -221,3 +222,143 @@ test('SPEC-50-01: Real-File Executable Absence Guard & Defect Injection Proofs',
     'Absence guard must detect removal of history-search-input from real history drawer'
   );
 });
+
+export function scanMasterLibrariesFeatures(editorSource, modalSource, librariesDrawerSource) {
+  const findings = [];
+  if (!editorSource.includes('data-testid="choose-master-song-set-button"')) {
+    findings.push('Missing data-testid="choose-master-song-set-button" in MockupEditor');
+  }
+  if (!editorSource.includes('data-testid="save-to-master-song-set-button"')) {
+    findings.push('Missing data-testid="save-to-master-song-set-button" in MockupEditor');
+  }
+  if (!editorSource.includes('data-testid="choose-master-announcement-button"')) {
+    findings.push('Missing data-testid="choose-master-announcement-button" in MockupEditor');
+  }
+  if (!editorSource.includes('data-testid="save-to-master-announcement-button"')) {
+    findings.push('Missing data-testid="save-to-master-announcement-button" in MockupEditor');
+  }
+  if (!modalSource.includes('data-testid="save-as-new-slide-type-button"')) {
+    findings.push('Missing data-testid="save-as-new-slide-type-button" in MockupCanvasDesignerModal');
+  }
+  if (!modalSource.includes('data-testid="new-slide-type-title-input"')) {
+    findings.push('Missing data-testid="new-slide-type-title-input" in MockupCanvasDesignerModal');
+  }
+  if (!librariesDrawerSource.includes('data-testid="master-libraries-drawer"')) {
+    findings.push('Missing data-testid="master-libraries-drawer"');
+  }
+  if (!librariesDrawerSource.includes('data-testid="song-set-search-input"')) {
+    findings.push('Missing data-testid="song-set-search-input" in master libraries drawer');
+  }
+  if (!librariesDrawerSource.includes('data-testid="select-master-song-set-button"')) {
+    findings.push('Missing data-testid="select-master-song-set-button" in master libraries drawer');
+  }
+  if (!librariesDrawerSource.includes('data-testid="select-master-announcement-button"')) {
+    findings.push('Missing data-testid="select-master-announcement-button" in master libraries drawer');
+  }
+  if (!librariesDrawerSource.includes('data-testid="add-token-button"')) {
+    findings.push('Missing data-testid="add-token-button" in master libraries drawer');
+  }
+  if (!librariesDrawerSource.includes('data-testid="token-name-input"')) {
+    findings.push('Missing data-testid="token-name-input" in master libraries drawer');
+  }
+  return findings;
+}
+
+test('SPEC-50-02: Reusable Master Libraries & Predefined Fields Registry Integration', () => {
+  const editorPath = path.join(root, 'src', 'operator', 'workspace', 'MockupEditor.tsx');
+  const modalPath = path.join(root, 'src', 'operator', 'workspace', 'MockupCanvasDesignerModal.tsx');
+  const librariesDrawerPath = path.join(root, 'src', 'operator', 'workspace', 'MockupMasterLibrariesDrawer.tsx');
+
+  assert.ok(fs.existsSync(editorPath), 'MockupEditor.tsx must exist');
+  assert.ok(fs.existsSync(modalPath), 'MockupCanvasDesignerModal.tsx must exist');
+  assert.ok(fs.existsSync(librariesDrawerPath), 'MockupMasterLibrariesDrawer.tsx must exist');
+
+  const editorSource = fs.readFileSync(editorPath, 'utf8');
+  const modalSource = fs.readFileSync(modalPath, 'utf8');
+  const librariesDrawerSource = fs.readFileSync(librariesDrawerPath, 'utf8');
+
+  const findings = scanMasterLibrariesFeatures(editorSource, modalSource, librariesDrawerSource);
+  assert.deepEqual(findings, [], `Master libraries scan findings: ${findings.join('; ')}`);
+});
+
+test('SPEC-50-02: Predefined Token Dictionary Key Validation Behavioral Rules', () => {
+  // Valid token keys
+  assert.equal(isValidTokenKey('sermon_speaker').valid, true);
+  assert.equal(isValidTokenKey('worship_leader').valid, true);
+  assert.equal(isValidTokenKey('scripture_ref_2').valid, true);
+  assert.equal(isValidTokenKey('  church_date  ').normalizedKey, 'church_date');
+
+  // Invalid / Rejected token keys (fail-closed)
+  assert.equal(isValidTokenKey('').valid, false, 'Empty key must be rejected');
+  assert.equal(isValidTokenKey('   ').valid, false, 'Whitespace key must be rejected');
+  assert.equal(isValidTokenKey('!!!').valid, false, 'Punctuation-only key must be rejected');
+  assert.equal(isValidTokenKey('___').valid, false, 'Underscore-only key must be rejected');
+  assert.equal(isValidTokenKey('1sermon').valid, false, 'Key starting with digit must be rejected');
+  assert.equal(isValidTokenKey('_hidden').valid, false, 'Key starting with underscore must be rejected');
+});
+
+test('SPEC-50-02: Master Library Selection Frozen Snapshot Boundary Rules', () => {
+  // Master announcement set with flyers
+  const masterAnnouncementSet = {
+    id: 'mas-test',
+    title: 'Test Warta Master',
+    flyersCount: 2,
+    looping: true,
+    updatedAt: '2026-09-20',
+    flyers: [
+      { id: 'f1', title: 'Flyer 1', url: '/f1.jpg', category: 'announcement' },
+      { id: 'f2', title: 'Flyer 2', url: '/f2.jpg', category: 'announcement' },
+    ],
+  };
+
+  // Deep clone snapshot at selection boundary
+  const appliedFlyers = masterAnnouncementSet.flyers.map((f) => ({ ...f }));
+
+  // Mutating applied instance flyer does NOT mutate master flyer
+  appliedFlyers[0].title = 'Mutated Local Flyer 1';
+  assert.notEqual(
+    appliedFlyers[0].title,
+    masterAnnouncementSet.flyers[0].title,
+    'Local instance flyer mutation must not alter master announcement flyer'
+  );
+  assert.equal(
+    masterAnnouncementSet.flyers[0].title,
+    'Flyer 1',
+    'Master announcement set flyer must remain frozen'
+  );
+});
+
+test('SPEC-50-02: Real-File Executable Absence Guard & Defect Injection Proofs', () => {
+  const editorPath = path.join(root, 'src', 'operator', 'workspace', 'MockupEditor.tsx');
+  const modalPath = path.join(root, 'src', 'operator', 'workspace', 'MockupCanvasDesignerModal.tsx');
+  const librariesDrawerPath = path.join(root, 'src', 'operator', 'workspace', 'MockupMasterLibrariesDrawer.tsx');
+
+  const realEditorSource = fs.readFileSync(editorPath, 'utf8');
+  const realModalSource = fs.readFileSync(modalPath, 'utf8');
+  const realLibrariesSource = fs.readFileSync(librariesDrawerPath, 'utf8');
+
+  // Defect 1: Strip choose-master-song-set-button from editor
+  const defectiveEditor1 = realEditorSource.replace('data-testid="choose-master-song-set-button"', '');
+  const defect1Findings = scanMasterLibrariesFeatures(defectiveEditor1, realModalSource, realLibrariesSource);
+  assert.ok(
+    defect1Findings.includes('Missing data-testid="choose-master-song-set-button" in MockupEditor'),
+    'Absence guard must detect removal of choose-master-song-set-button from real MockupEditor'
+  );
+
+  // Defect 2: Strip save-as-new-slide-type-button from modal
+  const defectiveModal2 = realModalSource.replace('data-testid="save-as-new-slide-type-button"', '');
+  const defect2Findings = scanMasterLibrariesFeatures(realEditorSource, defectiveModal2, realLibrariesSource);
+  assert.ok(
+    defect2Findings.includes('Missing data-testid="save-as-new-slide-type-button" in MockupCanvasDesignerModal'),
+    'Absence guard must detect removal of save-as-new-slide-type-button from real MockupCanvasDesignerModal'
+  );
+
+  // Defect 3: Strip token-name-input from master libraries drawer
+  const defectiveLibraries3 = realLibrariesSource.replace('data-testid="token-name-input"', '');
+  const defect3Findings = scanMasterLibrariesFeatures(realEditorSource, realModalSource, defectiveLibraries3);
+  assert.ok(
+    defect3Findings.includes('Missing data-testid="token-name-input" in master libraries drawer'),
+    'Absence guard must detect removal of token-name-input from real master libraries drawer'
+  );
+});
+

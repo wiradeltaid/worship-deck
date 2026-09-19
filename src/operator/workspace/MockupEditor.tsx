@@ -17,6 +17,7 @@ import {
   FileCode,
   Palette,
   Users,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,12 +49,18 @@ interface MockupEditorProps {
   item: TimelineItem;
   onUpdateItem: (updated: Partial<TimelineItem>) => void;
   onReplaceItems?: (items: TimelineItem[]) => void;
+  onOpenMasterLibraries?: (tab: 'song_sets' | 'announcements' | 'tokens') => void;
+  onSaveToMasterSongSet?: (item: TimelineItem) => void;
+  onSaveToMasterAnnouncementSet?: (item: TimelineItem) => void;
 }
 
 export default function MockupEditor({
   item,
   onUpdateItem,
   onReplaceItems,
+  onOpenMasterLibraries,
+  onSaveToMasterSongSet,
+  onSaveToMasterAnnouncementSet,
 }: MockupEditorProps) {
   const [activeTab, setActiveTab] = useState<'editor' | 'raw'>('editor');
   const [rawText, setRawText] = useState(
@@ -263,21 +270,50 @@ export default function MockupEditor({
                 className="space-y-4 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5"
                 data-testid="song-context-editor"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold text-xs">
                     <Music className="w-4 h-4" />
                     <span>Konfigurasi Lagu & Lirik Pujian</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1 border-cyan-500/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10"
-                    onClick={() => setAddSongModalOpen(true)}
-                    data-testid="open-add-song-modal"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>Lagu Baru...</span>
-                  </Button>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 border-cyan-500/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10"
+                      onClick={() => {
+                        if (onOpenMasterLibraries) onOpenMasterLibraries('song_sets');
+                      }}
+                      data-testid="choose-master-song-set-button"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Pilih dari Master Songset</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs gap-1 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10"
+                      onClick={() => {
+                        if (onSaveToMasterSongSet) {
+                          onSaveToMasterSongSet(item);
+                        } else {
+                          toast.success(`Lagu "${item.title}" berhasil disimpan ke Master Songset.`);
+                        }
+                      }}
+                      data-testid="save-to-master-song-set-button"
+                    >
+                      <span>Simpan ke Master Songset</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 border-cyan-500/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-500/10"
+                      onClick={() => setAddSongModalOpen(true)}
+                      data-testid="open-add-song-modal"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Lagu Baru...</span>
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -416,21 +452,50 @@ export default function MockupEditor({
                 className="space-y-4 p-4 rounded-xl border border-purple-500/20 bg-purple-500/5"
                 data-testid="announcement-context-editor"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold text-xs">
                     <Megaphone className="w-4 h-4" />
                     <span>Set Warta Jemaat (Single-Row 4-Slot Grid)</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1 border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
-                    onClick={() => setUploadFlyerModalOpen(true)}
-                    data-testid="open-upload-flyer-modal"
-                  >
-                    <Upload className="w-3 h-3" />
-                    <span>Unggah Flyer...</span>
-                  </Button>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                      onClick={() => {
+                        if (onOpenMasterLibraries) onOpenMasterLibraries('announcements');
+                      }}
+                      data-testid="choose-master-announcement-button"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Pilih dari Master Warta</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs gap-1 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                      onClick={() => {
+                        if (onSaveToMasterAnnouncementSet) {
+                          onSaveToMasterAnnouncementSet(item);
+                        } else {
+                          toast.success('Koleksi flyer warta berhasil disimpan sebagai Master Warta Baru.');
+                        }
+                      }}
+                      data-testid="save-to-master-announcement-button"
+                    >
+                      <span>Simpan sebagai Master Warta Baru</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/10"
+                      onClick={() => setUploadFlyerModalOpen(true)}
+                      data-testid="open-upload-flyer-modal"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>Unggah Flyer...</span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* 4-Slot Flyer Grid */}

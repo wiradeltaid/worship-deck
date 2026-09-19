@@ -103,6 +103,49 @@ export function isValidPresetTransition(
   return false;
 }
 
+export function isValidTokenKey(rawKey: string): {
+  valid: boolean;
+  normalizedKey: string;
+  reason?: string;
+} {
+  const trimmed = rawKey.trim().toLowerCase();
+  if (!trimmed) {
+    return {
+      valid: false,
+      normalizedKey: '',
+      reason: 'Kunci token tidak boleh kosong',
+    };
+  }
+  if (/^[0-9_]/.test(trimmed)) {
+    return {
+      valid: false,
+      normalizedKey: trimmed,
+      reason: 'Kunci token harus diawali huruf kecil a-z',
+    };
+  }
+
+  const normalized = trimmed
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (!normalized) {
+    return {
+      valid: false,
+      normalizedKey: '',
+      reason: 'Kunci token tidak boleh kosong setelah normalisasi',
+    };
+  }
+  if (!/^[a-z][a-z0-9_]*$/.test(normalized)) {
+    return {
+      valid: false,
+      normalizedKey: normalized,
+      reason:
+        'Kunci token harus diawali huruf kecil a-z dan hanya memuat karakter a-z, 0-9, atau _',
+    };
+  }
+  return { valid: true, normalizedKey: normalized };
+}
+
 export function computePresetActiveServicesCount(
   presetSlugOrId: string,
   services: ScheduledServiceRecord[]
@@ -110,6 +153,14 @@ export function computePresetActiveServicesCount(
   return services.filter(
     (s) => s.presetId === presetSlugOrId
   ).length;
+}
+
+export interface CustomSlideType {
+  id: string;
+  title: string;
+  category: string;
+  canvasStyle: CanvasCustomStyle;
+  createdAt: string;
 }
 
 export const SYNTHETIC_SCHEDULED_SERVICES: ScheduledServiceRecord[] = [

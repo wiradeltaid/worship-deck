@@ -12,6 +12,7 @@ import {
   FolderOpen,
   ShieldCheck,
   RotateCcw,
+  Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +32,7 @@ import {
   ScheduledServiceRecord,
   SYNTHETIC_MASTER_PRESETS,
   SYNTHETIC_SCHEDULED_SERVICES,
+  CustomSlideType,
 } from '@/operator/workspace/types';
 import { computePresetDate } from '@/operator/workspace/utils';
 import MockupTimeline from '@/operator/workspace/MockupTimeline';
@@ -38,6 +40,14 @@ import MockupEditor from '@/operator/workspace/MockupEditor';
 import MockupCanvasPreview from '@/operator/workspace/MockupCanvasPreview';
 import MockupMasterPresetDrawer from '@/operator/workspace/MockupMasterPresetDrawer';
 import MockupScheduleHistoryDrawer from '@/operator/workspace/MockupScheduleHistoryDrawer';
+import MockupMasterLibrariesDrawer, {
+  MasterSongSet,
+  MasterAnnouncementSet,
+  PredefinedToken,
+  SYNTHETIC_MASTER_SONG_SETS,
+  SYNTHETIC_MASTER_ANNOUNCEMENT_SETS,
+  SYNTHETIC_PREDEFINED_TOKENS,
+} from '@/operator/workspace/MockupMasterLibrariesDrawer';
 import { toast } from 'sonner';
 
 const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
@@ -152,11 +162,24 @@ export default function WorkspaceMockupPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState('10:45 WIB');
 
+  const [isMasterLibrariesDrawerOpen, setIsMasterLibrariesDrawerOpen] = useState(false);
+  const [masterLibrariesTab, setMasterLibrariesTab] = useState<'song_sets' | 'announcements' | 'tokens'>('song_sets');
+
   // Shared master presets and scheduled services state
   const [masterPresets, setMasterPresets] = useState<MasterPreset[]>(SYNTHETIC_MASTER_PRESETS);
   const [scheduledServices, setScheduledServices] = useState<ScheduledServiceRecord[]>(
     SYNTHETIC_SCHEDULED_SERVICES
   );
+
+  // Reusable Master Libraries State
+  const [masterSongSets, setMasterSongSets] = useState<MasterSongSet[]>(SYNTHETIC_MASTER_SONG_SETS);
+  const [masterAnnouncementSets, setMasterAnnouncementSets] = useState<MasterAnnouncementSet[]>(
+    SYNTHETIC_MASTER_ANNOUNCEMENT_SETS
+  );
+  const [predefinedTokens, setPredefinedTokens] = useState<PredefinedToken[]>(
+    SYNTHETIC_PREDEFINED_TOKENS
+  );
+  const [customSlideTypes, setCustomSlideTypes] = useState<CustomSlideType[]>([]);
 
   const [preset, setPreset] = useState<WorshipPreset>('sabbath-morning');
   const [serviceDate, setServiceDate] = useState('2026-09-19');
@@ -190,6 +213,110 @@ export default function WorkspaceMockupPage() {
         };
       });
     }
+  };
+
+  const handleSelectMasterSongSet = (songSet: MasterSongSet) => {
+    if (songSet.songs.length === 0) return;
+    const first = songSet.songs[0];
+    handleUpdateCurrentItem({
+      title: `Lagu — ${first.title}`,
+      subtitle: `${first.bookCode} ${first.hymnNumber} (Key of ${first.key}) • Master: ${songSet.id}`,
+      songData: {
+        hymnNumber: first.hymnNumber,
+        bookCode: first.bookCode,
+        key: first.key,
+        activeVerses: [...first.activeVerses],
+        backgroundUrl: '/assets/background-navy.jpg',
+      },
+    });
+
+    // If song set has additional songs, append them to the timeline preserving frozen snapshot
+    if (songSet.songs.length > 1) {
+      const additionalItems: TimelineItem[] = songSet.songs.slice(1).map((s, idx) => ({
+        id: `item-${Date.now()}-${idx + 1}`,
+        type: 'song',
+        title: `Lagu — ${s.title}`,
+        subtitle: `${s.bookCode} ${s.hymnNumber} (Key of ${s.key}) • Master: ${songSet.id}`,
+        duration: '10:00',
+        slidesCount: s.activeVerses.length || 3,
+        songData: {
+          hymnNumber: s.hymnNumber,
+          bookCode: s.bookCode,
+          key: s.key,
+          activeVerses: [...s.activeVerses],
+          backgroundUrl: '/assets/background-navy.jpg',
+        },
+      }));
+      setItems((prev) => [...prev, ...additionalItems]);
+    }
+
+    setHasUnsavedChanges(true);
+    toast.success(`Master Songset "${songSet.title}" (${songSet.songs.length} lagu) diterapkan ke timeline.`);
+  };
+
+  const handleSelectMasterAnnouncementSet = (announcementSet: MasterAnnouncementSet) => {
+    handleUpdateCurrentItem({
+      title: announcementSet.title,
+      subtitle: `${announcementSet.flyersCount} Slide Warta (Master: ${announcementSet.id})`,
+      slidesCount: announcementSet.flyersCount,
+      announcementData: {
+        looping: announcementSet.looping,
+        flyers: announcementSet.flyers.map((f) => ({ ...f })),
+      },
+    });
+    setHasUnsavedChanges(true);
+    toast.success(`Master Warta "${announcementSet.title}" diterapkan.`);
+  };
+
+  const handleSaveToMasterSongSet = (songItem: TimelineItem) => {
+    const newMasterSet: MasterSongSet = {
+      id: `mss-${Date.now()}`,
+      title: `Koleksi ${songItem.title}`,
+      description: `Disimpan dari jadwal ${serviceDate}`,
+      usageCount: 1,
+      songs: [
+        {
+          id: `s-${Date.now()}`,
+          title: songItem.title,
+          bookCode: songItem.songData?.bookCode || 'SDAH',
+          hymnNumber: songItem.songData?.hymnNumber || 100,
+          key: songItem.songData?.key || 'D',
+          activeVerses: songItem.songData?.activeVerses || [1, 2, 3],
+        },
+      ],
+    };
+    setMasterSongSets((prev) => [newMasterSet, ...prev]);
+    toast.success(`Lagu "${songItem.title}" berhasil didaftarkan ke Master Songset.`);
+  };
+
+  const handleSaveToMasterAnnouncementSet = (announcementItem: TimelineItem) => {
+    const flyers = announcementItem.announcementData?.flyers || [];
+    const newMasterSet: MasterAnnouncementSet = {
+      id: `mas-${Date.now()}`,
+      title: announcementItem.title || 'Warta Jemaat Baru',
+      flyersCount: flyers.length,
+      looping: announcementItem.announcementData?.looping ?? true,
+      updatedAt: serviceDate,
+      flyers: flyers.map((f) => ({ ...f })),
+    };
+    setMasterAnnouncementSets((prev) => [newMasterSet, ...prev]);
+    toast.success(`Warta "${newMasterSet.title}" berhasil didaftarkan ke Master Warta.`);
+  };
+
+  const handleSaveAsNewSlideType = (newType: {
+    title: string;
+    category: string;
+    canvasStyle: any;
+  }) => {
+    const created: CustomSlideType = {
+      id: `cst-${Date.now()}`,
+      title: newType.title,
+      category: newType.category,
+      canvasStyle: newType.canvasStyle,
+      createdAt: serviceDate,
+    };
+    setCustomSlideTypes((prev) => [created, ...prev]);
+    toast.success(`Tipe slide baru "${created.title}" berhasil didaftarkan ke master katalog.`);
   };
 
   const selectedItem =
@@ -475,6 +602,21 @@ export default function WorkspaceMockupPage() {
           >
             <Layers className="w-3.5 h-3.5 text-primary" />
             <span>⚙️ Kelola Master Preset</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setMasterLibrariesTab('tokens');
+              setIsMasterLibrariesDrawerOpen(true);
+            }}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="predefined-fields-drawer-button"
+          >
+            <Tag className="w-3.5 h-3.5 text-primary" />
+            <span>🏷️ Kamus Variabel</span>
           </Button>
         </div>
       </div>
@@ -832,6 +974,12 @@ export default function WorkspaceMockupPage() {
                 setSelectedItemId(newItems[0].id);
               }
             }}
+            onOpenMasterLibraries={(tab) => {
+              setMasterLibrariesTab(tab);
+              setIsMasterLibrariesDrawerOpen(true);
+            }}
+            onSaveToMasterSongSet={handleSaveToMasterSongSet}
+            onSaveToMasterAnnouncementSet={handleSaveToMasterAnnouncementSet}
           />
         </div>
 
@@ -870,6 +1018,21 @@ export default function WorkspaceMockupPage() {
         services={scheduledServices}
         onUpdateServices={setScheduledServices}
         onOpenService={handleOpenHistoricalService}
+      />
+
+      {/* Master Libraries & Predefined Fields Drawer */}
+      <MockupMasterLibrariesDrawer
+        isOpen={isMasterLibrariesDrawerOpen}
+        onClose={() => setIsMasterLibrariesDrawerOpen(false)}
+        defaultTab={masterLibrariesTab}
+        songSets={masterSongSets}
+        onUpdateSongSets={setMasterSongSets}
+        announcementSets={masterAnnouncementSets}
+        onUpdateAnnouncementSets={setMasterAnnouncementSets}
+        tokens={predefinedTokens}
+        onUpdateTokens={setPredefinedTokens}
+        onSelectSongSet={handleSelectMasterSongSet}
+        onSelectAnnouncementSet={handleSelectMasterAnnouncementSet}
       />
     </div>
   );

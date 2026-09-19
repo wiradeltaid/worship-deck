@@ -30,9 +30,9 @@ Implement the Reusable Master Libraries (Song Sets, Announcements, Canvas Slide 
 
 **Blocked by:** 01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement Master Song Sets lookup drawer and save-to-master action with frozen snapshot preservation.
-- [ ] Implement Master Announcement Sets lookup drawer with looping support and safe deletion semantics.
-- [ ] Implement "Simpan sebagai Tipe Slide Baru" in Canvas Designer registering custom layouts into the master catalog.
-- [ ] Implement Global Predefined Fields Registry drawer and per-preset form layout configurator.
+- [x] Implement Master Song Sets lookup drawer and save-to-master action with frozen snapshot preservation.
+- [x] Implement Master Announcement Sets lookup drawer with looping support and safe deletion semantics.
+- [x] Implement "Simpan sebagai Tipe Slide Baru" in Canvas Designer registering custom layouts into the master catalog.
+- [x] Implement Global Predefined Fields Registry drawer and per-preset form layout configurator.
