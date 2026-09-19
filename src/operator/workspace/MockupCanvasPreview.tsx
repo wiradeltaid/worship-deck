@@ -406,7 +406,9 @@ export default function MockupCanvasPreview({
               <Label className="text-xs font-semibold">Versi Alkitab</Label>
               <Select
                 value={selectedTranslation}
-                onValueChange={setSelectedTranslation}
+                onValueChange={(val) => {
+                  if (val) setSelectedTranslation(val);
+                }}
               >
                 <SelectTrigger
                   className="w-full h-8 text-xs"

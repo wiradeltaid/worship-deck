@@ -260,7 +260,7 @@ export default function MockupEditor({
                       value={item.songData?.bookCode || 'SDAH'}
                       onValueChange={(val) =>
                         onUpdateItem({
-                          songData: { ...item.songData, bookCode: val },
+                          songData: { ...item.songData, bookCode: val || 'SDAH' },
                         })
                       }
                     >
@@ -290,7 +290,7 @@ export default function MockupEditor({
                       value={item.songData?.key || 'D'}
                       onValueChange={(val) =>
                         onUpdateItem({
-                          songData: { ...item.songData, key: val },
+                          songData: { ...item.songData, key: val || 'D' },
                         })
                       }
                     >
@@ -314,7 +314,7 @@ export default function MockupEditor({
                       value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
                       onValueChange={(val) =>
                         onUpdateItem({
-                          songData: { ...item.songData, backgroundUrl: val },
+                          songData: { ...item.songData, backgroundUrl: val || '/assets/background-navy.jpg' },
                         })
                       }
                     >
