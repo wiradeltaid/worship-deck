@@ -1,6 +1,6 @@
 # SPEC-50 — Unified Schedule Workspace UI/UX Full Architecture & Screen Replacement Blueprint
 
-> **Status:** open  
+> **Status:** closed  
 > **Release:** unified-schedule-workspace-full-architecture  
 > **Component:** hub  
 > **Touches:** operator, spa, presenter, sync, artifacts  

@@ -47,10 +47,10 @@ Implement the in-workspace Desktop Sync status, Settings Drawer, complete legacy
 
 **Blocked by:** 03
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement in-workspace Sync Status badge, atomic aggregate transfer contract, and conflict resolution dialog.
-- [ ] Implement in-workspace Settings drawer with Accounts, Worship, System, and Diagnostic tabs.
-- [ ] Establish and verify the complete screen replacement and deprecation matrix with compatibility fallback.
-- [ ] Create `tests/smoke-spec-50.test.mjs` and register `test:smoke-spec-50` in `package.json`.
-- [ ] Verify all test assertions pass cleanly.
+- [x] Implement in-workspace Sync Status badge, atomic aggregate transfer contract, and conflict resolution dialog.
+- [x] Implement in-workspace Settings drawer with Accounts, Worship, System, and Diagnostic tabs.
+- [x] Establish and verify the complete screen replacement and deprecation matrix with compatibility fallback.
+- [x] Create `tests/smoke-spec-50.test.mjs` and register `test:smoke-spec-50` in `package.json`.
+- [x] Verify all test assertions pass cleanly.

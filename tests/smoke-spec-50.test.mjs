@@ -25,6 +25,8 @@ const {
   isValidPresetTransition,
   isValidTokenKey,
   computePresetActiveServicesCount,
+  resolveSyncConflict,
+  SCREEN_REPLACEMENT_MATRIX,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'operator', 'workspace', 'types.ts')).href
 );
@@ -504,6 +506,203 @@ test('SPEC-50-03: Real-File Executable Absence Guard & Defect Injection Proofs',
     'Absence guard must detect removal of remote-pairing-pin from real MockupRemotePairingModal'
   );
 });
+
+export function scanSyncAndSettingsFeatures(pageSource, syncDialogSource, settingsDrawerSource) {
+  const findings = [];
+  if (!pageSource.includes('data-testid="workspace-settings-button"')) {
+    findings.push('Missing data-testid="workspace-settings-button" in WorkspaceMockupPage');
+  }
+  if (!syncDialogSource.includes('data-testid="sync-status-dialog"')) {
+    findings.push('Missing data-testid="sync-status-dialog" in MockupSyncDialog');
+  }
+  if (!syncDialogSource.includes('data-testid="sync-push-button"')) {
+    findings.push('Missing data-testid="sync-push-button" in MockupSyncDialog');
+  }
+  if (!syncDialogSource.includes('data-testid="sync-pull-button"')) {
+    findings.push('Missing data-testid="sync-pull-button" in MockupSyncDialog');
+  }
+  if (!syncDialogSource.includes('data-testid="conflict-diff-viewer"')) {
+    findings.push('Missing data-testid="conflict-diff-viewer" in MockupSyncDialog');
+  }
+  if (!syncDialogSource.includes('data-testid="resolve-local-button"')) {
+    findings.push('Missing data-testid="resolve-local-button" in MockupSyncDialog');
+  }
+  if (!syncDialogSource.includes('data-testid="resolve-server-button"')) {
+    findings.push('Missing data-testid="resolve-server-button" in MockupSyncDialog');
+  }
+  if (!syncDialogSource.includes('data-testid="resolve-fork-button"')) {
+    findings.push('Missing data-testid="resolve-fork-button" in MockupSyncDialog');
+  }
+  if (!settingsDrawerSource.includes('data-testid="workspace-settings-drawer"')) {
+    findings.push('Missing data-testid="workspace-settings-drawer" in MockupSettingsDrawer');
+  }
+  if (!settingsDrawerSource.includes('data-testid="settings-tab-accounts"')) {
+    findings.push('Missing data-testid="settings-tab-accounts" in MockupSettingsDrawer');
+  }
+  if (!settingsDrawerSource.includes('data-testid="settings-tab-worship"')) {
+    findings.push('Missing data-testid="settings-tab-worship" in MockupSettingsDrawer');
+  }
+  if (!settingsDrawerSource.includes('data-testid="settings-tab-system"')) {
+    findings.push('Missing data-testid="settings-tab-system" in MockupSettingsDrawer');
+  }
+  if (!settingsDrawerSource.includes('data-testid="settings-tab-tools"')) {
+    findings.push('Missing data-testid="settings-tab-tools" in MockupSettingsDrawer');
+  }
+  return findings;
+}
+
+test('SPEC-50-04: Desktop Sync Status, Settings Drawer & Screen Replacement Integration', () => {
+  const pagePath = path.join(root, 'spa', 'src', 'pages', 'WorkspaceMockupPage.tsx');
+  const syncDialogPath = path.join(root, 'src', 'operator', 'workspace', 'MockupSyncDialog.tsx');
+  const settingsDrawerPath = path.join(root, 'src', 'operator', 'workspace', 'MockupSettingsDrawer.tsx');
+
+  assert.ok(fs.existsSync(pagePath), 'WorkspaceMockupPage.tsx must exist');
+  assert.ok(fs.existsSync(syncDialogPath), 'MockupSyncDialog.tsx must exist');
+  assert.ok(fs.existsSync(settingsDrawerPath), 'MockupSettingsDrawer.tsx must exist');
+
+  const pageSource = fs.readFileSync(pagePath, 'utf8');
+  const syncDialogSource = fs.readFileSync(syncDialogPath, 'utf8');
+  const settingsDrawerSource = fs.readFileSync(settingsDrawerPath, 'utf8');
+
+  const findings = scanSyncAndSettingsFeatures(pageSource, syncDialogSource, settingsDrawerSource);
+  assert.deepEqual(findings, [], `Sync and settings scan findings: ${findings.join('; ')}`);
+});
+
+test('SPEC-50-04: Atomic Aggregate Sync Contract & Conflict Resolution Behavioral Rules', () => {
+  // Test production resolveSyncConflict implementation
+  const localAggregate = {
+    serviceId: 'srv-wal-1',
+    revision: 2,
+    serviceDate: '2026-09-19',
+    serviceTitle: 'Local Title',
+    items: [{ id: 'i1', type: 'general', title: 'I1', slidesCount: 1 }],
+    schemaVersion: 1,
+  };
+  const serverAggregate = {
+    serviceId: 'srv-wal-1',
+    revision: 3,
+    serviceDate: '2026-09-19',
+    serviceTitle: 'Server Title',
+    items: [
+      { id: 'i1', type: 'general', title: 'I1', slidesCount: 1 },
+      { id: 'i2', type: 'song', title: 'I2', slidesCount: 3 },
+    ],
+    schemaVersion: 1,
+  };
+
+  // Strategy A: Local force push overrides revision
+  const localWinner = resolveSyncConflict('local', localAggregate, serverAggregate);
+  assert.equal(localWinner.revision, 4, 'Local resolution must bump revision beyond server');
+  assert.equal(localWinner.items.length, 1);
+
+  // Strategy B: Server acceptance replaces items and revision
+  const serverWinner = resolveSyncConflict('server', localAggregate, serverAggregate);
+  assert.equal(serverWinner.revision, 3);
+  assert.equal(serverWinner.items.length, 2);
+
+  // Strategy C: Fork instance allocates fresh ID and revision 1
+  const forked = resolveSyncConflict('fork', localAggregate, serverAggregate);
+  assert.notEqual(forked.serviceId, 'srv-wal-1', 'Fork must produce distinct service ID');
+  assert.equal(forked.revision, 1);
+  assert.equal(forked.items.length, 1);
+});
+
+test('SPEC-50-04: Complete Screen Replacement Matrix Verification', () => {
+  assert.ok(Array.isArray(SCREEN_REPLACEMENT_MATRIX), 'SCREEN_REPLACEMENT_MATRIX must be an array');
+  assert.equal(SCREEN_REPLACEMENT_MATRIX.length, 8, 'Matrix must cover all 8 operational screens');
+
+  const routes = SCREEN_REPLACEMENT_MATRIX.map((m) => m.legacyRoute);
+  assert.ok(routes.includes('/'), 'DashboardPage / must be covered');
+  assert.ok(routes.includes('/services/new'), 'CreateServicePage /services/new must be covered');
+  assert.ok(routes.includes('/services/:id'), 'RunSheetPage /services/:id must be covered');
+  assert.ok(routes.includes('/services/:id/present'), 'Presenter /services/:id/present must be covered');
+  assert.ok(routes.includes('/services/:id/remote'), 'Remote /services/:id/remote must be covered');
+  assert.ok(routes.includes('/admin'), 'Admin /admin must be covered');
+  assert.ok(routes.includes('/admin/sync'), 'Sync /admin/sync must be covered');
+  assert.ok(routes.includes('/admin/artifacts'), 'Artifacts /admin/artifacts must be covered');
+
+  for (const entry of SCREEN_REPLACEMENT_MATRIX) {
+    assert.ok(entry.targetWorkspaceDestination.length > 0, `Entry ${entry.legacyRoute} must define target destination`);
+    assert.ok(entry.description.length > 0, `Entry ${entry.legacyRoute} must have descriptive summary`);
+  }
+});
+
+test('SPEC-50-04: Real-File Executable Absence Guard & Defect Injection Proofs', () => {
+  const pagePath = path.join(root, 'spa', 'src', 'pages', 'WorkspaceMockupPage.tsx');
+  const syncDialogPath = path.join(root, 'src', 'operator', 'workspace', 'MockupSyncDialog.tsx');
+  const settingsDrawerPath = path.join(root, 'src', 'operator', 'workspace', 'MockupSettingsDrawer.tsx');
+
+  const realPageSource = fs.readFileSync(pagePath, 'utf8');
+  const realSyncDialogSource = fs.readFileSync(syncDialogPath, 'utf8');
+  const realSettingsDrawerSource = fs.readFileSync(settingsDrawerPath, 'utf8');
+
+  // Defect 1: Strip workspace-settings-button from page
+  const defectivePage1 = realPageSource.replace('data-testid="workspace-settings-button"', '');
+  const defect1Findings = scanSyncAndSettingsFeatures(defectivePage1, realSyncDialogSource, realSettingsDrawerSource);
+  assert.ok(defect1Findings.includes('Missing data-testid="workspace-settings-button" in WorkspaceMockupPage'));
+
+  // Defect 2: Strip sync-status-dialog from sync dialog
+  const defectiveSync2 = realSyncDialogSource.replace('data-testid="sync-status-dialog"', '');
+  const defect2Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync2, realSettingsDrawerSource);
+  assert.ok(defect2Findings.includes('Missing data-testid="sync-status-dialog" in MockupSyncDialog'));
+
+  // Defect 3: Strip sync-push-button from sync dialog
+  const defectiveSync3 = realSyncDialogSource.replace('data-testid="sync-push-button"', '');
+  const defect3Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync3, realSettingsDrawerSource);
+  assert.ok(defect3Findings.includes('Missing data-testid="sync-push-button" in MockupSyncDialog'));
+
+  // Defect 4: Strip sync-pull-button from sync dialog
+  const defectiveSync4 = realSyncDialogSource.replace('data-testid="sync-pull-button"', '');
+  const defect4Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync4, realSettingsDrawerSource);
+  assert.ok(defect4Findings.includes('Missing data-testid="sync-pull-button" in MockupSyncDialog'));
+
+  // Defect 5: Strip conflict-diff-viewer from sync dialog
+  const defectiveSync5 = realSyncDialogSource.replace('data-testid="conflict-diff-viewer"', '');
+  const defect5Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync5, realSettingsDrawerSource);
+  assert.ok(defect5Findings.includes('Missing data-testid="conflict-diff-viewer" in MockupSyncDialog'));
+
+  // Defect 6: Strip resolve-local-button from sync dialog
+  const defectiveSync6 = realSyncDialogSource.replace('data-testid="resolve-local-button"', '');
+  const defect6Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync6, realSettingsDrawerSource);
+  assert.ok(defect6Findings.includes('Missing data-testid="resolve-local-button" in MockupSyncDialog'));
+
+  // Defect 7: Strip resolve-server-button from sync dialog
+  const defectiveSync7 = realSyncDialogSource.replace('data-testid="resolve-server-button"', '');
+  const defect7Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync7, realSettingsDrawerSource);
+  assert.ok(defect7Findings.includes('Missing data-testid="resolve-server-button" in MockupSyncDialog'));
+
+  // Defect 8: Strip resolve-fork-button from sync dialog
+  const defectiveSync8 = realSyncDialogSource.replace('data-testid="resolve-fork-button"', '');
+  const defect8Findings = scanSyncAndSettingsFeatures(realPageSource, defectiveSync8, realSettingsDrawerSource);
+  assert.ok(defect8Findings.includes('Missing data-testid="resolve-fork-button" in MockupSyncDialog'));
+
+  // Defect 9: Strip workspace-settings-drawer from settings drawer
+  const defectiveSettings9 = realSettingsDrawerSource.replace('data-testid="workspace-settings-drawer"', '');
+  const defect9Findings = scanSyncAndSettingsFeatures(realPageSource, realSyncDialogSource, defectiveSettings9);
+  assert.ok(defect9Findings.includes('Missing data-testid="workspace-settings-drawer" in MockupSettingsDrawer'));
+
+  // Defect 10: Strip settings-tab-accounts from settings drawer
+  const defectiveSettings10 = realSettingsDrawerSource.replace('data-testid="settings-tab-accounts"', '');
+  const defect10Findings = scanSyncAndSettingsFeatures(realPageSource, realSyncDialogSource, defectiveSettings10);
+  assert.ok(defect10Findings.includes('Missing data-testid="settings-tab-accounts" in MockupSettingsDrawer'));
+
+  // Defect 11: Strip settings-tab-worship from settings drawer
+  const defectiveSettings11 = realSettingsDrawerSource.replace('data-testid="settings-tab-worship"', '');
+  const defect11Findings = scanSyncAndSettingsFeatures(realPageSource, realSyncDialogSource, defectiveSettings11);
+  assert.ok(defect11Findings.includes('Missing data-testid="settings-tab-worship" in MockupSettingsDrawer'));
+
+  // Defect 12: Strip settings-tab-system from settings drawer
+  const defectiveSettings12 = realSettingsDrawerSource.replace('data-testid="settings-tab-system"', '');
+  const defect12Findings = scanSyncAndSettingsFeatures(realPageSource, realSyncDialogSource, defectiveSettings12);
+  assert.ok(defect12Findings.includes('Missing data-testid="settings-tab-system" in MockupSettingsDrawer'));
+
+  // Defect 13: Strip settings-tab-tools from settings drawer
+  const defectiveSettings13 = realSettingsDrawerSource.replace('data-testid="settings-tab-tools"', '');
+  const defect13Findings = scanSyncAndSettingsFeatures(realPageSource, realSyncDialogSource, defectiveSettings13);
+  assert.ok(defect13Findings.includes('Missing data-testid="settings-tab-tools" in MockupSettingsDrawer'));
+});
+
+
 
 
 

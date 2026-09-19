@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Tag,
   Smartphone,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +36,8 @@ import {
   SYNTHETIC_MASTER_PRESETS,
   SYNTHETIC_SCHEDULED_SERVICES,
   CustomSlideType,
+  resolveSyncConflict,
+  SyncAggregatePayload,
 } from '@/operator/workspace/types';
 import { computePresetDate } from '@/operator/workspace/utils';
 import MockupTimeline from '@/operator/workspace/MockupTimeline';
@@ -51,6 +54,8 @@ import MockupMasterLibrariesDrawer, {
   SYNTHETIC_PREDEFINED_TOKENS,
 } from '@/operator/workspace/MockupMasterLibrariesDrawer';
 import MockupRemotePairingModal from '@/operator/workspace/MockupRemotePairingModal';
+import MockupSyncDialog from '@/operator/workspace/MockupSyncDialog';
+import MockupSettingsDrawer from '@/operator/workspace/MockupSettingsDrawer';
 import { toast } from 'sonner';
 
 const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
@@ -163,6 +168,8 @@ export default function WorkspaceMockupPage() {
   const [isScheduleHistoryDrawerOpen, setIsScheduleHistoryDrawerOpen] = useState(false);
   const [isRemoteModalOpen, setIsRemoteModalOpen] = useState(false);
   const [isLivenessGuardOpen, setIsLivenessGuardOpen] = useState(false);
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
   const [pendingLiveAction, setPendingLiveAction] = useState<(() => void) | null>(null);
   const [scheduleRevision, setScheduleRevision] = useState(1);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -634,6 +641,18 @@ export default function WorkspaceMockupPage() {
             <Tag className="w-3.5 h-3.5 text-primary" />
             <span>🏷️ Kamus Variabel</span>
           </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSettingsDrawerOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="workspace-settings-button"
+          >
+            <Settings className="w-3.5 h-3.5 text-primary" />
+            <span>⚙️ Pengaturan</span>
+          </Button>
         </div>
       </div>
 
@@ -911,14 +930,17 @@ export default function WorkspaceMockupPage() {
             </span>
           </div>
 
-          {/* Sync Status Indicator */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400"
+          {/* Sync Status Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsSyncDialogOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:bg-muted transition-colors cursor-pointer"
             data-testid="sync-status-indicator"
+            title="Buka Status & Resolusi Sinkronisasi Desktop-ke-Web"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
             <span>Tersinkron</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -1122,6 +1144,55 @@ export default function WorkspaceMockupPage() {
           </div>
         </div>
       )}
+
+      {/* Desktop-to-Web Sync & Conflict Resolver Dialog */}
+      <MockupSyncDialog
+        open={isSyncDialogOpen}
+        onOpenChange={setIsSyncDialogOpen}
+        localRevision={scheduleRevision}
+        serverRevision={scheduleRevision + 1}
+        serviceTitle={currentPresetMeta.label}
+        serviceDate={serviceDate}
+        onResolveConflict={(strategy) => {
+          const localPayload: SyncAggregatePayload = {
+            serviceId: serviceDate,
+            revision: scheduleRevision,
+            serviceDate,
+            serviceTitle: currentPresetMeta.label,
+            items: [...items],
+            schemaVersion: 1,
+          };
+          const serverPayload: SyncAggregatePayload = {
+            serviceId: serviceDate,
+            revision: scheduleRevision + 1,
+            serviceDate,
+            serviceTitle: currentPresetMeta.label,
+            items: [...items],
+            schemaVersion: 1,
+          };
+
+          const resolved = resolveSyncConflict(strategy, localPayload, serverPayload);
+          if (strategy === 'local') {
+            setScheduleRevision(resolved.revision);
+            setHasUnsavedChanges(false);
+          } else if (strategy === 'server') {
+            setInstanceItems(resolved.items);
+            setScheduleRevision(resolved.revision);
+            setHasUnsavedChanges(false);
+          } else if (strategy === 'fork') {
+            const nextDate = computePresetDate(preset, new Date(Date.now() + 86400000 * 7));
+            setServiceDate(nextDate);
+            setScheduleRevision(1);
+            setHasUnsavedChanges(false);
+          }
+        }}
+      />
+
+      {/* In-Workspace Settings & Administration Drawer */}
+      <MockupSettingsDrawer
+        isOpen={isSettingsDrawerOpen}
+        onClose={() => setIsSettingsDrawerOpen(false)}
+      />
     </div>
   );
 }

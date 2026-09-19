@@ -419,3 +419,106 @@ export const SYNTHETIC_MEDIA_CATALOG: MediaAsset[] = [
     dimensions: '1920x1080 (16:9)',
   },
 ];
+
+export interface SyncAggregatePayload {
+  serviceId: string;
+  revision: number;
+  serviceDate: string;
+  serviceTitle: string;
+  items: TimelineItem[];
+  schemaVersion: number;
+}
+
+export function resolveSyncConflict(
+  strategy: 'local' | 'server' | 'fork',
+  local: SyncAggregatePayload,
+  server: SyncAggregatePayload
+): SyncAggregatePayload {
+  switch (strategy) {
+    case 'local':
+      return {
+        ...local,
+        revision: Math.max(local.revision, server.revision) + 1,
+        items: local.items.map((it) => ({ ...it })),
+      };
+    case 'server':
+      return {
+        ...server,
+        items: server.items.map((it) => ({ ...it })),
+      };
+    case 'fork':
+      return {
+        ...local,
+        serviceId: `srv-fork-${Date.now()}`,
+        revision: 1,
+        items: local.items.map((it) => ({ ...it })),
+      };
+  }
+}
+
+export interface ScreenReplacementEntry {
+  legacyRoute: string;
+  legacyScreen: string;
+  targetWorkspaceDestination: string;
+  status: 'replaced_integrated' | 'retained_unified' | 'retained_intact';
+  description: string;
+}
+
+export const SCREEN_REPLACEMENT_MATRIX: ScreenReplacementEntry[] = [
+  {
+    legacyRoute: '/',
+    legacyScreen: 'DashboardPage',
+    targetWorkspaceDestination: 'Schedule History Drawer (📂 Riwayat Jadwal)',
+    status: 'replaced_integrated',
+    description: 'Browse, search, duplicate, and soft-delete past/upcoming services.',
+  },
+  {
+    legacyRoute: '/services/new',
+    legacyScreen: 'CreateServicePage',
+    targetWorkspaceDestination: 'Workspace Creation Flow (Raw Rundown Parser tab)',
+    status: 'replaced_integrated',
+    description: 'Raw rundown copy-paste, live parser, and dynamic song suggestion proposal.',
+  },
+  {
+    legacyRoute: '/services/:id',
+    legacyScreen: 'RunSheetPage',
+    targetWorkspaceDestination: 'Unified 3-Panel Workspace',
+    status: 'replaced_integrated',
+    description: 'Timeline run sheet, contextual editor, and sticky 16:9 canvas preview.',
+  },
+  {
+    legacyRoute: '/services/:id/present',
+    legacyScreen: 'PresenterOperator',
+    targetWorkspaceDestination: 'In-Workspace Live Presenter Console (▶ Tayangkan)',
+    status: 'retained_unified',
+    description: '2-screen confidence split presenter surface consuming unified slide plan with liveness guard.',
+  },
+  {
+    legacyRoute: '/services/:id/remote',
+    legacyScreen: 'RemotePage / RemoteOperator',
+    targetWorkspaceDestination: 'In-Workspace Remote Pairing Modal (📱 Remote Control)',
+    status: 'retained_unified',
+    description: 'Mobile remote with scoped token QR code, rate-limited PIN, and tactile touch controls.',
+  },
+  {
+    legacyRoute: '/admin',
+    legacyScreen: 'AdminPage',
+    targetWorkspaceDestination: 'In-Workspace Settings Drawer (⚙️ Pengaturan)',
+    status: 'replaced_integrated',
+    description: 'AccountsManager, WorshipSettings, and SystemSettings unified drawer.',
+  },
+  {
+    legacyRoute: '/admin/sync',
+    legacyScreen: 'AdminSyncPage',
+    targetWorkspaceDestination: 'In-Workspace Sync Dialog (🔄 Status Sinkronisasi)',
+    status: 'replaced_integrated',
+    description: 'Desktop-to-web sync status, push/pull triggers, and conflict diff viewer.',
+  },
+  {
+    legacyRoute: '/admin/artifacts',
+    legacyScreen: 'AdminArtifactsPage',
+    targetWorkspaceDestination: 'In-Place Canvas Designer & Master Preset Drawer',
+    status: 'replaced_integrated',
+    description: 'In-place canvas layouting and master template catalog.',
+  },
+];

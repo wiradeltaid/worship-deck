@@ -1,8 +1,8 @@
 ---
 type: mandate
 id: DEC-051
-status: accepted
-applied_at: null
+status: applied
+applied_at: '2026-09-20'
 accepted_by: 'kodesh87 (2026-09-20)'
 touches:
   - .control/memlog/autopilot-DEC-051.md
