@@ -1,6 +1,6 @@
 # SPEC-47 — Offline Desktop Application with Inno Setup and On-Demand Manual Sync
 
-> **Status:** open
+> **Status:** closed
 > **Release:** offline-desktop-inno-setup-and-manual-sync
 > **Component:** hub
 > **Touches:** settings, db, pptx, services, uploads, artifacts
