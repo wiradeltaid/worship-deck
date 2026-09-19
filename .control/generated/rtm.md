@@ -253,6 +253,99 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-46-01
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - internal/db
+  - internal/httpapi
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-46-02
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - internal/httpapi
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-46-03
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - internal/plan
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-46-04
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - internal/parse
+  - src/lib/parser.ts
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-46-05
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-46-06
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: SPEC-47-04
   spec: SPEC-47
   release: offline-desktop-inno-setup-and-manual-sync
@@ -855,6 +948,37 @@ rtm:
   release: announcement-slot-layout-and-upload-persistence
   test:
   - tests/smoke-spec-45.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-46-05
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-46-06
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
   status: done
   exempt: false
   green: true
@@ -2895,6 +3019,37 @@ rtm:
   FR: FR-27
   DEC: []
   UC: UC-2
+  ticket: SPEC-46-05
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-46-06
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -3091,6 +3246,21 @@ rtm:
   - internal/plan
   - src/lib/slide-plan.ts
   - tests/smoke-spec-44.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-46-03
+  spec: SPEC-46
+  release: configurable-form-layout-and-predefined-fields
+  test:
+  - internal/plan
+  - tests/smoke-spec-46.test.mjs
   status: done
   exempt: false
   green: true

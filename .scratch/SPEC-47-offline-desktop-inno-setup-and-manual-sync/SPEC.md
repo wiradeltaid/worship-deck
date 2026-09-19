@@ -23,7 +23,7 @@ Worship Presenter Web currently runs as a client-server web application (Go HTTP
 
 ## Provenance & Architectural Foundation
 
-This specification is grounded in the thorough architectural peer analysis conducted between **Composer** and **Terra** (GPT-5.6 Terra) recorded in `.work/offline-sync-discussion-prompt.txt`, `.work/terra-output.txt`, and session telemetry. Key tenets accepted from this review:
+This specification is grounded in the thorough architectural peer analysis conducted between **Composer** and **Terra** (GPT-5.6 Terra) recorded in offline sync architectural discussions and session telemetry. Key tenets accepted from this review:
 1. Replicate domain entities through an authenticated HTTP contract; **never copy raw SQLite database files**.
 2. Isolate runtime application binaries (Program Files read-only) from persistent user data (`%LocalAppData%\WorshipPresenter\`).
 3. Bundle an exact, pinned Node.js portable runtime for offline PPTX generation rather than attempting an unverified Go port.

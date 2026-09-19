@@ -155,7 +155,8 @@ func hydrateArtifact(template Template, instanceID, layoutKey string, values map
 				if len(tokens) > 0 {
 					isSolelyToken := len(tokens) == 1 && strings.TrimSpace(*element.Content) == "{"+tokens[0]+"}"
 					if isSolelyToken && strings.TrimSpace(substituted) == "" {
-						if element.Required {
+						_, isDeclaredPlaceholder := defs[tokens[0]]
+						if element.Required && isDeclaredPlaceholder {
 							return ArtifactInstance{}, fmt.Errorf("missing required placeholder %s", tokens[0])
 						}
 						continue
@@ -171,14 +172,37 @@ func hydrateArtifact(template Template, instanceID, layoutKey string, values map
 					resolved.Text = element.Content
 				}
 			} else if (element.Type == "image" || element.Type == "image-placeholder") && element.ImageRef != nil {
-				resolved.ImageURL = element.ImageRef
+				subImg := substituteTokens(*element.ImageRef, effectiveValues)
+				if strings.TrimSpace(subImg) != "" && !strings.Contains(subImg, "{") {
+					resolved.ImageURL = &subImg
+				} else {
+					resolved.ImageURL = nil
+				}
 			}
 			elements = append(elements, resolved)
 			continue
 		}
 		def, ok := defs[*element.PlaceholderKey]
 		if !ok {
-			return ArtifactInstance{}, fmt.Errorf("undeclared placeholder %s", *element.PlaceholderKey)
+			// Dynamic predefined field token resolution (SPEC-46 / DEC-004 S5)
+			if rawVal, hasVal := effectiveValues[*element.PlaceholderKey]; hasVal && rawVal != nil {
+				valStr := fmt.Sprintf("%v", rawVal)
+				if strArr, isArr := asStringSlice(rawVal); isArr {
+					valStr = strings.Join(strArr, "\n")
+				}
+				if strings.TrimSpace(valStr) != "" {
+					resolved.PlaceholderKey = strPtr(*element.PlaceholderKey)
+					if element.Type == "text" {
+						resolved.Text = strPtr(valStr)
+					} else if element.Type == "image" || element.Type == "image-placeholder" {
+						resolved.ImageURL = strPtr(valStr)
+					}
+					elements = append(elements, resolved)
+					continue
+				}
+			}
+			// DEC-004 S5: unknown or unregistered tokens render empty without blocking generation
+			continue
 		}
 		value := resolvePlaceholderValue(def, effectiveValues[def.Key])
 		if !value.present {

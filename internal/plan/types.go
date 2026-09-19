@@ -175,6 +175,7 @@ type Snapshot struct {
 	SongInputs            map[string]HymnItem
 	AnnouncementSlides    map[int][]AnnouncementSlide
 	AnnouncementSetLabels map[int]string
+	FieldValues           map[string]string
 }
 
 func (s Snapshot) Has(id string) bool {

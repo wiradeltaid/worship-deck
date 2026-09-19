@@ -350,6 +350,20 @@ dag:
     - SPEC-45-02
   - parallel:
     - SPEC-45-03
+- spec: SPEC-46
+  order:
+  - parallel:
+    - SPEC-46-01
+  - parallel:
+    - SPEC-46-02
+  - parallel:
+    - SPEC-46-03
+  - parallel:
+    - SPEC-46-04
+  - parallel:
+    - SPEC-46-05
+  - parallel:
+    - SPEC-46-06
 - spec: SPEC-47
   order:
   - parallel:

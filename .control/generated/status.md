@@ -5,8 +5,8 @@
 ```yaml
 promise_progress: 96%
 rtm_rows:
-  green: 331
-  counted: 344
+  green: 342
+  counted: 355
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -178,6 +178,11 @@ work_progress:
   status: closed
   tickets_done: 3
   tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-46
+  status: closed
+  tickets_done: 6
+  tickets_total: 6
   work_progress: 100%
 - spec: SPEC-47
   status: open

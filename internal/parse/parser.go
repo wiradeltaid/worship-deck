@@ -57,8 +57,10 @@ type Rundown struct {
 	FamilyPrayerRequest *string         `json:"familyPrayerRequest"`
 	YouthPrayerRequest  *string         `json:"youthPrayerRequest"`
 	FamilyName          *string         `json:"familyName,omitempty"`
-	YouthName           *string         `json:"youthName,omitempty"`
-	SongCandidates      []SongCandidate `json:"songCandidates,omitempty"`
+	YouthName           *string           `json:"youthName,omitempty"`
+	SongCandidates      []SongCandidate   `json:"songCandidates,omitempty"`
+	FieldSuggestions    map[string]string `json:"fieldSuggestions,omitempty"`
+	SongSetSuggestions  map[string]SongSetSuggestion `json:"songSetSuggestions,omitempty"`
 }
 
 var (
@@ -578,6 +580,58 @@ func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile)
 			}
 		}
 	}
+
+	parsed.FieldSuggestions = extractDynamicFieldSuggestions(db, lines, rawText)
+	parsed.SongSetSuggestions = extractDynamicSongSetSuggestions(db, lines, rawText, profile)
+
+	// Sync dynamic field suggestions into legacy parsed fields if missing
+	if ref, ok := parsed.FieldSuggestions["scripture_reference"]; ok && ref != "" {
+		if parsed.VerseReading == nil {
+			parsed.VerseReading = &Scripture{Reference: &ref}
+		} else if parsed.VerseReading.Reference == nil || *parsed.VerseReading.Reference == "" {
+			parsed.VerseReading.Reference = &ref
+		}
+	}
+	if txt, ok := parsed.FieldSuggestions["scripture_text"]; ok && txt != "" {
+		if parsed.VerseReading == nil {
+			parsed.VerseReading = &Scripture{Text: txt}
+		} else if parsed.VerseReading.Text == "" {
+			parsed.VerseReading.Text = txt
+		}
+	}
+	if spk, ok := parsed.FieldSuggestions["sermon_speaker_name"]; ok && spk != "" {
+		if parsed.Sermon == nil {
+			parsed.Sermon = &Sermon{Speaker: spk}
+		} else if parsed.Sermon.Speaker == "" {
+			parsed.Sermon.Speaker = spk
+		}
+	}
+	if title, ok := parsed.FieldSuggestions["sermon_title"]; ok && title != "" {
+		if parsed.Sermon == nil {
+			parsed.Sermon = &Sermon{Title: title}
+		} else if parsed.Sermon.Title == "" {
+			parsed.Sermon.Title = title
+		}
+	}
+	if ss, ok := parsed.FieldSuggestions["special_song"]; ok && ss != "" && parsed.SpecialSong == nil {
+		parsed.SpecialSong = &ss
+	}
+	if cp, ok := parsed.FieldSuggestions["closing_prayer_person"]; ok && cp != "" && parsed.ClosingPrayerPerson == nil {
+		parsed.ClosingPrayerPerson = &cp
+	}
+	if fn, ok := parsed.FieldSuggestions["family_name"]; ok && fn != "" && parsed.FamilyName == nil {
+		parsed.FamilyName = &fn
+	}
+	if fr, ok := parsed.FieldSuggestions["family_request"]; ok && fr != "" && parsed.FamilyPrayerRequest == nil {
+		parsed.FamilyPrayerRequest = &fr
+	}
+	if yn, ok := parsed.FieldSuggestions["youth_name"]; ok && yn != "" && parsed.YouthName == nil {
+		parsed.YouthName = &yn
+	}
+	if yr, ok := parsed.FieldSuggestions["youth_request"]; ok && yr != "" && parsed.YouthPrayerRequest == nil {
+		parsed.YouthPrayerRequest = &yr
+	}
+
 	return parsed
 }
 
@@ -684,4 +738,162 @@ func Normalize(parsed Rundown) Rundown {
 		parsed.FamilyPrayerRequest = parsed.FamilyYouth
 	}
 	return parsed
+}
+
+func extractDynamicFieldSuggestions(db *sql.DB, lines []string, rawText string) map[string]string {
+	suggestions := make(map[string]string)
+	if db == nil {
+		return suggestions
+	}
+	rows, err := db.Query(`
+		SELECT variable_name, extraction_regex
+		FROM predefined_fields
+		WHERE is_active = 1 AND extraction_regex IS NOT NULL AND TRIM(extraction_regex) != ''
+	`)
+	if err != nil {
+		return suggestions
+	}
+	defer rows.Close()
+
+	type fieldPattern struct {
+		variableName string
+		re           *regexp.Regexp
+	}
+	var patterns []fieldPattern
+	for rows.Next() {
+		var varName, regexStr string
+		if err := rows.Scan(&varName, &regexStr); err == nil {
+			if translated, err := ValidateAndTranslateRegex(regexStr); err == nil {
+				if compiled, err := regexp.Compile(translated); err == nil {
+					patterns = append(patterns, fieldPattern{
+						variableName: varName,
+						re:           compiled,
+					})
+				}
+			}
+		}
+	}
+
+	for _, p := range patterns {
+		found := false
+		for _, line := range lines {
+			if m := p.re.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(p.re, line)
+				val := ""
+				if v, ok := groups["value"]; ok && strings.TrimSpace(v) != "" {
+					val = strings.TrimSpace(v)
+				} else if len(m) > 1 && strings.TrimSpace(m[1]) != "" {
+					val = strings.TrimSpace(m[1])
+				} else {
+					val = strings.TrimSpace(m[0])
+				}
+				if t, ok := groups["title"]; ok && strings.TrimSpace(t) != "" {
+					suggestions["sermon_title"] = strings.TrimSpace(t)
+				}
+				if val != "" {
+					suggestions[p.variableName] = val
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			if m := p.re.FindStringSubmatch(rawText); m != nil {
+				groups := extractNamedGroups(p.re, rawText)
+				val := ""
+				if v, ok := groups["value"]; ok && strings.TrimSpace(v) != "" {
+					val = strings.TrimSpace(v)
+				} else if len(m) > 1 && strings.TrimSpace(m[1]) != "" {
+					val = strings.TrimSpace(m[1])
+				} else {
+					val = strings.TrimSpace(m[0])
+				}
+				if val != "" {
+					suggestions[p.variableName] = val
+				}
+			}
+		}
+	}
+
+	return suggestions
+}
+
+func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string, profile *ParserProfile) map[string]SongSetSuggestion {
+	suggestions := make(map[string]SongSetSuggestion)
+	if db == nil {
+		return suggestions
+	}
+	rows, err := db.Query(`
+		SELECT variable_name, extraction_regex
+		FROM song_set_entries
+		WHERE extraction_regex IS NOT NULL AND TRIM(extraction_regex) != ''
+	`)
+	if err != nil {
+		return suggestions
+	}
+	defer rows.Close()
+
+	type songPattern struct {
+		variableName string
+		re           *regexp.Regexp
+	}
+	var patterns []songPattern
+	for rows.Next() {
+		var varName, regexStr string
+		if err := rows.Scan(&varName, &regexStr); err == nil {
+			if translated, err := ValidateAndTranslateRegex(regexStr); err == nil {
+				if compiled, err := regexp.Compile(translated); err == nil {
+					patterns = append(patterns, songPattern{
+						variableName: varName,
+						re:           compiled,
+					})
+				}
+			}
+		}
+	}
+
+	for _, p := range patterns {
+		for _, line := range lines {
+			if m := p.re.FindStringSubmatch(line); m != nil {
+				groups := extractNamedGroups(p.re, line)
+				numStr := ""
+				bookStr := ""
+				if n, ok := groups["number"]; ok {
+					numStr = n
+				}
+				if b, ok := groups["book"]; ok {
+					bookStr = b
+				}
+				if numStr == "" && len(m) > 1 {
+					for _, sm := range m[1:] {
+						if _, err := strconv.Atoi(strings.TrimSpace(sm)); err == nil {
+							numStr = strings.TrimSpace(sm)
+							break
+						}
+					}
+				}
+				if numStr != "" {
+					num, _ := strconv.Atoi(numStr)
+					bookCode := "SDAH"
+					if profile != nil {
+						bookCode = profile.ResolveBook(bookStr)
+					} else if bookStr != "" {
+						bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+					}
+					title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
+					suggestions[p.variableName] = SongSetSuggestion{
+						VariableName: p.variableName,
+						SongNumber:   num,
+						SongBookCode: bookCode,
+						Title:        title,
+						Lyrics:       lyrics,
+						MatchKind:    "regex",
+					}
+					break
+				}
+			}
+		}
+	}
+
+	return suggestions
 }

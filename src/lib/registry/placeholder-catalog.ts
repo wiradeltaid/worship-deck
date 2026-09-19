@@ -46,6 +46,21 @@ export function isCatalogPlaceholderKey(key: string): boolean {
   return CATALOG_BY_KEY.has(key);
 }
 
+/** Dynamically registers a predefined field token into the catalog (SPEC-46). */
+export function registerDynamicCatalogToken(key: string, type: PlaceholderType = 'text'): void {
+  CATALOG_BY_KEY.set(key, { key, type });
+}
+
+/** Dynamically registers multiple predefined field tokens into the catalog (SPEC-46). */
+export function registerDynamicCatalogTokens(
+  fields: Array<{ variable_name: string; field_type?: string }>
+): void {
+  for (const f of fields) {
+    const pType: PlaceholderType = f.field_type === 'image' ? 'image' : 'text';
+    CATALOG_BY_KEY.set(f.variable_name, { key: f.variable_name, type: pType });
+  }
+}
+
 /** Token matching regex for inline `{token_name}` in text element content. */
 export const INLINE_TOKEN_REGEX = /\{([a-zA-Z0-9_]+)\}/g;
 

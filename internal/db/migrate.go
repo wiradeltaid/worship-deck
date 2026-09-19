@@ -36,6 +36,12 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureRundownParserProfiles(handle); err != nil {
 		return err
 	}
+	if err := ensureFormLayoutTables(handle); err != nil {
+		return err
+	}
+	if err := migrateServiceFieldValues(handle); err != nil {
+		return err
+	}
 	return nil
 }
 

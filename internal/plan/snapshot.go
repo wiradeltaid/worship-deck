@@ -36,6 +36,7 @@ func loadTemplates(rows *sql.Rows, useTemplateID bool, trio *songSetLayoutTrio) 
 		SongInputs:            map[string]HymnItem{},
 		AnnouncementSlides:    map[int][]AnnouncementSlide{},
 		AnnouncementSetLabels: map[int]string{},
+		FieldValues:           map[string]string{},
 	}
 	for rows.Next() {
 		var id, label, baseType, updatedAt string
@@ -160,9 +161,27 @@ func LoadSnapshot(db *sql.DB, serviceID int) (Snapshot, error) {
 
 	if serviceID > 0 && db != nil {
 		loadSongSetInputsIntoSnapshot(db, serviceID, &snap)
+		loadServiceFieldValuesIntoSnapshot(db, serviceID, &snap)
 	}
 
 	return snap, nil
+}
+
+func loadServiceFieldValuesIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {
+	if snap.FieldValues == nil {
+		snap.FieldValues = map[string]string{}
+	}
+	fRows, err := db.Query(`SELECT variable_name, value_text FROM service_field_values WHERE service_id = ?`, serviceID)
+	if err != nil {
+		return
+	}
+	defer fRows.Close()
+	for fRows.Next() {
+		var k, v string
+		if err := fRows.Scan(&k, &v); err == nil {
+			snap.FieldValues[k] = v
+		}
+	}
 }
 
 func loadAnnouncementSlidesIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {

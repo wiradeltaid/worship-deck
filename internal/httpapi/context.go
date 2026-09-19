@@ -19,3 +19,12 @@ func sessionFrom(r *http.Request) *auth.Session {
 	s, _ := r.Context().Value(sessionCtxKey).(*auth.Session)
 	return s
 }
+
+func requireSession(w http.ResponseWriter, r *http.Request) bool {
+	sess := sessionFrom(r)
+	if sess == nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return false
+	}
+	return true
+}
