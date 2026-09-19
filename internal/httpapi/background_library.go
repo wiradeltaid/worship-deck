@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
 	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
@@ -213,9 +214,10 @@ func (s *Server) createBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 		isDefInt = 1
 	}
 
+	bgGid := db.NewUUIDv7()
 	res, err := tx.Exec(
-		`INSERT INTO background_library_images (url, name, is_default, created_at, updated_at, category) VALUES (?, ?, ?, ?, ?, ?)`,
-		imageURL, name, isDefInt, now, now, category,
+		`INSERT INTO background_library_images (global_id, url, name, is_default, created_at, updated_at, category) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		bgGid, imageURL, name, isDefInt, now, now, category,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -565,7 +567,25 @@ func (s *Server) deleteBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	res, err := s.DB.Exec(
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer tx.Rollback()
+
+	gid, err := db.GetGlobalIDTx(tx, "background_library_images", id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+
+	if err := db.RecordTombstoneTx(tx, gid, "background_library_image"); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+
+	res, err := tx.ExecContext(r.Context(),
 		`DELETE FROM background_library_images WHERE id = ? AND updated_at = ?`,
 		id, updatedAt,
 	)
@@ -575,6 +595,10 @@ func (s *Server) deleteBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		writeError(w, http.StatusConflict, "Image was modified by another session")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 

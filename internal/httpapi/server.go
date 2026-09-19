@@ -125,6 +125,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/present/{id}/remote/stream", s.getRemoteStream)
 	mux.HandleFunc("POST /api/present/{id}/remote/intent", s.postRemoteIntent)
 	mux.HandleFunc("DELETE /api/present/{id}/remote/pair", s.deleteRemotePair)
+	mux.HandleFunc("POST /api/sync/push", s.syncPush)
+	mux.HandleFunc("GET /api/sync/pull", s.syncPull)
+	mux.HandleFunc("GET /api/sync/status", s.syncStatus)
+	mux.HandleFunc("POST /api/sync/assets/check", s.syncAssetsCheck)
+	mux.HandleFunc("POST /api/sync/assets/upload", s.syncAssetUpload)
+	mux.HandleFunc("GET /api/sync/assets/{sha256}", s.syncAssetDownload)
 	mux.HandleFunc("POST /api/webhook", s.postWebhook)
 	mux.HandleFunc("/", s.fallback)
 	return s.gate(mux)
@@ -261,6 +267,7 @@ func (s *Server) fallback(w http.ResponseWriter, r *http.Request) {
 	rel := strings.TrimPrefix(r.URL.Path, "/")
 	candidates := []string{
 		filepath.Join(s.Root, "spa", "dist", rel),
+		filepath.Join(s.Root, "dist", rel),
 		filepath.Join(s.Root, "public", rel),
 		filepath.Join(s.Root, "spa", rel),
 	}
@@ -268,6 +275,7 @@ func (s *Server) fallback(w http.ResponseWriter, r *http.Request) {
 		strings.HasPrefix(rel, "admin") || strings.HasSuffix(rel, "/") {
 		candidates = append([]string{
 			filepath.Join(s.Root, "spa", "dist", indexName),
+			filepath.Join(s.Root, "dist", indexName),
 			filepath.Join(s.Root, "spa", indexName),
 			filepath.Join(s.Root, "public", "index.html"),
 		}, candidates...)

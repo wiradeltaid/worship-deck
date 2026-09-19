@@ -103,6 +103,9 @@ const ALLOWED_CORPUS_WRITES = new Set([
   'internal/httpapi/song_books.go writes song_books',
   // Admin song set master entries (DEC-004 / AD-31 / commit 28a0574).
   'internal/httpapi/song_set_entries.go writes song_set_entries',
+  // On-demand delta sync applying cloud mutations (SPEC-47-05).
+  'internal/httpapi/sync.go writes hymns',
+  'internal/httpapi/sync.go writes song_set_entries',
 ]);
 
 test('no operator or administrator write path into a corpus table', () => {

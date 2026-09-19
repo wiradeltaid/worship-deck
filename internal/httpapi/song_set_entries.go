@@ -153,10 +153,11 @@ func (s *Server) createSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	position := int(maxPos.Int64) + 1
 
 	now := timeNowRFC3339Nano()
+	songSetGid := db.NewUUIDv7()
 	if _, err := s.DB.Exec(
-		`INSERT INTO song_set_entries (variable_name, title, position, updated_at)
-		 VALUES (?, ?, ?, ?)`,
-		variableName, strings.TrimSpace(title), position, now,
+		`INSERT INTO song_set_entries (global_id, variable_name, title, position, updated_at)
+		 VALUES (?, ?, ?, ?, ?)`,
+		songSetGid, variableName, strings.TrimSpace(title), position, now,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
@@ -371,8 +372,29 @@ func (s *Server) deleteSongSetEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tx, err := s.DB.Begin()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer tx.Rollback()
+
+	var songSetGid string
+	err = tx.QueryRow(`SELECT global_id FROM song_set_entries WHERE variable_name = ?`, variableName).Scan(&songSetGid)
+	if err != nil && err != sql.ErrNoRows {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+
+	if songSetGid != "" {
+		if err := db.RecordTombstoneTx(tx, songSetGid, "song_set_entry"); err != nil {
+			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	}
+
 	// Delete from master song_set_entries table
-	res, err := s.DB.Exec(
+	res, err := tx.Exec(
 		`DELETE FROM song_set_entries WHERE variable_name = ? AND updated_at = ?`,
 		variableName, updatedAt,
 	)
@@ -386,10 +408,18 @@ func (s *Server) deleteSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Also delete any corresponding slides from artifact_templates deck sequence
-	_, _ = s.DB.Exec(
+	if _, err := tx.Exec(
 		`DELETE FROM artifact_templates WHERE base_type = 'song-set-entry' AND variable_name = ?`,
 		variableName,
-	)
+	); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"deleted": true, "variableName": variableName})
 }

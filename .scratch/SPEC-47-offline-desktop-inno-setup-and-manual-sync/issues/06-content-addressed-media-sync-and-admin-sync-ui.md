@@ -15,12 +15,12 @@ Complete the media synchronization pipeline, conflict resolution interface, and 
 
 **Blocked by:** 03-inno-setup-installer-pipeline-and-data-preservation.md, 05-bidirectional-on-demand-delta-sync-engine-and-guards.md
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement SHA256 media asset sync endpoints in Go API.
-- [ ] Build React admin SyncPage with connection configuration and status indicators.
-- [ ] Implement on-demand "Push to Cloud" and "Pull from Cloud" action buttons with loading/progress states.
-- [ ] Build Interactive Conflict Resolution modal for service rundown collisions.
-- [ ] Add `tests/smoke-spec-47.test.mjs` covering media sync deduplication, conflict modals, and absence guards.
-- [ ] Wire `smoke:spec-47` script into `package.json`.
-- [ ] Human verification check: Upload a large announcement flyer locally, click "Push to Cloud", verify it uploads; modify service in cloud and locally, click "Pull from Cloud", verify conflict modal pops up and correctly resolves.
+- [x] Implement SHA256 media asset sync endpoints in Go API.
+- [x] Build React admin SyncPage with connection configuration and status indicators.
+- [x] Implement on-demand "Push to Cloud" and "Pull from Cloud" action buttons with loading/progress states.
+- [x] Build Interactive Conflict Resolution modal for service rundown collisions.
+- [x] Add `tests/smoke-spec-47.test.mjs` covering media sync deduplication, conflict modals, and absence guards.
+- [x] Wire `smoke:spec-47` script into `package.json`.
+- [x] Human verification check: Upload a large announcement flyer locally, click "Push to Cloud", verify it uploads; modify service in cloud and locally, click "Pull from Cloud", verify conflict modal pops up and correctly resolves.

@@ -10,11 +10,11 @@ Lay the database foundation for distributed offline/online data synchronization:
 
 **Blocked by:** 01-desktop-launcher-mutex-and-data-dir-resolution.md
 
-**Status:** open
+**Status:** closed
 
-- [ ] Write schema migration adding `global_id` and unique indices to syncable tables in `internal/db`.
-- [ ] Implement UUIDv7 generation helper in pure Go.
-- [ ] Create `sync_tombstones` table and `sync_state` table.
-- [ ] Update service and slide deletion queries to record tombstones.
-- [ ] Add unit tests verifying schema migration backfills and tombstone creation on delete.
-- [ ] Human verification check: Insert a service, delete it, and verify that a tombstone entry with the service's `global_id` is recorded in `sync_tombstones`.
+- [x] Write schema migration adding `global_id` and unique indices to syncable tables in `internal/db`.
+- [x] Implement UUIDv7 generation helper in pure Go.
+- [x] Create `sync_tombstones` table and `sync_state` table.
+- [x] Update service and slide deletion queries to record tombstones.
+- [x] Add unit tests verifying schema migration backfills and tombstone creation on delete.
+- [x] Human verification check: Insert a service, delete it, and verify that a tombstone entry with the service's `global_id` is recorded in `sync_tombstones`.

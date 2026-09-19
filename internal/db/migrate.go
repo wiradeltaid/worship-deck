@@ -42,6 +42,9 @@ func migrateColumns(handle *sql.DB) error {
 	if err := migrateServiceFieldValues(handle); err != nil {
 		return err
 	}
+	if err := ensureGlobalEntityIdentity(handle); err != nil {
+		return err
+	}
 	return nil
 }
 

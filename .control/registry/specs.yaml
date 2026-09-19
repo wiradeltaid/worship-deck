@@ -2250,7 +2250,8 @@ waves:
           - tests/smoke-spec-46.test.mjs
 
   - id: SPEC-47
-    status: open
+    status: closed
+    closed_at: '2026-09-19'
     release: offline-desktop-inno-setup-and-manual-sync
     prd: [offline-deck, operator-turn]
     fr: [FR-20, FR-21]
@@ -2266,7 +2267,7 @@ waves:
         component: hub
         satisfies: [UC-1]
         blocked_by: []
-        touches: [settings, db]
+        touches: [settings]
         tests:
           - tests/smoke-spec-47.test.mjs
       - id: "SPEC-47-02"
@@ -2287,7 +2288,7 @@ waves:
         component: hub
         satisfies: [UC-5]
         blocked_by: ["SPEC-47-01"]
-        touches: [db]
+        touches: [services]
         tests:
           - tests/smoke-spec-47.test.mjs
       - id: "SPEC-47-05"

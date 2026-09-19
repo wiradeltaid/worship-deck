@@ -14,10 +14,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-11
   FR: FR-1
@@ -28,10 +28,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-11
   FR: FR-1
@@ -351,10 +351,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -365,10 +365,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -379,10 +379,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -555,10 +555,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-13
@@ -656,10 +656,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -873,10 +873,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -887,10 +887,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -2584,10 +2584,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -2598,10 +2598,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -4896,10 +4896,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -4910,10 +4910,10 @@ rtm:
   release: offline-desktop-inno-setup-and-manual-sync
   test:
   - tests/smoke-spec-47.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

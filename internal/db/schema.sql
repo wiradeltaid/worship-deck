@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS services (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  global_id TEXT UNIQUE,
   date TEXT NOT NULL,
   raw_payload TEXT NOT NULL,
   parsed_data TEXT,
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS services (
 
 CREATE TABLE IF NOT EXISTS hymns (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  global_id TEXT UNIQUE,
   book_code TEXT NOT NULL DEFAULT 'SDAH',
   number INTEGER NOT NULL,
   title TEXT NOT NULL,
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS hymns (
 
 CREATE TABLE IF NOT EXISTS announcement_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  global_id TEXT UNIQUE,
   image_url TEXT NOT NULL,
   service_id INTEGER,
   sort_order INTEGER NOT NULL DEFAULT 0,
@@ -113,6 +116,7 @@ CREATE TABLE IF NOT EXISTS artifact_templates (
 -- DEC-004 / AD-31: Admin-configurable list of song-set entries (Master Data).
 CREATE TABLE IF NOT EXISTS song_set_entries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  global_id TEXT UNIQUE,
   variable_name TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
   position INTEGER NOT NULL DEFAULT 0,
@@ -155,6 +159,7 @@ CREATE TABLE IF NOT EXISTS announcement_set_slides (
 
 CREATE TABLE IF NOT EXISTS background_library_images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  global_id TEXT UNIQUE,
   url TEXT,
   name TEXT NOT NULL DEFAULT '',
   is_default INTEGER NOT NULL DEFAULT 0,
@@ -295,6 +300,25 @@ CREATE TABLE IF NOT EXISTS service_form_layout_snapshots (
   layout_version INTEGER NOT NULL DEFAULT 1,
   snapshot_json TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SPEC-47-04: Distributed data synchronization tombstones and state
+CREATE TABLE IF NOT EXISTS sync_tombstones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  global_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  deleted_at TEXT NOT NULL,
+  source_rev INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(global_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_tombstones_type ON sync_tombstones(entity_type);
+CREATE INDEX IF NOT EXISTS idx_sync_tombstones_deleted ON sync_tombstones(deleted_at);
+
+CREATE TABLE IF NOT EXISTS sync_state (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 

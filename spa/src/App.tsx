@@ -16,6 +16,7 @@ import ProjectorPage from './pages/ProjectorPage';
 import ParityDiagnosticPage from './pages/ParityDiagnosticPage';
 import AdminPage from './pages/AdminPage';
 import AdminArtifactsPage from './pages/AdminArtifactsPage';
+import AdminSyncPage from './pages/AdminSyncPage';
 import OperatorShell from './pages/OperatorShell';
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/services/:id" element={<RunSheetPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/admin/artifacts" element={<AdminArtifactsPage />} />
+        <Route path="/admin/sync" element={<AdminSyncPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
       <Route element={<SessionProvider><PresentGate /></SessionProvider>}>
