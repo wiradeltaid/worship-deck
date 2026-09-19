@@ -2306,6 +2306,45 @@ waves:
         tests:
           - tests/smoke-spec-47.test.mjs
 
+  - id: SPEC-48
+    status: open
+    release: unified-schedule-workspace-uiux-mockup
+    prd: [operator-turn, offline-deck]
+    fr: [FR-20, FR-21, FR-32]
+    size: M
+    depends_on: [SPEC-47]
+    spec_folder: .scratch/SPEC-48-unified-schedule-workspace-uiux-mockup/
+    spec_reviewed:
+      date: '2026-09-19'
+      sha: '0e4b438'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-48-01"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: []
+        touches: [operator, spa]
+        tests:
+          - spa/src/pages/WorkspaceMockupPage.tsx
+          - tests/smoke-spec-48.test.mjs
+      - id: "SPEC-48-02"
+        component: hub
+        satisfies: [UC-5]
+        blocked_by: ["SPEC-48-01"]
+        touches: [operator, spa]
+        tests:
+          - src/operator/workspace/MockupTimeline.tsx
+          - src/operator/workspace/MockupEditor.tsx
+          - tests/smoke-spec-48.test.mjs
+      - id: "SPEC-48-03"
+        component: hub
+        satisfies: [UC-11, UC-12, UC-13]
+        blocked_by: ["SPEC-48-02"]
+        touches: [operator, spa]
+        tests:
+          - src/operator/workspace/MockupCanvasPreview.tsx
+          - tests/smoke-spec-48.test.mjs
+
 
 
 
