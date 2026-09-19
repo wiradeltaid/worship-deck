@@ -191,7 +191,7 @@ export async function checkSyncAssets(
 
 export async function uploadSyncAsset(
   baseUrl: string,
-  fileBytes: Uint8Array | ArrayBuffer,
+  fileBytes: BodyInit,
   sha256: string,
   filename = '',
   headers: Record<string, string> = {}
