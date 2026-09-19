@@ -11,8 +11,10 @@ import {
   Save,
   FolderOpen,
   ShieldCheck,
+  ShieldAlert,
   RotateCcw,
   Tag,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,6 +50,7 @@ import MockupMasterLibrariesDrawer, {
   SYNTHETIC_MASTER_ANNOUNCEMENT_SETS,
   SYNTHETIC_PREDEFINED_TOKENS,
 } from '@/operator/workspace/MockupMasterLibrariesDrawer';
+import MockupRemotePairingModal from '@/operator/workspace/MockupRemotePairingModal';
 import { toast } from 'sonner';
 
 const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
@@ -158,6 +161,9 @@ export default function WorkspaceMockupPage() {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('instance');
   const [isMasterPresetDrawerOpen, setIsMasterPresetDrawerOpen] = useState(false);
   const [isScheduleHistoryDrawerOpen, setIsScheduleHistoryDrawerOpen] = useState(false);
+  const [isRemoteModalOpen, setIsRemoteModalOpen] = useState(false);
+  const [isLivenessGuardOpen, setIsLivenessGuardOpen] = useState(false);
+  const [pendingLiveAction, setPendingLiveAction] = useState<(() => void) | null>(null);
   const [scheduleRevision, setScheduleRevision] = useState(1);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState('10:45 WIB');
@@ -507,18 +513,28 @@ export default function WorkspaceMockupPage() {
   };
 
   const handleMoveItem = (id: string, direction: 'up' | 'down') => {
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => i.id === id);
-      if (idx === -1) return prev;
-      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
-      const copy = [...prev];
-      const temp = copy[idx];
-      copy[idx] = copy[targetIdx];
-      copy[targetIdx] = temp;
-      return copy;
-    });
-    setHasUnsavedChanges(true);
+    const applyMove = () => {
+      setItems((prev) => {
+        const idx = prev.findIndex((i) => i.id === id);
+        if (idx === -1) return prev;
+        const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+        const copy = [...prev];
+        const temp = copy[idx];
+        copy[idx] = copy[targetIdx];
+        copy[targetIdx] = temp;
+        return copy;
+      });
+      setHasUnsavedChanges(true);
+    };
+
+    if (status === 'live') {
+      // Defer mutation until confirmed by operator
+      setPendingLiveAction(() => applyMove);
+      setIsLivenessGuardOpen(true);
+    } else {
+      applyMove();
+    }
   };
 
   return (
@@ -840,6 +856,18 @@ export default function WorkspaceMockupPage() {
             <span>▶ Tayangkan</span>
           </Button>
 
+          {/* Remote Control Pairing Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 text-xs font-semibold gap-1.5 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+            onClick={() => setIsRemoteModalOpen(true)}
+            data-testid="remote-control-header-button"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>📱 Remote Control</span>
+          </Button>
+
           {/* PPTX Export Button */}
           <Button
             size="sm"
@@ -1034,6 +1062,66 @@ export default function WorkspaceMockupPage() {
         onSelectSongSet={handleSelectMasterSongSet}
         onSelectAnnouncementSet={handleSelectMasterAnnouncementSet}
       />
+
+      {/* Remote Control Pairing Modal */}
+      <MockupRemotePairingModal
+        open={isRemoteModalOpen}
+        onOpenChange={setIsRemoteModalOpen}
+        serviceId={serviceDate}
+      />
+
+      {/* Presenter Liveness Guard Confirmation Dialog */}
+      {isLivenessGuardOpen && (
+        <div
+          data-testid="presenter-liveness-guard-dialog"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in"
+        >
+          <div className="w-full max-w-md bg-card border border-destructive/40 rounded-2xl p-5 shadow-2xl space-y-3">
+            <div className="flex items-center gap-2.5 text-destructive">
+              <ShieldAlert className="w-5 h-5" />
+              <h3 className="text-sm font-bold text-foreground">
+                Peringatan: Presenter Liveness Guard Aktif
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Presentasi saat ini sedang tayang langsung di monitor proyektor (Status:{' '}
+              <strong className="text-rose-500">Live</strong>). Mengubah struktur atau urutan
+              jadwal saat ini akan langsung disinkronkan secara real-time ke proyektor jemaat.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/80">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPendingLiveAction(null);
+                  setIsLivenessGuardOpen(false);
+                  toast.info('Perubahan dibatalkan. Struktur timeline tidak berubah.');
+                }}
+                className="h-8 text-xs font-semibold"
+              >
+                Batalkan Perubahan
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (pendingLiveAction) {
+                    pendingLiveAction();
+                  }
+                  setPendingLiveAction(null);
+                  setIsLivenessGuardOpen(false);
+                  toast.warning('Perubahan disinkronkan ke live presentation.');
+                }}
+                className="h-8 text-xs font-semibold"
+              >
+                Lanjutkan & Siarkan Live
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

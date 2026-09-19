@@ -109,3 +109,28 @@ export function parseRawRundownText(text: string): TimelineItem[] {
     }
   });
 }
+
+export function generateSecurePin(): string {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const arr = new Uint16Array(1);
+    crypto.getRandomValues(arr);
+    const num = arr[0] % 10000;
+    return String(num).padStart(4, '0');
+  }
+  return String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+}
+
+export function generateScopedPairingToken(serviceId: string): {
+  token: string;
+  expiresAt: number;
+} {
+  const randomSuffix =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+      : Math.random().toString(36).slice(2, 18);
+  const expiresAt = Date.now() + 14400000; // 4 hours TTL
+  return {
+    token: `rpt_${serviceId}_${randomSuffix}_exp${expiresAt}`,
+    expiresAt,
+  };
+}

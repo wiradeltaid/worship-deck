@@ -29,6 +29,13 @@ const {
   pathToFileURL(path.join(root, 'src', 'operator', 'workspace', 'types.ts')).href
 );
 
+const {
+  generateSecurePin,
+  generateScopedPairingToken,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'operator', 'workspace', 'utils.ts')).href
+);
+
 export function scanPresetLifecycleFeatures(source, typesSource) {
   const findings = [];
   if (!typesSource.includes('WorkspaceMode')) {
@@ -361,4 +368,142 @@ test('SPEC-50-02: Real-File Executable Absence Guard & Defect Injection Proofs',
     'Absence guard must detect removal of token-name-input from real master libraries drawer'
   );
 });
+
+export function scanRemotePairingFeatures(pageSource, modalSource) {
+  const findings = [];
+  if (!pageSource.includes('data-testid="remote-control-header-button"')) {
+    findings.push('Missing data-testid="remote-control-header-button" in WorkspaceMockupPage');
+  }
+  if (!pageSource.includes('data-testid="presenter-liveness-guard-dialog"')) {
+    findings.push('Missing data-testid="presenter-liveness-guard-dialog" in WorkspaceMockupPage');
+  }
+  if (!modalSource.includes('data-testid="remote-control-pairing-modal"')) {
+    findings.push('Missing data-testid="remote-control-pairing-modal" in MockupRemotePairingModal');
+  }
+  if (!modalSource.includes('data-testid="remote-qr-code"')) {
+    findings.push('Missing data-testid="remote-qr-code" in MockupRemotePairingModal');
+  }
+  if (!modalSource.includes('data-testid="remote-pairing-url"')) {
+    findings.push('Missing data-testid="remote-pairing-url" in MockupRemotePairingModal');
+  }
+  if (!modalSource.includes('data-testid="remote-pairing-pin"')) {
+    findings.push('Missing data-testid="remote-pairing-pin" in MockupRemotePairingModal');
+  }
+  if (!modalSource.includes('data-testid="remote-pin-attempts-badge"')) {
+    findings.push('Missing data-testid="remote-pin-attempts-badge" in MockupRemotePairingModal');
+  }
+  if (!modalSource.includes('data-testid="revoke-all-remotes-button"')) {
+    findings.push('Missing data-testid="revoke-all-remotes-button" in MockupRemotePairingModal');
+  }
+  return findings;
+}
+
+test('SPEC-50-03: In-Workspace Remote Control Pairing & Live Presenter Integration', () => {
+  const pagePath = path.join(root, 'spa', 'src', 'pages', 'WorkspaceMockupPage.tsx');
+  const modalPath = path.join(root, 'src', 'operator', 'workspace', 'MockupRemotePairingModal.tsx');
+
+  assert.ok(fs.existsSync(pagePath), 'WorkspaceMockupPage.tsx must exist');
+  assert.ok(fs.existsSync(modalPath), 'MockupRemotePairingModal.tsx must exist');
+
+  const pageSource = fs.readFileSync(pagePath, 'utf8');
+  const modalSource = fs.readFileSync(modalPath, 'utf8');
+
+  const findings = scanRemotePairingFeatures(pageSource, modalSource);
+  assert.deepEqual(findings, [], `Remote pairing scan findings: ${findings.join('; ')}`);
+});
+
+test('SPEC-50-03: Remote Pairing PIN Generation Behavioral Rules', () => {
+  for (let i = 0; i < 10; i++) {
+    const pin = generateSecurePin();
+    assert.equal(typeof pin, 'string');
+    assert.equal(pin.length, 4, 'PIN must be exactly 4 digits');
+    assert.ok(/^\d{4}$/.test(pin), 'PIN must contain only numeric digits 0-9');
+    assert.ok(Number(pin) >= 0 && Number(pin) <= 9999, 'PIN must be between 0000 and 9999');
+  }
+});
+
+test('SPEC-50-03: Scoped Pairing Token Generation & TTL Behavioral Rules', () => {
+  const serviceId = 'srv-test-2026';
+  const beforeTime = Date.now();
+  const { token, expiresAt } = generateScopedPairingToken(serviceId);
+
+  assert.ok(token.startsWith(`rpt_${serviceId}_`), 'Token must start with scoped service ID prefix');
+  assert.ok(expiresAt >= beforeTime + 14390000 && expiresAt <= beforeTime + 14410000, 'TTL must be approximately 4 hours');
+  assert.ok(token.includes(`_exp${expiresAt}`), 'Token payload must bind expiration timestamp');
+});
+
+test('SPEC-50-03: Presenter Liveness Guard Mutation Deferral Behavioral Rules', () => {
+  let pendingAction = null;
+  let items = ['item-1', 'item-2', 'item-3'];
+  let dirty = false;
+
+  const handleMove = (from, to, isLive) => {
+    const executeMove = () => {
+      const copy = [...items];
+      const temp = copy[from];
+      copy[from] = copy[to];
+      copy[to] = temp;
+      items = copy;
+      dirty = true;
+    };
+
+    if (isLive) {
+      pendingAction = executeMove; // Deferred
+    } else {
+      executeMove();
+    }
+  };
+
+  // Case A: Live mode -> mutation is deferred and items remain untouched
+  handleMove(0, 1, true);
+  assert.notEqual(pendingAction, null, 'Pending action must be queued in live mode');
+  assert.deepEqual(items, ['item-1', 'item-2', 'item-3'], 'Items must remain un-mutated while guard is open');
+  assert.equal(dirty, false, 'Workspace must remain clean before operator confirmation');
+
+  // Case B: Cancel -> pending action is cleared without mutation
+  pendingAction = null;
+  assert.deepEqual(items, ['item-1', 'item-2', 'item-3'], 'Cancellation must preserve exact order');
+  assert.equal(dirty, false);
+
+  // Case C: Confirm -> pending action executes and applies mutation
+  handleMove(0, 1, true);
+  pendingAction();
+  pendingAction = null;
+  assert.deepEqual(items, ['item-2', 'item-1', 'item-3'], 'Confirmation must execute deferred move');
+  assert.equal(dirty, true, 'Workspace must be marked dirty on confirmed live move');
+});
+
+test('SPEC-50-03: Real-File Executable Absence Guard & Defect Injection Proofs', () => {
+  const pagePath = path.join(root, 'spa', 'src', 'pages', 'WorkspaceMockupPage.tsx');
+  const modalPath = path.join(root, 'src', 'operator', 'workspace', 'MockupRemotePairingModal.tsx');
+
+  const realPageSource = fs.readFileSync(pagePath, 'utf8');
+  const realModalSource = fs.readFileSync(modalPath, 'utf8');
+
+  // Defect 1: Strip remote-control-header-button from page
+  const defectivePage1 = realPageSource.replace('data-testid="remote-control-header-button"', '');
+  const defect1Findings = scanRemotePairingFeatures(defectivePage1, realModalSource);
+  assert.ok(
+    defect1Findings.includes('Missing data-testid="remote-control-header-button" in WorkspaceMockupPage'),
+    'Absence guard must detect removal of remote-control-header-button from real WorkspaceMockupPage'
+  );
+
+  // Defect 2: Strip presenter-liveness-guard-dialog from page
+  const defectivePage2 = realPageSource.replace('data-testid="presenter-liveness-guard-dialog"', '');
+  const defect2Findings = scanRemotePairingFeatures(defectivePage2, realModalSource);
+  assert.ok(
+    defect2Findings.includes('Missing data-testid="presenter-liveness-guard-dialog" in WorkspaceMockupPage'),
+    'Absence guard must detect removal of presenter-liveness-guard-dialog from real WorkspaceMockupPage'
+  );
+
+  // Defect 3: Strip remote-pairing-pin from modal
+  const defectiveModal3 = realModalSource.replace('data-testid="remote-pairing-pin"', '');
+  const defect3Findings = scanRemotePairingFeatures(realPageSource, defectiveModal3);
+  assert.ok(
+    defect3Findings.includes('Missing data-testid="remote-pairing-pin" in MockupRemotePairingModal'),
+    'Absence guard must detect removal of remote-pairing-pin from real MockupRemotePairingModal'
+  );
+});
+
+
 

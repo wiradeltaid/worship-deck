@@ -28,8 +28,8 @@ Implement the Remote Control Pairing affordance and Live Presenter unification w
 
 **Blocked by:** 02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Connect workspace primary launchpad to Live Presenter Console with single-source-of-truth planner and Presenter Liveness Guard.
-- [ ] Implement Remote Control Pairing modal with scoped token QR Code, rate-limited PIN, and revocation affordance.
-- [ ] Ensure mobile RemoteOperator supports all polymorphic schedule item types with touch controls.
+- [x] Connect workspace primary launchpad to Live Presenter Console with single-source-of-truth planner and Presenter Liveness Guard.
+- [x] Implement Remote Control Pairing modal with scoped token QR Code, rate-limited PIN, and revocation affordance.
+- [x] Ensure mobile RemoteOperator supports all polymorphic schedule item types with touch controls.
