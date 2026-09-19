@@ -16,9 +16,9 @@ Implement the unified workspace shell and header navigation for the visual proto
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Mount workspace mockup component at route `/new` under `OperatorShell` in `spa/src/App.tsx`.
-- [ ] Build workspace header bar with interactive preset selector, status badges, and local simulated toast actions.
-- [ ] Implement responsive 3-panel layout with `data-testid="workspace-mockup"` root container.
-- [ ] Add smoke test asserting `/new` renders workspace header and preset selector.
+- [x] Mount workspace mockup component at route `/new` under `OperatorShell` in `spa/src/App.tsx`.
+- [x] Build workspace header bar with interactive preset selector, status badges, and local simulated toast actions.
+- [x] Implement responsive 3-panel layout with `data-testid="workspace-mockup"` root container.
+- [x] Add smoke test asserting `/new` renders workspace header and preset selector.

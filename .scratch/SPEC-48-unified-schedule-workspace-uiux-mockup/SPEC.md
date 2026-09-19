@@ -1,6 +1,6 @@
 # SPEC-48 — Unified Schedule Workspace UI/UX Visual Mockup & Interactive Prototype
 
-> **Status:** open  
+> **Status:** closed  
 > **Release:** unified-schedule-workspace-uiux-mockup  
 > **Component:** hub  
 > **Touches:** operator, spa  

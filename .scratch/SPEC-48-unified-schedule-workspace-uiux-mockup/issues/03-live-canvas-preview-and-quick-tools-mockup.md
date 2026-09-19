@@ -16,9 +16,9 @@ Implement the sticky live canvas preview, quick scripture lookup drawer, and pre
 
 **Blocked by:** 02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Build sticky 16:9 canvas preview in `src/operator` with filmstrip slide navigation.
-- [ ] Build Quick Scripture modal drawer with search and translation picker simulating temporary overlay.
-- [ ] Implement Presenter Mode visual simulation toggle with clean projector output view.
-- [ ] Add smoke tests verifying slide navigation and quick scripture modal interactions.
+- [x] Build sticky 16:9 canvas preview in `src/operator` with filmstrip slide navigation.
+- [x] Build Quick Scripture modal drawer with search and translation picker simulating temporary overlay.
+- [x] Implement Presenter Mode visual simulation toggle with clean projector output view.
+- [x] Add smoke tests verifying slide navigation and quick scripture modal interactions.

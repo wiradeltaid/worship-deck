@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import OperatorPageShell from '@/components/OperatorPageShell';
 import { NavigationBlockerProvider } from '@/components/navigation-blocker';
@@ -27,10 +27,14 @@ import { useSession } from '../lib/auth/SessionProvider';
  */
 export default function OperatorShell() {
   const { session, status } = useSession();
+  const loc = useLocation();
   if (status !== 'authed' || !session) return null;
+
+  const isWide = loc.pathname === '/new';
+
   return (
     <NavigationBlockerProvider>
-      <OperatorPageShell innerClassName="max-w-6xl">
+      <OperatorPageShell innerClassName={isWide ? 'max-w-[1700px] w-full' : 'max-w-6xl'}>
         <Header isAdmin={session.role === 'admin'} username={session.username} />
         <Outlet />
       </OperatorPageShell>

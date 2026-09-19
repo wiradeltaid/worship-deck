@@ -2307,7 +2307,7 @@ waves:
           - tests/smoke-spec-47.test.mjs
 
   - id: SPEC-48
-    status: open
+    status: closed
     release: unified-schedule-workspace-uiux-mockup
     prd: [operator-turn, offline-deck]
     fr: [FR-20, FR-21, FR-32]
@@ -2323,7 +2323,7 @@ waves:
         component: hub
         satisfies: [UC-5]
         blocked_by: []
-        touches: [operator, spa]
+        touches: [services]
         tests:
           - spa/src/pages/WorkspaceMockupPage.tsx
           - tests/smoke-spec-48.test.mjs
@@ -2331,7 +2331,7 @@ waves:
         component: hub
         satisfies: [UC-5]
         blocked_by: ["SPEC-48-01"]
-        touches: [operator, spa]
+        touches: [services]
         tests:
           - src/operator/workspace/MockupTimeline.tsx
           - src/operator/workspace/MockupEditor.tsx
@@ -2340,7 +2340,7 @@ waves:
         component: hub
         satisfies: [UC-11, UC-12, UC-13]
         blocked_by: ["SPEC-48-02"]
-        touches: [operator, spa]
+        touches: [services]
         tests:
           - src/operator/workspace/MockupCanvasPreview.tsx
           - tests/smoke-spec-48.test.mjs

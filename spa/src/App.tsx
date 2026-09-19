@@ -17,6 +17,7 @@ import ParityDiagnosticPage from './pages/ParityDiagnosticPage';
 import AdminPage from './pages/AdminPage';
 import AdminArtifactsPage from './pages/AdminArtifactsPage';
 import AdminSyncPage from './pages/AdminSyncPage';
+import WorkspaceMockupPage from './pages/WorkspaceMockupPage';
 import OperatorShell from './pages/OperatorShell';
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/services/new" element={<CreateServicePage />} />
         <Route path="/services/:id" element={<RunSheetPage />} />
+        <Route path="/new" element={<WorkspaceMockupPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/admin/artifacts" element={<AdminArtifactsPage />} />
         <Route path="/admin/sync" element={<AdminSyncPage />} />

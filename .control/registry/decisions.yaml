@@ -1153,6 +1153,31 @@ decisions:
       - installer/worship-presenter.iss
       - src/components/admin
       - tests/smoke-spec-47.test.mjs
+  - id: DEC-049
+    type: mandate
+    status: applied
+    applied_at: '2026-09-19'
+    accepted_by: "kodesh87 (2026-09-19)"
+    title: Daily Autopilot mandate for continuous engineering routine and delivery (SPEC-48)
+    file: .control/decisions/DEC-049-daily-autopilot-mandate-continuous-engineering-routine.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-26'
+    touches:
+      - .control/memlog/autopilot-DEC-049.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-48-unified-schedule-workspace-uiux-mockup/SPEC.md
+      - spa/src/pages/WorkspaceMockupPage.tsx
+      - src/operator/workspace/MockupTimeline.tsx
+      - src/operator/workspace/MockupEditor.tsx
+      - src/operator/workspace/MockupCanvasPreview.tsx
+      - tests/smoke-spec-48.test.mjs
+
 
 
 
