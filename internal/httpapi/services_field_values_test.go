@@ -146,3 +146,109 @@ func TestServiceFieldValuesPersistenceAndFallback(t *testing.T) {
 		t.Fatalf("expected ErrNoRows before migration, got %v", err)
 	}
 }
+
+func TestServiceDeleteRecordsTombstone(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Create service
+	createPayload := `{"date":"2026-10-10","raw_payload":"SABBATH, OCTOBER 10, 2026\nDIVINE SERVICE"}`
+	res := songSetRequest(t, ts, "POST", "/api/services", createPayload, cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service status = %d, want 201", res.StatusCode)
+	}
+	var created struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&created)
+	res.Body.Close()
+
+	var gid, updatedAt string
+	err := handle.QueryRow(`SELECT global_id, updated_at FROM services WHERE id = ?`, created.ID).Scan(&gid, &updatedAt)
+	if err != nil {
+		t.Fatalf("query service: %v", err)
+	}
+	if gid == "" {
+		t.Fatal("expected non-empty global_id on created service")
+	}
+
+	// Delete service
+	deletePayload := fmt.Sprintf(`{"updated_at":"%s"}`, updatedAt)
+	res = songSetRequest(t, ts, "DELETE", fmt.Sprintf("/api/services/%d", created.ID), deletePayload, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("delete service status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Verify tombstone is recorded
+	var entityType string
+	err = handle.QueryRow(`SELECT entity_type FROM sync_tombstones WHERE global_id = ?`, gid).Scan(&entityType)
+	if err != nil {
+		t.Fatalf("tombstone not recorded for deleted service: %v", err)
+	}
+	if entityType != "service" {
+		t.Fatalf("expected tombstone entity_type 'service', got %q", entityType)
+	}
+}
+
+func TestServiceDeleteTransactionRollbackOnTombstoneFailure(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Create service
+	createPayload := `{"date":"2026-10-12","raw_payload":"SABBATH, OCTOBER 12, 2026\nDIVINE SERVICE"}`
+	res := songSetRequest(t, ts, "POST", "/api/services", createPayload, cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service status = %d, want 201", res.StatusCode)
+	}
+	var created struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&created)
+	res.Body.Close()
+
+	var gid, updatedAt string
+	err := handle.QueryRow(`SELECT global_id, updated_at FROM services WHERE id = ?`, created.ID).Scan(&gid, &updatedAt)
+	if err != nil {
+		t.Fatalf("query service: %v", err)
+	}
+
+	// Create a trigger on services that aborts the DELETE statement.
+	// This ensures Step 1 (insert tombstone into sync_tombstones) executes first within tx,
+	// and Step 2 (DELETE FROM services) fails, proving that Step 1 is rolled back!
+	_, err = handle.Exec(fmt.Sprintf(`
+		CREATE TRIGGER fail_service_delete
+		BEFORE DELETE ON services
+		WHEN OLD.id = %d
+		BEGIN
+			SELECT RAISE(FAIL, 'simulated service delete failure');
+		END;
+	`, created.ID))
+	if err != nil {
+		t.Fatalf("create failure trigger: %v", err)
+	}
+
+	// Attempt delete: must fail with 500
+	deletePayload := fmt.Sprintf(`{"updated_at":"%s"}`, updatedAt)
+	res = songSetRequest(t, ts, "DELETE", fmt.Sprintf("/api/services/%d", created.ID), deletePayload, cookie)
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("delete service status = %d, want 500 on delete failure", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Verify rollback: service is still present in database!
+	var remainingID int
+	err = handle.QueryRow(`SELECT id FROM services WHERE id = ?`, created.ID).Scan(&remainingID)
+	if err != nil {
+		t.Fatalf("expected service %d to remain in database after rollback, got error: %v", created.ID, err)
+	}
+
+	// Verify rollback: the tombstone inserted in Step 1 was rolled back and is absent from sync_tombstones!
+	var tombstoneCount int
+	if err := handle.QueryRow(`SELECT COUNT(*) FROM sync_tombstones WHERE global_id = ?`, gid).Scan(&tombstoneCount); err != nil {
+		t.Fatalf("querying tombstone count: %v", err)
+	}
+	if tombstoneCount != 0 {
+		t.Fatalf("expected tombstone write to be rolled back (count=0), got %d committed tombstones", tombstoneCount)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
 	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
 )
 
@@ -213,9 +214,10 @@ func (s *Server) createBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 		isDefInt = 1
 	}
 
+	bgGid := db.NewUUIDv7()
 	res, err := tx.Exec(
-		`INSERT INTO background_library_images (url, name, is_default, created_at, updated_at, category) VALUES (?, ?, ?, ?, ?, ?)`,
-		imageURL, name, isDefInt, now, now, category,
+		`INSERT INTO background_library_images (global_id, url, name, is_default, created_at, updated_at, category) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		bgGid, imageURL, name, isDefInt, now, now, category,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")

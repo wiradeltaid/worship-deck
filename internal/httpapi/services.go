@@ -169,10 +169,11 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	gid := db.NewUUIDv7()
 	res, err := tx.Exec(
-		`INSERT INTO services (date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, parser_profile_id, parser_profile_version, updated_at)
-		 VALUES (?, ?, ?, ?, ?, '', ?, ?, `+db.StampNowSQL+`)`,
-		serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants, profileID, profileVersion,
+		`INSERT INTO services (global_id, date, raw_payload, parsed_data, images_payload, participants_payload, afternoon_program, parser_profile_id, parser_profile_version, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, `+db.StampNowSQL+`)`,
+		gid, serviceDate, rawPayload, string(parsedJSON), string(imagesJSON), participants, profileID, profileVersion,
 	)
 	if err != nil {
 		log.Printf("Error creating service: %v", err)
@@ -545,7 +546,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	row := s.DB.QueryRow(
-		`SELECT id, date, raw_payload, parsed_data, images_payload, participants_payload,
+		`SELECT id, COALESCE(global_id, ''), date, raw_payload, parsed_data, images_payload, participants_payload,
 		        parser_profile_id, parser_profile_version,
 		        created_at, COALESCE(updated_at, created_at)
 		   FROM services WHERE id = ?`,
@@ -553,6 +554,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	)
 	var out struct {
 		ID                   int             `json:"id"`
+		GlobalID             string          `json:"global_id"`
 		Date                 string          `json:"date"`
 		RawPayload           string          `json:"raw_payload"`
 		ParsedData           json.RawMessage `json:"parsed_data"`
@@ -571,7 +573,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	}
 	var parsed, images, parts, profileID sql.NullString
 	var profileVersion sql.NullInt64
-	if err := row.Scan(&out.ID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt); err != nil {
+	if err := row.Scan(&out.ID, &out.GlobalID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, "Service not found")
 			return
@@ -650,7 +652,30 @@ func (s *Server) deleteService(w http.ResponseWriter, r *http.Request) {
 		writeStaleToken(w, serviceConflictMsg, snap.UpdatedAt)
 		return
 	}
-	res, err := s.DB.Exec(
+
+	tx, err := s.DB.Begin()
+	if err != nil {
+		log.Printf("Error deleting service: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer tx.Rollback()
+
+	gid, err := db.GetGlobalIDTx(tx, "services", id)
+	if err != nil {
+		log.Printf("Error resolving service global_id: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if gid != "" {
+		if err := db.RecordTombstoneTx(tx, gid, "service"); err != nil {
+			log.Printf("Error recording tombstone: %v", err)
+			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	}
+
+	res, err := tx.Exec(
 		`DELETE FROM services WHERE id = ? AND (COALESCE(updated_at, created_at) = ? OR COALESCE(updated_at, created_at) = ?)`,
 		id, snap.UpdatedAt, snap.RawStoredToken,
 	)
@@ -671,6 +696,12 @@ func (s *Server) deleteService(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeStaleToken(w, serviceConflictMsg, latest.UpdatedAt)
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing service deletion: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"message": "Service deleted successfully"})

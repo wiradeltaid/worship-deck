@@ -8,10 +8,10 @@ artifact: .control/decisions/DEC-048-daily-autopilot-mandate-continuous-engineer
 
 - Iteration: 1 (Progress)
 - Run branch: autopilot/DEC-048
-- Stopped at: Delivered SPEC-47-03 (Inno Setup Installer Pipeline and Data Preservation)
+- Stopped at: Delivered SPEC-47-04 (Global Entity Identity and Tombstone Schema Migration)
 - Blocked: —
 - Parked: —
-- Next: SPEC-47-04 Global Entity Identity and Tombstone Schema Migration
+- Next: SPEC-47-05 Bidirectional On-Demand Delta Sync Engine and Concurrency Guards
 
 ## Decisions
 
@@ -22,3 +22,4 @@ artifact: .control/decisions/DEC-048-daily-autopilot-mandate-continuous-engineer
 | I-1 (peer-review) | internal/desktop & cmd/api | Apply Terra review fixes: ValidateBindHost loopback guard, fail-closed mutex exit, raw-byte defect injection, and 0700/0600 permissions | potential firewall alerts, concurrent process races, and permissions leak | high | internal/desktop/port.go, cmd/api/main.go, internal/desktop/mutex_other.go, tests/smoke-spec-47.test.mjs |
 | I-1 (SPEC-47-02) | internal/pptx & scripts | Implement ResolveNodeBinary with bundled portable node precedence, staging script with 19-package recursive closure, and external PATH='' E2E render test | requiring system Node.js on target machine or missing transitive packages | high | internal/pptx/worker.go, internal/pptx/worker_test.go, scripts/stage-portable-node.mjs, tests/smoke-spec-47.test.mjs |
 | I-1 (SPEC-47-03) | installer & scripts | Author Inno Setup installer script with data preservation invariants, desktop build pipeline, and physical defect injections | accidental deletion of user data on upgrade/uninstall or running concurrent updates | high | installer/worship-presenter.iss, scripts/build-desktop.mjs, package.json, tests/smoke-spec-47.test.mjs |
+| I-1 (SPEC-47-04) | internal/db & internal/httpapi | Implement pure Go UUIDv7 generator, global_id schema migration & backfill for 5 syncable tables, and atomic transactional delete with tombstones | autoincrement ID collisions offline and zombie record resurrections during sync | high | internal/db/uuidv7.go, internal/db/migrate_sync_identity.go, internal/httpapi/services.go, internal/httpapi/song_set_entries.go, tests/smoke-spec-47.test.mjs |

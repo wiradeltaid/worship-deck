@@ -575,3 +575,100 @@ test('SPEC-47-03: Executable Absence Guard & Physical Real-File Defect Injection
   const restoredSource = restoredBytes.toString('utf8');
   assert.deepEqual(scanInnoSetupDataPreservation(restoredSource), [], 'Restored file must pass cleanly');
 });
+
+export function scanTombstoneRecording(servicesSource, songSetSource) {
+  const findings = [];
+  if (!servicesSource.includes('RecordTombstoneTx(tx, gid, "service")')) {
+    findings.push('Missing RecordTombstoneTx call in deleteService in internal/httpapi/services.go');
+  }
+  if (!songSetSource.includes('RecordTombstoneTx(tx, songSetGid, "song_set_entry")')) {
+    findings.push('Missing RecordTombstoneTx call in deleteSongSetEntry in internal/httpapi/song_set_entries.go');
+  }
+  return findings;
+}
+
+test('SPEC-47-04: Schema contains sync_tombstones, sync_state, and global_id columns', () => {
+  const schemaPath = path.join(root, 'internal', 'db', 'schema.sql');
+  assert.ok(fs.existsSync(schemaPath), 'internal/db/schema.sql must exist');
+  const schema = fs.readFileSync(schemaPath, 'utf8');
+
+  // Verify sync tables
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS sync_tombstones/);
+  assert.match(schema, /UNIQUE\s*\(\s*global_id\s*\)/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS sync_state/);
+
+  // Verify global_id columns on syncable tables
+  const syncableTables = ['services', 'hymns', 'announcement_items', 'song_set_entries', 'background_library_images'];
+  for (const table of syncableTables) {
+    const tableRegex = new RegExp(`CREATE TABLE IF NOT EXISTS ${table}[\\s\\S]*?global_id TEXT UNIQUE`, 'i');
+    assert.match(schema, tableRegex, `Table ${table} must declare global_id TEXT UNIQUE`);
+  }
+});
+
+test('SPEC-47-04: UUIDv7 format validation helper', () => {
+  const uuidv7Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  // Valid UUIDv7 samples
+  assert.ok(uuidv7Regex.test('018f67e4-8452-7b12-9c1e-62432a101234'));
+  assert.ok(uuidv7Regex.test('0191eb58-1234-7abc-8def-0123456789ab'));
+
+  // Invalid UUIDs
+  assert.strictEqual(uuidv7Regex.test('not-a-uuid'), false);
+  assert.strictEqual(uuidv7Regex.test('018f67e4-8452-4b12-9c1e-62432a101234'), false); // version 4
+  assert.strictEqual(uuidv7Regex.test('018f67e4-8452-7b12-5c1e-62432a101234'), false); // invalid variant
+});
+
+test('SPEC-47-04: Executable Absence Guard & Physical Real-File Defect Injection for Tombstone Insertion on Delete', () => {
+  const servicesPath = path.join(root, 'internal', 'httpapi', 'services.go');
+  const songSetPath = path.join(root, 'internal', 'httpapi', 'song_set_entries.go');
+
+  const originalServicesBytes = fs.readFileSync(servicesPath);
+  const originalServices = originalServicesBytes.toString('utf8');
+  const originalSongSetBytes = fs.readFileSync(songSetPath);
+  const originalSongSet = originalSongSetBytes.toString('utf8');
+
+  // Baseline: Real files on disk must pass with zero findings
+  assert.deepEqual(scanTombstoneRecording(originalServices, originalSongSet), []);
+
+  // 1. Physical defect injection on services.go
+  try {
+    const defectiveServices = originalServices.replace(
+      'db.RecordTombstoneTx(tx, gid, "service")',
+      '/* tombstone skipped */ nil'
+    );
+    assert.notEqual(defectiveServices, originalServices);
+    fs.writeFileSync(servicesPath, defectiveServices, 'utf8');
+
+    const diskServices = fs.readFileSync(servicesPath, 'utf8');
+    const findings = scanTombstoneRecording(diskServices, originalSongSet);
+    assert.ok(
+      findings.some((f) => f.includes('Missing RecordTombstoneTx call in deleteService')),
+      'Defect proof 1: Scanner must detect missing RecordTombstoneTx in deleteService'
+    );
+  } finally {
+    fs.writeFileSync(servicesPath, originalServicesBytes);
+  }
+
+  // 2. Physical defect injection on song_set_entries.go
+  try {
+    const defectiveSongSet = originalSongSet.replace(
+      'db.RecordTombstoneTx(tx, songSetGid, "song_set_entry")',
+      '/* tombstone skipped */ nil'
+    );
+    assert.notEqual(defectiveSongSet, originalSongSet);
+    fs.writeFileSync(songSetPath, defectiveSongSet, 'utf8');
+
+    const diskSongSet = fs.readFileSync(songSetPath, 'utf8');
+    const findings = scanTombstoneRecording(originalServices, diskSongSet);
+    assert.ok(
+      findings.some((f) => f.includes('Missing RecordTombstoneTx call in deleteSongSetEntry')),
+      'Defect proof 2: Scanner must detect missing RecordTombstoneTx in deleteSongSetEntry'
+    );
+  } finally {
+    fs.writeFileSync(songSetPath, originalSongSetBytes);
+  }
+
+  // Prove byte-for-byte restoration of both files
+  assert.deepEqual(fs.readFileSync(servicesPath), originalServicesBytes, 'services.go must be restored byte-for-byte');
+  assert.deepEqual(fs.readFileSync(songSetPath), originalSongSetBytes, 'song_set_entries.go must be restored byte-for-byte');
+  assert.deepEqual(scanTombstoneRecording(fs.readFileSync(servicesPath, 'utf8'), fs.readFileSync(songSetPath, 'utf8')), [], 'Restored files must pass cleanly');
+});

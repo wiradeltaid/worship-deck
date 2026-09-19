@@ -10,6 +10,8 @@ import (
 	"net/textproto"
 	"testing"
 	"time"
+
+	"github.com/wiradeltaid/worship-presenter-web/internal/db"
 )
 
 func jsonDecode(r io.Reader, v any) error {
@@ -74,6 +76,11 @@ func TestBackgroundLibrary_AdminCRUDAndOperatorList(t *testing.T) {
 		t.Fatalf("created image isDefault = false, want true")
 	}
 	_ = created1["updatedAt"].(string)
+
+	var gid1 string
+	if err := handle.QueryRow(`SELECT global_id FROM background_library_images WHERE id = ?`, id1).Scan(&gid1); err != nil || !db.IsValidUUIDv7(gid1) {
+		t.Fatalf("expected valid UUIDv7 global_id for background image %d, got %q (err: %v)", id1, gid1, err)
+	}
 
 	// 6. POST second valid image (not default) -> 201
 	res = songSetRequest(t, ts, "POST", "/api/admin/background-library", `{"url":"/assets/closing-prayer-bg.png"}`, cookie)

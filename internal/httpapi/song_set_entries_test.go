@@ -164,6 +164,11 @@ func TestSongSetEntryLifecycle(t *testing.T) {
 		t.Fatal("create response missing updatedAt")
 	}
 
+	var anthemGid string
+	if err := handle.QueryRow(`SELECT global_id FROM song_set_entries WHERE variable_name = 'special_anthem'`).Scan(&anthemGid); err != nil || !db.IsValidUUIDv7(anthemGid) {
+		t.Fatalf("expected valid UUIDv7 global_id for song set entry special_anthem, got %q (err: %v)", anthemGid, err)
+	}
+
 	// Duplicate and invalid names.
 	res = songSetRequest(t, ts, "POST", "/api/admin/song-set-entries",
 		`{"variableName":"special_anthem","title":"Again"}`, cookie)
