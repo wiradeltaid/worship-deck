@@ -45,6 +45,12 @@ export function getTypeBadge(type: TimelineItemType) {
         icon: <Presentation className="w-3.5 h-3.5" />,
         className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
       };
+    case 'custom_slide':
+      return {
+        label: 'Slide Bebas',
+        icon: <FileText className="w-3.5 h-3.5" />,
+        className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+      };
     case 'general':
     default:
       return {
@@ -125,6 +131,14 @@ export default function MockupTimeline({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer text-xs"
+              onClick={() => onAddItem('custom_slide')}
+              data-testid="add-custom-slide-option"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+              <span>Slide Bebas (Kanvas Kustom)</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer text-xs"
               onClick={() => onAddItem('general')}
               data-testid="add-general-option"
             >
@@ -137,7 +151,27 @@ export default function MockupTimeline({
 
       {/* Timeline Item List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {items.map((item, index) => {
+        {items.length === 0 ? (
+          <div
+            className="p-8 text-center space-y-3 border border-dashed border-border/80 rounded-xl bg-muted/20 my-4"
+            data-testid="timeline-empty-state"
+          >
+            <p className="text-xs text-muted-foreground font-semibold">
+              Belum ada item di jadwal ibadah ini (Jadwal Kosong)
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onAddItem('custom_slide')}
+              className="h-8 text-xs gap-1.5"
+              data-testid="add-first-item-button"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Item Pertama</span>
+            </Button>
+          </div>
+        ) : (
+          items.map((item, index) => {
           const isSelected = item.id === selectedId;
           const badge = getTypeBadge(item.type);
 
@@ -226,7 +260,8 @@ export default function MockupTimeline({
               </div>
             </div>
           );
-        })}
+        })
+      )}
       </div>
     </div>
   );

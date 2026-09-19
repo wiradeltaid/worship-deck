@@ -22,9 +22,9 @@ Implement the custom slide item type and blank slate free schedule workflow:
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Add `custom_slide` item type consistently to types and timeline dropdown.
-- [ ] Implement contextual editor for custom slides with multiline text input.
-- [ ] Implement blank slate clearing action and empty state for non-preset schedule.
-- [ ] Ensure custom slides render properly in sticky live canvas preview.
+- [x] Add `custom_slide` item type consistently to types and timeline dropdown.
+- [x] Implement contextual editor for custom slides with multiline text input.
+- [x] Implement blank slate clearing action and empty state for non-preset schedule.
+- [x] Ensure custom slides render properly in sticky live canvas preview.

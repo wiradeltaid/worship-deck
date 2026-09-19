@@ -15,10 +15,14 @@ import {
   RotateCw,
   Eye,
   FileCode,
+  Palette,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -35,6 +39,9 @@ import {
 } from '@/components/ui/dialog';
 import { TimelineItem } from './types';
 import { parseRawRundownText } from './utils';
+import MockupCanvasDesignerModal from './MockupCanvasDesignerModal';
+import MockupDutyRosterDrawer from './MockupDutyRosterDrawer';
+import MockupMediaGalleryDrawer from './MockupMediaGalleryDrawer';
 import { toast } from 'sonner';
 
 interface MockupEditorProps {
@@ -60,6 +67,11 @@ export default function MockupEditor({
 
   const [uploadFlyerModalOpen, setUploadFlyerModalOpen] = useState(false);
   const [newFlyerTitle, setNewFlyerTitle] = useState('');
+
+  // Milestone workflow drawer states (SPEC-49)
+  const [canvasDesignerOpen, setCanvasDesignerOpen] = useState(false);
+  const [dutyRosterOpen, setDutyRosterOpen] = useState(false);
+  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false);
 
   const handleSimulateAddSong = () => {
     if (!newSongTitle.trim()) {
@@ -140,8 +152,22 @@ export default function MockupEditor({
           </p>
         </div>
 
-        {/* Tab Buttons */}
-        <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/60">
+        {/* Actions & Tab Buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setCanvasDesignerOpen(true)}
+            data-testid="open-canvas-designer-button"
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Ubah Tata Letak Kanvas</span>
+          </Button>
+
+          {/* Tab Buttons */}
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/60">
           <Button
             type="button"
             variant="ghost"
@@ -172,6 +198,7 @@ export default function MockupEditor({
           </Button>
         </div>
       </div>
+    </div>
 
       {/* Editor Content Body */}
       <div className="flex-1 overflow-y-auto p-5">
@@ -307,9 +334,22 @@ export default function MockupEditor({
                     </Select>
                   </div>
 
-                  {/* SPEC-48-02: Song Background Picker */}
+                  {/* SPEC-48-02: Song Background Picker & Media Gallery Trigger */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Background Slide</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Background Slide</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 text-[11px] text-primary gap-1 p-0 hover:underline"
+                        onClick={() => setMediaGalleryOpen(true)}
+                        data-testid="open-media-gallery-button"
+                      >
+                        <ImageIcon className="w-3 h-3" />
+                        <span>Pilih dari Galeri</span>
+                      </Button>
+                    </div>
                     <Select
                       value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
                       onValueChange={(val) =>
@@ -348,19 +388,18 @@ export default function MockupEditor({
                               : 'bg-background border-border text-muted-foreground'
                           }`}
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isChecked}
-                            onChange={() => {
-                              const next = isChecked
-                                ? activeVerses.filter((x) => x !== v)
-                                : [...activeVerses, v].sort();
+                            onCheckedChange={(checked) => {
+                              const next = checked
+                                ? [...activeVerses, v].sort()
+                                : activeVerses.filter((x) => x !== v);
                               onUpdateItem({
                                 songData: { ...item.songData, activeVerses: next },
                                 slidesCount: next.length,
                               });
                             }}
-                            className="rounded text-cyan-600 dark:text-cyan-400 w-3.5 h-3.5"
+                            className="w-3.5 h-3.5"
                           />
                           <span>Bait {v}</span>
                         </label>
@@ -427,18 +466,17 @@ export default function MockupEditor({
                       Putar warta otomatis sebelum ibadah dimulai (interval 8 detik)
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={item.announcementData?.looping ?? true}
-                    onChange={(e) =>
+                    onCheckedChange={(checked) =>
                       onUpdateItem({
                         announcementData: {
                           flyers: item.announcementData?.flyers || [],
-                          looping: e.target.checked,
+                          looping: Boolean(checked),
                         },
                       })
                     }
-                    className="w-4 h-4 text-purple-600 dark:text-purple-400 rounded"
+                    className="w-4 h-4"
                     data-testid="announcement-looping-toggle"
                   />
                 </div>
@@ -451,16 +489,40 @@ export default function MockupEditor({
                 className="space-y-4 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5"
                 data-testid="sermon-context-editor"
               >
-                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
-                  <Presentation className="w-4 h-4" />
-                  <span>Predefined Field Khotbah & Pembicara</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                    <Presentation className="w-4 h-4" />
+                    <span>Predefined Field Khotbah & Pembicara</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                    onClick={() => setDutyRosterOpen(true)}
+                    data-testid="open-duty-roster-button"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Pilih dari Roster Pelayan</span>
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Nama Pengkhotbah ({'{speaker}'})</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold">Nama Pengkhotbah ({'{speaker}'})</Label>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        onClick={() => setDutyRosterOpen(true)}
+                        className="h-auto p-0 text-[11px] text-primary hover:underline"
+                      >
+                        Buka Roster
+                      </Button>
+                    </div>
                     <Input
-                      value={item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe'}
+                      value={item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe (Sintetis)'}
                       onChange={(e) =>
                         onUpdateItem({
                           sermonData: {
@@ -482,7 +544,7 @@ export default function MockupEditor({
                       onChange={(e) =>
                         onUpdateItem({
                           sermonData: {
-                            speaker: item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe',
+                            speaker: item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe (Sintetis)',
                             title: item.sermonData?.title || item.title,
                             scriptureRef: e.target.value,
                           },
@@ -495,10 +557,13 @@ export default function MockupEditor({
                 </div>
 
                 {/* Instant Token Preview Badge */}
-                <div className="p-3 rounded-lg bg-background/90 border border-border/80 flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-bold text-muted-foreground">Token Preview:</span>
+                <div
+                  className="p-3 rounded-lg bg-background/90 border border-border/80 flex items-center gap-2 flex-wrap"
+                  data-testid="sermon-speaker-token-badge"
+                >
+                  <span className="text-xs font-bold text-muted-foreground">Token Binding:</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
-                    {item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe'}
+                    {'{sermon_speaker}'} → {item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe (Sintetis)'}
                   </span>
                   <span className="text-muted-foreground text-xs">•</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
@@ -508,6 +573,111 @@ export default function MockupEditor({
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
                     {item.sermonData?.scriptureRef || 'Yohanes 3:16-17'}
                   </span>
+                </div>
+              </div>
+            )}
+
+            {/* Context: Custom Slide (SPEC-49-02) */}
+            {item.type === 'custom_slide' && (
+              <div
+                className="space-y-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5"
+                data-testid="custom-slide-context-editor"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                    <FileCode className="w-4 h-4" />
+                    <span>Slide Bebas (Kanvas Kustom)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                      onClick={() => setMediaGalleryOpen(true)}
+                      data-testid="custom-slide-open-gallery"
+                    >
+                      <ImageIcon className="w-3 h-3" />
+                      <span>Galeri Media</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                      onClick={() => setCanvasDesignerOpen(true)}
+                      data-testid="custom-slide-open-designer"
+                    >
+                      <Palette className="w-3 h-3" />
+                      <span>Buka Canvas Designer</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Judul Slide Bebas</Label>
+                    <Input
+                      value={item.customSlideData?.title || item.title}
+                      onChange={(e) =>
+                        onUpdateItem({
+                          title: e.target.value,
+                          customSlideData: {
+                            title: e.target.value,
+                            content: item.customSlideData?.content || '',
+                            subtitle: item.customSlideData?.subtitle,
+                            backgroundUrl: item.customSlideData?.backgroundUrl,
+                            style: item.customSlideData?.style,
+                          },
+                        })
+                      }
+                      className="h-8 text-xs bg-background/80"
+                      data-testid="custom-slide-title-input"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Konten / Teks Bebas (Multi-Baris)</Label>
+                    <Textarea
+                      value={item.customSlideData?.content || ''}
+                      onChange={(e) =>
+                        onUpdateItem({
+                          customSlideData: {
+                            title: item.customSlideData?.title || item.title,
+                            content: e.target.value,
+                            subtitle: item.customSlideData?.subtitle,
+                            backgroundUrl: item.customSlideData?.backgroundUrl,
+                            style: item.customSlideData?.style,
+                          },
+                        })
+                      }
+                      placeholder="Ketik lirik bebas, puisi, responsif warta, atau kutipan nats di sini..."
+                      rows={4}
+                      className="text-xs bg-background/80 resize-none font-mono"
+                      data-testid="custom-slide-content-textarea"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Subjudul / Referensi (Opsional)</Label>
+                    <Input
+                      value={item.customSlideData?.subtitle || item.subtitle || ''}
+                      onChange={(e) =>
+                        onUpdateItem({
+                          subtitle: e.target.value,
+                          customSlideData: {
+                            title: item.customSlideData?.title || item.title,
+                            content: item.customSlideData?.content || '',
+                            subtitle: e.target.value,
+                            backgroundUrl: item.customSlideData?.backgroundUrl,
+                            style: item.customSlideData?.style,
+                          },
+                        })
+                      }
+                      className="h-8 text-xs bg-background/80"
+                      data-testid="custom-slide-subtitle-input"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -680,6 +850,61 @@ export default function MockupEditor({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Milestone Modal Drawers (SPEC-49) */}
+      <MockupCanvasDesignerModal
+        open={canvasDesignerOpen}
+        onOpenChange={setCanvasDesignerOpen}
+        item={item}
+        onApply={(updated) => onUpdateItem(updated)}
+        onOpenMediaGallery={() => setMediaGalleryOpen(true)}
+      />
+
+      <MockupDutyRosterDrawer
+        open={dutyRosterOpen}
+        onOpenChange={setDutyRosterOpen}
+        currentSpeaker={item.sermonData?.speaker}
+        onSelectSpeaker={(speakerName) => {
+          onUpdateItem({
+            sermonData: {
+              speaker: speakerName,
+              title: item.sermonData?.title || item.title,
+              scriptureRef: item.sermonData?.scriptureRef || 'Yohanes 3:16',
+            },
+          });
+        }}
+      />
+
+      <MockupMediaGalleryDrawer
+        open={mediaGalleryOpen}
+        onOpenChange={setMediaGalleryOpen}
+        activeUrl={
+          item.canvasStyle?.backgroundUrl ||
+          item.songData?.backgroundUrl ||
+          item.customSlideData?.backgroundUrl ||
+          item.generalData?.backgroundUrl
+        }
+        onSelectAsset={(assetUrl) => {
+          onUpdateItem({
+            ...(item.type === 'song' && {
+              songData: { ...item.songData, backgroundUrl: assetUrl },
+            }),
+            ...(item.type === 'custom_slide' && {
+              customSlideData: {
+                title: item.customSlideData?.title || item.title,
+                content: item.customSlideData?.content || '',
+                subtitle: item.customSlideData?.subtitle,
+                backgroundUrl: assetUrl,
+                style: item.customSlideData?.style,
+              },
+            }),
+            canvasStyle: {
+              ...item.canvasStyle,
+              backgroundUrl: assetUrl,
+            },
+          });
+        }}
+      />
     </div>
   );
 }

@@ -1179,7 +1179,8 @@ decisions:
       - tests/smoke-spec-48.test.mjs
   - id: DEC-050
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-19'
     accepted_by: "kodesh87 (2026-09-19)"
     title: Daily Autopilot mandate for Unified Schedule Workspace Full Milestone Prototype (SPEC-49)
     file: .control/decisions/DEC-050-daily-autopilot-mandate-unified-schedule-workspace-full-prototype.md

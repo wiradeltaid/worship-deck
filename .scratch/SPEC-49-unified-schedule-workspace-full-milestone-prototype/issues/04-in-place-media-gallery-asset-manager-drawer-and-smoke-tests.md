@@ -28,9 +28,9 @@ Implement the in-place media gallery drawer and comprehensive smoke test suite:
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Create MockupMediaGalleryDrawer in `src/operator/workspace` with category filtering and asset assignment.
-- [ ] Connect media gallery picker to Song, Custom Slide, and Canvas Designer.
-- [ ] Create `tests/smoke-spec-49.test.mjs` and add `test:smoke-spec-49` to `package.json`.
-- [ ] Verify all test assertions pass cleanly.
+- [x] Create MockupMediaGalleryDrawer in `src/operator/workspace` with category filtering and asset assignment.
+- [x] Connect media gallery picker to Song, Custom Slide, and Canvas Designer.
+- [x] Create `tests/smoke-spec-49.test.mjs` and add `test:smoke-spec-49` to `package.json`.
+- [x] Verify all test assertions pass cleanly.

@@ -1,6 +1,6 @@
 # SPEC-49 — Unified Schedule Workspace Full Milestone Prototype (In-Place Canvas Designer, Custom Slides, Duty Roster & Free Schedule)
 
-> **Status:** draft  
+> **Status:** closed  
 > **Release:** unified-schedule-workspace-full-prototype  
 > **Component:** hub  
 > **Touches:** operator, spa  

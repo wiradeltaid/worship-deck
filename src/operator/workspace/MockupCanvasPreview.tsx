@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,6 +12,8 @@ import {
   Zap,
   Monitor,
   Check,
+  Palette,
+  FileCode,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,28 +33,73 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { TimelineItem } from './types';
+import MockupCanvasDesignerModal from './MockupCanvasDesignerModal';
 import { toast } from 'sonner';
 
 interface MockupCanvasPreviewProps {
   item: TimelineItem;
   quickScriptureOpen: boolean;
   onSetQuickScriptureOpen: (open: boolean) => void;
+  onUpdateItem?: (updated: Partial<TimelineItem>) => void;
 }
 
 export default function MockupCanvasPreview({
   item,
   quickScriptureOpen,
   onSetQuickScriptureOpen,
+  onUpdateItem,
 }: MockupCanvasPreviewProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isBlackScreen, setIsBlackScreen] = useState(false);
   const [isClearText, setIsClearText] = useState(false);
   const [presenterSplitMode, setPresenterSplitMode] = useState<'operator' | 'projector'>('operator');
+  const [canvasDesignerOpen, setCanvasDesignerOpen] = useState(false);
 
   // Quick Scripture Modal State
   const [scriptureQuery, setScriptureQuery] = useState('Yohanes 3:16');
   const [selectedTranslation, setSelectedTranslation] = useState('TB2');
   const [activeOverlayVerse, setActiveOverlayVerse] = useState<string | null>(null);
+
+  // Reset slide index when active item changes
+  useEffect(() => {
+    setCurrentSlideIndex(0);
+  }, [item.id]);
+
+  const activeBackgroundUrl =
+    item.canvasStyle?.backgroundUrl ||
+    item.songData?.backgroundUrl ||
+    item.customSlideData?.backgroundUrl ||
+    item.generalData?.backgroundUrl;
+
+  const alignXClass =
+    item.canvasStyle?.alignX === 'left'
+      ? 'text-left items-start'
+      : item.canvasStyle?.alignX === 'right'
+      ? 'text-right items-end'
+      : 'text-center items-center';
+
+  const alignYClass =
+    item.canvasStyle?.alignY === 'top'
+      ? 'justify-start pt-8'
+      : item.canvasStyle?.alignY === 'bottom'
+      ? 'justify-end pb-8'
+      : 'justify-center';
+
+  const customTextColorClass =
+    item.canvasStyle?.textColor === 'amber'
+      ? 'text-amber-300 dark:text-amber-300'
+      : item.canvasStyle?.textColor === 'cyan'
+      ? 'text-cyan-300 dark:text-cyan-300'
+      : item.canvasStyle?.textColor === 'emerald'
+      ? 'text-emerald-300 dark:text-emerald-300'
+      : '';
+
+  const customFontFamilyStyle =
+    item.canvasStyle?.fontFamily === 'Geist Mono'
+      ? { fontFamily: 'monospace' }
+      : item.canvasStyle?.fontFamily === 'Serif'
+      ? { fontFamily: 'serif' }
+      : undefined;
 
   const totalSlides = item.slidesCount || 1;
   const safeSlideIndex = Math.min(currentSlideIndex, totalSlides - 1);
@@ -99,36 +146,50 @@ export default function MockupCanvasPreview({
           </h2>
         </div>
 
-        {/* Presenter Split Toggle: Operator Confidence vs Projector Clean Output */}
-        <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
-            data-testid="toggle-operator-view"
-            onClick={() => setPresenterSplitMode('operator')}
-            className={`h-auto px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
-              presenterSplitMode === 'operator'
-                ? 'bg-card text-foreground shadow-2xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setCanvasDesignerOpen(true)}
+            data-testid="canvas-preview-edit-layout-button"
           >
-            Operator Display
+            <Palette className="w-3.5 h-3.5" />
+            <span>Edit Kanvas</span>
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            data-testid="toggle-projector-view"
-            onClick={() => setPresenterSplitMode('projector')}
-            className={`h-auto px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
-              presenterSplitMode === 'projector'
-                ? 'bg-card text-foreground shadow-2xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Projector Clean
-          </Button>
+
+          {/* Presenter Split Toggle: Operator Confidence vs Projector Clean Output */}
+          <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              data-testid="toggle-operator-view"
+              onClick={() => setPresenterSplitMode('operator')}
+              className={`h-auto px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
+                presenterSplitMode === 'operator'
+                  ? 'bg-card text-foreground shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Operator Display
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              data-testid="toggle-projector-view"
+              onClick={() => setPresenterSplitMode('projector')}
+              className={`h-auto px-2 py-0.5 text-[11px] font-semibold rounded transition-all ${
+                presenterSplitMode === 'projector'
+                  ? 'bg-card text-foreground shadow-2xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Projector Clean
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -137,7 +198,8 @@ export default function MockupCanvasPreview({
         {/* 16:9 Canvas Screen */}
         <div
           data-testid="canvas-stage-container"
-          className="relative aspect-video w-full rounded-xl overflow-hidden shadow-md border border-border/80 bg-black flex flex-col items-center justify-center text-white select-none transition-all"
+          className={`relative aspect-video w-full rounded-xl overflow-hidden shadow-md border border-border/80 bg-black flex flex-col p-6 text-white select-none transition-all ${alignXClass} ${alignYClass}`}
+          style={customFontFamilyStyle}
         >
           {/* Black Screen Overlay */}
           {isBlackScreen && (
@@ -178,16 +240,32 @@ export default function MockupCanvasPreview({
 
           {/* Background Gradient / Image */}
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 opacity-90" />
+          {activeBackgroundUrl && (
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-screen"
+              style={{ backgroundImage: `url(${activeBackgroundUrl})` }}
+              data-testid="canvas-preview-background-layer"
+            />
+          )}
 
           {/* Simulated Content Based on Item Type */}
           {!isClearText && !isBlackScreen && (
-            <div className="relative z-10 p-6 text-center max-w-lg space-y-2">
+            <div
+              className={`relative z-10 max-w-lg space-y-2 ${alignXClass} ${customTextColorClass}`}
+            >
               {item.type === 'song' && (
                 <div className="space-y-1">
                   <span className="text-[11px] font-mono text-cyan-400 dark:text-cyan-400 uppercase tracking-wider font-semibold">
                     {item.subtitle || 'SDAH 123'} • Bait {safeSlideIndex + 1}
                   </span>
-                  <h3 className="text-sm md:text-base font-extrabold text-white">
+                  <h3
+                    className="font-extrabold text-white"
+                    style={{
+                      fontSize: item.canvasStyle?.fontSize
+                        ? `${item.canvasStyle.fontSize}px`
+                        : '1rem',
+                    }}
+                  >
                     {item.title}
                   </h3>
                   <p className="text-xs text-zinc-300 italic pt-1 font-serif">
@@ -202,8 +280,8 @@ export default function MockupCanvasPreview({
                     Warta Jemaat • Slide {safeSlideIndex + 1} of {totalSlides}
                   </span>
                   <div className="p-3 bg-white/10 rounded-lg backdrop-blur-xs border border-white/20">
-                    <h3 className="text-sm font-bold text-white">
-                      {item.announcementData?.flyers[safeSlideIndex]?.title || item.title}
+                    <h3 className={`text-sm font-bold ${customTextColorClass || 'text-white'}`}>
+                      {item.announcementData?.flyers?.[safeSlideIndex]?.title || item.title}
                     </h3>
                     <p className="text-xs text-zinc-300 mt-0.5">
                       Sabtu, Pukul 09:00 WIB • Gereja Masehi Advent Hari Ketujuh
@@ -217,11 +295,18 @@ export default function MockupCanvasPreview({
                   <span className="text-[10px] font-mono text-amber-400 dark:text-amber-400 uppercase tracking-wider font-semibold">
                     Khotbah Sabat
                   </span>
-                  <h2 className="text-base font-extrabold text-white">
+                  <h2
+                    className={`font-extrabold ${customTextColorClass || 'text-white'}`}
+                    style={{
+                      fontSize: item.canvasStyle?.fontSize
+                        ? `${item.canvasStyle.fontSize}px`
+                        : '1rem',
+                    }}
+                  >
                     {item.title}
                   </h2>
                   <p className="text-xs text-amber-200/90 dark:text-amber-200/90 font-medium">
-                    {item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe'}
+                    {item.sermonData?.speaker || 'Pdt. Dr. Johnathan Doe (Sintetis)'}
                   </p>
                   <p className="text-[11px] text-zinc-400 font-serif italic">
                     {item.sermonData?.scriptureRef || 'Yohanes 3:16-17'}
@@ -240,6 +325,32 @@ export default function MockupCanvasPreview({
                   <span className="text-xs font-bold text-indigo-300 dark:text-indigo-300">
                     Yohanes 3:16 (TB2)
                   </span>
+                </div>
+              )}
+
+              {item.type === 'custom_slide' && (
+                <div className="space-y-1" data-testid="custom-slide-preview">
+                  <span className="text-[10px] font-mono text-emerald-400 dark:text-emerald-400 uppercase tracking-wider font-semibold">
+                    Slide Bebas Kustom
+                  </span>
+                  <h3
+                    className="font-extrabold text-white"
+                    style={{
+                      fontSize: item.canvasStyle?.fontSize
+                        ? `${item.canvasStyle.fontSize}px`
+                        : '1rem',
+                    }}
+                  >
+                    {item.customSlideData?.title || item.title}
+                  </h3>
+                  <p className="text-xs text-zinc-200 whitespace-pre-line leading-relaxed italic font-serif">
+                    {item.customSlideData?.content || 'Konten slide bebas kustom multi-baris.'}
+                  </p>
+                  {item.customSlideData?.subtitle && (
+                    <span className="text-[11px] font-medium text-emerald-300 dark:text-emerald-300 block pt-1">
+                      {item.customSlideData.subtitle}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -444,6 +555,14 @@ export default function MockupCanvasPreview({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* In-Place Canvas Designer Modal */}
+      <MockupCanvasDesignerModal
+        open={canvasDesignerOpen}
+        onOpenChange={setCanvasDesignerOpen}
+        item={item}
+        onApply={(updated) => onUpdateItem?.(updated)}
+      />
     </div>
   );
 }
