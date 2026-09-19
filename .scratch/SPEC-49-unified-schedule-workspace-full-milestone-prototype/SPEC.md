@@ -61,7 +61,7 @@ Build and mount the complete suite of milestone workflows into the `/new` intera
 
 3. **Duty Roster Integration & Predefined Token Dynamic Binding (`SPEC-49-03`):**
    - In-place Duty Roster drawer in the workspace: select assigned personnel for sermon speaker, praise leader, scripture reader, and liturgist from a synthetic church roster fixture.
-   - Strictly adhere to public repository rules by using fictional/synthetic identities (`Pdt. Yohanes Timotius (Sintetis)`, `Diaken Andreas Markus (Sintetis)`, `Sdr. Barnabas Lukas (Sintetis)`).
+   - Strictly adhere to public repository rules by using fictional/synthetic identities (`Pdt. Yohanes Timotius (Sintetis)`, `Diaken Natanael Markus (Sintetis)`, `Sdr. Barnabas Lukas (Sintetis)`).
    - Instant token hydration: selecting a speaker updates the sermon card and live canvas token (`{sermon_speaker}`) instantly.
    - Quick "Tambah Pelayan Baru" in-place modal to register a new synthetic person to the roster without leaving the workspace.
 

@@ -96,7 +96,7 @@ export default function MockupTimeline({
               onClick={() => onAddItem('song')}
               data-testid="add-song-option"
             >
-              <Music className="w-3.5 h-3.5 text-cyan-500" />
+              <Music className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
               <span>Lagu / Pujian Baru</span>
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -104,7 +104,7 @@ export default function MockupTimeline({
               onClick={() => onAddItem('announcement')}
               data-testid="add-announcement-option"
             >
-              <Megaphone className="w-3.5 h-3.5 text-purple-500" />
+              <Megaphone className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
               <span>Set Warta Jemaat</span>
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -112,7 +112,7 @@ export default function MockupTimeline({
               onClick={() => onAddItem('scripture')}
               data-testid="add-scripture-option"
             >
-              <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+              <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>Ayat Pembacaan Alkitab</span>
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -120,7 +120,7 @@ export default function MockupTimeline({
               onClick={() => onAddItem('sermon')}
               data-testid="add-sermon-option"
             >
-              <Presentation className="w-3.5 h-3.5 text-amber-500" />
+              <Presentation className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
               <span>Slide Khotbah / Pembicara</span>
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -193,30 +193,34 @@ export default function MockupTimeline({
               <div className="flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 {onMoveItem && (
                   <>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       disabled={index === 0}
                       onClick={(e) => {
                         e.stopPropagation();
                         onMoveItem(item.id, 'up');
                       }}
-                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
+                      className="h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
                       title="Geser ke atas"
                     >
                       <ChevronUp className="w-3 h-3" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       disabled={index === items.length - 1}
                       onClick={(e) => {
                         e.stopPropagation();
                         onMoveItem(item.id, 'down');
                       }}
-                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
+                      className="h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
                       title="Geser ke bawah"
                     >
                       <ChevronDown className="w-3 h-3" />
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

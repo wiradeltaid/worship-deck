@@ -20,6 +20,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -135,30 +142,34 @@ export default function MockupEditor({
 
         {/* Tab Buttons */}
         <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/60">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             data-testid="tab-active-editor"
             onClick={() => setActiveTab('editor')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`h-auto px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
               activeTab === 'editor'
                 ? 'bg-card text-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Editor Item Aktif
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             data-testid="tab-raw-rundown"
             onClick={() => setActiveTab('raw')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+            className={`h-auto px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
               activeTab === 'raw'
                 ? 'bg-card text-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Teks Rundown Mentah
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -245,19 +256,23 @@ export default function MockupEditor({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Buku Lagu</Label>
-                    <select
-                      className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background"
+                    <Select
                       value={item.songData?.bookCode || 'SDAH'}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         onUpdateItem({
-                          songData: { ...item.songData, bookCode: e.target.value },
+                          songData: { ...item.songData, bookCode: val },
                         })
                       }
                     >
-                      <option value="SDAH">SDAH (Adventist Hymnal)</option>
-                      <option value="KLIK">KLIK (Lagu Pujian)</option>
-                      <option value="PKI">PKI (Pujian Kristen)</option>
-                    </select>
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SDAH">SDAH (Adventist Hymnal)</SelectItem>
+                        <SelectItem value="KLIK">KLIK (Lagu Pujian)</SelectItem>
+                        <SelectItem value="PKI">PKI (Pujian Kristen)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1.5">
@@ -271,42 +286,48 @@ export default function MockupEditor({
 
                   <div className="space-y-1.5">
                     <Label className="text-xs">Transpose / Nada Dasar</Label>
-                    <select
-                      className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background"
+                    <Select
                       value={item.songData?.key || 'D'}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         onUpdateItem({
-                          songData: { ...item.songData, key: e.target.value },
+                          songData: { ...item.songData, key: val },
                         })
                       }
-                      data-testid="song-key-selector"
                     >
-                      {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((k) => (
-                        <option key={k} value={k}>
-                          Kunci {k}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full h-8 text-xs" data-testid="song-key-selector">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((k) => (
+                          <SelectItem key={k} value={k}>
+                            Kunci {k}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* SPEC-48-02: Song Background Picker */}
                   <div className="space-y-1.5">
                     <Label className="text-xs">Background Slide</Label>
-                    <select
-                      className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background"
+                    <Select
                       value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
-                      onChange={(e) =>
+                      onValueChange={(val) =>
                         onUpdateItem({
-                          songData: { ...item.songData, backgroundUrl: e.target.value },
+                          songData: { ...item.songData, backgroundUrl: val },
                         })
                       }
-                      data-testid="song-background-picker"
                     >
-                      <option value="/assets/background-navy.jpg">Gradient Default (Deep Navy)</option>
-                      <option value="/assets/background-sanctuary.jpg">Sanctuary / Mimbar Gereja</option>
-                      <option value="/assets/background-nature.jpg">Pemandangan Alam / Nature</option>
-                      <option value="/assets/background-cross.jpg">Cross / Salib Minimalis</option>
-                    </select>
+                      <SelectTrigger className="w-full h-8 text-xs" data-testid="song-background-picker">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="/assets/background-navy.jpg">Gradient Default (Deep Navy)</SelectItem>
+                        <SelectItem value="/assets/background-sanctuary.jpg">Sanctuary / Mimbar Gereja</SelectItem>
+                        <SelectItem value="/assets/background-nature.jpg">Pemandangan Alam / Nature</SelectItem>
+                        <SelectItem value="/assets/background-cross.jpg">Cross / Salib Minimalis</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -339,7 +360,7 @@ export default function MockupEditor({
                                 slidesCount: next.length,
                               });
                             }}
-                            className="rounded text-cyan-600 w-3.5 h-3.5"
+                            className="rounded text-cyan-600 dark:text-cyan-400 w-3.5 h-3.5"
                           />
                           <span>Bait {v}</span>
                         </label>
@@ -417,7 +438,7 @@ export default function MockupEditor({
                         },
                       })
                     }
-                    className="w-4 h-4 text-purple-600 rounded"
+                    className="w-4 h-4 text-purple-600 dark:text-purple-400 rounded"
                     data-testid="announcement-looping-toggle"
                   />
                 </div>
@@ -513,11 +534,16 @@ export default function MockupEditor({
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Terjemahan</Label>
-                    <select className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background">
-                      <option value="TB2">TB2 (Terjemahan Baru 2)</option>
-                      <option value="KJV">KJV (King James Version)</option>
-                      <option value="BIS">BIS (Bahasa Indonesia Sehari-hari)</option>
-                    </select>
+                    <Select defaultValue="TB2">
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TB2">TB2 (Terjemahan Baru 2)</SelectItem>
+                        <SelectItem value="KJV">KJV (King James Version)</SelectItem>
+                        <SelectItem value="BIS">BIS (Bahasa Indonesia Sehari-hari)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -557,7 +583,7 @@ export default function MockupEditor({
         <DialogContent className="sm:max-w-md" data-testid="add-song-dialog">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Music className="w-4 h-4 text-cyan-500" />
+              <Music className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
               <span>Tambah Lagu Baru ke Pustaka</span>
             </DialogTitle>
           </DialogHeader>
@@ -609,7 +635,7 @@ export default function MockupEditor({
         <DialogContent className="sm:max-w-md" data-testid="upload-flyer-dialog">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Upload className="w-4 h-4 text-purple-500" />
+              <Upload className="w-4 h-4 text-purple-500 dark:text-purple-400" />
               <span>Unggah Flyer Warta Jemaat</span>
             </DialogTitle>
           </DialogHeader>
