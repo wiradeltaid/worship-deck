@@ -508,6 +508,48 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-51-01
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-51-03
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-51-04
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops
@@ -814,6 +856,48 @@ rtm:
   FR: FR-15
   DEC: []
   UC: UC-11
+  ticket: SPEC-51-01
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
+  ticket: SPEC-51-03
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
+  ticket: SPEC-51-04
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
   ticket: W7-01
   spec: W7
   release: presenter-live
@@ -970,6 +1054,48 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-51-01
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-51-03
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-51-04
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live
@@ -1055,6 +1181,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-51-03
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -2856,6 +2996,20 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-51-02
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3173,6 +3327,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-51-03
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -3557,6 +3725,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-51-02
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5248,6 +5430,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-51-02
+  spec: SPEC-51
+  release: unified-schedule-workspace-1920-redesign
+  test:
+  - tests/smoke-spec-51.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

@@ -2434,6 +2434,48 @@ waves:
         tests:
           - tests/smoke-spec-50.test.mjs
 
+  - id: SPEC-51
+    status: open
+    release: unified-schedule-workspace-1920-redesign
+    prd: [operator-turn, offline-deck]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
+    size: M
+    depends_on: [SPEC-50]
+    spec_folder: .scratch/SPEC-51-unified-schedule-workspace-1920-fullhd-redesign/
+    spec_reviewed:
+      date: '2026-09-20'
+      sha: '2afb345'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-51-01"
+        component: hub
+        satisfies: [UC-5, UC-11, UC-12]
+        blocked_by: []
+        touches: [services, operator]
+        tests:
+          - tests/smoke-spec-51.test.mjs
+      - id: "SPEC-51-02"
+        component: registry
+        satisfies: [UC-14, UC-24]
+        blocked_by: ["SPEC-51-01"]
+        touches: [artifacts, services]
+        tests:
+          - tests/smoke-spec-51.test.mjs
+      - id: "SPEC-51-03"
+        component: presenter
+        satisfies: [UC-5, UC-11, UC-12, UC-13]
+        blocked_by: ["SPEC-51-02"]
+        touches: [operator, presenter]
+        tests:
+          - tests/smoke-spec-51.test.mjs
+      - id: "SPEC-51-04"
+        component: hub
+        satisfies: [UC-5, UC-11, UC-12]
+        blocked_by: ["SPEC-51-03"]
+        touches: [operator, services]
+        tests:
+          - tests/smoke-spec-51.test.mjs
+
 
 
 
