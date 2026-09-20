@@ -12,6 +12,15 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { isValidTokenKey } from './types';
 import { toast } from 'sonner';
 
@@ -341,13 +350,13 @@ export default function MockupMasterLibrariesDrawer({
           {activeTab === 'song_sets' && (
             <div className="space-y-3" data-testid="master-song-sets-panel">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
+                <Input
                   type="text"
                   placeholder="Cari judul set, nama lagu, atau nomor SDAH..."
                   value={songSearchQuery}
                   onChange={(e) => setSongSearchQuery(e.target.value)}
-                  className="w-full h-8 pl-8 pr-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                  className="w-full h-8 pl-8 pr-3 text-xs"
                   data-testid="song-set-search-input"
                 />
               </div>
@@ -513,63 +522,69 @@ export default function MockupMasterLibrariesDrawer({
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">
                         Kunci Token (tanpa tanda kurung)
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="text"
                         placeholder="sermon_guest_speaker"
                         value={newTokenKey}
                         onChange={(e) => setNewTokenKey(e.target.value)}
-                        className="w-full h-7 px-2 rounded-md border border-border bg-background text-xs font-mono"
+                        className="w-full h-7 px-2 text-xs font-mono"
                         data-testid="token-name-input"
                         required
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">
                         Label Tampilan
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="text"
                         placeholder="Pembicara Khusus"
                         value={newTokenLabel}
                         onChange={(e) => setNewTokenLabel(e.target.value)}
-                        className="w-full h-7 px-2 rounded-md border border-border bg-background text-xs"
+                        className="w-full h-7 px-2 text-xs"
                         required
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-muted-foreground">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">
                         Tipe Data
-                      </label>
-                      <select
+                      </Label>
+                      <Select
                         value={newTokenType}
-                        onChange={(e) =>
-                          setNewTokenType(e.target.value as PredefinedToken['type'])
-                        }
-                        className="w-full h-7 px-2 rounded-md border border-border bg-background text-xs"
-                        data-testid="token-type-select"
+                        onValueChange={(val) => {
+                          if (val) setNewTokenType(val as any);
+                        }}
                       >
-                        <option value="text">Teks Baris Tunggal</option>
-                        <option value="multiline">Teks Multi-Baris</option>
-                        <option value="person">Nama Petugas / Personel</option>
-                        <option value="scripture">Rujukan Alkitab</option>
-                        <option value="date">Tanggal</option>
-                      </select>
+                        <SelectTrigger
+                          className="w-full h-7 px-2 text-xs"
+                          data-testid="token-type-select"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Teks Baris Tunggal</SelectItem>
+                          <SelectItem value="multiline">Teks Multi-Baris</SelectItem>
+                          <SelectItem value="person">Nama Petugas / Personel</SelectItem>
+                          <SelectItem value="scripture">Rujukan Alkitab</SelectItem>
+                          <SelectItem value="date">Tanggal</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">
                       Deskripsi
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       type="text"
                       placeholder="Jelaskan penggunaan token ini..."
                       value={newTokenDesc}
                       onChange={(e) => setNewTokenDesc(e.target.value)}
-                      className="w-full h-7 px-2 rounded-md border border-border bg-background text-xs"
+                      className="w-full h-7 px-2 text-xs"
                     />
                   </div>
 

@@ -10,6 +10,8 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   MasterPreset,
   PresetLifecycleStatus,
@@ -193,11 +195,13 @@ export default function MockupMasterPresetDrawer({
         <div className="p-4 border-b border-border/80 flex items-center justify-between gap-2 flex-wrap bg-background/50">
           <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg border border-border/60">
             {(['all', 'published', 'draft', 'retired'] as const).map((tab) => (
-              <button
+              <Button
                 key={tab}
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setActiveTab(tab)}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize transition-colors ${
+                className={`h-7 px-2.5 rounded-md text-xs font-semibold capitalize transition-colors ${
                   activeTab === tab
                     ? 'bg-background text-foreground shadow-2xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -205,7 +209,7 @@ export default function MockupMasterPresetDrawer({
                 data-testid={`preset-tab-${tab}`}
               >
                 {tab === 'all' ? 'Semua' : tab}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -294,44 +298,44 @@ export default function MockupMasterPresetDrawer({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-muted-foreground">
+                <Label className="text-[11px] font-semibold text-muted-foreground">
                   Nama Preset
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   placeholder="Contoh: Ibadah Rumah Tangga"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-xs"
+                  className="w-full h-8 px-2.5 text-xs"
                   data-testid="new-preset-title-input"
                   required
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-muted-foreground">
+                <Label className="text-[11px] font-semibold text-muted-foreground">
                   Slug / Pengenal Unik
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   placeholder="ibadah-rumah-tangga"
                   value={newSlug}
                   onChange={(e) => setNewSlug(e.target.value)}
-                  className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-xs font-mono"
+                  className="w-full h-8 px-2.5 text-xs font-mono"
                   data-testid="new-preset-slug-input"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-muted-foreground">
+                <Label className="text-[11px] font-semibold text-muted-foreground">
                   Waktu Standar
-                </label>
-                <input
+                </Label>
+                <Input
                   type="text"
                   placeholder="19:00 WIB"
                   value={newDefaultTime}
                   onChange={(e) => setNewDefaultTime(e.target.value)}
-                  className="w-full h-8 px-2.5 rounded-md border border-border bg-background text-xs font-mono"
+                  className="w-full h-8 px-2.5 text-xs font-mono"
                   data-testid="new-preset-time-input"
                 />
               </div>

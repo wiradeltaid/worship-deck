@@ -18,6 +18,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -759,14 +760,14 @@ export default function WorkspaceMockupPage() {
               Tanggal & Waktu Ibadah
             </span>
             <div className="flex items-center gap-1.5">
-              <input
+              <Input
                 type="date"
                 value={serviceDate}
                 onChange={(e) => {
                   setServiceDate(e.target.value);
                   setHasUnsavedChanges(true);
                 }}
-                className="h-9 text-xs px-3 rounded-lg border border-border bg-background/90 font-medium text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                className="h-9 text-xs px-3 font-medium"
                 data-testid="service-date-input"
               />
               <span
@@ -931,16 +932,18 @@ export default function WorkspaceMockupPage() {
           </div>
 
           {/* Sync Status Trigger */}
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setIsSyncDialogOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:bg-muted transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 h-auto px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:bg-muted transition-colors cursor-pointer"
             data-testid="sync-status-indicator"
             title="Buka Status & Resolusi Sinkronisasi Desktop-ke-Web"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
             <span>Tersinkron</span>
-          </button>
+          </Button>
         </div>
       </div>
 

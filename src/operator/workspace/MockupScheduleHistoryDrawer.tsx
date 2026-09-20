@@ -9,6 +9,14 @@ import {
   Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   ScheduledServiceRecord,
   SYNTHETIC_SCHEDULED_SERVICES,
@@ -123,32 +131,40 @@ export default function MockupScheduleHistoryDrawer({
         {/* Search & Filter Bar */}
         <div className="p-4 border-b border-border/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-background/50">
           <div className="relative flex-1">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
+            <Input
               type="text"
               placeholder="Cari tanggal, judul khotbah, atau preset..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-8 pl-8 pr-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+              className="w-full h-8 pl-8 pr-3 text-xs"
               data-testid="history-search-input"
             />
           </div>
 
           <div className="flex items-center gap-2">
             <Filter className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <select
+            <Select
               value={selectedPresetFilter}
-              onChange={(e) => setSelectedPresetFilter(e.target.value)}
-              className="h-8 text-xs px-2 rounded-lg border border-border bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
-              data-testid="history-preset-filter"
+              onValueChange={(val) => {
+                if (val) setSelectedPresetFilter(val);
+              }}
             >
-              <option value="all">Semua Preset</option>
-              {PRESET_OPTIONS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                className="h-8 text-xs px-2"
+                data-testid="history-preset-filter"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Preset</SelectItem>
+                {PRESET_OPTIONS.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
