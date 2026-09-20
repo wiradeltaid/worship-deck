@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { isValidTokenKey } from './types';
+import { isValidTokenKey, canDeleteMasterSongSet, isSystemPredefinedToken } from './types';
 import { toast } from 'sonner';
 
 export interface MasterSongSetItem {
@@ -225,6 +225,27 @@ export default function MockupMasterLibrariesDrawer({
   const [newTokenType, setNewTokenType] = useState<PredefinedToken['type']>('text');
   const [newTokenDesc, setNewTokenDesc] = useState('');
 
+  // In-Drawer CRUD state for Master Song Sets
+  const [isAddSongSetOpen, setIsAddSongSetOpen] = useState(false);
+  const [newSongSetTitle, setNewSongSetTitle] = useState('');
+  const [newSongSetDesc, setNewSongSetDesc] = useState('');
+  const [editingSongSetId, setEditingSongSetId] = useState<string | null>(null);
+  const [editSongSetTitle, setEditSongSetTitle] = useState('');
+  const [editSongSetDesc, setEditSongSetDesc] = useState('');
+
+  // In-Drawer CRUD state for Master Announcements
+  const [isAddAnnouncementOpen, setIsAddAnnouncementOpen] = useState(false);
+  const [newAnnouncementTitle, setNewAnnouncementTitle] = useState('');
+  const [newAnnouncementLooping, setNewAnnouncementLooping] = useState(true);
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
+  const [editAnnouncementTitle, setEditAnnouncementTitle] = useState('');
+  const [editAnnouncementLooping, setEditAnnouncementLooping] = useState(true);
+
+  // In-Drawer edit token state
+  const [editingTokenKey, setEditingTokenKey] = useState<string | null>(null);
+  const [editTokenLabel, setEditTokenLabel] = useState('');
+  const [editTokenDesc, setEditTokenDesc] = useState('');
+
   if (!isOpen) return null;
 
   const filteredSongSets = songSets.filter(
@@ -273,12 +294,59 @@ export default function MockupMasterLibrariesDrawer({
     toast.success(`Token {${created.key}} berhasil didaftarkan ke kamus global.`);
   };
 
+  const handleCreateSongSet = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSongSetTitle.trim()) {
+      toast.error('Judul Song Set wajib diisi');
+      return;
+    }
+    const created: MasterSongSet = {
+      id: `mss-${Date.now()}`,
+      title: newSongSetTitle.trim(),
+      description: newSongSetDesc.trim() || 'Koleksi lagu ibadah baru.',
+      usageCount: 0,
+      songs: [
+        { id: `s-${Date.now()}-1`, title: 'Hai Pujilah Tuhan', bookCode: 'SDAH', hymnNumber: 123, key: 'D', activeVerses: [1, 2] },
+        { id: `s-${Date.now()}-2`, title: 'Besar Setia-Mu', bookCode: 'SDAH', hymnNumber: 100, key: 'Eb', activeVerses: [1, 3] },
+      ],
+    };
+    updateSongSets([created, ...songSets]);
+    setIsAddSongSetOpen(false);
+    setNewSongSetTitle('');
+    setNewSongSetDesc('');
+    toast.success(`Master Song Set "${created.title}" berhasil dibuat.`);
+  };
+
+  const handleCreateAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAnnouncementTitle.trim()) {
+      toast.error('Judul Warta Jemaat wajib diisi');
+      return;
+    }
+    const created: MasterAnnouncementSet = {
+      id: `mas-${Date.now()}`,
+      title: newAnnouncementTitle.trim(),
+      flyersCount: 2,
+      looping: newAnnouncementLooping,
+      flyers: [
+        { id: `fl-${Date.now()}-1`, title: 'Warta Pelayanan Jemaat', url: '/assets/flyer-sample.jpg', category: 'ministry' },
+        { id: `fl-${Date.now()}-2`, title: 'Jadwal Kebaktian Khusus', url: '/assets/flyer-sample-2.jpg', category: 'event' },
+      ],
+      updatedAt: 'Baru saja',
+    };
+    updateAnnouncementSets([created, ...announcementSets]);
+    setIsAddAnnouncementOpen(false);
+    setNewAnnouncementTitle('');
+    setNewAnnouncementLooping(true);
+    toast.success(`Master Warta "${created.title}" berhasil dibuat.`);
+  };
+
   return (
     <div
       data-testid="master-libraries-drawer"
       className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in"
     >
-      <div className="w-full max-w-2xl bg-card border-l border-border h-full flex flex-col shadow-2xl overflow-hidden">
+      <div className="w-full max-w-3xl 2xl:max-w-4xl bg-card border-l border-border h-full flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
           <div className="flex items-center gap-2.5">
@@ -349,17 +417,79 @@ export default function MockupMasterLibrariesDrawer({
           {/* TAB 1: MASTER SONG SETS */}
           {activeTab === 'song_sets' && (
             <div className="space-y-3" data-testid="master-song-sets-panel">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
-                <Input
-                  type="text"
-                  placeholder="Cari judul set, nama lagu, atau nomor SDAH..."
-                  value={songSearchQuery}
-                  onChange={(e) => setSongSearchQuery(e.target.value)}
-                  className="w-full h-8 pl-8 pr-3 text-xs"
-                  data-testid="song-set-search-input"
-                />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
+                  <Input
+                    type="text"
+                    placeholder="Cari judul set, nama lagu, atau nomor SDAH..."
+                    value={songSearchQuery}
+                    onChange={(e) => setSongSearchQuery(e.target.value)}
+                    className="w-full h-8 pl-8 pr-3 text-xs"
+                    data-testid="song-set-search-input"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 shrink-0"
+                  onClick={() => setIsAddSongSetOpen(true)}
+                  data-testid="add-master-song-set-button"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Song Set Baru</span>
+                </Button>
               </div>
+
+              {/* Add Song Set Inline Form */}
+              {isAddSongSetOpen && (
+                <form
+                  onSubmit={handleCreateSongSet}
+                  className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-3 animate-in fade-in"
+                  data-testid="add-master-song-set-form"
+                >
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Music className="w-3.5 h-3.5 text-primary" />
+                    <span>Buat Master Song Set Baru</span>
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">Judul Song Set</Label>
+                      <Input
+                        value={newSongSetTitle}
+                        onChange={(e) => setNewSongSetTitle(e.target.value)}
+                        placeholder="Contoh: Set Pujian Pembuka Sabat"
+                        className="h-7 text-xs"
+                        data-testid="new-master-song-set-title-input"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">Keterangan / Tema</Label>
+                      <Input
+                        value={newSongSetDesc}
+                        onChange={(e) => setNewSongSetDesc(e.target.value)}
+                        placeholder="Tema atau deskripsi penggunaan..."
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setIsAddSongSetOpen(false)}
+                    >
+                      Batal
+                    </Button>
+                    <Button type="submit" size="sm" className="h-6 text-xs font-semibold">
+                      Simpan Song Set
+                    </Button>
+                  </div>
+                </form>
+              )}
 
               <div className="space-y-3 pt-1">
                 {filteredSongSets.map((ss) => (
@@ -368,38 +498,125 @@ export default function MockupMasterLibrariesDrawer({
                     className="p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-all shadow-2xs space-y-2.5"
                     data-testid={`master-song-set-card-${ss.id}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <h4 className="font-bold text-xs text-foreground">
-                          {ss.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {ss.description}
-                        </p>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono pt-1">
-                          <span>{ss.songs.length} Lagu</span>
-                          <span>•</span>
-                          <span>Dipakai {ss.usageCount} kali di jadwal</span>
+                    {editingSongSetId === ss.id ? (
+                      <div className="p-3 bg-muted/40 rounded-xl border border-border/80 space-y-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">Judul Song Set</Label>
+                          <Input
+                            value={editSongSetTitle}
+                            onChange={(e) => setEditSongSetTitle(e.target.value)}
+                            className="h-7 text-xs"
+                            data-testid={`edit-song-set-title-input-${ss.id}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">Keterangan</Label>
+                          <Input
+                            value={editSongSetDesc}
+                            onChange={(e) => setEditSongSetDesc(e.target.value)}
+                            className="h-7 text-xs"
+                            data-testid={`edit-song-set-desc-input-${ss.id}`}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() => setEditingSongSetId(null)}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-6 text-xs font-semibold"
+                            onClick={() => {
+                              updateSongSets(
+                                songSets.map((s) =>
+                                  s.id === ss.id
+                                    ? { ...s, title: editSongSetTitle.trim() || s.title, description: editSongSetDesc.trim() || s.description }
+                                    : s
+                                )
+                              );
+                              setEditingSongSetId(null);
+                              toast.success(`Master Song Set "${editSongSetTitle.trim() || ss.title}" berhasil diperbarui.`);
+                            }}
+                            data-testid={`save-master-song-set-${ss.id}`}
+                          >
+                            Simpan Perubahan
+                          </Button>
                         </div>
                       </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-xs text-foreground">
+                            {ss.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            {ss.description}
+                          </p>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono pt-1">
+                            <span>{ss.songs.length} Lagu</span>
+                            <span>•</span>
+                            <span>Dipakai {ss.usageCount} kali di jadwal</span>
+                          </div>
+                        </div>
 
-                      {onSelectSongSet && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="h-7 text-xs font-semibold gap-1 shrink-0"
-                          onClick={() => {
-                            onSelectSongSet(ss);
-                            onClose();
-                            toast.success(`Song set "${ss.title}" diterapkan ke timeline.`);
-                          }}
-                          data-testid="select-master-song-set-button"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>Pilih Set Ini</span>
-                        </Button>
-                      )}
-                    </div>
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs font-semibold gap-1"
+                            onClick={() => {
+                              setEditingSongSetId(ss.id);
+                              setEditSongSetTitle(ss.title);
+                              setEditSongSetDesc(ss.description);
+                            }}
+                            data-testid={`edit-master-song-set-${ss.id}`}
+                          >
+                            <span>Ubah</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              const check = canDeleteMasterSongSet(ss.id);
+                              if (!check.allowed) {
+                                toast.error(check.reason || 'Tidak dapat menghapus Master Song Set yang masih digunakan oleh Master Preset!');
+                                return;
+                              }
+                              updateSongSets(songSets.filter((x) => x.id !== ss.id));
+                              toast.success(`Master Song Set "${ss.title}" berhasil dihapus.`);
+                            }}
+                            data-testid={`delete-master-song-set-${ss.id}`}
+                          >
+                            <span>Hapus</span>
+                          </Button>
+                          {onSelectSongSet && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-7 text-xs font-semibold gap-1 shrink-0"
+                              onClick={() => {
+                                onSelectSongSet(ss);
+                                onClose();
+                                toast.success(`Song set "${ss.title}" diterapkan ke timeline.`);
+                              }}
+                              data-testid="select-master-song-set-button"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>Pilih Set Ini</span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Song Pills */}
                     <div className="flex flex-wrap gap-1.5 pt-1">
@@ -425,6 +642,77 @@ export default function MockupMasterLibrariesDrawer({
           {/* TAB 2: MASTER ANNOUNCEMENTS */}
           {activeTab === 'announcements' && (
             <div className="space-y-3" data-testid="master-announcements-panel">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-xs font-bold text-foreground">
+                    Koleksi Master Warta Jemaat
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Set warta dan flyer yang dapat disematkan ke jadwal ibadah manapun.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 text-xs font-semibold gap-1.5 shrink-0"
+                  onClick={() => setIsAddAnnouncementOpen(true)}
+                  data-testid="add-master-announcement-button"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Warta Baru</span>
+                </Button>
+              </div>
+
+              {/* Add Announcement Inline Form */}
+              {isAddAnnouncementOpen && (
+                <form
+                  onSubmit={handleCreateAnnouncement}
+                  className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 space-y-3 animate-in fade-in"
+                  data-testid="add-master-announcement-form"
+                >
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Megaphone className="w-3.5 h-3.5 text-primary" />
+                    <span>Buat Master Warta Baru</span>
+                  </h4>
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-semibold text-muted-foreground">Judul Set Warta</Label>
+                      <Input
+                        value={newAnnouncementTitle}
+                        onChange={(e) => setNewAnnouncementTitle(e.target.value)}
+                        placeholder="Contoh: Warta Khusus Sabat Pemuda"
+                        className="h-7 text-xs"
+                        data-testid="new-master-announcement-title-input"
+                        required
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={newAnnouncementLooping}
+                        onChange={(e) => setNewAnnouncementLooping(e.target.checked)}
+                        className="rounded border-border"
+                      />
+                      <span>Aktifkan Looping Carousel otomatis</span>
+                    </label>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setIsAddAnnouncementOpen(false)}
+                    >
+                      Batal
+                    </Button>
+                    <Button type="submit" size="sm" className="h-6 text-xs font-semibold">
+                      Simpan Warta
+                    </Button>
+                  </div>
+                </form>
+              )}
+
               <div className="space-y-3">
                 {announcementSets.map((as) => (
                   <div
@@ -432,40 +720,127 @@ export default function MockupMasterLibrariesDrawer({
                     className="p-3.5 rounded-xl border border-border/80 bg-card hover:border-primary/40 transition-all shadow-2xs space-y-2.5"
                     data-testid={`master-announcement-card-${as.id}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-xs text-foreground">
-                            {as.title}
-                          </h4>
-                          {as.looping && (
-                            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                              Looping Carousel
-                            </span>
+                    {editingAnnouncementId === as.id ? (
+                      <div className="p-3 bg-muted/40 rounded-xl border border-border/80 space-y-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-semibold text-muted-foreground">Judul Warta</Label>
+                          <Input
+                            value={editAnnouncementTitle}
+                            onChange={(e) => setEditAnnouncementTitle(e.target.value)}
+                            className="h-7 text-xs"
+                            data-testid={`edit-announcement-title-input-${as.id}`}
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 text-xs font-medium cursor-pointer pt-1">
+                          <input
+                            type="checkbox"
+                            checked={editAnnouncementLooping}
+                            onChange={(e) => setEditAnnouncementLooping(e.target.checked)}
+                            className="rounded border-border"
+                          />
+                          <span>Aktifkan Looping Carousel otomatis</span>
+                        </label>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs"
+                            onClick={() => setEditingAnnouncementId(null)}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-6 text-xs font-semibold"
+                            onClick={() => {
+                              updateAnnouncementSets(
+                                announcementSets.map((a) =>
+                                  a.id === as.id
+                                    ? {
+                                        ...a,
+                                        title: editAnnouncementTitle.trim() || a.title,
+                                        looping: editAnnouncementLooping,
+                                        updatedAt: 'Baru saja diperbarui',
+                                      }
+                                    : a
+                                )
+                              );
+                              setEditingAnnouncementId(null);
+                              toast.success(`Warta "${editAnnouncementTitle.trim() || as.title}" berhasil diperbarui.`);
+                            }}
+                            data-testid={`save-master-announcement-${as.id}`}
+                          >
+                            Simpan Perubahan
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-xs text-foreground">
+                              {as.title}
+                            </h4>
+                            {as.looping && (
+                              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                                Looping Carousel
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground font-mono">
+                            {as.flyersCount} Slide Flyer • Diperbarui: {as.updatedAt}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs font-semibold gap-1"
+                            onClick={() => {
+                              setEditingAnnouncementId(as.id);
+                              setEditAnnouncementTitle(as.title);
+                              setEditAnnouncementLooping(as.looping);
+                            }}
+                            data-testid={`edit-master-announcement-${as.id}`}
+                          >
+                            <span>Ubah</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              updateAnnouncementSets(announcementSets.filter((x) => x.id !== as.id));
+                              toast.success(`Warta "${as.title}" (${as.flyersCount} flyer) berhasil dihapus.`);
+                            }}
+                            data-testid={`delete-master-announcement-${as.id}`}
+                          >
+                            <span>Hapus</span>
+                          </Button>
+                          {onSelectAnnouncementSet && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-7 text-xs font-semibold gap-1 shrink-0"
+                              onClick={() => {
+                                onSelectAnnouncementSet(as);
+                                onClose();
+                                toast.success(`Warta "${as.title}" diterapkan ke timeline.`);
+                              }}
+                              data-testid="select-master-announcement-button"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>Pilih Warta Ini</span>
+                            </Button>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground font-mono">
-                          {as.flyersCount} Slide Flyer • Diperbarui: {as.updatedAt}
-                        </p>
                       </div>
-
-                      {onSelectAnnouncementSet && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="h-7 text-xs font-semibold gap-1 shrink-0"
-                          onClick={() => {
-                            onSelectAnnouncementSet(as);
-                            onClose();
-                            toast.success(`Warta "${as.title}" diterapkan ke timeline.`);
-                          }}
-                          data-testid="select-master-announcement-button"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>Pilih Warta Ini</span>
-                        </Button>
-                      )}
-                    </div>
+                    )}
 
                     {/* Flyer thumbnails list */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
@@ -614,27 +989,139 @@ export default function MockupMasterLibrariesDrawer({
                       <th className="p-2.5">Label</th>
                       <th className="p-2.5">Tipe Data</th>
                       <th className="p-2.5">Keterangan</th>
+                      <th className="p-2.5 text-right">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {tokens.map((tok) => (
-                      <tr key={tok.id} className="hover:bg-muted/20">
-                        <td className="p-2.5 font-mono text-primary font-bold">
-                          {`{${tok.key}}`}
-                        </td>
-                        <td className="p-2.5 font-semibold text-foreground">
-                          {tok.label}
-                        </td>
-                        <td className="p-2.5">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-muted border border-border">
-                            {tok.type}
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-muted-foreground text-[11px]">
-                          {tok.description}
-                        </td>
-                      </tr>
-                    ))}
+                    {tokens.map((tok) => {
+                      const isSys = tok.isSystem || isSystemPredefinedToken(tok.key);
+
+                      return (
+                        <tr key={tok.id} className="hover:bg-muted/20">
+                          <td className="p-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-primary font-bold">{`{${tok.key}}`}</span>
+                              {isSys && (
+                                <span
+                                  className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-sans"
+                                  data-testid={`system-token-badge-${tok.key}`}
+                                >
+                                  [System]
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-2.5 font-semibold text-foreground">
+                            {editingTokenKey === tok.key ? (
+                              <Input
+                                value={editTokenLabel}
+                                onChange={(e) => setEditTokenLabel(e.target.value)}
+                                className="h-7 text-xs"
+                                data-testid={`edit-token-label-input-${tok.key}`}
+                              />
+                            ) : (
+                              tok.label
+                            )}
+                          </td>
+                          <td className="p-2.5">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-muted border border-border">
+                              {tok.type}
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-muted-foreground text-[11px]">
+                            {editingTokenKey === tok.key ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  value={editTokenDesc}
+                                  onChange={(e) => setEditTokenDesc(e.target.value)}
+                                  className="h-7 text-xs flex-1"
+                                  data-testid={`edit-token-desc-input-${tok.key}`}
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-7 text-xs px-2"
+                                  onClick={() => {
+                                    updateTokens(
+                                      tokens.map((t) =>
+                                        t.key === tok.key
+                                          ? {
+                                              ...t,
+                                              label: editTokenLabel.trim() || t.label,
+                                              description: editTokenDesc.trim() || t.description,
+                                            }
+                                          : t
+                                      )
+                                    );
+                                    setEditingTokenKey(null);
+                                    toast.success(`Token {${tok.key}} berhasil diperbarui.`);
+                                  }}
+                                  data-testid={`save-token-${tok.key}`}
+                                >
+                                  Simpan
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs px-2"
+                                  onClick={() => setEditingTokenKey(null)}
+                                >
+                                  Batal
+                                </Button>
+                              </div>
+                            ) : (
+                              tok.description
+                            )}
+                          </td>
+                          <td className="p-2.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={isSys}
+                                className={`h-7 px-2 text-xs ${
+                                  isSys
+                                    ? 'opacity-30 cursor-not-allowed text-muted-foreground'
+                                    : ''
+                                }`}
+                                title={isSys ? 'Token sistem tidak dapat diubah' : 'Ubah token kustom'}
+                                onClick={() => {
+                                  if (isSys) return;
+                                  setEditingTokenKey(tok.key);
+                                  setEditTokenLabel(tok.label);
+                                  setEditTokenDesc(tok.description);
+                                }}
+                                data-testid={`edit-token-${tok.key}`}
+                              >
+                                Ubah
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={isSys}
+                                className={`h-7 px-2 text-xs ${
+                                  isSys
+                                    ? 'opacity-30 cursor-not-allowed text-muted-foreground'
+                                    : 'text-destructive hover:bg-destructive/10'
+                                }`}
+                                title={isSys ? 'Token sistem tidak dapat dihapus' : 'Hapus token kustom'}
+                                onClick={() => {
+                                  if (isSys) return;
+                                  updateTokens(tokens.filter((t) => t.key !== tok.key));
+                                  toast.success(`Token {${tok.key}} berhasil dihapus.`);
+                                }}
+                                data-testid={`delete-token-${tok.key}`}
+                              >
+                                Hapus
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

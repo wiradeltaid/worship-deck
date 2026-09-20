@@ -1,6 +1,6 @@
 # SPEC-51 — Unified Schedule Workspace 1920 Full HD Responsive Redesign & Ergonomics Architecture
 
-> **Status:** open  
+> **Status:** closed  
 > **Release:** unified-schedule-workspace-1920-redesign  
 > **Component:** hub  
 > **Touches:** operator, spa, presenter, artifacts, tests  
