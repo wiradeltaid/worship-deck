@@ -2559,6 +2559,48 @@ waves:
         tests:
           - tests/smoke-spec-53.test.mjs
 
+  - id: SPEC-54
+    status: ready-for-agent
+    release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+    prd: [operator-turn, offline-deck]
+    fr: [FR-11, FR-20, FR-21, FR-32]
+    size: M
+    depends_on: [SPEC-53]
+    spec_folder: .scratch/SPEC-54-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity/
+    spec_reviewed:
+      date: '2026-09-21'
+      sha: '7dcf3bf'
+      lenses: [structure, prose, edge-case-hunter, contract-auditor, data-migration, interaction-failure-paths, geometry-invariant]
+    tickets:
+      - id: "SPEC-54-01"
+        component: hub
+        satisfies: [UC-2, UC-5, FR-11]
+        blocked_by: []
+        touches: [services, artifacts]
+        tests:
+          - tests/smoke-spec-54.test.mjs
+      - id: "SPEC-54-02"
+        component: hub
+        satisfies: [UC-5, FR-11]
+        blocked_by: ["SPEC-54-01"]
+        touches: [services, uploads]
+        tests:
+          - tests/smoke-spec-54.test.mjs
+      - id: "SPEC-54-03"
+        component: hub
+        satisfies: [UC-2, UC-5, FR-11, FR-32]
+        blocked_by: ["SPEC-54-02"]
+        touches: [artifacts, services]
+        tests:
+          - tests/smoke-spec-54.test.mjs
+      - id: "SPEC-54-04"
+        component: registry
+        satisfies: [UC-14, FR-20, FR-21]
+        blocked_by: ["SPEC-54-03"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-54.test.mjs
+
 
 
 

@@ -634,6 +634,48 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-54-01
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-54-02
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-54-03
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops
@@ -1498,6 +1540,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-54-01
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-54-03
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3220,6 +3290,20 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-54-04
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3701,6 +3785,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-54-01
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-54-03
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -5710,6 +5822,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-54-04
+  spec: SPEC-54
+  release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
