@@ -5,6 +5,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw } from 'lucide-react';
 import { compileProfileRegex } from '@/lib/parser-rules';
 import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/operator/DynamicFormBody';
@@ -546,26 +552,27 @@ Closing Prayer: Deacon Michael`
                             </Button>
 
                             {layoutData.groupings.filter((g) => g.id !== grouping.id).length > 0 && (
-                              <select
-                                className="h-6 text-[11px] px-1.5 rounded border border-border bg-background text-foreground cursor-pointer"
-                                defaultValue=""
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    handleTransferSlot(s.id, e.target.value);
-                                    e.target.value = '';
-                                  }
-                                }}
-                                title="Pindah Kartu..."
-                              >
-                                <option value="" disabled>Pindah Kartu...</option>
-                                {layoutData.groupings
-                                  .filter((g) => g.id !== grouping.id)
-                                  .map((g) => (
-                                    <option key={g.id} value={g.id}>
-                                      → {g.label}
-                                    </option>
-                                  ))}
-                              </select>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  className="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-6 text-[11px] px-1.5 py-0 font-normal text-muted-foreground hover:text-foreground cursor-pointer"
+                                  title="Pindah Kartu..."
+                                >
+                                  Pindah Kartu...
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="text-xs">
+                                  {layoutData.groupings
+                                    .filter((g) => g.id !== grouping.id)
+                                    .map((g) => (
+                                      <DropdownMenuItem
+                                        key={g.id}
+                                        onClick={() => handleTransferSlot(s.id, g.id)}
+                                        className="cursor-pointer text-xs"
+                                      >
+                                        → {g.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
 
                             <Button
