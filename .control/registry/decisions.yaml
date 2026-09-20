@@ -1225,6 +1225,27 @@ decisions:
       - src/operator/workspace/
       - spa/src/
       - tests/smoke-spec-50.test.mjs
+  - id: DEC-052
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-20)"
+    title: Daily Autopilot mandate for Unified Schedule Workspace 1920 Full HD Redesign (SPEC-51)
+    file: .control/decisions/DEC-052-daily-autopilot-mandate-unified-schedule-workspace-1920-redesign.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-27'
+    touches:
+      - .control/memlog/autopilot-DEC-052.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-51-unified-schedule-workspace-1920-fullhd-redesign/SPEC.md
+      - src/operator/workspace/
+      - spa/src/
+      - tests/smoke-spec-51.test.mjs
 
 
 
