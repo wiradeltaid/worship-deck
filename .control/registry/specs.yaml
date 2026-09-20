@@ -2476,6 +2476,49 @@ waves:
         tests:
           - tests/smoke-spec-51.test.mjs
 
+  - id: SPEC-52
+    status: open
+    release: unified-workspace-slide0-architecture
+    prd: [operator-turn, offline-deck]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32]
+    size: M
+    depends_on: [SPEC-51]
+    spec_folder: .scratch/SPEC-52-unified-workspace-schedule-preset-rundown-slide0-architecture/
+    spec_reviewed:
+      date: '2026-09-20'
+      sha: '3af795d'
+      lenses: [structure, prose, edge-case-hunter, verification-gap]
+    tickets:
+      - id: "SPEC-52-01"
+        component: hub
+        satisfies: [UC-5, UC-11, UC-14]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/smoke-spec-52.test.mjs
+      - id: "SPEC-52-02"
+        component: registry
+        satisfies: [UC-5, UC-14]
+        blocked_by: ["SPEC-52-01"]
+        touches: [artifacts, services]
+        tests:
+          - tests/smoke-spec-52.test.mjs
+      - id: "SPEC-52-03"
+        component: presenter
+        satisfies: [UC-11, UC-14, UC-24]
+        blocked_by: ["SPEC-52-02"]
+        touches: [artifacts, present-channel]
+        tests:
+          - tests/smoke-spec-52.test.mjs
+      - id: "SPEC-52-04"
+        component: hub
+        satisfies: [UC-5, UC-11, UC-12]
+        blocked_by: ["SPEC-52-03"]
+        touches: [present-channel, remote-control, settings, services]
+        tests:
+          - tests/smoke-spec-52.test.mjs
+
+
 
 
 

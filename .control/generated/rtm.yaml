@@ -545,6 +545,48 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-52-01
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-52-02
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
+  ticket: SPEC-52-04
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: W8-03
   spec: W8
   release: hub-service-ops
@@ -893,6 +935,48 @@ rtm:
   FR: FR-15
   DEC: []
   UC: UC-11
+  ticket: SPEC-52-01
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
+  ticket: SPEC-52-03
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
+  ticket: SPEC-52-04
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
   ticket: W7-01
   spec: W7
   release: presenter-live
@@ -1086,6 +1170,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-52-04
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -3005,6 +3103,48 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-52-01
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-52-02
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-52-03
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -3734,6 +3874,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-52-03
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5439,6 +5593,48 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-52-01
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-52-02
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-52-03
+  spec: SPEC-52
+  release: unified-workspace-slide0-architecture
+  test:
+  - tests/smoke-spec-52.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

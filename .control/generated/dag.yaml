@@ -409,6 +409,16 @@ dag:
     - SPEC-51-03
   - parallel:
     - SPEC-51-04
+- spec: SPEC-52
+  order:
+  - parallel:
+    - SPEC-52-01
+  - parallel:
+    - SPEC-52-02
+  - parallel:
+    - SPEC-52-03
+  - parallel:
+    - SPEC-52-04
 - spec: W1
   order:
   - parallel:
