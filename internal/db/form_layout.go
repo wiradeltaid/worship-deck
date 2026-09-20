@@ -464,6 +464,14 @@ func SeedDefaultPredefinedFields(db *sql.DB) (SeedReport, error) {
 		},
 	}
 
+	var existingGroupCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM form_groupings WHERE layout_id = 'default-layout'`).Scan(&existingGroupCount); err != nil {
+		return report, err
+	}
+	if existingGroupCount > 0 {
+		return report, nil
+	}
+
 	for _, g := range defaultGroupings {
 		_, err := db.Exec(`
 			INSERT INTO form_groupings (id, layout_id, label, description, sort_order)
