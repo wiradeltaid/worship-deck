@@ -647,17 +647,19 @@ export default function MockupEditor({
                   { token: '{worship_leader}', label: 'Liturgis' },
                   { token: '{family_of_the_week}', label: 'Keluarga Syafaat' },
                 ].map(({ token, label }) => (
-                  <button
+                  <Button
                     key={token}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleInsertToken(token)}
-                    className="px-2 py-1 rounded-md text-[11px] font-mono bg-muted hover:bg-primary/20 hover:text-primary transition-colors border border-border/80 cursor-pointer flex items-center gap-1"
+                    className="h-auto px-2 py-1 rounded-md text-[11px] font-mono bg-muted hover:bg-primary/20 hover:text-primary transition-colors border border-border/80 cursor-pointer flex items-center gap-1"
                     title={`Sisipkan ${token}`}
                     data-testid={`insert-token-${token.replace(/[{}]/g, '')}`}
                   >
                     <span>{token}</span>
                     <span className="text-[10px] text-muted-foreground">({label})</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

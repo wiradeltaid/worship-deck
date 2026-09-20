@@ -317,16 +317,17 @@ export default function MockupCanvasPreview({
 
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 overflow-y-auto py-2">
                 {Array.from({ length: totalSlides }).map((_, idx) => (
-                  <button
+                  <Button
                     key={idx}
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       setCurrentSlideIndex(idx);
                       setIsFilmstripOpen(false);
                       toast.info(`Berpindah ke Slide ${idx + 1}`);
                     }}
                     data-testid={`filmstrip-thumbnail-${idx}`}
-                    className={`aspect-video rounded-lg border text-xs font-mono font-bold flex flex-col items-center justify-center p-2 transition-all cursor-pointer ${
+                    className={`aspect-video rounded-lg border text-xs font-mono font-bold flex flex-col items-center justify-center p-2 transition-all cursor-pointer h-auto ${
                       idx === safeSlideIndex
                         ? 'border-primary ring-2 ring-primary bg-primary/20 text-white'
                         : 'border-white/30 bg-white/5 text-zinc-300 hover:border-white hover:bg-white/10'
@@ -336,7 +337,7 @@ export default function MockupCanvasPreview({
                     <span className="text-[9px] text-zinc-400 font-normal">
                       {idx === safeSlideIndex ? '● Sedang Tayang' : 'Pilih'}
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
 

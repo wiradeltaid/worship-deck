@@ -1345,21 +1345,22 @@ export default function WorkspaceMockupPage() {
             </p>
             <div className="space-y-1.5 max-h-60 overflow-y-auto">
               {masterPresets.map((p) => (
-                <button
+                <Button
                   key={p.id}
                   type="button"
+                  variant="ghost"
                   onClick={() => handleSelectPresetToCopy(p)}
-                  className="w-full text-left p-2.5 rounded-lg border border-border/80 bg-background hover:bg-muted/60 transition-colors flex items-center justify-between cursor-pointer"
+                  className="w-full h-auto text-left p-2.5 rounded-lg border border-border/80 bg-background hover:bg-muted/60 transition-colors flex items-center justify-between cursor-pointer whitespace-normal justify-start"
                   data-testid={`select-preset-to-copy-${p.id}`}
                 >
-                  <div>
+                  <div className="flex-1 min-w-0 pr-2">
                     <h4 className="text-xs font-bold text-foreground">{p.title}</h4>
                     <p className="text-[11px] text-muted-foreground line-clamp-1">{p.description}</p>
                   </div>
-                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
                     {p.defaultTime}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
