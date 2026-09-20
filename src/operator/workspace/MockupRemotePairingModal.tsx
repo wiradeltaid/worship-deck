@@ -8,6 +8,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { generateSecurePin, generateScopedPairingToken } from './utils';
 import { toast } from 'sonner';
 
@@ -196,14 +198,16 @@ export default function MockupRemotePairingModal({
                 </Button>
                 {/* Simulation helper */}
                 {!isLockedOut && !isRevoked && (
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     onClick={handleSimulateFailedAttempt}
-                    className="text-[10px] text-muted-foreground underline hover:text-foreground"
+                    className="h-auto p-0 text-[10px] text-muted-foreground underline hover:text-foreground cursor-pointer"
                     title="Simulasi salah PIN untuk uji rate limiting"
                   >
                     (Simulasi Salah)
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -211,15 +215,15 @@ export default function MockupRemotePairingModal({
 
           {/* Pairing URL */}
           <div className="space-y-1">
-            <label className="text-[11px] font-semibold text-muted-foreground">
+            <Label className="text-[11px] font-semibold text-muted-foreground">
               Tautan Akses Cepat (Scoped Token TTL 4 Jam)
-            </label>
+            </Label>
             <div className="flex items-center gap-1.5">
-              <input
+              <Input
                 type="text"
                 readOnly
                 value={pairingUrl}
-                className={`w-full h-8 px-2.5 rounded-lg border border-border font-mono text-[11px] ${
+                className={`w-full h-8 px-2.5 font-mono text-[11px] ${
                   isRevoked
                     ? 'bg-destructive/10 text-destructive'
                     : 'bg-muted/40 text-muted-foreground'

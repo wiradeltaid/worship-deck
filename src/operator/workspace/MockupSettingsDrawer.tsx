@@ -15,6 +15,14 @@ import {
   Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface OperatorAccount {
@@ -209,22 +217,28 @@ export default function MockupSettingsDrawer({
                 onSubmit={handleAddAccount}
                 className="p-3 rounded-xl border border-primary/30 bg-primary/5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
               >
-                <input
+                <Input
                   type="text"
                   placeholder="Nama pengguna akun..."
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  className="h-8 text-xs px-2.5 rounded-md border border-border bg-background flex-1"
+                  className="h-8 text-xs px-2.5 flex-1"
                   required
                 />
-                <select
+                <Select
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as 'admin' | 'operator')}
-                  className="h-8 text-xs px-2 rounded-md border border-border bg-background font-medium"
+                  onValueChange={(val) => {
+                    if (val) setNewRole(val as 'admin' | 'operator');
+                  }}
                 >
-                  <option value="operator">Operator</option>
-                  <option value="admin">Administrator</option>
-                </select>
+                  <SelectTrigger className="h-8 text-xs px-2.5 font-medium w-full sm:w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="operator">Operator</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button type="submit" size="sm" className="h-8 text-xs font-semibold gap-1 shrink-0">
                   <Plus className="w-3 h-3" />
                   <span>Tambah Akun</span>
@@ -365,13 +379,13 @@ export default function MockupSettingsDrawer({
                   Lama hari file arsip PowerPoint tersimpan di disk lokal sebelum dibersihkan otomatis.
                 </p>
                 <div className="flex items-center gap-3 pt-1">
-                  <input
+                  <Input
                     type="number"
                     min="1"
                     max="365"
                     value={retentionDays}
                     onChange={(e) => setRetentionDays(parseInt(e.target.value, 10) || 30)}
-                    className="h-8 w-24 text-xs px-2.5 rounded-md border border-border bg-background font-mono"
+                    className="h-8 w-24 text-xs px-2.5 font-mono"
                   />
                   <span className="text-xs text-muted-foreground">Hari</span>
                 </div>

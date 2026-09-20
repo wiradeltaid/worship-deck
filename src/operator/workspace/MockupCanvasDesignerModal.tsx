@@ -513,17 +513,25 @@ export default function MockupCanvasDesignerModal({
               </div>
               <div className="space-y-1">
                 <Label className="text-[10px] text-muted-foreground">Kategori Template</Label>
-                <select
+                <Select
                   value={newSlideTypeCategory}
-                  onChange={(e) => setNewSlideTypeCategory(e.target.value)}
-                  className="w-full h-7 px-2 rounded-md border border-border bg-background text-xs"
-                  data-testid="new-slide-type-category-select"
+                  onValueChange={(val) => {
+                    if (val) setNewSlideTypeCategory(val);
+                  }}
                 >
-                  <option value="custom">Slide Bebas / Kustom</option>
-                  <option value="scripture">Ayat Alkitab</option>
-                  <option value="sermon">Khotbah & Renungan</option>
-                  <option value="announcement">Warta & Pengumuman</option>
-                </select>
+                  <SelectTrigger
+                    className="w-full h-7 px-2 text-xs"
+                    data-testid="new-slide-type-category-select"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="custom">Slide Bebas / Kustom</SelectItem>
+                    <SelectItem value="scripture">Ayat Alkitab</SelectItem>
+                    <SelectItem value="sermon">Khotbah & Renungan</SelectItem>
+                    <SelectItem value="announcement">Warta & Pengumuman</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
