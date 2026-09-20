@@ -2517,6 +2517,47 @@ waves:
         touches: [present-channel, remote-control, settings, services]
         tests:
           - tests/smoke-spec-52.test.mjs
+  - id: SPEC-53
+    status: open
+    release: form-reordering-and-presenter-parity
+    prd: [operator-turn]
+    fr: [FR-11, FR-15, FR-16, FR-32]
+    size: S
+    depends_on: [SPEC-52]
+    spec_folder: .scratch/SPEC-53-form-card-slot-reorder-and-presenter-transition-parity/
+    spec_reviewed:
+      date: '2026-09-20'
+      sha: 'f5be494'
+      lenses: [structure, prose, edge-case-hunter, traceability, api-contract-and-data-integrity, transition-visual-parity, regression-test-design]
+    tickets:
+      - id: "SPEC-53-01"
+        component: hub
+        satisfies: [UC-5, FR-11]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/smoke-spec-53.test.mjs
+      - id: "SPEC-53-02"
+        component: hub
+        satisfies: [UC-5, FR-11, FR-32]
+        blocked_by: ["SPEC-53-01"]
+        touches: [artifacts, services]
+        tests:
+          - tests/smoke-spec-53.test.mjs
+      - id: "SPEC-53-03"
+        component: hub
+        satisfies: [UC-5, FR-11, FR-32]
+        blocked_by: ["SPEC-53-02"]
+        touches: [artifacts, services]
+        tests:
+          - tests/smoke-spec-53.test.mjs
+      - id: "SPEC-53-04"
+        component: presenter
+        satisfies: [UC-11, UC-12, FR-15, FR-16]
+        blocked_by: ["SPEC-53-03"]
+        touches: [artifacts, present-channel]
+        tests:
+          - tests/smoke-spec-53.test.mjs
 
 
 
