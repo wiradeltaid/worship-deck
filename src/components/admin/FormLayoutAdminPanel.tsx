@@ -105,16 +105,58 @@ Closing Prayer: Deacon Michael`
     const targetIdx = direction === 'up' ? index - 1 : index + 1;
     if (targetIdx < 0 || targetIdx >= layoutData.groupings.length) return;
 
-    const g1 = layoutData.groupings[index];
-    const g2 = layoutData.groupings[targetIdx];
+    const reordered = [...layoutData.groupings];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIdx, 0, moved);
+    const payload = reordered.map((g, i) => ({ id: g.id, sort_order: i + 1 }));
+
     try {
       const res = await fetch('/api/admin/form-groupings/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([
-          { id: g1.id, sort_order: g2.sort_order },
-          { id: g2.id, sort_order: g1.sort_order },
-        ]),
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) await fetchLayout();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMoveSlot = async (groupingId: string, slotIndex: number, direction: 'up' | 'down') => {
+    if (!layoutData) return;
+    const grouping = layoutData.groupings.find(g => g.id === groupingId);
+    if (!grouping) return;
+    const targetIdx = direction === 'up' ? slotIndex - 1 : slotIndex + 1;
+    if (targetIdx < 0 || targetIdx >= grouping.slots.length) return;
+
+    const reordered = [...grouping.slots];
+    const [moved] = reordered.splice(slotIndex, 1);
+    reordered.splice(targetIdx, 0, moved);
+
+    const payload = {
+      grouping_id: groupingId,
+      slots: reordered.map((s, i) => ({ id: s.id, sort_order: i + 1 })),
+    };
+
+    try {
+      const res = await fetch('/api/admin/form-grouping-slots/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) await fetchLayout();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleTransferSlot = async (slotId: string, targetGroupingId: string) => {
+    if (!targetGroupingId) return;
+    try {
+      const res = await fetch(`/api/admin/form-grouping-slots/${slotId}/move-grouping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_grouping_id: targetGroupingId }),
       });
       if (res.ok) await fetchLayout();
     } catch {
@@ -470,8 +512,8 @@ Closing Prayer: Deacon Michael`
                     <p className="text-xs text-muted-foreground italic">Belum ada slot pada kartu ini.</p>
                   ) : (
                     <div className="divide-y divide-border/40">
-                      {grouping.slots.map((s) => (
-                        <div key={s.id} className="py-1.5 flex items-center justify-between text-xs">
+                      {grouping.slots.map((s, sIdx) => (
+                        <div key={s.id} className="py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                           <div className="flex items-center gap-2 font-mono">
                             <span className="text-muted-foreground">#{s.sort_order}</span>
                             <Badge variant="secondary" className="text-[10px] uppercase">
@@ -479,15 +521,64 @@ Closing Prayer: Deacon Michael`
                             </Badge>
                             <span className="font-semibold">{s.ref_key}</span>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDeleteSlot(s.id)}
-                          >
-                            ×
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              disabled={sIdx === 0}
+                              onClick={() => handleMoveSlot(grouping.id, sIdx, 'up')}
+                              title="Move Slot Up"
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              disabled={sIdx === grouping.slots.length - 1}
+                              onClick={() => handleMoveSlot(grouping.id, sIdx, 'down')}
+                              title="Move Slot Down"
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </Button>
+
+                            {layoutData.groupings.filter((g) => g.id !== grouping.id).length > 0 && (
+                              <select
+                                className="h-6 text-[11px] px-1.5 rounded border border-border bg-background text-foreground cursor-pointer"
+                                defaultValue=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleTransferSlot(s.id, e.target.value);
+                                    e.target.value = '';
+                                  }
+                                }}
+                                title="Pindah Kartu..."
+                              >
+                                <option value="" disabled>Pindah Kartu...</option>
+                                {layoutData.groupings
+                                  .filter((g) => g.id !== grouping.id)
+                                  .map((g) => (
+                                    <option key={g.id} value={g.id}>
+                                      → {g.label}
+                                    </option>
+                                  ))}
+                              </select>
+                            )}
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDeleteSlot(s.id)}
+                              title="Delete Slot"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

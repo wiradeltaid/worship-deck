@@ -32,10 +32,10 @@ Eliminate slide text linger / ghosting ("teks nyangkut bentar") during presenter
 
 **Blocked by:** SPEC-53-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] Update `CROSSFADE` transition specification in `src/lib/transitions.ts` so outgoing layer opacity fades smoothly from 1 to 0.
-- [ ] Enforce slide-instance identity keys on `ArtifactSlide.tsx` to prevent DOM element recycling and text layout flicker.
-- [ ] Verify clean transition rendering across `ProjectorClient`, `SlideshowClient`, and `PresenterOperator`.
-- [ ] Author `tests/smoke-spec-53.test.mjs` with comprehensive assertions and defect injection proofs.
-- [ ] Register `"test:smoke-spec-53"` script in `package.json` and verify clean execution.
+- [x] Update `CROSSFADE` transition specification in `src/lib/transitions.ts` so outgoing layer opacity fades smoothly from 1 to 0.
+- [x] Enforce slide-instance identity keys on `ArtifactSlide.tsx` to prevent DOM element recycling and text layout flicker.
+- [x] Verify clean transition rendering across `ProjectorClient`, `SlideshowClient`, and `PresenterOperator`.
+- [x] Author `tests/smoke-spec-53.test.mjs` with comprehensive assertions and defect injection proofs.
+- [x] Register `"test:smoke-spec-53"` script in `package.json` and verify clean execution.

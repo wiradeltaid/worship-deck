@@ -2518,7 +2518,7 @@ waves:
         tests:
           - tests/smoke-spec-52.test.mjs
   - id: SPEC-53
-    status: open
+    status: closed
     release: form-reordering-and-presenter-parity
     prd: [operator-turn]
     fr: [FR-11, FR-15, FR-16, FR-32]

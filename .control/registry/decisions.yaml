@@ -1271,7 +1271,8 @@ decisions:
       - tests/smoke-spec-52.test.mjs
   - id: DEC-054
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-20'
     accepted_by: "kodesh87 (2026-09-20)"
     title: Daily Autopilot mandate for Form Card Slot Reorder and Presenter Transition Parity (SPEC-53)
     file: .control/decisions/DEC-054-daily-autopilot-mandate-form-card-slot-reorder-and-presenter-parity.md

@@ -1,6 +1,6 @@
 # SPEC-53 — Form Card & Slot Reordering, Workspace Navigation Labeling & Presenter Text Transition Parity
 
-> **Status:** open  
+> **Status:** closed  
 > **Release:** form-reordering-and-presenter-parity  
 > **Component:** hub  
 > **Touches:** operator, spa, presenter, artifacts, services, present-channel, tests  

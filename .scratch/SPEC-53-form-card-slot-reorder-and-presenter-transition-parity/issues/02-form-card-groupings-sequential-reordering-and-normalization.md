@@ -29,9 +29,9 @@ Resolve the defect preventing form grouping cards from properly moving up and do
 
 **Blocked by:** SPEC-53-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Refactor client `handleMoveGrouping` in both `FormLayoutAdminPanel.tsx` and `DynamicFormBody.tsx` to submit complete normalized sequential arrays.
-- [ ] Implement strict membership validation in Go `reorderFormGroupings` rejecting partial/invalid payloads with HTTP 400.
-- [ ] Atomically persist `1..N` contiguous sort orders inside a single database transaction.
-- [ ] Author integration tests in `internal/httpapi/form_layout_test.go` validating both negative rejection and positive multi-card reordering.
+- [x] Refactor client `handleMoveGrouping` in both `FormLayoutAdminPanel.tsx` and `DynamicFormBody.tsx` to submit complete normalized sequential arrays.
+- [x] Implement strict membership validation in Go `reorderFormGroupings` rejecting partial/invalid payloads with HTTP 400.
+- [x] Atomically persist `1..N` contiguous sort orders inside a single database transaction.
+- [x] Author integration tests in `internal/httpapi/form_layout_test.go` validating both negative rejection and positive multi-card reordering.

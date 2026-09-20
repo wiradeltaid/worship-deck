@@ -412,8 +412,12 @@ export default function ArtifactSlide({
       .map((entry) => entry.element);
   }, [layout.elements]);
 
+  const instanceKey = instance.instanceId || `${instance.templateId || 'slide'}-${instance.layoutKey || ''}`;
+
   return (
     <div
+      key={instanceKey}
+      data-instance-id={instance.instanceId}
       className="flex h-full w-full items-center justify-center overflow-hidden"
       style={{ containerType: 'size' }}
     >

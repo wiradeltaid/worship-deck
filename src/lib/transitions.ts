@@ -92,16 +92,16 @@ const INSTANT: SlideTransitionSpec['browser'] = {
 };
 
 /**
- * A true cross-dissolve: the outgoing slide is held at full opacity underneath
- * and the incoming one fades in on top of it. Fading *both* layers in opposite
- * directions would dip through the black backdrop at the halfway point.
+ * Smooth crossfade: the outgoing slide fades smoothly from 1 to 0 while
+ * the incoming slide fades in from 0 to 1 on top, eliminating text ghosting
+ * and stale text lingering across slide transitions.
  */
 const CROSSFADE: SlideTransitionSpec['browser'] = {
   durationMs: 500,
   property: 'opacity',
   easing: EASING,
   incoming: { from: { opacity: 0 }, to: { opacity: 1 } },
-  outgoing: { from: { opacity: 1 }, to: { opacity: 1 } },
+  outgoing: { from: { opacity: 1 }, to: { opacity: 0 } },
 };
 
 export const SLIDE_TRANSITION_SPECS: {
