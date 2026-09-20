@@ -1005,11 +1005,11 @@ export default function WorkspaceMockupPage() {
 
       {/* 3-Panel Unified Workspace Layout with 1920 Full HD Responsive Baseline */}
       <div
-        className="flex flex-col xl:flex-row gap-4 flex-1 items-start w-full h-[calc(100vh-175px)] min-h-[560px] 2xl:min-h-[700px] max-h-[1200px]"
+        className="flex flex-col lg:flex-row gap-4 flex-1 items-start w-full h-[calc(100vh-175px)] min-h-[560px] 2xl:min-h-[700px] max-h-[1200px]"
         data-testid="three-panel-container"
       >
-        {/* Left Panel: Run Sheet Timeline (320px on xl / 2xl:400px) */}
-        <div className="w-full xl:w-[320px] 2xl:w-[400px] shrink-0 h-full flex flex-col">
+        {/* Left Panel: Run Sheet Timeline (300px - 340px on lg / 2xl:400px) */}
+        <div className="w-full lg:w-[320px] lg:min-w-[300px] lg:max-w-[340px] 2xl:w-[400px] shrink-0 h-full flex flex-col">
           <MockupTimeline
             items={items}
             selectedId={selectedItemId}
@@ -1019,8 +1019,8 @@ export default function WorkspaceMockupPage() {
           />
         </div>
 
-        {/* Center Panel: In-Place Contextual Editor (fluid min-w 400px / 2xl:600-900px) */}
-        <div className="flex-1 min-w-0 xl:min-w-[400px] 2xl:min-w-[600px] max-w-[900px] h-full overflow-y-auto w-full">
+        {/* Center Panel: In-Place Contextual Editor (fluid min-w 0 / 2xl:min-w-[600px] max-w-[900px]) */}
+        <div className="flex-1 min-w-0 2xl:min-w-[600px] max-w-[900px] h-full overflow-y-auto w-full">
           <MockupEditor
             item={selectedItem}
             onUpdateItem={handleUpdateCurrentItem}
@@ -1040,8 +1040,8 @@ export default function WorkspaceMockupPage() {
           />
         </div>
 
-        {/* Right Panel: Sticky Live Canvas Preview & Quick Tools (420px on xl / 2xl:580px) */}
-        <div className="w-full xl:w-[420px] 2xl:w-[580px] shrink-0 h-full flex flex-col sticky top-4">
+        {/* Right Panel: Sticky Live Canvas Preview & Quick Tools (400px - 460px on lg / 2xl:580px) */}
+        <div className="w-full lg:w-[440px] lg:min-w-[400px] lg:max-w-[460px] 2xl:w-[580px] shrink-0 h-full flex flex-col sticky top-4">
           <MockupCanvasPreview
             item={selectedItem}
             quickScriptureOpen={quickScriptureOpen}
