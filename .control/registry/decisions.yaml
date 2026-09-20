@@ -1247,6 +1247,27 @@ decisions:
       - src/operator/workspace/
       - spa/src/
       - tests/smoke-spec-51.test.mjs
+  - id: DEC-053
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-20)"
+    title: Daily Autopilot mandate for Unified Workspace Schedule-Preset Rundown Slide0 Architecture (SPEC-52)
+    file: .control/decisions/DEC-053-daily-autopilot-mandate-unified-workspace-schedule-preset-rundown-slide0.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-27'
+    touches:
+      - .control/memlog/autopilot-DEC-053.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-52-unified-workspace-schedule-preset-rundown-slide0-architecture/SPEC.md
+      - src/operator/workspace/
+      - spa/src/
+      - tests/smoke-spec-52.test.mjs
 
 
 
