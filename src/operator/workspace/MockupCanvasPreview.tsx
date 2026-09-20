@@ -396,7 +396,7 @@ export default function MockupCanvasPreview({
                     data-testid="song-canvas-reff"
                     className="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-xs italic font-serif text-cyan-200 dark:text-cyan-200"
                   >
-                    <span className="font-bold font-sans not-italic text-[10px] block uppercase tracking-wider text-cyan-300 mb-0.5">
+                    <span className="font-bold font-sans not-italic text-[10px] block uppercase tracking-wider text-cyan-600 dark:text-cyan-300 mb-0.5">
                       [Reff / Chorus]
                     </span>
                     "Puji nama-Nya, Haleluya selamanya!"

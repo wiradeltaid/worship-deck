@@ -899,6 +899,116 @@ export default function MockupEditor({
                 </div>
               </div>
             )}
+
+            {/* Specific Context Controls: Sermon (SPEC-49) */}
+            {item.type === 'sermon' && (
+              <div
+                className="space-y-4 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5"
+                data-testid="sermon-context-editor"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-xs">
+                    <Presentation className="w-4 h-4" />
+                    <span>Predefined Field Khotbah & Pembicara</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1.5 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                    onClick={() => setDutyRosterOpen(true)}
+                    data-testid="open-duty-roster-button"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Pilih dari Roster Pelayan</span>
+                  </Button>
+                </div>
+
+                {/* Instant Token Preview Badge */}
+                <div
+                  className="p-3 rounded-lg bg-background/90 border border-border/80 flex items-center gap-2 flex-wrap"
+                  data-testid="sermon-speaker-token-badge"
+                >
+                  <span className="text-xs font-bold text-muted-foreground">Token Binding:</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
+                    {'{sermon_speaker}'} → {weeklyVars.sermon_speaker || item.sermonData?.speaker || 'Pdt. Pembicara'}
+                  </span>
+                  <span className="text-muted-foreground text-xs">•</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
+                    "{weeklyVars.sermon_title || item.sermonData?.title || item.title}"
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Specific Context Controls: Custom Slide (SPEC-49) */}
+            {item.type === 'custom_slide' && (
+              <div
+                className="space-y-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5"
+                data-testid="custom-slide-context-editor"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+                    <FileCode className="w-4 h-4" />
+                    <span>Slide Bebas (Kanvas Kustom)</span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                    onClick={() => setMediaGalleryOpen(true)}
+                  >
+                    <ImageIcon className="w-3 h-3" />
+                    <span>Galeri Media</span>
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Judul Slide Bebas</Label>
+                    <Input
+                      value={item.customSlideData?.title || item.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        onUpdateItem({
+                          title: val,
+                          customSlideData: {
+                            ...item.customSlideData,
+                            title: val,
+                            content: item.customSlideData?.content || item.textContent || '',
+                          },
+                        });
+                      }}
+                      className="h-8 text-xs bg-background/80"
+                      data-testid="custom-slide-title-input"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Konten / Teks Bebas (Multi-Baris)</Label>
+                    <Textarea
+                      value={item.customSlideData?.content || item.textContent || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        onUpdateItem({
+                          textContent: val,
+                          customSlideData: {
+                            ...item.customSlideData,
+                            title: item.customSlideData?.title || item.title,
+                            content: val,
+                          },
+                        });
+                      }}
+                      placeholder="Ketik lirik bebas, puisi, responsif warta, atau kutipan nats di sini..."
+                      rows={4}
+                      className="text-xs bg-background/80 resize-none font-mono"
+                      data-testid="custom-slide-content-textarea"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1014,19 +1124,19 @@ export default function MockupEditor({
             <div className="space-y-2 p-3 rounded-lg bg-muted/40 border border-border">
               <div className="flex items-center justify-between">
                 <span>Pengkhotbah & Judul Khotbah</span>
-                <span className="font-mono text-[10px] text-emerald-600 font-semibold">Aktif</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Ayat Pembacaan Pokok</span>
-                <span className="font-mono text-[10px] text-emerald-600 font-semibold">Aktif</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Pemimpin Acara & Keluarga Syafaat</span>
-                <span className="font-mono text-[10px] text-emerald-600 font-semibold">Aktif</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Slot Flyer Warta Jemaat</span>
-                <span className="font-mono text-[10px] text-emerald-600 font-semibold">Aktif</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
               </div>
             </div>
           </div>
