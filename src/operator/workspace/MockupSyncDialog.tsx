@@ -137,9 +137,9 @@ export default function MockupSyncDialog({
           >
             <div className="flex items-center gap-2.5">
               {syncState === 'synced' ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
               ) : syncState === 'pending' ? (
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                <AlertTriangle className="w-5 h-5 text-amber-500 dark:text-amber-400 shrink-0" />
               ) : (
                 <AlertTriangle className="w-5 h-5 text-destructive shrink-0" />
               )}
@@ -196,7 +196,7 @@ export default function MockupSyncDialog({
               className="h-10 text-xs font-semibold justify-center gap-2 border-border/80 hover:bg-muted/40"
               data-testid="sync-pull-button"
             >
-              <ArrowDownCircle className="w-4 h-4 text-emerald-500" />
+              <ArrowDownCircle className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               <span>{isPulling ? 'Mengunduh...' : 'Tarik Pembaruan dari Server'}</span>
             </Button>
           </div>

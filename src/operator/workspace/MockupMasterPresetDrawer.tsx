@@ -418,7 +418,7 @@ export default function MockupMasterPresetDrawer({
                         {preset.status}
                       </span>
                       {preset.isArchived && (
-                        <span className="text-[10px] font-semibold text-rose-600 bg-rose-500/10 px-1.5 py-0.5 rounded-md">
+                        <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-md">
                           Diarsipkan
                         </span>
                       )}
