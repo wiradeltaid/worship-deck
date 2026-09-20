@@ -555,10 +555,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -569,10 +569,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -583,10 +583,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -945,10 +945,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -959,10 +959,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -973,10 +973,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -1185,10 +1185,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -3113,10 +3113,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3127,10 +3127,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3141,10 +3141,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3889,10 +3889,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5608,10 +5608,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -5622,10 +5622,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -5636,10 +5636,10 @@ rtm:
   release: unified-workspace-slide0-architecture
   test:
   - tests/smoke-spec-52.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30

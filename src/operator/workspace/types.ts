@@ -297,6 +297,47 @@ export interface CanvasCustomStyle {
   backgroundUrl?: string;
 }
 
+export const PINNED_SLIDE_0_ID = 'slide-0';
+
+export interface WeeklyVariables {
+  sermon_speaker: string;
+  sermon_title: string;
+  scripture_reference: string;
+  worship_leader: string;
+  family_of_the_week: string;
+  announcement_flyers: FlyerSlot[];
+  custom_fields?: Record<string, string>;
+}
+
+export const DEFAULT_WEEKLY_VARIABLES: WeeklyVariables = {
+  sermon_speaker: 'Pdt. Dr. Johnathan Doe',
+  sermon_title: 'Kasih yang Mengubahkan',
+  scripture_reference: 'Yohanes 3:16-17',
+  worship_leader: 'Diaken Natanael Markus',
+  family_of_the_week: 'Keluarga Bpk. David Tan',
+  announcement_flyers: [
+    { id: 'f1', title: 'Seminar Kesehatan & Nutrisi Nabati', url: '/assets/flyer1.jpg', category: 'announcement' },
+    { id: 'f2', title: 'Perkemahan Pemuda Advent 2026', url: '/assets/flyer2.jpg', category: 'announcement' },
+    { id: 'f3', title: 'Jadwal Pendalaman Alkitab Rumah Tangga', url: '/assets/flyer3.jpg', category: 'announcement' },
+    { id: 'f4', title: 'Perjamuan Kudus Triwulan III', url: '/assets/flyer4.jpg', category: 'announcement' },
+  ],
+  custom_fields: {},
+};
+
+export function createPinnedSlide0(weeklyVars?: WeeklyVariables): TimelineItem {
+  return {
+    id: PINNED_SLIDE_0_ID,
+    type: 'general',
+    title: 'Slide 0: Rundown & Formulir Ibadah',
+    subtitle: 'Rundown Hub & Variabel Mingguan',
+    duration: '00:00',
+    slidesCount: 1,
+    generalData: {
+      notes: 'Pusat integrasi teks rundown mentah dan variabel formulir mingguan',
+    },
+  };
+}
+
 export interface TimelineItem {
   id: string;
   type: TimelineItemType;
@@ -305,6 +346,12 @@ export interface TimelineItem {
   duration?: string;
   slidesCount: number;
   canvasStyle?: CanvasCustomStyle;
+  textContent?: string;
+  masterSongSetId?: string | null;
+  masterSongSetTitle?: string;
+  isMasterBound?: boolean;
+  masterAnnouncementSetId?: string | null;
+  masterAnnouncementSetTitle?: string;
   songData?: {
     hymnNumber?: number;
     bookCode?: string;
@@ -551,4 +598,66 @@ export function canDeleteMasterSongSet(
   }
   return { allowed: true };
 }
+
+export function sanitizeScheduleToPreset(
+  scheduleItems: TimelineItem[],
+  title: string,
+  description?: string
+): { preset: MasterPreset; sanitizedItems: TimelineItem[] } {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  const sanitizedItems = scheduleItems.map((item) => {
+    if (item.id === PINNED_SLIDE_0_ID) {
+      return createPinnedSlide0();
+    }
+    const sanitized: TimelineItem = {
+      ...item,
+      textContent: item.textContent
+        ? item.textContent.replace(/Pdt\.\s*[\w\s]+/gi, '{sermon_speaker}')
+        : undefined,
+    };
+
+    if (sanitized.sermonData) {
+      sanitized.sermonData = {
+        speaker: '{sermon_speaker}',
+        title: '{sermon_title}',
+        scriptureRef: '{scripture_reference}',
+      };
+    }
+    if (sanitized.announcementData) {
+      sanitized.announcementData = {
+        looping: sanitized.announcementData.looping,
+        flyers: [], // strip uploaded flyer instances
+      };
+      sanitized.slidesCount = 1;
+    }
+    if (sanitized.generalData) {
+      sanitized.generalData = {
+        speaker: undefined,
+        notes: undefined,
+        backgroundUrl: sanitized.generalData.backgroundUrl,
+      };
+    }
+    return sanitized;
+  });
+
+  const preset: MasterPreset = {
+    id: `mp-${Date.now()}`,
+    slug,
+    title: title.trim(),
+    description: description?.trim() || 'Cetak biru preset hasil sanitasi jadwal aktif.',
+    defaultTime: '09:00 WIB',
+    status: 'draft',
+    activeServicesCount: 0,
+    version: 1,
+    createdAt: new Date().toISOString().split('T')[0],
+    updatedAt: new Date().toISOString().split('T')[0],
+  };
+
+  return { preset, sanitizedItems };
+}
+
 

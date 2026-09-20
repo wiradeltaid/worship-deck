@@ -30,11 +30,11 @@ Re-architect the top navigation bar and schedule/preset lifecycle controls:
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Add `[Jadwal Baru]` and `[Muat Jadwal]` buttons directly at top-left.
-- [ ] Implement `[Salin Preset]` dialog with overwrite confirmation warning guard (covering loaded and dirty schedules).
-- [ ] Remove live Preset Selector dropdown from the status/identity strip.
-- [ ] Implement `[Simpan sebagai Preset Baru]` with automated Preset Sanitizer.
-- [ ] Implement `[Duplikat Jadwal]` in schedule drawer and `[Duplikat Preset]` in master preset drawer.
-- [ ] Ensure shared structural schema for schedules and presets.
+- [x] Add `[Jadwal Baru]` and `[Muat Jadwal]` buttons directly at top-left.
+- [x] Implement `[Salin Preset]` dialog with overwrite confirmation warning guard (covering loaded and dirty schedules).
+- [x] Remove live Preset Selector dropdown from the status/identity strip.
+- [x] Implement `[Simpan sebagai Preset Baru]` with automated Preset Sanitizer.
+- [x] Implement `[Duplikat Jadwal]` in schedule drawer and `[Duplikat Preset]` in master preset drawer.
+- [x] Ensure shared structural schema for schedules and presets.

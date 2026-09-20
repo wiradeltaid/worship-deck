@@ -16,9 +16,13 @@ import {
   Tag,
   Smartphone,
   Settings,
+  Plus,
+  Copy,
+  Unlink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,8 +30,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   PRESET_OPTIONS,
   WorshipPreset,
+  PresetOption,
   TimelineItem,
   TimelineItemType,
   WorkspaceStatus,
@@ -39,6 +51,11 @@ import {
   CustomSlideType,
   resolveSyncConflict,
   SyncAggregatePayload,
+  createPinnedSlide0,
+  PINNED_SLIDE_0_ID,
+  sanitizeScheduleToPreset,
+  WeeklyVariables,
+  DEFAULT_WEEKLY_VARIABLES,
 } from '@/operator/workspace/types';
 import { computePresetDate } from '@/operator/workspace/utils';
 import MockupTimeline from '@/operator/workspace/MockupTimeline';
@@ -199,14 +216,29 @@ export default function WorkspaceMockupPage() {
   const [serviceDate, setServiceDate] = useState('2026-09-19');
   const [status, setStatus] = useState<WorkspaceStatus>('ready');
 
+  // Slide 0 weekly variables state
+  const [weeklyVars, setWeeklyVars] = useState<WeeklyVariables>(DEFAULT_WEEKLY_VARIABLES);
+
   // Local instance items vs Master blueprint items isolation
-  const [instanceItems, setInstanceItems] = useState<TimelineItem[]>(DEFAULT_TIMELINE_ITEMS);
+  const [instanceItems, setInstanceItems] = useState<TimelineItem[]>([
+    createPinnedSlide0(),
+    ...DEFAULT_TIMELINE_ITEMS,
+  ]);
   const [masterBlueprintItems, setMasterBlueprintItems] = useState<Record<string, TimelineItem[]>>({
     'sabbath-morning': JSON.parse(JSON.stringify(DEFAULT_TIMELINE_ITEMS)),
   });
 
   const [selectedItemId, setSelectedItemId] = useState<string>('item-1');
   const [quickScriptureOpen, setQuickScriptureOpen] = useState(false);
+
+  // Modal & Dialog states for SPEC-52 lifecycle
+  const [isCopyPresetDialogOpen, setIsCopyPresetDialogOpen] = useState(false);
+  const [isOverwriteWarningOpen, setIsOverwriteWarningOpen] = useState(false);
+  const [presetToCopy, setPresetToCopy] = useState<MasterPreset | PresetOption | null>(null);
+  const [isNewScheduleConfirmOpen, setIsNewScheduleConfirmOpen] = useState(false);
+  const [isSaveAsPresetModalOpen, setIsSaveAsPresetModalOpen] = useState(false);
+  const [newPresetTitle, setNewPresetTitle] = useState('');
+  const [newPresetDesc, setNewPresetDesc] = useState('');
 
   // Active items depend strictly on workspaceMode
   const items =
@@ -229,12 +261,59 @@ export default function WorkspaceMockupPage() {
     }
   };
 
+  const handleNewScheduleClick = () => {
+    const regularItems = instanceItems.filter((i) => i.id !== PINNED_SLIDE_0_ID);
+    if (regularItems.length > 0 || hasUnsavedChanges) {
+      setIsNewScheduleConfirmOpen(true);
+    } else {
+      setInstanceItems([createPinnedSlide0(DEFAULT_WEEKLY_VARIABLES)]);
+      setWeeklyVars(DEFAULT_WEEKLY_VARIABLES);
+      setSelectedItemId(PINNED_SLIDE_0_ID);
+      setHasUnsavedChanges(false);
+      toast.info('Jadwal baru dimulai dari Slide 0.');
+    }
+  };
+
+  const handleSelectPresetToCopy = (targetPreset: MasterPreset | PresetOption) => {
+    const regularItems = instanceItems.filter((i) => i.id !== PINNED_SLIDE_0_ID);
+    if (regularItems.length > 0 || hasUnsavedChanges) {
+      setPresetToCopy(targetPreset);
+      setIsOverwriteWarningOpen(true);
+      return;
+    }
+    executePresetCopy(targetPreset);
+  };
+
+  const executePresetCopy = (targetPreset: MasterPreset | PresetOption) => {
+    const targetKey = 'slug' in targetPreset ? targetPreset.slug : targetPreset.id;
+    const blueprint = masterBlueprintItems[targetKey] || DEFAULT_TIMELINE_ITEMS;
+    const copiedSlides = JSON.parse(
+      JSON.stringify(blueprint.filter((i) => i.id !== PINNED_SLIDE_0_ID))
+    );
+    const nextItems = [createPinnedSlide0(weeklyVars), ...copiedSlides];
+    setInstanceItems(nextItems);
+    const matched = PRESET_OPTIONS.find((p) => p.id === targetKey);
+    if (matched) {
+      setPreset(matched.id);
+    }
+    setSelectedItemId(PINNED_SLIDE_0_ID);
+    setHasUnsavedChanges(true);
+    setIsOverwriteWarningOpen(false);
+    setIsCopyPresetDialogOpen(false);
+    toast.success(
+      `Cetak biru preset "${'title' in targetPreset ? targetPreset.title : targetPreset.label}" berhasil disalin ke jadwal aktif.`
+    );
+  };
+
   const handleSelectMasterSongSet = (songSet: MasterSongSet) => {
     if (songSet.songs.length === 0) return;
     const first = songSet.songs[0];
     handleUpdateCurrentItem({
       title: `Lagu — ${first.title}`,
-      subtitle: `${first.bookCode} ${first.hymnNumber} (Key of ${first.key}) • Master: ${songSet.id}`,
+      subtitle: `${first.bookCode} ${first.hymnNumber} (Key of ${first.key}) • Master: ${songSet.title}`,
+      masterSongSetId: songSet.id,
+      masterSongSetTitle: songSet.title,
+      isMasterBound: true,
       songData: {
         hymnNumber: first.hymnNumber,
         bookCode: first.bookCode,
@@ -250,9 +329,12 @@ export default function WorkspaceMockupPage() {
         id: `item-${Date.now()}-${idx + 1}`,
         type: 'song',
         title: `Lagu — ${s.title}`,
-        subtitle: `${s.bookCode} ${s.hymnNumber} (Key of ${s.key}) • Master: ${songSet.id}`,
+        subtitle: `${s.bookCode} ${s.hymnNumber} (Key of ${s.key}) • Master: ${songSet.title}`,
         duration: '10:00',
         slidesCount: s.activeVerses.length || 3,
+        masterSongSetId: songSet.id,
+        masterSongSetTitle: songSet.title,
+        isMasterBound: true,
         songData: {
           hymnNumber: s.hymnNumber,
           bookCode: s.bookCode,
@@ -265,21 +347,24 @@ export default function WorkspaceMockupPage() {
     }
 
     setHasUnsavedChanges(true);
-    toast.success(`Master Songset "${songSet.title}" (${songSet.songs.length} lagu) diterapkan ke timeline.`);
+    toast.success(`Master Songset "${songSet.title}" (${songSet.songs.length} lagu) terikat ke timeline.`);
   };
 
   const handleSelectMasterAnnouncementSet = (announcementSet: MasterAnnouncementSet) => {
     handleUpdateCurrentItem({
       title: announcementSet.title,
-      subtitle: `${announcementSet.flyersCount} Slide Warta (Master: ${announcementSet.id})`,
+      subtitle: `${announcementSet.flyersCount} Slide Warta (Master: ${announcementSet.title})`,
       slidesCount: announcementSet.flyersCount,
+      masterAnnouncementSetId: announcementSet.id,
+      masterAnnouncementSetTitle: announcementSet.title,
+      isMasterBound: true,
       announcementData: {
         looping: announcementSet.looping,
         flyers: announcementSet.flyers.map((f) => ({ ...f })),
       },
     });
     setHasUnsavedChanges(true);
-    toast.success(`Master Warta "${announcementSet.title}" diterapkan.`);
+    toast.success(`Master Warta "${announcementSet.title}" terikat ke timeline.`);
   };
 
   const handleSaveToMasterSongSet = (songItem: TimelineItem) => {
@@ -603,7 +688,7 @@ export default function WorkspaceMockupPage() {
         </div>
 
         {/* Global Toolbar: History & Master Preset Drawers */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
             variant="outline"
@@ -613,7 +698,19 @@ export default function WorkspaceMockupPage() {
             data-testid="schedule-history-drawer-button"
           >
             <FolderOpen className="w-3.5 h-3.5 text-primary" />
-            <span>📂 Riwayat Jadwal</span>
+            <span>📂 Muat Jadwal</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSaveAsPresetModalOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            data-testid="save-as-preset-button"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>✨ Simpan sebagai Preset Baru</span>
           </Button>
 
           <Button
@@ -712,47 +809,53 @@ export default function WorkspaceMockupPage() {
         data-testid="workspace-header-bar"
         className="flex flex-col 2xl:flex-row items-start 2xl:items-center justify-between gap-4 p-4 rounded-2xl bg-card/80 backdrop-blur-md border border-border/80 shadow-xs"
       >
-        {/* Zone A: Schedule & Mode Identity */}
+        {/* Zone A: Primary Schedule Navigation & Lifecycle Controls */}
         <div data-testid="command-zone-a" className="flex flex-wrap items-center gap-3">
-          {/* Preset Dropdown */}
+          {/* Action Buttons: New, Load, Copy Preset */}
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Preset Ibadah
+              Navigasi Jadwal & Preset
             </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="inline-flex items-center justify-between rounded-md border border-input bg-background/90 hover:bg-accent hover:text-accent-foreground h-9 px-3 gap-2 font-bold text-xs shadow-2xs transition-colors cursor-pointer"
-                data-testid="preset-selector-dropdown"
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleNewScheduleClick}
+                className="h-9 text-xs font-bold gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shadow-2xs"
+                data-testid="new-schedule-button"
+                title="Buka jadwal bersih baru (Slide 0)"
               >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>{currentPresetMeta.label}</span>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground ml-1" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-72">
-                {PRESET_OPTIONS.map((p) => (
-                  <DropdownMenuItem
-                    key={p.id}
-                    data-testid={`preset-option-${p.id}`}
-                    onClick={() => handleSelectPreset(p.id)}
-                    className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-semibold text-xs text-foreground">
-                        {p.label}
-                      </span>
-                      {p.id === preset && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                      )}
-                    </div>
-                    <span className="text-[11px] text-muted-foreground line-clamp-1">
-                      {p.description}
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Plus className="w-3.5 h-3.5" />
+                <span>Jadwal Baru</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsScheduleHistoryDrawerOpen(true)}
+                className="h-9 text-xs font-semibold gap-1.5 shadow-2xs"
+                data-testid="load-schedule-button"
+                title="Cari dan buka jadwal tersimpan"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-primary" />
+                <span>Muat Jadwal</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCopyPresetDialogOpen(true)}
+                className="h-9 text-xs font-semibold gap-1.5 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 shadow-2xs"
+                data-testid="copy-preset-button"
+                title="Salin susunan slide dari cetak biru master preset"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Salin Preset</span>
+              </Button>
+            </div>
           </div>
 
           {/* Service Date & Time Selector */}
@@ -1023,13 +1126,17 @@ export default function WorkspaceMockupPage() {
         <div className="flex-1 min-w-0 2xl:min-w-[600px] max-w-[900px] h-full overflow-y-auto w-full">
           <MockupEditor
             item={selectedItem}
+            weeklyVars={weeklyVars}
+            onUpdateWeeklyVars={(updated) => {
+              setWeeklyVars((prev) => ({ ...prev, ...updated }));
+              setHasUnsavedChanges(true);
+            }}
             onUpdateItem={handleUpdateCurrentItem}
             onReplaceItems={(newItems) => {
-              setItems(newItems);
+              const withSlide0 = [createPinnedSlide0(weeklyVars), ...newItems];
+              setItems(withSlide0);
               setHasUnsavedChanges(true);
-              if (newItems.length > 0) {
-                setSelectedItemId(newItems[0].id);
-              }
+              setSelectedItemId(newItems[0]?.id || PINNED_SLIDE_0_ID);
             }}
             onOpenMasterLibraries={(tab) => {
               setMasterLibrariesTab(tab);
@@ -1037,6 +1144,28 @@ export default function WorkspaceMockupPage() {
             }}
             onSaveToMasterSongSet={handleSaveToMasterSongSet}
             onSaveToMasterAnnouncementSet={handleSaveToMasterAnnouncementSet}
+            onDetachMasterSongSet={(songItem) => {
+              handleUpdateCurrentItem({
+                masterSongSetId: null,
+                masterSongSetTitle: undefined,
+                isMasterBound: false,
+                songData: songItem.songData ? JSON.parse(JSON.stringify(songItem.songData)) : undefined,
+              });
+              setHasUnsavedChanges(true);
+              toast.success('Lagu telah dilepas (detached) dari Master Songset.');
+            }}
+            onDetachMasterAnnouncementSet={(announcementItem) => {
+              handleUpdateCurrentItem({
+                masterAnnouncementSetId: null,
+                masterAnnouncementSetTitle: undefined,
+                isMasterBound: false,
+                announcementData: announcementItem.announcementData
+                  ? JSON.parse(JSON.stringify(announcementItem.announcementData))
+                  : undefined,
+              });
+              setHasUnsavedChanges(true);
+              toast.success('Warta telah dilepas (detached) dari Master Warta.');
+            }}
           />
         </div>
 
@@ -1200,6 +1329,202 @@ export default function WorkspaceMockupPage() {
         isOpen={isSettingsDrawerOpen}
         onClose={() => setIsSettingsDrawerOpen(false)}
       />
+
+      {/* Copy Preset Dialog (Ticket 01) */}
+      <Dialog open={isCopyPresetDialogOpen} onOpenChange={setIsCopyPresetDialogOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="copy-preset-modal">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+              <Copy className="w-4 h-4" />
+              <span>Salin Cetak Biru Master Preset</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-xs text-muted-foreground">
+              Pilih master preset untuk menyalin susunan slide ke jadwal aktif saat ini:
+            </p>
+            <div className="space-y-1.5 max-h-60 overflow-y-auto">
+              {masterPresets.map((p) => (
+                <Button
+                  key={p.id}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => handleSelectPresetToCopy(p)}
+                  className="w-full h-auto text-left p-2.5 rounded-lg border border-border/80 bg-background hover:bg-muted/60 transition-colors flex items-center justify-between cursor-pointer whitespace-normal justify-start"
+                  data-testid={`select-preset-to-copy-${p.id}`}
+                >
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h4 className="text-xs font-bold text-foreground">{p.title}</h4>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">{p.description}</p>
+                  </div>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                    {p.defaultTime}
+                  </span>
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="sm" variant="ghost" onClick={() => setIsCopyPresetDialogOpen(false)}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Overwrite Warning Modal (Ticket 01) */}
+      <Dialog open={isOverwriteWarningOpen} onOpenChange={setIsOverwriteWarningOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="overwrite-warning-modal">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <ShieldAlert className="w-4 h-4" />
+              <span>Konfirmasi Timpa Susunan Slide Jadwal</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 text-xs text-muted-foreground leading-relaxed">
+            <p>
+              Menyalin preset akan menggantikan susunan slide jadwal aktif saat ini. Seluruh slide yang ada akan ditimpa dengan cetak biru preset. Lanjutkan?
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOverwriteWarningOpen(false)}
+              data-testid="overwrite-cancel-button"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (presetToCopy) executePresetCopy(presetToCopy);
+              }}
+              data-testid="overwrite-confirm-button"
+            >
+              Gantikan Slide
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Schedule Confirmation Modal */}
+      <Dialog open={isNewScheduleConfirmOpen} onOpenChange={setIsNewScheduleConfirmOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="new-schedule-confirm-modal">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <RotateCcw className="w-4 h-4" />
+              <span>Buat Jadwal Baru (Reset ke Slide 0)</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 text-xs text-muted-foreground leading-relaxed">
+            <p>
+              Membuat jadwal baru akan mengosongkan seluruh slide dan memulai jadwal bersih dari Slide 0. Perubahan yang belum disimpan akan hilang. Lanjutkan?
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsNewScheduleConfirmOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={() => {
+                setInstanceItems([createPinnedSlide0(DEFAULT_WEEKLY_VARIABLES)]);
+                setWeeklyVars(DEFAULT_WEEKLY_VARIABLES);
+                setSelectedItemId(PINNED_SLIDE_0_ID);
+                setHasUnsavedChanges(false);
+                setIsNewScheduleConfirmOpen(false);
+                toast.success('Jadwal baru berhasil dibuat. Fokus pada Slide 0 Rundown Hub.');
+              }}
+              data-testid="confirm-new-schedule-button"
+            >
+              Buat Jadwal Baru
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Preset Modal with Sanitizer (Ticket 01) */}
+      <Dialog open={isSaveAsPresetModalOpen} onOpenChange={setIsSaveAsPresetModalOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="save-as-preset-modal">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+              <Sparkles className="w-4 h-4" />
+              <span>Simpan sebagai Master Preset Baru</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Jadwal aktif saat ini akan disanitasi secara otomatis: urutan slide, tipe slide, dan gaya tipografi dipertahankan, sementara teks mentah, flyer unggahan, dan tanggal spesifik dibersihkan untuk dijadikan cetak biru preset baru.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Nama Master Preset Baru</Label>
+              <Input
+                value={newPresetTitle}
+                onChange={(e) => setNewPresetTitle(e.target.value)}
+                placeholder="Contoh: Kebaktian Sabat Remaja..."
+                className="h-8 text-xs"
+                data-testid="save-as-preset-title-input"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Keterangan / Deskripsi</Label>
+              <Input
+                value={newPresetDesc}
+                onChange={(e) => setNewPresetDesc(e.target.value)}
+                placeholder="Deskripsi singkat cetak biru..."
+                className="h-8 text-xs"
+                data-testid="save-as-preset-desc-input"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSaveAsPresetModalOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (!newPresetTitle.trim()) {
+                  toast.error('Nama master preset wajib diisi');
+                  return;
+                }
+                const { preset: sanitizedPreset } = sanitizeScheduleToPreset(
+                  instanceItems,
+                  newPresetTitle,
+                  newPresetDesc
+                );
+                setMasterPresets((prev) => [sanitizedPreset, ...prev]);
+                setIsSaveAsPresetModalOpen(false);
+                setNewPresetTitle('');
+                setNewPresetDesc('');
+                toast.success(
+                  `Jadwal berhasil disanitasi dan disimpan sebagai Master Preset "${sanitizedPreset.title}".`
+                );
+              }}
+              data-testid="submit-save-as-preset-button"
+            >
+              Simpan Preset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

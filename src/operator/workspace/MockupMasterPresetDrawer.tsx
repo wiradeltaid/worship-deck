@@ -8,6 +8,7 @@ import {
   Sparkles,
   Clock,
   ShieldAlert,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,6 +96,22 @@ export default function MockupMasterPresetDrawer({
     setNewSlug('');
     setNewDescription('');
     toast.success(`Preset '${created.title}' berhasil dibuat sebagai Draft.`);
+  };
+
+  const handleDuplicatePreset = (preset: MasterPreset) => {
+    const duplicated: MasterPreset = {
+      ...preset,
+      id: `mp-${Date.now()}`,
+      title: `${preset.title} (Salinan)`,
+      slug: `${preset.slug}-copy-${Date.now().toString(36)}`,
+      status: 'draft',
+      activeServicesCount: 0,
+      version: 1,
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+    };
+    updatePresets([duplicated, ...presets]);
+    toast.success(`Preset '${preset.title}' berhasil digandakan.`);
   };
 
   const handleAttemptDelete = (preset: MasterPreset) => {
@@ -483,6 +500,20 @@ export default function MockupMasterPresetDrawer({
                         Edit Blueprint
                       </Button>
                     )}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDuplicatePreset(preset)}
+                      className="h-7 text-xs px-2 gap-1 text-muted-foreground hover:text-foreground"
+                      data-testid={`duplicate-preset-${preset.id}`}
+                      data-duplicate="preset"
+                      title="Duplikat Preset"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Duplikat</span>
+                    </Button>
 
                     <Button
                       type="button"

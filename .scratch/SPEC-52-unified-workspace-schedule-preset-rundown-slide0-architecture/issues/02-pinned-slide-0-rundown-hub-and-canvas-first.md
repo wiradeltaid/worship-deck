@@ -35,11 +35,11 @@ Reorganize the timeline structure and contextual editor around Slide 0 and canva
 
 **Blocked by:** SPEC-52-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Pin permanent Slide 0 (`Rundown & Formulir Ibadah`) at index 0 in the timeline.
-- [ ] Implement central Rundown Hub with raw text parser and grouped predefined fields when Slide 0 is active.
-- [ ] Ensure default focus lands on Slide 0 rundown textarea upon `[Jadwal Baru]`.
-- [ ] Reconcile form layout configuration with DEC-004 boundary (instance grouping without mutating master catalog schema).
-- [ ] Eliminate `Judul Agenda` and `Subtitle` input boxes from Slide 1..N contextual editors.
-- [ ] Adopt canvas-first visual editing with token chip inserter for standard presentation slides.
+- [x] Pin permanent Slide 0 (`Rundown & Formulir Ibadah`) at index 0 in the timeline.
+- [x] Implement central Rundown Hub with raw text parser and grouped predefined fields when Slide 0 is active.
+- [x] Ensure default focus lands on Slide 0 rundown textarea upon `[Jadwal Baru]`.
+- [x] Reconcile form layout configuration with DEC-004 boundary (instance grouping without mutating master catalog schema).
+- [x] Eliminate `Judul Agenda` and `Subtitle` input boxes from Slide 1..N contextual editors.
+- [x] Adopt canvas-first visual editing with token chip inserter for standard presentation slides.

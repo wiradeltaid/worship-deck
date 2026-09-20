@@ -28,10 +28,10 @@ Implement dynamic binding and detachment lifecycle for Master Song Sets and Anno
 
 **Blocked by:** SPEC-52-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement `[ 🔗 Terikat Master ]` badge and `[ 🔓 Detach dari Master Songset ]` uncoupling action with deep-clone snapshot.
-- [ ] Provide optional non-binding path for adding local songs without master catalog pointers.
-- [ ] Render structured Master Song Set canvas template with Title, Lyric Verse, and Lyric Reff styling zones.
-- [ ] Implement `[ 🔓 Detach dari Master Warta ]` and `[Simpan sebagai Master Warta Baru]`.
-- [ ] Retain announcement slot persistence and multi-flyer carousel controls managed via Slide 0.
+- [x] Implement `[ 🔗 Terikat Master ]` badge and `[ 🔓 Detach dari Master Songset ]` uncoupling action with deep-clone snapshot.
+- [x] Provide optional non-binding path for adding local songs without master catalog pointers.
+- [x] Render structured Master Song Set canvas template with Title, Lyric Verse, and Lyric Reff styling zones.
+- [x] Implement `[ 🔓 Detach dari Master Warta ]` and `[Simpan sebagai Master Warta Baru]`.
+- [x] Retain announcement slot persistence and multi-flyer carousel controls managed via Slide 0.

@@ -14,6 +14,8 @@ import {
   Check,
   Palette,
   FileCode,
+  Grid,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +55,7 @@ export default function MockupCanvasPreview({
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isBlackScreen, setIsBlackScreen] = useState(false);
   const [isClearText, setIsClearText] = useState(false);
+  const [isFilmstripOpen, setIsFilmstripOpen] = useState(false);
   const [presenterSplitMode, setPresenterSplitMode] = useState<'operator' | 'projector'>('operator');
   const [aspectRatioGuide, setAspectRatioGuide] = useState<'16:9' | '4:3'>('16:9');
   const [canvasDesignerOpen, setCanvasDesignerOpen] = useState(false);
@@ -67,7 +70,7 @@ export default function MockupCanvasPreview({
     setCurrentSlideIndex(0);
   }, [item.id]);
 
-  // Keyboard shortcut safety guard (Ticket 03)
+  // Keyboard shortcut safety guard (Ticket 03 & 04)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) {
@@ -82,6 +85,9 @@ export default function MockupCanvasPreview({
       } else if (e.key === 'c' || e.key === 'C') {
         e.preventDefault();
         setIsClearText((prev) => !prev);
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        setIsFilmstripOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -118,9 +124,9 @@ export default function MockupCanvasPreview({
       : '';
 
   const customFontFamilyStyle =
-    item.canvasStyle?.fontFamily === 'Geist Mono'
+    item.canvasStyle?.fontFamily === 'mono'
       ? { fontFamily: 'monospace' }
-      : item.canvasStyle?.fontFamily === 'Serif'
+      : item.canvasStyle?.fontFamily === 'serif'
       ? { fontFamily: 'serif' }
       : undefined;
 
@@ -170,6 +176,20 @@ export default function MockupCanvasPreview({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Filmstrip Grid Toggle Button (Parity F key) */}
+          <Button
+            type="button"
+            variant={isFilmstripOpen ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 text-xs gap-1.5"
+            onClick={() => setIsFilmstripOpen((prev) => !prev)}
+            data-testid="filmstrip-toggle-button"
+            title="Buka / Tutup Filmstrip Grid Slide (Tombol F)"
+          >
+            <Grid className="w-3.5 h-3.5" />
+            <span>Filmstrip (F)</span>
+          </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -228,10 +248,10 @@ export default function MockupCanvasPreview({
           {isBlackScreen && (
             <div
               data-testid="black-screen-overlay"
-              className="absolute inset-0 bg-black z-30 flex items-center justify-center"
+              className="absolute inset-0 bg-black z-30 flex items-center justify-center animate-pulse"
             >
               <span className="text-xs font-mono tracking-widest text-zinc-600 uppercase font-bold">
-                [ BLACK SCREEN ACTIVE ]
+                [ EMERGENCY BLACKOUT SCREEN ACTIVE ]
               </span>
             </div>
           )}
@@ -273,6 +293,60 @@ export default function MockupCanvasPreview({
             </div>
           )}
 
+          {/* Filmstrip Grid Overlay (Parity F key) */}
+          {isFilmstripOpen && (
+            <div
+              data-testid="presentation-filmstrip-grid"
+              className="absolute inset-0 bg-black/90 z-28 p-4 flex flex-col justify-between backdrop-blur-sm animate-in fade-in"
+            >
+              <div className="flex items-center justify-between border-b border-white/20 pb-2">
+                <span className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                  <Grid className="w-3.5 h-3.5 text-primary" />
+                  Filmstrip Grid Random-Access Navigation
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setIsFilmstripOpen(false)}
+                  className="h-6 w-6 text-zinc-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 overflow-y-auto py-2">
+                {Array.from({ length: totalSlides }).map((_, idx) => (
+                  <Button
+                    key={idx}
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setCurrentSlideIndex(idx);
+                      setIsFilmstripOpen(false);
+                      toast.info(`Berpindah ke Slide ${idx + 1}`);
+                    }}
+                    data-testid={`filmstrip-thumbnail-${idx}`}
+                    className={`aspect-video rounded-lg border text-xs font-mono font-bold flex flex-col items-center justify-center p-2 transition-all cursor-pointer h-auto ${
+                      idx === safeSlideIndex
+                        ? 'border-primary ring-2 ring-primary bg-primary/20 text-white'
+                        : 'border-white/30 bg-white/5 text-zinc-300 hover:border-white hover:bg-white/10'
+                    }`}
+                  >
+                    <span>Slide {idx + 1}</span>
+                    <span className="text-[9px] text-zinc-400 font-normal">
+                      {idx === safeSlideIndex ? '● Sedang Tayang' : 'Pilih'}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+
+              <div className="text-[10px] text-zinc-400 text-center border-t border-white/10 pt-2">
+                Tekan tombol F untuk menutup filmstrip grid
+              </div>
+            </div>
+          )}
+
           {/* Background Gradient / Image */}
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 opacity-90" />
           {activeBackgroundUrl && (
@@ -283,29 +357,51 @@ export default function MockupCanvasPreview({
             />
           )}
 
-          {/* Simulated Content Based on Item Type */}
+          {/* Content Layer */}
           {!isClearText && !isBlackScreen && (
             <div
               className={`relative z-10 max-w-lg space-y-2 ${alignXClass} ${customTextColorClass}`}
             >
+              {/* Structured Master Song Set Canvas Template (SPEC-52-03) */}
               {item.type === 'song' && (
-                <div className="space-y-1">
-                  <span className="text-[11px] font-mono text-cyan-400 dark:text-cyan-400 uppercase tracking-wider font-semibold">
-                    {item.subtitle || 'SDAH 123'} • Bait {safeSlideIndex + 1}
-                  </span>
-                  <h3
-                    className="font-extrabold text-white"
+                <div className="space-y-2 w-full text-center">
+                  {/* Zone 1: Header (Title & Hymn Number badge) */}
+                  <div
+                    data-testid="song-canvas-header"
+                    className="flex items-center justify-center gap-2 text-cyan-400 dark:text-cyan-400 font-mono text-xs font-semibold"
+                  >
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40">
+                      {item.songData?.bookCode || 'SDAH'} {item.songData?.hymnNumber || 123} • Key {item.songData?.key || 'D'}
+                    </span>
+                    <span>{item.title}</span>
+                  </div>
+
+                  {/* Zone 2: Lyric Verse Body */}
+                  <div
+                    data-testid="song-canvas-verse"
+                    className="font-extrabold text-white text-base md:text-lg leading-relaxed font-sans"
                     style={{
                       fontSize: item.canvasStyle?.fontSize
                         ? `${item.canvasStyle.fontSize}px`
-                        : '1rem',
+                        : undefined,
                     }}
                   >
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-zinc-300 italic pt-1 font-serif">
-                    "Hai pujilah Tuhan yang Maha Besar, kemuliaan-Nya kekal selamanya..."
-                  </p>
+                    <p className="whitespace-pre-line">
+                      {item.textContent ||
+                        `Hai pujilah Tuhan yang Maha Besar,\nKemuliaan-Nya kekal selamanya.\nKuduslah nama-Nya di seluruh bumi.`}
+                    </p>
+                  </div>
+
+                  {/* Zone 3: Chorus / Reff Zone */}
+                  <div
+                    data-testid="song-canvas-reff"
+                    className="mt-2 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-xs italic font-serif text-cyan-200 dark:text-cyan-200"
+                  >
+                    <span className="font-bold font-sans not-italic text-[10px] block uppercase tracking-wider text-cyan-600 dark:text-cyan-300 mb-0.5">
+                      [Reff / Chorus]
+                    </span>
+                    "Puji nama-Nya, Haleluya selamanya!"
+                  </div>
                 </div>
               )}
 
@@ -376,22 +472,22 @@ export default function MockupCanvasPreview({
                         : '1rem',
                     }}
                   >
-                    {item.customSlideData?.title || item.title}
+                    {item.title}
                   </h3>
                   <p className="text-xs text-zinc-200 whitespace-pre-line leading-relaxed italic font-serif">
-                    {item.customSlideData?.content || 'Konten slide bebas kustom multi-baris.'}
+                    {item.textContent || item.customSlideData?.content || 'Konten slide bebas kustom multi-baris.'}
                   </p>
-                  {item.customSlideData?.subtitle && (
-                    <span className="text-[11px] font-medium text-emerald-300 dark:text-emerald-300 block pt-1">
-                      {item.customSlideData.subtitle}
-                    </span>
-                  )}
                 </div>
               )}
 
               {item.type === 'general' && (
                 <div className="space-y-1">
                   <h3 className="text-base font-extrabold text-white">{item.title}</h3>
+                  {item.textContent && (
+                    <p className="text-xs text-zinc-200 whitespace-pre-line leading-relaxed">
+                      {item.textContent}
+                    </p>
+                  )}
                   {item.subtitle && (
                     <p className="text-xs text-zinc-300">{item.subtitle}</p>
                   )}
@@ -552,62 +648,35 @@ export default function MockupCanvasPreview({
                   onChange={(e) => setScriptureQuery(e.target.value)}
                   placeholder="Contoh: Yohanes 3:16, Mazmur 23:1"
                   className="h-8 text-xs pl-8"
-                  data-testid="scripture-search-input"
                 />
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
+                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Versi Alkitab</Label>
-              <Select
-                value={selectedTranslation}
-                onValueChange={(val) => {
-                  if (val) setSelectedTranslation(val);
-                }}
-              >
-                <SelectTrigger
-                  className="w-full h-8 text-xs"
-                  data-testid="scripture-translation-select"
-                >
+              <Label className="text-xs font-semibold">Terjemahan</Label>
+              <Select value={selectedTranslation} onValueChange={(val) => setSelectedTranslation(val || 'TB2')}>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TB2">TB2 — Terjemahan Baru Edisi 2</SelectItem>
-                  <SelectItem value="KJV">KJV — King James Version</SelectItem>
-                  <SelectItem value="BIS">BIS — Bahasa Indonesia Sehari-hari</SelectItem>
+                  <SelectItem value="TB2">TB2 (Terjemahan Baru Edisi 2)</SelectItem>
+                  <SelectItem value="BIMK">BIMK (Bahasa Indonesia Masa Kini)</SelectItem>
+                  <SelectItem value="KJV">KJV (King James Version)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onSetQuickScriptureOpen(false)}
-              className="h-8 text-xs"
-            >
+            <Button size="sm" variant="ghost" onClick={() => onSetQuickScriptureOpen(false)}>
               Batal
             </Button>
-            <Button
-              size="sm"
-              onClick={handleApplyQuickVerse}
-              className="h-8 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white"
-              data-testid="apply-quick-verse-button"
-            >
+            <Button size="sm" onClick={handleApplyQuickVerse} className="bg-amber-600 hover:bg-amber-700 text-white">
               Tayangkan Sekarang
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* In-Place Canvas Designer Modal */}
-      <MockupCanvasDesignerModal
-        open={canvasDesignerOpen}
-        onOpenChange={setCanvasDesignerOpen}
-        item={item}
-        onApply={(updated) => onUpdateItem?.(updated)}
-      />
     </div>
   );
 }

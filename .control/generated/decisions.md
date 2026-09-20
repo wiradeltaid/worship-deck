@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**52 decisions** — applied: 52.
+**53 decisions** — applied: 53.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -60,3 +60,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-050` | Daily Autopilot mandate for Unified Schedule Workspace Full Milestone Prototype (SPEC-49) | `applied` | mandate | `.control/memlog/autopilot-DEC-050.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-49-unified-schedule-workspace-full-milestone-prototype/SPEC.md`, `src/operator/workspace/MockupCanvasDesignerModal.tsx`, `src/operator/workspace/MockupDutyRosterDrawer.tsx`, `src/operator/workspace/MockupMediaGalleryDrawer.tsx`, `src/operator/workspace/MockupTimeline.tsx`, `src/operator/workspace/MockupEditor.tsx`, `src/operator/workspace/MockupCanvasPreview.tsx`, `tests/smoke-spec-49.test.mjs` | `.control/decisions/DEC-050-daily-autopilot-mandate-unified-schedule-workspace-full-prototype.md` |
 | `DEC-051` | Daily Autopilot mandate for Unified Schedule Workspace Full Architecture (SPEC-50) | `applied` | mandate | `.control/memlog/autopilot-DEC-051.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-50-unified-schedule-workspace-uiux-full-architecture/SPEC.md`, `src/operator/workspace/`, `spa/src/`, `tests/smoke-spec-50.test.mjs` | `.control/decisions/DEC-051-daily-autopilot-mandate-unified-schedule-workspace-full-architecture.md` |
 | `DEC-052` | Daily Autopilot mandate for Unified Schedule Workspace 1920 Full HD Redesign (SPEC-51) | `applied` | mandate | `.control/memlog/autopilot-DEC-052.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-51-unified-schedule-workspace-1920-fullhd-redesign/SPEC.md`, `src/operator/workspace/`, `spa/src/`, `tests/smoke-spec-51.test.mjs` | `.control/decisions/DEC-052-daily-autopilot-mandate-unified-schedule-workspace-1920-redesign.md` |
+| `DEC-053` | Daily Autopilot mandate for Unified Workspace Schedule-Preset Rundown Slide0 Architecture (SPEC-52) | `applied` | mandate | `.control/memlog/autopilot-DEC-053.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-52-unified-workspace-schedule-preset-rundown-slide0-architecture/SPEC.md`, `src/operator/workspace/`, `spa/src/`, `tests/smoke-spec-52.test.mjs` | `.control/decisions/DEC-053-daily-autopilot-mandate-unified-workspace-schedule-preset-rundown-slide0.md` |

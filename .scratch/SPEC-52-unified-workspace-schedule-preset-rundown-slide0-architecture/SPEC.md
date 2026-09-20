@@ -1,6 +1,6 @@
 # SPEC-52 — Unified Workspace Schedule-Preset Lifecycle, Slide 0 Rundown Hub & Canvas-First Architecture
 
-> **Status:** open  
+> **Status:** closed  
 > **Release:** unified-workspace-slide0-architecture  
 > **Component:** hub  
 > **Touches:** operator, spa, presenter, artifacts, settings, tests  
