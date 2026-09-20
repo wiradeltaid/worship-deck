@@ -134,3 +134,23 @@ export function generateScopedPairingToken(serviceId: string): {
     expiresAt,
   };
 }
+
+export function isEditableElement(target: EventTarget | null): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const el = target as HTMLElement;
+  const tag = el.tagName?.toUpperCase();
+  if (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    Boolean(el.isContentEditable) ||
+    el.getAttribute?.('contenteditable') === 'true'
+  ) {
+    return true;
+  }
+  if (typeof el.closest === 'function' && el.closest('input, textarea, select, [contenteditable="true"]')) {
+    return true;
+  }
+  return false;
+}
+

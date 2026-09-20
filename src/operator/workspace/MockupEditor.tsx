@@ -316,131 +316,155 @@ export default function MockupEditor({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Buku Lagu</Label>
-                    <Select
-                      value={item.songData?.bookCode || 'SDAH'}
-                      onValueChange={(val) =>
-                        onUpdateItem({
-                          songData: { ...item.songData, bookCode: val || 'SDAH' },
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SDAH">SDAH (Adventist Hymnal)</SelectItem>
-                        <SelectItem value="KLIK">KLIK (Lagu Pujian)</SelectItem>
-                        <SelectItem value="PKI">PKI (Pujian Kristen)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Nomor / Judul Autocomplete</Label>
-                    <Input
-                      value={item.songData?.hymnNumber ? `#${item.songData.hymnNumber}` : '#123 - Hai Pujilah Tuhan'}
-                      readOnly
-                      className="h-8 text-xs bg-muted/50 cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Transpose / Nada Dasar</Label>
-                    <Select
-                      value={item.songData?.key || 'D'}
-                      onValueChange={(val) =>
-                        onUpdateItem({
-                          songData: { ...item.songData, key: val || 'D' },
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs" data-testid="song-key-selector">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((k) => (
-                          <SelectItem key={k} value={k}>
-                            Kunci {k}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* SPEC-48-02: Song Background Picker & Media Gallery Trigger */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">Background Slide</Label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 text-[11px] text-primary gap-1 p-0 hover:underline"
-                        onClick={() => setMediaGalleryOpen(true)}
-                        data-testid="open-media-gallery-button"
-                      >
-                        <ImageIcon className="w-3 h-3" />
-                        <span>Pilih dari Galeri</span>
-                      </Button>
-                    </div>
-                    <Select
-                      value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
-                      onValueChange={(val) =>
-                        onUpdateItem({
-                          songData: { ...item.songData, backgroundUrl: val || '/assets/background-navy.jpg' },
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs" data-testid="song-background-picker">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="/assets/background-navy.jpg">Gradient Default (Deep Navy)</SelectItem>
-                        <SelectItem value="/assets/background-sanctuary.jpg">Sanctuary / Mimbar Gereja</SelectItem>
-                        <SelectItem value="/assets/background-nature.jpg">Pemandangan Alam / Nature</SelectItem>
-                        <SelectItem value="/assets/background-cross.jpg">Cross / Salib Minimalis</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Bait / Verses Active Checkboxes */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Bait yang Dinyanyikan</Label>
-                  <div className="flex flex-wrap items-center gap-2 pt-1" data-testid="verse-checkboxes">
-                    {[1, 2, 3, 4].map((v) => {
-                      const activeVerses = item.songData?.activeVerses || [1, 2, 4];
-                      const isChecked = activeVerses.includes(v);
-
-                      return (
-                        <label
-                          key={v}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
-                            isChecked
-                              ? 'bg-cyan-500/15 border-cyan-500 text-cyan-800 dark:text-cyan-200'
-                              : 'bg-background border-border text-muted-foreground'
-                          }`}
+                {/* 1920 Full HD Dual-Column Layout */}
+                <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+                  {/* Left Column: Song Metadata & Hymn Settings */}
+                  <div className="space-y-3 p-3 rounded-lg bg-background/60 border border-border/60">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Metadata & Nada Lagu
+                    </h4>
+                    <div className="space-y-2.5">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Buku Lagu</Label>
+                        <Select
+                          value={item.songData?.bookCode || 'SDAH'}
+                          onValueChange={(val) =>
+                            onUpdateItem({
+                              songData: { ...item.songData, bookCode: val || 'SDAH' },
+                            })
+                          }
                         >
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={(checked) => {
-                              const next = checked
-                                ? [...activeVerses, v].sort()
-                                : activeVerses.filter((x) => x !== v);
-                              onUpdateItem({
-                                songData: { ...item.songData, activeVerses: next },
-                                slidesCount: next.length,
-                              });
-                            }}
-                            className="w-3.5 h-3.5"
-                          />
-                          <span>Bait {v}</span>
-                        </label>
-                      );
-                    })}
+                          <SelectTrigger className="w-full h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SDAH">SDAH (Adventist Hymnal)</SelectItem>
+                            <SelectItem value="KLIK">KLIK (Lagu Pujian)</SelectItem>
+                            <SelectItem value="PKI">PKI (Pujian Kristen)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Nomor / Judul Autocomplete</Label>
+                        <Input
+                          value={item.songData?.hymnNumber ? `#${item.songData.hymnNumber}` : '#123 - Hai Pujilah Tuhan'}
+                          readOnly
+                          className="h-8 text-xs bg-muted/50 cursor-not-allowed"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Transpose / Nada Dasar</Label>
+                        <Select
+                          value={item.songData?.key || 'D'}
+                          onValueChange={(val) =>
+                            onUpdateItem({
+                              songData: { ...item.songData, key: val || 'D' },
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-full h-8 text-xs" data-testid="song-key-selector">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((k) => (
+                              <SelectItem key={k} value={k}>
+                                Kunci {k}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Song Background Picker & Media Gallery Trigger */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Background Slide</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 text-[11px] text-primary gap-1 p-0 hover:underline"
+                            onClick={() => setMediaGalleryOpen(true)}
+                            data-testid="open-media-gallery-button"
+                          >
+                            <ImageIcon className="w-3 h-3" />
+                            <span>Pilih dari Galeri</span>
+                          </Button>
+                        </div>
+                        <Select
+                          value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
+                          onValueChange={(val) =>
+                            onUpdateItem({
+                              songData: { ...item.songData, backgroundUrl: val || '/assets/background-navy.jpg' },
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-full h-8 text-xs" data-testid="song-background-picker">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="/assets/background-navy.jpg">Gradient Default (Deep Navy)</SelectItem>
+                            <SelectItem value="/assets/background-sanctuary.jpg">Sanctuary / Mimbar Gereja</SelectItem>
+                            <SelectItem value="/assets/background-nature.jpg">Pemandangan Alam / Nature</SelectItem>
+                            <SelectItem value="/assets/background-cross.jpg">Cross / Salib Minimalis</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Verses Selector & Live Lyrics Preview */}
+                  <div className="space-y-3 p-3 rounded-lg bg-background/60 border border-border/60 flex flex-col">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Bait & Pratinjau Lirik
+                    </h4>
+                    {/* Bait / Verses Active Checkboxes */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Bait yang Dinyanyikan</Label>
+                      <div className="flex flex-wrap items-center gap-2 pt-1" data-testid="verse-checkboxes">
+                        {[1, 2, 3, 4].map((v) => {
+                          const activeVerses = item.songData?.activeVerses || [1, 2, 4];
+                          const isChecked = activeVerses.includes(v);
+
+                          return (
+                            <label
+                              key={v}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
+                                isChecked
+                                  ? 'bg-cyan-500/15 border-cyan-500 text-cyan-800 dark:text-cyan-200'
+                                  : 'bg-background border-border text-muted-foreground'
+                              }`}
+                            >
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  const next = checked
+                                    ? [...activeVerses, v].sort()
+                                    : activeVerses.filter((x) => x !== v);
+                                  onUpdateItem({
+                                    songData: { ...item.songData, activeVerses: next },
+                                    slidesCount: next.length,
+                                  });
+                                }}
+                                className="w-3.5 h-3.5"
+                              />
+                              <span>Bait {v}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 flex-1 flex flex-col pt-1">
+                      <Label className="text-xs font-semibold">Pratinjau Teks Lirik Bait Aktif</Label>
+                      <Textarea
+                        readOnly
+                        className="flex-1 min-h-[90px] font-serif text-xs italic bg-muted/30 border-border/80 resize-none"
+                        value={`[Bait 1]\nHai pujilah Tuhan yang Maha Besar,\nKemuliaan-Nya kekal selamanya.\n\n[Bait 2]\nKudus, kuduslah Tuhan semesta alam,\nBumi penuh dengan keagungan-Nya.`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

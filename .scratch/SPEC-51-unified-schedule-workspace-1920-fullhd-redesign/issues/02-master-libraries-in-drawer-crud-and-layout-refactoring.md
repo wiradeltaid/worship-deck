@@ -30,9 +30,9 @@ Equip the `MockupMasterLibrariesDrawer` ("Koleksi Master & Kamus Variabel") with
 
 **Blocked by:** 01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement "+ Tambah Song Set Baru", in-place edit, and delete with preset dependency guard in Master Song Sets tab.
-- [ ] Implement "+ Tambah Warta Baru", flyer management, and delete in Master Announcements tab.
-- [ ] Add inline editing and system token immutability guard in Predefined Tokens tab.
-- [ ] Expand drawer width to max-w-3xl / 2xl:max-w-4xl for 1920px Full HD displays.
+- [x] Implement "+ Tambah Song Set Baru", in-place edit, and delete with preset dependency guard in Master Song Sets tab.
+- [x] Implement "+ Tambah Warta Baru", flyer management, and delete in Master Announcements tab.
+- [x] Add inline editing and system token immutability guard in Predefined Tokens tab.
+- [x] Expand drawer width to max-w-3xl / 2xl:max-w-4xl for 1920px Full HD displays.

@@ -14,6 +14,7 @@ export interface MasterPreset {
   version: number;
   createdAt: string;
   updatedAt: string;
+  songSetIds?: string[];
 }
 
 export const SYNTHETIC_MASTER_PRESETS: MasterPreset[] = [
@@ -28,6 +29,7 @@ export const SYNTHETIC_MASTER_PRESETS: MasterPreset[] = [
     version: 3,
     createdAt: '2026-01-10',
     updatedAt: '2026-09-15',
+    songSetIds: ['mss-1'],
   },
   {
     id: 'mp-2',
@@ -40,6 +42,7 @@ export const SYNTHETIC_MASTER_PRESETS: MasterPreset[] = [
     version: 2,
     createdAt: '2026-02-01',
     updatedAt: '2026-08-20',
+    songSetIds: ['mss-2'],
   },
   {
     id: 'mp-3',
@@ -52,6 +55,7 @@ export const SYNTHETIC_MASTER_PRESETS: MasterPreset[] = [
     version: 1,
     createdAt: '2026-03-05',
     updatedAt: '2026-07-12',
+    songSetIds: ['mss-3'],
   },
   {
     id: 'mp-4',
@@ -522,3 +526,29 @@ export const SCREEN_REPLACEMENT_MATRIX: ScreenReplacementEntry[] = [
     description: 'In-place canvas layouting and master template catalog.',
   },
 ];
+
+export function isSystemPredefinedToken(tokenKey: string): boolean {
+  const SYSTEM_KEYS = new Set([
+    'sermon_speaker',
+    'sermon_title',
+    'scripture_reference',
+    'worship_leader',
+    'church_announcement_date',
+  ]);
+  return SYSTEM_KEYS.has(tokenKey);
+}
+
+export function canDeleteMasterSongSet(
+  songSetId: string,
+  presets: MasterPreset[] = SYNTHETIC_MASTER_PRESETS
+): { allowed: boolean; reason?: string } {
+  const referencingPreset = presets.find((p) => p.songSetIds?.includes(songSetId));
+  if (referencingPreset) {
+    return {
+      allowed: false,
+      reason: `Tidak dapat menghapus Master Song Set yang masih digunakan oleh Master Preset "${referencingPreset.title}"!`,
+    };
+  }
+  return { allowed: true };
+}
+

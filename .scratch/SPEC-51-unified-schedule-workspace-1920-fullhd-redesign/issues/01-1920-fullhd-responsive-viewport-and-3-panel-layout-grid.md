@@ -31,9 +31,9 @@ Re-architect the Unified Schedule Workspace root container and 3-panel layout gr
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Reconfigure root workspace container with 1920px Full HD baseline and adaptive viewport height (`h-[calc(100vh-175px)] min-h-[560px] 2xl:min-h-[700px]`).
-- [ ] Restructure 3-panel grid with responsive proportions: Timeline (320px / 2xl:400px), fluid Editor (min-w 450px / 2xl:600-900px), and Canvas Preview (440px / 2xl:580px).
-- [ ] Implement dual-column ergonomics for Song and Announcement contextual editors in the center panel.
-- [ ] Implement sub-1280px responsive reflow preventing horizontal clipping.
+- [x] Reconfigure root workspace container with 1920px Full HD baseline and adaptive viewport height (`h-[calc(100vh-175px)] min-h-[560px] 2xl:min-h-[700px]`).
+- [x] Restructure 3-panel grid with responsive proportions: Timeline (320px / 2xl:400px), fluid Editor (min-w 450px / 2xl:600-900px), and Canvas Preview (440px / 2xl:580px).
+- [x] Implement dual-column ergonomics for Song and Announcement contextual editors in the center panel.
+- [x] Implement sub-1280px responsive reflow preventing horizontal clipping.

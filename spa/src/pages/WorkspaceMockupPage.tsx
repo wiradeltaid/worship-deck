@@ -548,7 +548,7 @@ export default function WorkspaceMockupPage() {
   return (
     <div
       data-testid="workspace-mockup"
-      className="flex flex-col gap-4 w-full min-h-[calc(100vh-140px)]"
+      className="w-full max-w-[2560px] mx-auto px-4 2xl:px-8 py-3 flex flex-col gap-4"
     >
       {/* Top Workspace Navigation Bar: Mode Switcher & History / Master Preset Management */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
@@ -638,9 +638,10 @@ export default function WorkspaceMockupPage() {
             }}
             className="h-8 text-xs font-semibold gap-1.5"
             data-testid="predefined-fields-drawer-button"
+            data-drawer="master-libraries"
           >
             <Tag className="w-3.5 h-3.5 text-primary" />
-            <span>🏷️ Kamus Variabel</span>
+            <span data-testid="master-libraries-drawer-button">🏷️ Kamus Variabel & Master</span>
           </Button>
 
           <Button
@@ -706,13 +707,13 @@ export default function WorkspaceMockupPage() {
         </div>
       )}
 
-      {/* Top Workspace Header Bar */}
+      {/* Top Workspace Header Bar (1920 Full HD Consolidated AV Command Center) */}
       <div
         data-testid="workspace-header-bar"
-        className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-2xl bg-card/80 backdrop-blur-md border border-border/80 shadow-xs"
+        className="flex flex-col 2xl:flex-row items-start 2xl:items-center justify-between gap-4 p-4 rounded-2xl bg-card/80 backdrop-blur-md border border-border/80 shadow-xs"
       >
-        {/* Preset Selector & Date Picker */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Zone A: Schedule & Mode Identity */}
+        <div data-testid="command-zone-a" className="flex flex-wrap items-center gap-3">
           {/* Preset Dropdown */}
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
@@ -848,8 +849,8 @@ export default function WorkspaceMockupPage() {
           </div>
         </div>
 
-        {/* Quick Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Zone B: Realtime Monitoring & Quick Injections */}
+        <div data-testid="command-zone-b" className="flex flex-wrap items-center gap-2">
           {/* Quick Scripture Modal Button */}
           <Button
             size="sm"
@@ -862,20 +863,40 @@ export default function WorkspaceMockupPage() {
             <span>⚡ Ayat Cepat</span>
           </Button>
 
-          {/* Live Presentation Button */}
+          {/* Sync Status Trigger */}
           <Button
+            type="button"
+            variant="ghost"
             size="sm"
-            className="h-9 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
-            onClick={() => {
-              toast.success('Simulasi Presenter Window dibuka di monitor proyektor');
-              setStatus('live');
-            }}
-            data-testid="live-present-header-button"
+            onClick={() => setIsSyncDialogOpen(true)}
+            className="flex items-center gap-1.5 h-auto px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:bg-muted transition-colors cursor-pointer"
+            data-testid="sync-status-indicator"
+            title="Buka Status & Resolusi Sinkronisasi Desktop-ke-Web"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>▶ Tayangkan</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+            <span>Tersinkron</span>
           </Button>
 
+          {/* Auto-Save & Save Revision Indicator */}
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-muted-foreground"
+            data-testid="save-revision-indicator"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                hasUnsavedChanges ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+              }`}
+            />
+            <span data-testid="auto-save-indicator">
+              {hasUnsavedChanges
+                ? `Ada perubahan belum disimpan (rev. ${scheduleRevision})`
+                : `Tersimpan otomatis ${lastSavedTime} (rev. ${scheduleRevision})`}
+            </span>
+          </div>
+        </div>
+
+        {/* Zone C: Live Presentation & Actions */}
+        <div data-testid="command-zone-c" className="flex flex-wrap items-center gap-2">
           {/* Remote Control Pairing Button */}
           <Button
             size="sm"
@@ -885,7 +906,7 @@ export default function WorkspaceMockupPage() {
             data-testid="remote-control-header-button"
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>📱 Remote Control</span>
+            <span>📱 Remote</span>
           </Button>
 
           {/* PPTX Export Button */}
@@ -902,6 +923,20 @@ export default function WorkspaceMockupPage() {
             <span>⬇ Unduh PPTX</span>
           </Button>
 
+          {/* Live Presentation Button */}
+          <Button
+            size="sm"
+            className="h-9 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs hover:bg-primary/90"
+            onClick={() => {
+              toast.success('Simulasi Presenter Window dibuka di monitor proyektor');
+              setStatus('live');
+            }}
+            data-testid="live-present-header-button"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>▶ Tayangkan</span>
+          </Button>
+
           {/* Explicit Save Schedule Action */}
           <Button
             size="sm"
@@ -912,37 +947,6 @@ export default function WorkspaceMockupPage() {
           >
             <Save className="w-3.5 h-3.5" />
             <span>💾 Simpan Jadwal</span>
-          </Button>
-
-          {/* Auto-Save Status Indicator */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-muted-foreground"
-            data-testid="auto-save-indicator"
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                hasUnsavedChanges ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
-              }`}
-            />
-            <span>
-              {hasUnsavedChanges
-                ? `Ada perubahan belum disimpan (rev. ${scheduleRevision})`
-                : `Tersimpan otomatis ${lastSavedTime} (rev. ${scheduleRevision})`}
-            </span>
-          </div>
-
-          {/* Sync Status Trigger */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsSyncDialogOpen(true)}
-            className="flex items-center gap-1.5 h-auto px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:bg-muted transition-colors cursor-pointer"
-            data-testid="sync-status-indicator"
-            title="Buka Status & Resolusi Sinkronisasi Desktop-ke-Web"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-            <span>Tersinkron</span>
           </Button>
         </div>
       </div>
@@ -999,13 +1003,13 @@ export default function WorkspaceMockupPage() {
         </div>
       )}
 
-      {/* 3-Panel Unified Workspace Layout with Strict Enforced Pixel Widths */}
+      {/* 3-Panel Unified Workspace Layout with 1920 Full HD Responsive Baseline */}
       <div
-        className="flex flex-col lg:flex-row gap-4 flex-1 items-start w-full"
+        className="flex flex-col xl:flex-row gap-4 flex-1 items-start w-full h-[calc(100vh-175px)] min-h-[560px] 2xl:min-h-[700px] max-h-[1200px]"
         data-testid="three-panel-container"
       >
-        {/* Left Panel: Run Sheet Timeline (300px - 340px) */}
-        <div className="w-full lg:w-[320px] lg:min-w-[300px] lg:max-w-[340px] shrink-0 h-[720px]">
+        {/* Left Panel: Run Sheet Timeline (320px on xl / 2xl:400px) */}
+        <div className="w-full xl:w-[320px] 2xl:w-[400px] shrink-0 h-full flex flex-col">
           <MockupTimeline
             items={items}
             selectedId={selectedItemId}
@@ -1015,8 +1019,8 @@ export default function WorkspaceMockupPage() {
           />
         </div>
 
-        {/* Center Panel: In-Place Contextual Editor (fluid width) */}
-        <div className="flex-1 min-w-0 h-[720px] w-full">
+        {/* Center Panel: In-Place Contextual Editor (fluid min-w 400px / 2xl:600-900px) */}
+        <div className="flex-1 min-w-0 xl:min-w-[400px] 2xl:min-w-[600px] max-w-[900px] h-full overflow-y-auto w-full">
           <MockupEditor
             item={selectedItem}
             onUpdateItem={handleUpdateCurrentItem}
@@ -1036,8 +1040,8 @@ export default function WorkspaceMockupPage() {
           />
         </div>
 
-        {/* Right Panel: Sticky Live Canvas Preview & Quick Tools (400px - 460px) */}
-        <div className="w-full lg:w-[440px] lg:min-w-[400px] lg:max-w-[460px] shrink-0 h-[720px] sticky top-4">
+        {/* Right Panel: Sticky Live Canvas Preview & Quick Tools (420px on xl / 2xl:580px) */}
+        <div className="w-full xl:w-[420px] 2xl:w-[580px] shrink-0 h-full flex flex-col sticky top-4">
           <MockupCanvasPreview
             item={selectedItem}
             quickScriptureOpen={quickScriptureOpen}

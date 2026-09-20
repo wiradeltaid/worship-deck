@@ -39,8 +39,8 @@ Restructure and consolidate workspace header navigation, command controls, and s
 
 **Blocked by:** 02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Consolidate top bar into 3 non-wrapping logical zones (Identity, Monitoring, Actions) with responsive fallback.
-- [ ] Create secondary utilities ribbon for drawers and master management.
-- [ ] Integrate quick AV tools (Blackout, Clear Text, Aspect Guides, Stage Confidence) in preview panel with input-focus safety guards.
+- [x] Consolidate top bar into 3 non-wrapping logical zones (Identity, Monitoring, Actions) with responsive fallback.
+- [x] Create secondary utilities ribbon for drawers and master management.
+- [x] Integrate quick AV tools (Blackout, Clear Text, Aspect Guides, Stage Confidence) in preview panel with input-focus safety guards.

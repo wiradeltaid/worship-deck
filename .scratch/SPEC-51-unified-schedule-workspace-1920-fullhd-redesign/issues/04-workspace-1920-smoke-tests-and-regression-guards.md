@@ -30,10 +30,10 @@ Author an end-to-end smoke test suite and behavioral regression guards validatin
 
 **Blocked by:** 03
 
-**Status:** open
+**Status:** closed
 
-- [ ] Create `tests/smoke-spec-51.test.mjs` verifying 1920px layout constraints, panel widths, and responsive classes.
-- [ ] Test in-drawer direct CRUD actions and dependency guards for Master Libraries.
-- [ ] Test consolidated AV Command Header, quick projection controls, and keyboard focus safety guards.
-- [ ] Prove absence guards with defect injection and register `"test:smoke-spec-51"` in `package.json`.
-- [ ] Verify test suite passes cleanly.
+- [x] Create `tests/smoke-spec-51.test.mjs` verifying 1920px layout constraints, panel widths, and responsive classes.
+- [x] Test in-drawer direct CRUD actions and dependency guards for Master Libraries.
+- [x] Test consolidated AV Command Header, quick projection controls, and keyboard focus safety guards.
+- [x] Prove absence guards with defect injection and register `"test:smoke-spec-51"` in `package.json`.
+- [x] Verify test suite passes cleanly.

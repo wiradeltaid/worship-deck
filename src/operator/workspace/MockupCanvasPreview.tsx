@@ -33,6 +33,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { TimelineItem } from './types';
+import { isEditableElement } from './utils';
 import MockupCanvasDesignerModal from './MockupCanvasDesignerModal';
 import { toast } from 'sonner';
 
@@ -53,6 +54,7 @@ export default function MockupCanvasPreview({
   const [isBlackScreen, setIsBlackScreen] = useState(false);
   const [isClearText, setIsClearText] = useState(false);
   const [presenterSplitMode, setPresenterSplitMode] = useState<'operator' | 'projector'>('operator');
+  const [aspectRatioGuide, setAspectRatioGuide] = useState<'16:9' | '4:3'>('16:9');
   const [canvasDesignerOpen, setCanvasDesignerOpen] = useState(false);
 
   // Quick Scripture Modal State
@@ -64,6 +66,27 @@ export default function MockupCanvasPreview({
   useEffect(() => {
     setCurrentSlideIndex(0);
   }, [item.id]);
+
+  // Keyboard shortcut safety guard (Ticket 03)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+      if (isEditableElement(e.target) || isEditableElement(document.activeElement)) {
+        return;
+      }
+      if (e.key === 'b' || e.key === 'B') {
+        e.preventDefault();
+        setIsBlackScreen((prev) => !prev);
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setIsClearText((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const activeBackgroundUrl =
     item.canvasStyle?.backgroundUrl ||
@@ -235,6 +258,18 @@ export default function MockupCanvasPreview({
                   Tutup Overlay
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* 4:3 Aspect Ratio Guide Overlay */}
+          {aspectRatioGuide === '4:3' && (
+            <div
+              data-testid="aspect-ratio-guide-lines"
+              className="absolute inset-y-0 left-[12.5%] right-[12.5%] border-x-2 border-dashed border-white/40 pointer-events-none z-15 flex items-start justify-center pt-2"
+            >
+              <span className="text-[9px] font-mono font-bold bg-black/60 px-1.5 py-0.5 rounded text-zinc-300">
+                Area 4:3
+              </span>
             </div>
           )}
 
@@ -457,6 +492,16 @@ export default function MockupCanvasPreview({
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Clear (C)</span>
+          </Button>
+
+          <Button
+            size="sm"
+            variant={aspectRatioGuide === '4:3' ? 'secondary' : 'outline'}
+            onClick={() => setAspectRatioGuide((prev) => (prev === '16:9' ? '4:3' : '16:9'))}
+            className="h-8 text-xs font-semibold gap-1"
+            data-testid="aspect-ratio-guide-toggle"
+          >
+            <span>Rasio {aspectRatioGuide}</span>
           </Button>
 
           <Button

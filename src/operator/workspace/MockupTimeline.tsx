@@ -204,11 +204,25 @@ export default function MockupTimeline({
                     {badge.label}
                   </span>
                   {item.duration && (
-                    <span className="text-[10px] text-muted-foreground font-medium">
+                    <span
+                      className="text-[10px] text-muted-foreground font-medium"
+                      data-testid={`timeline-duration-${item.id}`}
+                    >
                       ⏱ {item.duration}
                     </span>
                   )}
-                  <span className="text-[10px] text-muted-foreground/80 ml-auto font-mono">
+                  {item.songData && (
+                    <span
+                      className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20"
+                      data-testid={`timeline-hymn-tag-${item.id}`}
+                    >
+                      {item.songData.bookCode || 'SDAH'} {item.songData.hymnNumber} • Key {item.songData.key || 'D'}
+                    </span>
+                  )}
+                  <span
+                    className="text-[10px] text-muted-foreground/80 ml-auto font-mono"
+                    data-testid={`timeline-slides-count-${item.id}`}
+                  >
                     {item.slidesCount} slide
                   </span>
                 </div>
