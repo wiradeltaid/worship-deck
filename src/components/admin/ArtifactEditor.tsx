@@ -5938,6 +5938,8 @@ export default function ArtifactEditor({
                           pointerEvents: 'none',
                           width: '100%',
                           height: '100%',
+                          zIndex: 1,
+                          isolation: 'isolate',
                         }}
                       >
                         <ArtifactSlide instance={liveInstance} />
@@ -5952,6 +5954,7 @@ export default function ArtifactEditor({
                         pointerEvents: 'auto',
                         width: '100%',
                         height: '100%',
+                        zIndex: 10,
                       }}
                     >
                       <canvas ref={canvasRef} />

@@ -289,5 +289,24 @@ test('SPEC-18-02: Searchable font picker with high-contrast category headers', (
   );
 });
 
+test('Option A Layer Stacking: Visual Layer isolates internal zIndex and Interaction Layer enforces top zIndex', () => {
+  const editorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
+  const code = fs.readFileSync(editorPath, 'utf8');
+
+  // Visual layer must enforce zIndex: 1 and isolation: 'isolate' to prevent slide internal z-indices from leaking
+  assert.match(
+    code,
+    /Visual Layer[\s\S]*?zIndex:\s*1,[\s\S]*?isolation:\s*['"]isolate['"]/,
+    'Visual Layer wrapper must enforce zIndex: 1 and isolation: isolate'
+  );
+
+  // Interaction layer must enforce zIndex: 10 to stay strictly above Visual Layer
+  assert.match(
+    code,
+    /Interaction Layer[\s\S]*?zIndex:\s*10/,
+    'Interaction Layer wrapper must enforce zIndex: 10'
+  );
+});
+
 
 
