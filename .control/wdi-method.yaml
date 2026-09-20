@@ -1,5 +1,5 @@
 # Written by wdi-method install/update. A trace, not a lockfile.
-wdi_method: 0.6.25
+wdi_method: 0.6.27
 bmad_method: 6.11.0
 engines:
   source: local
@@ -15,4 +15,4 @@ engines:
     tdd: 193b791c489d
     code-review: 3abbdfe52540
     domain-modeling: dd4c753a617b
-installed_at: 2026-09-19
+installed_at: 2026-09-20
