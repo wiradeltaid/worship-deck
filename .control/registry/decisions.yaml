@@ -1203,6 +1203,28 @@ decisions:
       - src/operator/workspace/MockupEditor.tsx
       - src/operator/workspace/MockupCanvasPreview.tsx
       - tests/smoke-spec-49.test.mjs
+  - id: DEC-051
+    type: mandate
+    status: applied
+    applied_at: '2026-09-20'
+    accepted_by: "kodesh87 (2026-09-20)"
+    title: Daily Autopilot mandate for Unified Schedule Workspace Full Architecture (SPEC-50)
+    file: .control/decisions/DEC-051-daily-autopilot-mandate-unified-schedule-workspace-full-architecture.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-27'
+    touches:
+      - .control/memlog/autopilot-DEC-051.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-50-unified-schedule-workspace-uiux-full-architecture/SPEC.md
+      - src/operator/workspace/
+      - spa/src/
+      - tests/smoke-spec-50.test.mjs
 
 
 

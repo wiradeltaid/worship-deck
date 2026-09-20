@@ -8,6 +8,14 @@ import {
   CheckCircle2,
   Layers,
   ChevronDown,
+  Save,
+  FolderOpen,
+  ShieldCheck,
+  ShieldAlert,
+  RotateCcw,
+  Tag,
+  Smartphone,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +30,32 @@ import {
   TimelineItem,
   TimelineItemType,
   WorkspaceStatus,
+  WorkspaceMode,
+  MasterPreset,
+  ScheduledServiceRecord,
+  SYNTHETIC_MASTER_PRESETS,
+  SYNTHETIC_SCHEDULED_SERVICES,
+  CustomSlideType,
+  resolveSyncConflict,
+  SyncAggregatePayload,
 } from '@/operator/workspace/types';
 import { computePresetDate } from '@/operator/workspace/utils';
 import MockupTimeline from '@/operator/workspace/MockupTimeline';
 import MockupEditor from '@/operator/workspace/MockupEditor';
 import MockupCanvasPreview from '@/operator/workspace/MockupCanvasPreview';
+import MockupMasterPresetDrawer from '@/operator/workspace/MockupMasterPresetDrawer';
+import MockupScheduleHistoryDrawer from '@/operator/workspace/MockupScheduleHistoryDrawer';
+import MockupMasterLibrariesDrawer, {
+  MasterSongSet,
+  MasterAnnouncementSet,
+  PredefinedToken,
+  SYNTHETIC_MASTER_SONG_SETS,
+  SYNTHETIC_MASTER_ANNOUNCEMENT_SETS,
+  SYNTHETIC_PREDEFINED_TOKENS,
+} from '@/operator/workspace/MockupMasterLibrariesDrawer';
+import MockupRemotePairingModal from '@/operator/workspace/MockupRemotePairingModal';
+import MockupSyncDialog from '@/operator/workspace/MockupSyncDialog';
+import MockupSettingsDrawer from '@/operator/workspace/MockupSettingsDrawer';
 import { toast } from 'sonner';
 
 const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
@@ -134,13 +163,174 @@ const DEFAULT_TIMELINE_ITEMS: TimelineItem[] = [
 ];
 
 export default function WorkspaceMockupPage() {
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('instance');
+  const [isMasterPresetDrawerOpen, setIsMasterPresetDrawerOpen] = useState(false);
+  const [isScheduleHistoryDrawerOpen, setIsScheduleHistoryDrawerOpen] = useState(false);
+  const [isRemoteModalOpen, setIsRemoteModalOpen] = useState(false);
+  const [isLivenessGuardOpen, setIsLivenessGuardOpen] = useState(false);
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
+  const [pendingLiveAction, setPendingLiveAction] = useState<(() => void) | null>(null);
+  const [scheduleRevision, setScheduleRevision] = useState(1);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState('10:45 WIB');
+
+  const [isMasterLibrariesDrawerOpen, setIsMasterLibrariesDrawerOpen] = useState(false);
+  const [masterLibrariesTab, setMasterLibrariesTab] = useState<'song_sets' | 'announcements' | 'tokens'>('song_sets');
+
+  // Shared master presets and scheduled services state
+  const [masterPresets, setMasterPresets] = useState<MasterPreset[]>(SYNTHETIC_MASTER_PRESETS);
+  const [scheduledServices, setScheduledServices] = useState<ScheduledServiceRecord[]>(
+    SYNTHETIC_SCHEDULED_SERVICES
+  );
+
+  // Reusable Master Libraries State
+  const [masterSongSets, setMasterSongSets] = useState<MasterSongSet[]>(SYNTHETIC_MASTER_SONG_SETS);
+  const [masterAnnouncementSets, setMasterAnnouncementSets] = useState<MasterAnnouncementSet[]>(
+    SYNTHETIC_MASTER_ANNOUNCEMENT_SETS
+  );
+  const [predefinedTokens, setPredefinedTokens] = useState<PredefinedToken[]>(
+    SYNTHETIC_PREDEFINED_TOKENS
+  );
+  const [customSlideTypes, setCustomSlideTypes] = useState<CustomSlideType[]>([]);
+
   const [preset, setPreset] = useState<WorshipPreset>('sabbath-morning');
   const [serviceDate, setServiceDate] = useState('2026-09-19');
   const [status, setStatus] = useState<WorkspaceStatus>('ready');
 
-  const [items, setItems] = useState<TimelineItem[]>(DEFAULT_TIMELINE_ITEMS);
+  // Local instance items vs Master blueprint items isolation
+  const [instanceItems, setInstanceItems] = useState<TimelineItem[]>(DEFAULT_TIMELINE_ITEMS);
+  const [masterBlueprintItems, setMasterBlueprintItems] = useState<Record<string, TimelineItem[]>>({
+    'sabbath-morning': JSON.parse(JSON.stringify(DEFAULT_TIMELINE_ITEMS)),
+  });
+
   const [selectedItemId, setSelectedItemId] = useState<string>('item-1');
   const [quickScriptureOpen, setQuickScriptureOpen] = useState(false);
+
+  // Active items depend strictly on workspaceMode
+  const items =
+    workspaceMode === 'instance'
+      ? instanceItems
+      : masterBlueprintItems[preset] || DEFAULT_TIMELINE_ITEMS;
+
+  const setItems = (action: TimelineItem[] | ((prev: TimelineItem[]) => TimelineItem[])) => {
+    if (workspaceMode === 'instance') {
+      setInstanceItems(action);
+    } else {
+      setMasterBlueprintItems((prevMap) => {
+        const currentBlueprint = prevMap[preset] || DEFAULT_TIMELINE_ITEMS;
+        const nextBlueprint = typeof action === 'function' ? action(currentBlueprint) : action;
+        return {
+          ...prevMap,
+          [preset]: nextBlueprint,
+        };
+      });
+    }
+  };
+
+  const handleSelectMasterSongSet = (songSet: MasterSongSet) => {
+    if (songSet.songs.length === 0) return;
+    const first = songSet.songs[0];
+    handleUpdateCurrentItem({
+      title: `Lagu — ${first.title}`,
+      subtitle: `${first.bookCode} ${first.hymnNumber} (Key of ${first.key}) • Master: ${songSet.id}`,
+      songData: {
+        hymnNumber: first.hymnNumber,
+        bookCode: first.bookCode,
+        key: first.key,
+        activeVerses: [...first.activeVerses],
+        backgroundUrl: '/assets/background-navy.jpg',
+      },
+    });
+
+    // If song set has additional songs, append them to the timeline preserving frozen snapshot
+    if (songSet.songs.length > 1) {
+      const additionalItems: TimelineItem[] = songSet.songs.slice(1).map((s, idx) => ({
+        id: `item-${Date.now()}-${idx + 1}`,
+        type: 'song',
+        title: `Lagu — ${s.title}`,
+        subtitle: `${s.bookCode} ${s.hymnNumber} (Key of ${s.key}) • Master: ${songSet.id}`,
+        duration: '10:00',
+        slidesCount: s.activeVerses.length || 3,
+        songData: {
+          hymnNumber: s.hymnNumber,
+          bookCode: s.bookCode,
+          key: s.key,
+          activeVerses: [...s.activeVerses],
+          backgroundUrl: '/assets/background-navy.jpg',
+        },
+      }));
+      setItems((prev) => [...prev, ...additionalItems]);
+    }
+
+    setHasUnsavedChanges(true);
+    toast.success(`Master Songset "${songSet.title}" (${songSet.songs.length} lagu) diterapkan ke timeline.`);
+  };
+
+  const handleSelectMasterAnnouncementSet = (announcementSet: MasterAnnouncementSet) => {
+    handleUpdateCurrentItem({
+      title: announcementSet.title,
+      subtitle: `${announcementSet.flyersCount} Slide Warta (Master: ${announcementSet.id})`,
+      slidesCount: announcementSet.flyersCount,
+      announcementData: {
+        looping: announcementSet.looping,
+        flyers: announcementSet.flyers.map((f) => ({ ...f })),
+      },
+    });
+    setHasUnsavedChanges(true);
+    toast.success(`Master Warta "${announcementSet.title}" diterapkan.`);
+  };
+
+  const handleSaveToMasterSongSet = (songItem: TimelineItem) => {
+    const newMasterSet: MasterSongSet = {
+      id: `mss-${Date.now()}`,
+      title: `Koleksi ${songItem.title}`,
+      description: `Disimpan dari jadwal ${serviceDate}`,
+      usageCount: 1,
+      songs: [
+        {
+          id: `s-${Date.now()}`,
+          title: songItem.title,
+          bookCode: songItem.songData?.bookCode || 'SDAH',
+          hymnNumber: songItem.songData?.hymnNumber || 100,
+          key: songItem.songData?.key || 'D',
+          activeVerses: songItem.songData?.activeVerses || [1, 2, 3],
+        },
+      ],
+    };
+    setMasterSongSets((prev) => [newMasterSet, ...prev]);
+    toast.success(`Lagu "${songItem.title}" berhasil didaftarkan ke Master Songset.`);
+  };
+
+  const handleSaveToMasterAnnouncementSet = (announcementItem: TimelineItem) => {
+    const flyers = announcementItem.announcementData?.flyers || [];
+    const newMasterSet: MasterAnnouncementSet = {
+      id: `mas-${Date.now()}`,
+      title: announcementItem.title || 'Warta Jemaat Baru',
+      flyersCount: flyers.length,
+      looping: announcementItem.announcementData?.looping ?? true,
+      updatedAt: serviceDate,
+      flyers: flyers.map((f) => ({ ...f })),
+    };
+    setMasterAnnouncementSets((prev) => [newMasterSet, ...prev]);
+    toast.success(`Warta "${newMasterSet.title}" berhasil didaftarkan ke Master Warta.`);
+  };
+
+  const handleSaveAsNewSlideType = (newType: {
+    title: string;
+    category: string;
+    canvasStyle: any;
+  }) => {
+    const created: CustomSlideType = {
+      id: `cst-${Date.now()}`,
+      title: newType.title,
+      category: newType.category,
+      canvasStyle: newType.canvasStyle,
+      createdAt: serviceDate,
+    };
+    setCustomSlideTypes((prev) => [created, ...prev]);
+    toast.success(`Tipe slide baru "${created.title}" berhasil didaftarkan ke master katalog.`);
+  };
 
   const selectedItem =
     items.find((i) => i.id === selectedItemId) || items[0] || DEFAULT_TIMELINE_ITEMS[0];
@@ -148,11 +338,73 @@ export default function WorkspaceMockupPage() {
   const currentPresetMeta =
     PRESET_OPTIONS.find((p) => p.id === preset) || PRESET_OPTIONS[0];
 
+  const handleSaveSchedule = () => {
+    setScheduleRevision((prev) => prev + 1);
+    setHasUnsavedChanges(false);
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`;
+    setLastSavedTime(timeStr);
+
+    // Synchronize to scheduled services history with full items snapshot
+    setScheduledServices((prev) => {
+      const existingIdx = prev.findIndex(
+        (s) => s.serviceDate === serviceDate && s.presetId === preset
+      );
+      const title =
+        items.find((i) => i.type === 'sermon')?.sermonData?.title ||
+        `Kebaktian ${currentPresetMeta.label}`;
+
+      const updatedRecord: ScheduledServiceRecord = {
+        id: existingIdx !== -1 ? prev[existingIdx].id : `srv-${Date.now()}`,
+        presetId: preset,
+        presetLabel: currentPresetMeta.label,
+        serviceDate,
+        serviceTitle: title,
+        status,
+        itemsCount: items.length,
+        scheduleRevision: scheduleRevision + 1,
+        updatedAt: `${serviceDate} ${timeStr}`,
+        items: JSON.parse(JSON.stringify(items)),
+      };
+
+      if (existingIdx !== -1) {
+        const copy = [...prev];
+        copy[existingIdx] = updatedRecord;
+        return copy;
+      }
+      return [updatedRecord, ...prev];
+    });
+
+    toast.success(
+      `Jadwal ibadah berhasil disimpan & tersinkron ke Riwayat Jadwal (Revisi ${scheduleRevision + 1} • ${timeStr})`
+    );
+  };
+
+  const handleOpenHistoricalService = (service: ScheduledServiceRecord) => {
+    const matchedPreset = PRESET_OPTIONS.find((p) => p.id === service.presetId);
+    if (matchedPreset) {
+      setPreset(matchedPreset.id);
+    }
+    setServiceDate(service.serviceDate);
+    setStatus(service.status);
+    setScheduleRevision(service.scheduleRevision);
+
+    // Restore full timeline items snapshot from historical service
+    if (service.items && service.items.length > 0) {
+      setInstanceItems(JSON.parse(JSON.stringify(service.items)));
+      setSelectedItemId(service.items[0].id);
+    }
+
+    setHasUnsavedChanges(false);
+    toast.info(`Jadwal tanggal ${service.serviceDate} berhasil dimuat ke workspace.`);
+  };
+
   const handleSelectPreset = (newPreset: WorshipPreset) => {
     setPreset(newPreset);
     const meta = PRESET_OPTIONS.find((p) => p.id === newPreset);
     const nextDate = computePresetDate(newPreset);
     setServiceDate(nextDate);
+    setHasUnsavedChanges(true);
     toast.info(`Preset diubah ke: ${meta?.label} (${nextDate} • ${meta?.defaultTime})`);
   };
 
@@ -256,6 +508,7 @@ export default function WorkspaceMockupPage() {
 
     setItems((prev) => [...prev, newItem]);
     setSelectedItemId(nextId);
+    setHasUnsavedChanges(true);
     toast.success(`Berhasil menambahkan ${newItem.title} ke timeline!`);
   };
 
@@ -263,20 +516,32 @@ export default function WorkspaceMockupPage() {
     setItems((prev) =>
       prev.map((it) => (it.id === selectedItemId ? { ...it, ...updated } : it))
     );
+    setHasUnsavedChanges(true);
   };
 
   const handleMoveItem = (id: string, direction: 'up' | 'down') => {
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => i.id === id);
-      if (idx === -1) return prev;
-      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
-      const copy = [...prev];
-      const temp = copy[idx];
-      copy[idx] = copy[targetIdx];
-      copy[targetIdx] = temp;
-      return copy;
-    });
+    const applyMove = () => {
+      setItems((prev) => {
+        const idx = prev.findIndex((i) => i.id === id);
+        if (idx === -1) return prev;
+        const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+        const copy = [...prev];
+        const temp = copy[idx];
+        copy[idx] = copy[targetIdx];
+        copy[targetIdx] = temp;
+        return copy;
+      });
+      setHasUnsavedChanges(true);
+    };
+
+    if (status === 'live') {
+      // Defer mutation until confirmed by operator
+      setPendingLiveAction(() => applyMove);
+      setIsLivenessGuardOpen(true);
+    } else {
+      applyMove();
+    }
   };
 
   return (
@@ -284,6 +549,162 @@ export default function WorkspaceMockupPage() {
       data-testid="workspace-mockup"
       className="flex flex-col gap-4 w-full min-h-[calc(100vh-140px)]"
     >
+      {/* Top Workspace Navigation Bar: Mode Switcher & History / Master Preset Management */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
+        {/* Workspace Mode Switcher */}
+        <div
+          data-testid="workspace-mode-switcher"
+          className="flex items-center gap-1 p-1 bg-card/90 rounded-xl border border-border shadow-2xs"
+          role="tablist"
+          aria-label="Mode Workspace"
+        >
+          <Button
+            type="button"
+            role="tab"
+            variant="ghost"
+            size="sm"
+            aria-selected={workspaceMode === 'instance'}
+            onClick={() => {
+              setWorkspaceMode('instance');
+              toast.info('Beralih ke Mode: Jadwal Ibadah (Instance Operasional)');
+            }}
+            className={`h-8 text-xs font-bold gap-1.5 rounded-lg px-3 transition-colors ${
+              workspaceMode === 'instance'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            data-testid="mode-instance-button"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>● Jadwal Ibadah (Instance)</span>
+          </Button>
+
+          <Button
+            type="button"
+            role="tab"
+            variant="ghost"
+            size="sm"
+            aria-selected={workspaceMode === 'master_preset'}
+            onClick={() => {
+              setWorkspaceMode('master_preset');
+              toast.info('Beralih ke Mode: Master Preset Builder (Cetak Biru Baku)');
+            }}
+            className={`h-8 text-xs font-bold gap-1.5 rounded-lg px-3 transition-colors ${
+              workspaceMode === 'master_preset'
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            data-testid="mode-master-preset-button"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>○ Master Preset Builder</span>
+          </Button>
+        </div>
+
+        {/* Global Toolbar: History & Master Preset Drawers */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsScheduleHistoryDrawerOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="schedule-history-drawer-button"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-primary" />
+            <span>📂 Riwayat Jadwal</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMasterPresetDrawerOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="manage-presets-button"
+          >
+            <Layers className="w-3.5 h-3.5 text-primary" />
+            <span>⚙️ Kelola Master Preset</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setMasterLibrariesTab('tokens');
+              setIsMasterLibrariesDrawerOpen(true);
+            }}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="predefined-fields-drawer-button"
+          >
+            <Tag className="w-3.5 h-3.5 text-primary" />
+            <span>🏷️ Kamus Variabel</span>
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSettingsDrawerOpen(true)}
+            className="h-8 text-xs font-semibold gap-1.5"
+            data-testid="workspace-settings-button"
+          >
+            <Settings className="w-3.5 h-3.5 text-primary" />
+            <span>⚙️ Pengaturan</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Mode Information & Local Override Isolation Banner */}
+      {workspaceMode === 'master_preset' ? (
+        <div
+          data-testid="master-preset-banner"
+          className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 flex-wrap animate-in fade-in"
+        >
+          <div className="flex items-center gap-2.5">
+            <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                Mode Master Preset Builder Aktif — Blueprint: {currentPresetMeta.label}
+              </p>
+              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                Perubahan pada susunan timeline dan konfigurasi slide di sini menjadi cetak biru baku bagi seluruh jadwal ibadah mendatang.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+            onClick={() => setIsMasterPresetDrawerOpen(true)}
+          >
+            Buka Daftar Master Preset
+          </Button>
+        </div>
+      ) : (
+        <div
+          data-testid="local-override-isolation-badge"
+          className="px-3.5 py-2 rounded-xl bg-card/60 border border-border/80 text-[11px] text-muted-foreground flex items-center justify-between gap-3 shadow-2xs"
+        >
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>
+              Perubahan lokal pada jadwal ini tidak mengubah master preset{' '}
+              <strong className="text-foreground font-semibold">"{currentPresetMeta.label}"</strong>.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 font-mono text-[10px]">
+            <span className="px-2 py-0.5 rounded-md bg-muted text-foreground font-semibold">
+              Revisi: rev.{scheduleRevision}
+            </span>
+            <span className="text-muted-foreground">
+              {hasUnsavedChanges ? '● Belum Disimpan' : `✓ ${lastSavedTime}`}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Top Workspace Header Bar */}
       <div
         data-testid="workspace-header-bar"
@@ -341,7 +762,10 @@ export default function WorkspaceMockupPage() {
               <input
                 type="date"
                 value={serviceDate}
-                onChange={(e) => setServiceDate(e.target.value)}
+                onChange={(e) => {
+                  setServiceDate(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
                 className="h-9 text-xs px-3 rounded-lg border border-border bg-background/90 font-medium text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
                 data-testid="service-date-input"
               />
@@ -370,7 +794,10 @@ export default function WorkspaceMockupPage() {
                 role="radio"
                 variant="ghost"
                 aria-checked={status === 'draft'}
-                onClick={() => setStatus('draft')}
+                onClick={() => {
+                  setStatus('draft');
+                  setHasUnsavedChanges(true);
+                }}
                 className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'draft'
                     ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 shadow-xs'
@@ -385,7 +812,10 @@ export default function WorkspaceMockupPage() {
                 role="radio"
                 variant="ghost"
                 aria-checked={status === 'ready'}
-                onClick={() => setStatus('ready')}
+                onClick={() => {
+                  setStatus('ready');
+                  setHasUnsavedChanges(true);
+                }}
                 className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'ready'
                     ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs'
@@ -400,7 +830,10 @@ export default function WorkspaceMockupPage() {
                 role="radio"
                 variant="ghost"
                 aria-checked={status === 'live'}
-                onClick={() => setStatus('live')}
+                onClick={() => {
+                  setStatus('live');
+                  setHasUnsavedChanges(true);
+                }}
                 className={`h-auto text-[11px] font-bold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                   status === 'live'
                     ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50 shadow-xs animate-pulse'
@@ -442,6 +875,18 @@ export default function WorkspaceMockupPage() {
             <span>▶ Tayangkan</span>
           </Button>
 
+          {/* Remote Control Pairing Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 text-xs font-semibold gap-1.5 text-blue-600 dark:text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+            onClick={() => setIsRemoteModalOpen(true)}
+            data-testid="remote-control-header-button"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>📱 Remote Control</span>
+          </Button>
+
           {/* PPTX Export Button */}
           <Button
             size="sm"
@@ -456,14 +901,46 @@ export default function WorkspaceMockupPage() {
             <span>⬇ Unduh PPTX</span>
           </Button>
 
-          {/* Sync Status Indicator */}
+          {/* Explicit Save Schedule Action */}
+          <Button
+            size="sm"
+            variant={hasUnsavedChanges ? 'default' : 'outline'}
+            className="h-9 text-xs font-bold gap-1.5"
+            onClick={handleSaveSchedule}
+            data-testid="save-schedule-button"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>💾 Simpan Jadwal</span>
+          </Button>
+
+          {/* Auto-Save Status Indicator */}
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-muted-foreground"
+            data-testid="auto-save-indicator"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                hasUnsavedChanges ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+              }`}
+            />
+            <span>
+              {hasUnsavedChanges
+                ? `Ada perubahan belum disimpan (rev. ${scheduleRevision})`
+                : `Tersimpan otomatis ${lastSavedTime} (rev. ${scheduleRevision})`}
+            </span>
+          </div>
+
+          {/* Sync Status Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsSyncDialogOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/80 text-[11px] font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:bg-muted transition-colors cursor-pointer"
             data-testid="sync-status-indicator"
+            title="Buka Status & Resolusi Sinkronisasi Desktop-ke-Web"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
             <span>Tersinkron</span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -542,10 +1019,17 @@ export default function WorkspaceMockupPage() {
             onUpdateItem={handleUpdateCurrentItem}
             onReplaceItems={(newItems) => {
               setItems(newItems);
+              setHasUnsavedChanges(true);
               if (newItems.length > 0) {
                 setSelectedItemId(newItems[0].id);
               }
             }}
+            onOpenMasterLibraries={(tab) => {
+              setMasterLibrariesTab(tab);
+              setIsMasterLibrariesDrawerOpen(true);
+            }}
+            onSaveToMasterSongSet={handleSaveToMasterSongSet}
+            onSaveToMasterAnnouncementSet={handleSaveToMasterAnnouncementSet}
           />
         </div>
 
@@ -559,6 +1043,156 @@ export default function WorkspaceMockupPage() {
           />
         </div>
       </div>
+
+      {/* Master Preset Management Drawer */}
+      <MockupMasterPresetDrawer
+        isOpen={isMasterPresetDrawerOpen}
+        onClose={() => setIsMasterPresetDrawerOpen(false)}
+        presets={masterPresets}
+        onUpdatePresets={setMasterPresets}
+        scheduledServices={scheduledServices}
+        onSelectPresetForBlueprint={(p) => {
+          const matched = PRESET_OPTIONS.find((opt) => opt.id === p.slug);
+          if (matched) {
+            setPreset(matched.id);
+          }
+          setWorkspaceMode('master_preset');
+          toast.info(`Memuat cetak biru: ${p.title}`);
+        }}
+      />
+
+      {/* Schedule History Drawer */}
+      <MockupScheduleHistoryDrawer
+        isOpen={isScheduleHistoryDrawerOpen}
+        onClose={() => setIsScheduleHistoryDrawerOpen(false)}
+        services={scheduledServices}
+        onUpdateServices={setScheduledServices}
+        onOpenService={handleOpenHistoricalService}
+      />
+
+      {/* Master Libraries & Predefined Fields Drawer */}
+      <MockupMasterLibrariesDrawer
+        isOpen={isMasterLibrariesDrawerOpen}
+        onClose={() => setIsMasterLibrariesDrawerOpen(false)}
+        defaultTab={masterLibrariesTab}
+        songSets={masterSongSets}
+        onUpdateSongSets={setMasterSongSets}
+        announcementSets={masterAnnouncementSets}
+        onUpdateAnnouncementSets={setMasterAnnouncementSets}
+        tokens={predefinedTokens}
+        onUpdateTokens={setPredefinedTokens}
+        onSelectSongSet={handleSelectMasterSongSet}
+        onSelectAnnouncementSet={handleSelectMasterAnnouncementSet}
+      />
+
+      {/* Remote Control Pairing Modal */}
+      <MockupRemotePairingModal
+        open={isRemoteModalOpen}
+        onOpenChange={setIsRemoteModalOpen}
+        serviceId={serviceDate}
+      />
+
+      {/* Presenter Liveness Guard Confirmation Dialog */}
+      {isLivenessGuardOpen && (
+        <div
+          data-testid="presenter-liveness-guard-dialog"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in"
+        >
+          <div className="w-full max-w-md bg-card border border-destructive/40 rounded-2xl p-5 shadow-2xl space-y-3">
+            <div className="flex items-center gap-2.5 text-destructive">
+              <ShieldAlert className="w-5 h-5" />
+              <h3 className="text-sm font-bold text-foreground">
+                Peringatan: Presenter Liveness Guard Aktif
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Presentasi saat ini sedang tayang langsung di monitor proyektor (Status:{' '}
+              <strong className="text-rose-500">Live</strong>). Mengubah struktur atau urutan
+              jadwal saat ini akan langsung disinkronkan secara real-time ke proyektor jemaat.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-border/80">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPendingLiveAction(null);
+                  setIsLivenessGuardOpen(false);
+                  toast.info('Perubahan dibatalkan. Struktur timeline tidak berubah.');
+                }}
+                className="h-8 text-xs font-semibold"
+              >
+                Batalkan Perubahan
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (pendingLiveAction) {
+                    pendingLiveAction();
+                  }
+                  setPendingLiveAction(null);
+                  setIsLivenessGuardOpen(false);
+                  toast.warning('Perubahan disinkronkan ke live presentation.');
+                }}
+                className="h-8 text-xs font-semibold"
+              >
+                Lanjutkan & Siarkan Live
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop-to-Web Sync & Conflict Resolver Dialog */}
+      <MockupSyncDialog
+        open={isSyncDialogOpen}
+        onOpenChange={setIsSyncDialogOpen}
+        localRevision={scheduleRevision}
+        serverRevision={scheduleRevision + 1}
+        serviceTitle={currentPresetMeta.label}
+        serviceDate={serviceDate}
+        onResolveConflict={(strategy) => {
+          const localPayload: SyncAggregatePayload = {
+            serviceId: serviceDate,
+            revision: scheduleRevision,
+            serviceDate,
+            serviceTitle: currentPresetMeta.label,
+            items: [...items],
+            schemaVersion: 1,
+          };
+          const serverPayload: SyncAggregatePayload = {
+            serviceId: serviceDate,
+            revision: scheduleRevision + 1,
+            serviceDate,
+            serviceTitle: currentPresetMeta.label,
+            items: [...items],
+            schemaVersion: 1,
+          };
+
+          const resolved = resolveSyncConflict(strategy, localPayload, serverPayload);
+          if (strategy === 'local') {
+            setScheduleRevision(resolved.revision);
+            setHasUnsavedChanges(false);
+          } else if (strategy === 'server') {
+            setInstanceItems(resolved.items);
+            setScheduleRevision(resolved.revision);
+            setHasUnsavedChanges(false);
+          } else if (strategy === 'fork') {
+            const nextDate = computePresetDate(preset, new Date(Date.now() + 86400000 * 7));
+            setServiceDate(nextDate);
+            setScheduleRevision(1);
+            setHasUnsavedChanges(false);
+          }
+        }}
+      />
+
+      {/* In-Workspace Settings & Administration Drawer */}
+      <MockupSettingsDrawer
+        isOpen={isSettingsDrawerOpen}
+        onClose={() => setIsSettingsDrawerOpen(false)}
+      />
     </div>
   );
 }

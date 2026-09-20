@@ -89,6 +89,23 @@ export default function MockupCanvasDesignerModal({
     }
   }, [open, item]);
 
+  const [isSaveSlideTypeOpen, setIsSaveSlideTypeOpen] = useState(false);
+  const [newSlideTypeTitle, setNewSlideTypeTitle] = useState('');
+  const [newSlideTypeCategory, setNewSlideTypeCategory] = useState('custom');
+
+  const handleSaveAsNewSlideType = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSlideTypeTitle.trim()) {
+      toast.error('Nama tipe slide wajib diisi');
+      return;
+    }
+    toast.success(
+      `Tipe slide baru "${newSlideTypeTitle.trim()}" (${newSlideTypeCategory}) berhasil didaftarkan ke master katalog.`
+    );
+    setIsSaveSlideTypeOpen(false);
+    setNewSlideTypeTitle('');
+  };
+
   const handleApply = () => {
     const updatedStyle: CanvasCustomStyle = {
       alignX,
@@ -460,25 +477,104 @@ export default function MockupCanvasDesignerModal({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t border-border/60">
+        {/* Save as New Slide Type Form Modal / Drawer */}
+        {isSaveSlideTypeOpen && (
+          <form
+            onSubmit={handleSaveAsNewSlideType}
+            className="p-3 rounded-xl border border-primary/30 bg-primary/5 space-y-2.5 animate-in fade-in"
+            data-testid="save-new-slide-type-form"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground">
+                💾 Simpan Tata Letak Kanvas sebagai Tipe Slide Baru
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setIsSaveSlideTypeOpen(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Nama Tipe Slide</Label>
+                <Input
+                  type="text"
+                  placeholder="Contoh: Ayat 2 Kolom Elegan"
+                  value={newSlideTypeTitle}
+                  onChange={(e) => setNewSlideTypeTitle(e.target.value)}
+                  className="h-7 text-xs"
+                  data-testid="new-slide-type-title-input"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Kategori Template</Label>
+                <select
+                  value={newSlideTypeCategory}
+                  onChange={(e) => setNewSlideTypeCategory(e.target.value)}
+                  className="w-full h-7 px-2 rounded-md border border-border bg-background text-xs"
+                  data-testid="new-slide-type-category-select"
+                >
+                  <option value="custom">Slide Bebas / Kustom</option>
+                  <option value="scripture">Ayat Alkitab</option>
+                  <option value="sermon">Khotbah & Renungan</option>
+                  <option value="announcement">Warta & Pengumuman</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                onClick={() => setIsSaveSlideTypeOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" size="sm" className="h-6 text-xs font-semibold">
+                Daftarkan ke Master Katalog
+              </Button>
+            </div>
+          </form>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t border-border/60 flex items-center justify-between w-full">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
-            onClick={handleCancel}
-            data-testid="canvas-designer-cancel-button"
+            onClick={() => setIsSaveSlideTypeOpen(true)}
+            data-testid="save-as-new-slide-type-button"
+            className="text-xs font-semibold gap-1.5 mr-auto"
           >
-            Batal
+            <span>💾 Simpan sebagai Tipe Slide Baru</span>
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleApply}
-            data-testid="canvas-designer-apply-button"
-          >
-            <Check className="w-4 h-4 mr-1" />
-            <span>Terapkan Perubahan</span>
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCancel}
+              data-testid="canvas-designer-cancel-button"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleApply}
+              data-testid="canvas-designer-apply-button"
+            >
+              <Check className="w-4 h-4 mr-1" />
+              <span>Terapkan Perubahan</span>
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

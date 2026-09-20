@@ -2393,7 +2393,7 @@ waves:
           - tests/smoke-spec-49.test.mjs
 
   - id: SPEC-50
-    status: open
+    status: closed
     release: unified-schedule-workspace-full-architecture
     prd: [operator-turn, offline-deck]
     fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
@@ -2409,28 +2409,28 @@ waves:
         component: hub
         satisfies: [UC-5, UC-14]
         blocked_by: []
-        touches: [services, operator]
+        touches: [services]
         tests:
           - tests/smoke-spec-50.test.mjs
       - id: "SPEC-50-02"
         component: registry
         satisfies: [UC-14, UC-24]
         blocked_by: ["SPEC-50-01"]
-        touches: [artifacts, services, operator]
+        touches: [artifacts, services]
         tests:
           - tests/smoke-spec-50.test.mjs
       - id: "SPEC-50-03"
         component: presenter
         satisfies: [UC-11, UC-12, UC-13]
         blocked_by: ["SPEC-50-02"]
-        touches: [presenter, operator]
+        touches: [present-channel, remote-control]
         tests:
           - tests/smoke-spec-50.test.mjs
       - id: "SPEC-50-04"
         component: hub
         satisfies: [UC-5, UC-14]
         blocked_by: ["SPEC-50-03"]
-        touches: [sync, operator, admin]
+        touches: [settings, services]
         tests:
           - tests/smoke-spec-50.test.mjs
 
