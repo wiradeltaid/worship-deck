@@ -1249,7 +1249,8 @@ decisions:
       - tests/smoke-spec-51.test.mjs
   - id: DEC-053
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-20'
     accepted_by: "kodesh87 (2026-09-20)"
     title: Daily Autopilot mandate for Unified Workspace Schedule-Preset Rundown Slide0 Architecture (SPEC-52)
     file: .control/decisions/DEC-053-daily-autopilot-mandate-unified-workspace-schedule-preset-rundown-slide0.md

@@ -1,5 +1,18 @@
 import React from 'react';
-import { GripVertical, Plus, Music, BookOpen, Megaphone, Presentation, FileText, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import {
+  GripVertical,
+  Plus,
+  Music,
+  BookOpen,
+  Megaphone,
+  Presentation,
+  FileText,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+  Pin,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -7,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { TimelineItem, TimelineItemType } from './types';
+import { TimelineItem, TimelineItemType, PINNED_SLIDE_0_ID } from './types';
 import { toast } from 'sonner';
 
 interface MockupTimelineProps {
@@ -69,6 +82,8 @@ export default function MockupTimeline({
   onMoveItem,
   onDeleteItem,
 }: MockupTimelineProps) {
+  const regularItems = items.filter((i) => i.id !== PINNED_SLIDE_0_ID);
+
   return (
     <div
       data-testid="mockup-timeline"
@@ -80,7 +95,7 @@ export default function MockupTimeline({
           <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
             <span>Rundown Timeline</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-              {items.length} item
+              {regularItems.length} item slide
             </span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -151,13 +166,66 @@ export default function MockupTimeline({
 
       {/* Timeline Item List */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {items.length === 0 ? (
+        {/* Permanent Pinned Slide 0 (Rundown Hub & Weekly Form) */}
+        {(() => {
+          const slide0 = items.find((i) => i.id === PINNED_SLIDE_0_ID);
+          const isSlide0Selected = selectedId === PINNED_SLIDE_0_ID;
+          return (
+            <div
+              key={PINNED_SLIDE_0_ID}
+              data-testid="pinned-slide-0"
+              onClick={() => onSelectItem(PINNED_SLIDE_0_ID)}
+              className={`group relative flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer ${
+                isSlide0Selected
+                  ? 'bg-amber-500/10 border-amber-500/60 shadow-sm ring-1 ring-amber-500/30'
+                  : 'bg-card/70 border-amber-500/30 hover:bg-card/90 hover:border-amber-500/50'
+              }`}
+            >
+              {/* Pin Indicator Icon */}
+              <div className="flex items-center gap-1.5 pt-0.5 text-amber-600 dark:text-amber-400">
+                <Pin className="w-3.5 h-3.5 fill-current" />
+                <span className="text-xs font-mono font-bold w-4 text-center">0</span>
+              </div>
+
+              {/* Item Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                    data-testid="pinned-slide-0-badge"
+                  >
+                    <FileSpreadsheet className="w-3 h-3" />
+                    Pinned Hub
+                  </span>
+                  <span
+                    className="text-[10px] text-muted-foreground font-mono"
+                    data-testid="slide-0-summary-pill"
+                  >
+                    {regularItems.length} Slide • Rundown & Form
+                  </span>
+                </div>
+
+                <h3 className="text-xs font-bold text-foreground truncate">
+                  {slide0?.title || 'Slide 0: Rundown & Formulir Ibadah'}
+                </h3>
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  {slide0?.subtitle || 'Pusat integrasi teks rundown mentah dan variabel formulir mingguan'}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {regularItems.length === 0 ? (
           <div
             className="p-8 text-center space-y-3 border border-dashed border-border/80 rounded-xl bg-muted/20 my-4"
             data-testid="timeline-empty-state"
           >
             <p className="text-xs text-muted-foreground font-semibold">
-              Belum ada item di jadwal ibadah ini (Jadwal Kosong)
+              Belum ada slide presentasi (Jadwal Bersih)
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Tempel teks rundown di Slide 0 atau gunakan [Salin Preset] untuk menyalin template susunan slide.
             </p>
             <Button
               type="button"
@@ -171,112 +239,121 @@ export default function MockupTimeline({
             </Button>
           </div>
         ) : (
-          items.map((item, index) => {
-          const isSelected = item.id === selectedId;
-          const badge = getTypeBadge(item.type);
+          regularItems.map((item, index) => {
+            const isSelected = item.id === selectedId;
+            const badge = getTypeBadge(item.type);
 
-          return (
-            <div
-              key={item.id}
-              data-testid={`timeline-item-${item.id}`}
-              onClick={() => onSelectItem(item.id)}
-              className={`group relative flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
-                  : 'bg-card/40 border-border/60 hover:bg-card/90 hover:border-border'
-              }`}
-            >
-              {/* Drag Handle & Sequence Number */}
-              <div className="flex items-center gap-1.5 pt-0.5 text-muted-foreground group-hover:text-foreground transition-colors">
-                <GripVertical className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 cursor-grab" />
-                <span className="text-xs font-mono font-bold w-4 text-center">
-                  {index + 1}
-                </span>
-              </div>
-
-              {/* Item Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                  <span
-                    className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${badge.className}`}
-                  >
-                    {badge.icon}
-                    {badge.label}
-                  </span>
-                  {item.duration && (
-                    <span
-                      className="text-[10px] text-muted-foreground font-medium"
-                      data-testid={`timeline-duration-${item.id}`}
-                    >
-                      ⏱ {item.duration}
-                    </span>
-                  )}
-                  {item.songData && (
-                    <span
-                      className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20"
-                      data-testid={`timeline-hymn-tag-${item.id}`}
-                    >
-                      {item.songData.bookCode || 'SDAH'} {item.songData.hymnNumber} • Key {item.songData.key || 'D'}
-                    </span>
-                  )}
-                  <span
-                    className="text-[10px] text-muted-foreground/80 ml-auto font-mono"
-                    data-testid={`timeline-slides-count-${item.id}`}
-                  >
-                    {item.slidesCount} slide
+            return (
+              <div
+                key={item.id}
+                data-testid={`timeline-item-${item.id}`}
+                onClick={() => onSelectItem(item.id)}
+                className={`group relative flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20'
+                    : 'bg-card/40 border-border/60 hover:bg-card/90 hover:border-border'
+                }`}
+              >
+                {/* Drag Handle & Sequence Number */}
+                <div className="flex items-center gap-1.5 pt-0.5 text-muted-foreground group-hover:text-foreground transition-colors">
+                  <GripVertical className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 cursor-grab" />
+                  <span className="text-xs font-mono font-bold w-4 text-center">
+                    {index + 1}
                   </span>
                 </div>
 
-                <h3 className="text-xs font-semibold text-foreground truncate">
-                  {item.title}
-                </h3>
-                {item.subtitle && (
-                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                    {item.subtitle}
-                  </p>
-                )}
-              </div>
+                {/* Item Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${badge.className}`}
+                    >
+                      {badge.icon}
+                      {badge.label}
+                    </span>
+                    {item.duration && (
+                      <span
+                        className="text-[10px] text-muted-foreground font-medium"
+                        data-testid={`timeline-duration-${item.id}`}
+                      >
+                        ⏱ {item.duration}
+                      </span>
+                    )}
+                    {item.songData && (
+                      <span
+                        className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20"
+                        data-testid={`timeline-hymn-tag-${item.id}`}
+                      >
+                        {item.songData.bookCode || 'SDAH'} {item.songData.hymnNumber} • Key {item.songData.key || 'D'}
+                      </span>
+                    )}
+                    {item.isMasterBound && (
+                      <span
+                        className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                        data-testid={`timeline-master-bound-${item.id}`}
+                      >
+                        🔗 Master
+                      </span>
+                    )}
+                    <span
+                      className="text-[10px] text-muted-foreground/80 ml-auto font-mono"
+                      data-testid={`timeline-slides-count-${item.id}`}
+                    >
+                      {item.slidesCount} slide
+                    </span>
+                  </div>
 
-              {/* Move / Reorder Actions */}
-              <div className="flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                {onMoveItem && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      disabled={index === 0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMoveItem(item.id, 'up');
-                      }}
-                      className="h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
-                      title="Geser ke atas"
-                    >
-                      <ChevronUp className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      disabled={index === items.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMoveItem(item.id, 'down');
-                      }}
-                      className="h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
-                      title="Geser ke bawah"
-                    >
-                      <ChevronDown className="w-3 h-3" />
-                    </Button>
-                  </>
-                )}
+                  <h3 className="text-xs font-semibold text-foreground truncate">
+                    {item.textContent ? item.textContent.split('\n')[0] : item.title}
+                  </h3>
+                  {item.subtitle && (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {item.subtitle}
+                    </p>
+                  )}
+                </div>
+
+                {/* Move / Reorder Actions */}
+                <div className="flex flex-col items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onMoveItem && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={index === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveItem(item.id, 'up');
+                        }}
+                        className="h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
+                        title="Geser ke atas"
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={index === regularItems.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveItem(item.id, 'down');
+                        }}
+                        className="h-5 w-5 p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-20 rounded"
+                        title="Geser ke bawah"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })
-      )}
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
+

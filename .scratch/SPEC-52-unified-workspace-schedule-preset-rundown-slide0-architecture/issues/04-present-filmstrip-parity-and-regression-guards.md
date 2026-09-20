@@ -41,10 +41,10 @@ Ensure 100% presentation capability parity, conduct edge-case auditing against l
 
 **Blocked by:** SPEC-52-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] Verify and restore presentation mode multi-slide filmstrip grid navigation (`F` key toggle).
-- [ ] Audit and enforce legacy UI/UX parity matrix for quick projection, remote pairing, offline sync, and media gallery.
-- [ ] Author `tests/smoke-spec-52.test.mjs` with comprehensive assertions and defect injection proofs.
-- [ ] Register `"test:smoke-spec-52"` script in `package.json`.
-- [ ] Ensure full test suite passes cleanly.
+- [x] Verify and restore presentation mode multi-slide filmstrip grid navigation (`F` key toggle).
+- [x] Audit and enforce legacy UI/UX parity matrix for quick projection, remote pairing, offline sync, and media gallery.
+- [x] Author `tests/smoke-spec-52.test.mjs` with comprehensive assertions and defect injection proofs.
+- [x] Register `"test:smoke-spec-52"` script in `package.json`.
+- [x] Ensure full test suite passes cleanly.

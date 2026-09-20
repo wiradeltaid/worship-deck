@@ -2477,7 +2477,7 @@ waves:
           - tests/smoke-spec-51.test.mjs
 
   - id: SPEC-52
-    status: open
+    status: closed
     release: unified-workspace-slide0-architecture
     prd: [operator-turn, offline-deck]
     fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32]
