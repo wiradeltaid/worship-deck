@@ -259,6 +259,28 @@ export default function MockupEditor({
               <span>⚙️ Edit Tata Letak Form</span>
             </Button>
           )}
+
+          {/* View Tab Buttons (SPEC-48 backward compatibility) */}
+          <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/60">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              data-testid="tab-active-editor"
+              className="h-auto px-2 py-0.5 text-[11px] font-semibold rounded bg-card text-foreground shadow-2xs"
+            >
+              Editor Item Aktif
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              data-testid="tab-raw-rundown"
+              className="h-auto px-2 py-0.5 text-[11px] font-semibold rounded text-muted-foreground hover:text-foreground"
+            >
+              Teks Rundown Mentah
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -782,6 +804,27 @@ export default function MockupEditor({
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">Background Slide</Label>
+                        <Select
+                          value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
+                          onValueChange={(val) =>
+                            onUpdateItem({
+                              songData: { ...item.songData, backgroundUrl: val || '/assets/background-navy.jpg' },
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-full h-8 text-xs" data-testid="song-background-picker">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="/assets/background-navy.jpg">Gradient Default (Navy)</SelectItem>
+                            <SelectItem value="/assets/background-sanctuary.jpg">Sanctuary Mimbar</SelectItem>
+                            <SelectItem value="/assets/background-nature.jpg">Alam / Nature</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
 
@@ -1047,7 +1090,7 @@ export default function MockupEditor({
 
       {/* Add Local Song Modal */}
       <Dialog open={addSongModalOpen} onOpenChange={setAddSongModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" data-testid="add-song-dialog">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold">Tambah Lagu Lokal</DialogTitle>
           </DialogHeader>
@@ -1084,7 +1127,7 @@ export default function MockupEditor({
 
       {/* Upload Flyer Modal */}
       <Dialog open={uploadFlyerModalOpen} onOpenChange={setUploadFlyerModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" data-testid="upload-flyer-dialog">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold">Unggah Flyer Warta</DialogTitle>
           </DialogHeader>
