@@ -16,8 +16,8 @@ Update the navigation link in the top application header to clearly indicate the
 
 **Blocked by:** []
 
-**Status:** open
+**Status:** closed
 
-- [ ] Update `/new` navigation link text in `src/components/Header.tsx` to `New Workspace Mockup`.
-- [ ] Verify active route styling and responsive layout for mobile and desktop viewports.
-- [ ] Confirm link resolves seamlessly to `/new` without console errors.
+- [x] Update `/new` navigation link text in `src/components/Header.tsx` to `New Workspace Mockup`.
+- [x] Verify active route styling and responsive layout for mobile and desktop viewports.
+- [x] Confirm link resolves seamlessly to `/new` without console errors.

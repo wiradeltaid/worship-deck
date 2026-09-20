@@ -26,10 +26,10 @@ Implement granular slot reordering inside cards as well as an atomic cross-card 
 
 **Blocked by:** SPEC-53-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Add `[ ▲ ]` and `[ ▼ ]` reorder buttons to each slot row in `FormLayoutAdminPanel.tsx` with sequential 1..M reordering.
-- [ ] Add `[ Pindah Kartu... ]` selector to each slot row for cross-card movement.
-- [ ] Implement `POST /api/admin/form-grouping-slots/{id}/move-grouping` in Go with atomic source gap closure and target appending.
-- [ ] Enforce layout-boundary checks and reject self-moves with HTTP 400.
-- [ ] Author integration tests verifying intra-card reordering and cross-card slot transfer data integrity.
+- [x] Add `[ ▲ ]` and `[ ▼ ]` reorder buttons to each slot row in `FormLayoutAdminPanel.tsx` with sequential 1..M reordering.
+- [x] Add `[ Pindah Kartu... ]` selector to each slot row for cross-card movement.
+- [x] Implement `POST /api/admin/form-grouping-slots/{id}/move-grouping` in Go with atomic source gap closure and target appending.
+- [x] Enforce layout-boundary checks and reject self-moves with HTTP 400.
+- [x] Author integration tests verifying intra-card reordering and cross-card slot transfer data integrity.

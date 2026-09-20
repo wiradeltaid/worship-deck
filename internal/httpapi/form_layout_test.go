@@ -77,9 +77,27 @@ func TestFormLayoutAPI_FullCoverage(t *testing.T) {
 		t.Fatalf("unexpected created group: %+v", createdGroup)
 	}
 
-	// 4. PUT /api/admin/form-groupings/reorder
-	reorderPayload := fmt.Sprintf(`[{"id":"%s","sort_order":1},{"id":"grouping-song-set","sort_order":2}]`, createdGroup.ID)
-	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", reorderPayload, cookie)
+	// 4. PUT /api/admin/form-groupings/reorder (Full normalized sequential membership)
+	res = songSetRequest(t, ts, "GET", "/api/worship-form-layout", "", cookie)
+	var curLayout struct {
+		Groupings []struct {
+			ID string `json:"id"`
+		} `json:"groupings"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&curLayout)
+	res.Body.Close()
+
+	var reorderItems []map[string]any
+	reorderItems = append(reorderItems, map[string]any{"id": createdGroup.ID, "sort_order": 1})
+	order := 2
+	for _, g := range curLayout.Groupings {
+		if g.ID != createdGroup.ID {
+			reorderItems = append(reorderItems, map[string]any{"id": g.ID, "sort_order": order})
+			order++
+		}
+	}
+	reorderBytes, _ := json.Marshal(reorderItems)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", string(reorderBytes), cookie)
 	if res.StatusCode != http.StatusOK {
 		var errBody map[string]any
 		_ = json.NewDecoder(res.Body).Decode(&errBody)
@@ -256,4 +274,205 @@ func TestFormLayoutAPI_FullCoverage(t *testing.T) {
 		t.Fatalf("lookahead regex on song set = %d, want 400", res.StatusCode)
 	}
 	res.Body.Close()
+}
+
+func TestFormLayout_SPEC53_ReorderAndTransfer(t *testing.T) {
+	ts, db, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Fetch current layout
+	res := songSetRequest(t, ts, "GET", "/api/worship-form-layout", "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET /api/worship-form-layout = %d, want 200", res.StatusCode)
+	}
+	var layoutResp struct {
+		Groupings []struct {
+			ID        string `json:"id"`
+			SortOrder int    `json:"sort_order"`
+			Slots     []struct {
+				ID        string `json:"id"`
+				SortOrder int    `json:"sort_order"`
+			} `json:"slots"`
+		} `json:"groupings"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&layoutResp)
+	res.Body.Close()
+
+	if len(layoutResp.Groupings) < 2 {
+		t.Fatalf("need at least 2 groupings for testing, got %d", len(layoutResp.Groupings))
+	}
+
+	// A. Negative tests for grouping reorder
+	// 1. Empty payload -> 400
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", `[]`, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("empty grouping reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 2. Partial payload (only 1 element when there are multiple) -> 400
+	partialPayload := fmt.Sprintf(`[{"id":"%s","sort_order":1}]`, layoutResp.Groupings[0].ID)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", partialPayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("partial grouping reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 3. Duplicate ID in payload -> 400
+	dupIDPayload := fmt.Sprintf(`[{"id":"%s","sort_order":1},{"id":"%s","sort_order":2}]`, layoutResp.Groupings[0].ID, layoutResp.Groupings[0].ID)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", dupIDPayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("duplicate ID grouping reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 4. Duplicate sort_order in payload -> 400
+	dupOrderPayload := fmt.Sprintf(`[{"id":"%s","sort_order":1},{"id":"%s","sort_order":1}]`, layoutResp.Groupings[0].ID, layoutResp.Groupings[1].ID)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", dupOrderPayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("duplicate order grouping reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 5. Non-positive sort_order -> 400
+	nonPosPayload := fmt.Sprintf(`[{"id":"%s","sort_order":0},{"id":"%s","sort_order":1}]`, layoutResp.Groupings[0].ID, layoutResp.Groupings[1].ID)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", nonPosPayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("non-positive order grouping reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 6. Unknown grouping ID -> 400
+	unknownIDPayload := `[{"id":"non-existent-grouping","sort_order":1}]`
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", unknownIDPayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unknown grouping ID reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// B. Positive full membership reordering
+	// Reverse the entire order of groupings
+	totalGroups := len(layoutResp.Groupings)
+	var reversedGroups []map[string]any
+	for i, g := range layoutResp.Groupings {
+		reversedGroups = append(reversedGroups, map[string]any{
+			"id":         g.ID,
+			"sort_order": totalGroups - i,
+		})
+	}
+	revBytes, _ := json.Marshal(reversedGroups)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-groupings/reorder", string(revBytes), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("valid reverse grouping reorder = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Verify database has exact contiguous 1..N order
+	rows, err := db.Query(`SELECT id, sort_order FROM form_groupings WHERE layout_id = 'default-layout' ORDER BY sort_order ASC`)
+	if err != nil {
+		t.Fatalf("query groupings: %v", err)
+	}
+	orderIdx := 1
+	for rows.Next() {
+		var gid string
+		var so int
+		if err := rows.Scan(&gid, &so); err != nil {
+			t.Fatalf("scan grouping: %v", err)
+		}
+		if so != orderIdx {
+			t.Fatalf("expected grouping sort_order %d, got %d for %s", orderIdx, so, gid)
+		}
+		orderIdx++
+	}
+	rows.Close()
+
+	// C. Slot Reordering and Cross-Card Move
+	// Find a grouping with at least 2 slots
+	var groupWithSlots string
+	var slot1 string
+	for _, g := range layoutResp.Groupings {
+		if len(g.Slots) >= 2 {
+			groupWithSlots = g.ID
+			slot1 = g.Slots[0].ID
+			break
+		}
+	}
+	if groupWithSlots == "" {
+		t.Fatalf("need a grouping with >= 2 slots for slot tests")
+	}
+
+	// Slot reorder negative: partial payload -> 400
+	res = songSetRequest(t, ts, "PUT", "/api/admin/form-grouping-slots/reorder", fmt.Sprintf(`{"grouping_id":"%s","slots":[{"id":"%s","sort_order":1}]}`, groupWithSlots, slot1), cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("partial slot reorder = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Cross-card slot transfer:
+	// Move slot1 to another grouping
+	targetGroupID := ""
+	for _, g := range layoutResp.Groupings {
+		if g.ID != groupWithSlots {
+			targetGroupID = g.ID
+			break
+		}
+	}
+
+	// 1. Move to self -> 400
+	selfMovePayload := fmt.Sprintf(`{"target_grouping_id":"%s"}`, groupWithSlots)
+	res = songSetRequest(t, ts, "POST", fmt.Sprintf("/api/admin/form-grouping-slots/%s/move-grouping", slot1), selfMovePayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("self move slot = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 2. Move non-existent slot -> 404
+	res = songSetRequest(t, ts, "POST", "/api/admin/form-grouping-slots/non-existent-slot/move-grouping", fmt.Sprintf(`{"target_grouping_id":"%s"}`, targetGroupID), cookie)
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("move non-existent slot = %d, want 404", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 3. Valid move slot1 -> targetGroupID
+	validMovePayload := fmt.Sprintf(`{"target_grouping_id":"%s"}`, targetGroupID)
+	res = songSetRequest(t, ts, "POST", fmt.Sprintf("/api/admin/form-grouping-slots/%s/move-grouping", slot1), validMovePayload, cookie)
+	if res.StatusCode != http.StatusOK {
+		var errBody map[string]any
+		_ = json.NewDecoder(res.Body).Decode(&errBody)
+		t.Fatalf("valid move slot = %d, want 200, body=%v", res.StatusCode, errBody)
+	}
+	res.Body.Close()
+
+	// Verify slot1 is now in targetGroupID
+	var newGroupID string
+	var newOrder int
+	err = db.QueryRow(`SELECT grouping_id, sort_order FROM form_group_slots WHERE id = ?`, slot1).Scan(&newGroupID, &newOrder)
+	if err != nil {
+		t.Fatalf("query moved slot: %v", err)
+	}
+	if newGroupID != targetGroupID {
+		t.Fatalf("moved slot grouping_id = %s, want %s", newGroupID, targetGroupID)
+	}
+	if newOrder <= 0 {
+		t.Fatalf("moved slot sort_order must be > 0, got %d", newOrder)
+	}
+
+	// Verify remaining slots in source grouping are contiguous 1..(M-1)
+	rows, err = db.Query(`SELECT id, sort_order FROM form_group_slots WHERE grouping_id = ? ORDER BY sort_order ASC`, groupWithSlots)
+	if err != nil {
+		t.Fatalf("query remaining source slots: %v", err)
+	}
+	sourceIdx := 1
+	for rows.Next() {
+		var sid string
+		var so int
+		if err := rows.Scan(&sid, &so); err != nil {
+			t.Fatalf("scan remaining slot: %v", err)
+		}
+		if so != sourceIdx {
+			t.Fatalf("expected remaining slot sort_order %d, got %d for %s", sourceIdx, so, sid)
+		}
+		sourceIdx++
+	}
+	rows.Close()
 }

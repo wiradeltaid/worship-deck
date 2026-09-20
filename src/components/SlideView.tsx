@@ -20,8 +20,12 @@ export default function SlideView({
   slide: SlidePlanItem;
   backgroundOverride?: string | null;
 }) {
+  const slideKey =
+    slide.artifact.instanceId ||
+    `${slide.kind}-${slide.artifact.templateId || 'slide'}`;
   return (
     <ArtifactSlide
+      key={slideKey}
       instance={slide.artifact}
       backgroundOverride={backgroundOverride}
     />

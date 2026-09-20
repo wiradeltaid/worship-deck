@@ -272,6 +272,36 @@ func (s *Server) reorderFormGroupings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if len(items) == 0 {
+		writeError(w, http.StatusBadRequest, "Payload cannot be empty")
+		return
+	}
+
+	seenIDs := make(map[string]bool)
+	seenOrders := make(map[int]bool)
+	for _, item := range items {
+		cleanID := strings.TrimSpace(item.ID)
+		if cleanID == "" {
+			writeError(w, http.StatusBadRequest, "Item ID cannot be empty")
+			return
+		}
+		if seenIDs[cleanID] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Duplicate grouping ID in payload: %s", cleanID))
+			return
+		}
+		seenIDs[cleanID] = true
+
+		if item.SortOrder <= 0 {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Sort order must be positive, got: %d", item.SortOrder))
+			return
+		}
+		if seenOrders[item.SortOrder] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Duplicate sort order in payload: %d", item.SortOrder))
+			return
+		}
+		seenOrders[item.SortOrder] = true
+	}
+
 	tx, err := s.DB.Begin()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to start transaction")
@@ -279,70 +309,65 @@ func (s *Server) reorderFormGroupings(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	// Determine layout_id
+	// Determine and verify layout_id across all items
 	var layoutID string
-	if len(items) > 0 {
-		_ = tx.QueryRow(`SELECT layout_id FROM form_groupings WHERE id = ?`, items[0].ID).Scan(&layoutID)
-	}
-	if layoutID == "" {
-		layoutID = "default-layout"
+	for _, item := range items {
+		var itemLayoutID string
+		err := tx.QueryRow(`SELECT layout_id FROM form_groupings WHERE id = ?`, item.ID).Scan(&itemLayoutID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Grouping not found: %s", item.ID))
+			return
+		}
+		if layoutID == "" {
+			layoutID = itemLayoutID
+		} else if layoutID != itemLayoutID {
+			writeError(w, http.StatusBadRequest, "Groupings must belong to the same layout")
+			return
+		}
 	}
 
-	// Fetch all groupings in layout
+	// Fetch all groupings currently in layout to enforce strict membership
 	rows, err := tx.Query(`SELECT id FROM form_groupings WHERE layout_id = ? ORDER BY sort_order ASC`, layoutID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to query groupings")
 		return
 	}
-	var allIDs []string
+	allLayoutIDs := make(map[string]bool)
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err == nil {
-			allIDs = append(allIDs, id)
+			allLayoutIDs[id] = true
 		}
 	}
 	rows.Close()
 
+	if len(items) != len(allLayoutIDs) {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Payload must contain all %d groupings in layout, got %d", len(allLayoutIDs), len(items)))
+		return
+	}
+	for id := range allLayoutIDs {
+		if !seenIDs[id] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Missing grouping in reorder payload: %s", id))
+			return
+		}
+	}
+
 	// Step 1: Temporarily set negative sort orders for ALL groupings in this layout
-	for i, id := range allIDs {
+	i := 0
+	for id := range allLayoutIDs {
 		tempOrder := -(i + 1) - 10000
 		if _, err := tx.Exec(`UPDATE form_groupings SET sort_order = ? WHERE id = ?`, tempOrder, id); err != nil {
 			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed temp sort order: %v", err))
 			return
 		}
+		i++
 	}
 
 	// Step 2: Apply provided sort orders
-	usedOrders := make(map[int]bool)
-	updatedIDs := make(map[string]bool)
-	maxOrder := 0
 	for _, item := range items {
-		if item.ID != "" {
-			if _, err := tx.Exec(`UPDATE form_groupings SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, item.SortOrder, item.ID); err != nil {
-				writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update sort order for %s: %v", item.ID, err))
-				return
-			}
-			usedOrders[item.SortOrder] = true
-			updatedIDs[item.ID] = true
-			if item.SortOrder > maxOrder {
-				maxOrder = item.SortOrder
-			}
-		}
-	}
-
-	// Step 3: For any groupings in layout not in items, restore them to positive sort orders after maxOrder
-	nextOrder := maxOrder + 1
-	for _, id := range allIDs {
-		if !updatedIDs[id] {
-			for usedOrders[nextOrder] {
-				nextOrder++
-			}
-			if _, err := tx.Exec(`UPDATE form_groupings SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, nextOrder, id); err != nil {
-				writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed restoring unmentioned grouping %s: %v", id, err))
-				return
-			}
-			usedOrders[nextOrder] = true
-			nextOrder++
+		if _, err := tx.Exec(`UPDATE form_groupings SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, item.SortOrder, item.ID); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update sort order for %s: %v", item.ID, err))
+			return
 		}
 	}
 
@@ -492,7 +517,7 @@ func (s *Server) reorderFormGroupingSlots(w http.ResponseWriter, r *http.Request
 	}
 
 	var items []reorderSlotItem
-	var groupingID string
+	var reqGroupingID string
 	if err := json.Unmarshal(raw, &items); err != nil {
 		var wrapper struct {
 			GroupingID string            `json:"grouping_id"`
@@ -503,12 +528,42 @@ func (s *Server) reorderFormGroupingSlots(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusBadRequest, "Invalid reorder payload format")
 			return
 		}
-		groupingID = wrapper.GroupingID
+		reqGroupingID = wrapper.GroupingID
 		if len(wrapper.Slots) > 0 {
 			items = wrapper.Slots
 		} else {
 			items = wrapper.Items
 		}
+	}
+
+	if len(items) == 0 {
+		writeError(w, http.StatusBadRequest, "Payload cannot be empty")
+		return
+	}
+
+	seenIDs := make(map[string]bool)
+	seenOrders := make(map[int]bool)
+	for _, item := range items {
+		cleanID := strings.TrimSpace(item.ID)
+		if cleanID == "" {
+			writeError(w, http.StatusBadRequest, "Slot ID cannot be empty")
+			return
+		}
+		if seenIDs[cleanID] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Duplicate slot ID in payload: %s", cleanID))
+			return
+		}
+		seenIDs[cleanID] = true
+
+		if item.SortOrder <= 0 {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Sort order must be positive, got: %d", item.SortOrder))
+			return
+		}
+		if seenOrders[item.SortOrder] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Duplicate sort order in payload: %d", item.SortOrder))
+			return
+		}
+		seenOrders[item.SortOrder] = true
 	}
 
 	tx, err := s.DB.Begin()
@@ -518,65 +573,63 @@ func (s *Server) reorderFormGroupingSlots(w http.ResponseWriter, r *http.Request
 	}
 	defer tx.Rollback()
 
-	// Determine grouping_id if not given
-	if groupingID == "" && len(items) > 0 {
-		_ = tx.QueryRow(`SELECT grouping_id FROM form_group_slots WHERE id = ?`, items[0].ID).Scan(&groupingID)
-	}
-
-	var allSlotIDs []string
-	if groupingID != "" {
-		rows, err := tx.Query(`SELECT id FROM form_group_slots WHERE grouping_id = ? ORDER BY sort_order ASC`, groupingID)
-		if err == nil {
-			for rows.Next() {
-				var sid string
-				if err := rows.Scan(&sid); err == nil {
-					allSlotIDs = append(allSlotIDs, sid)
-				}
-			}
-			rows.Close()
+	groupingID := reqGroupingID
+	for _, item := range items {
+		var itemGroupingID string
+		err := tx.QueryRow(`SELECT grouping_id FROM form_group_slots WHERE id = ?`, item.ID).Scan(&itemGroupingID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Slot not found: %s", item.ID))
+			return
 		}
-	}
-
-	// Step 1: Temporarily set negative sort orders for ALL slots in grouping
-	for i, sid := range allSlotIDs {
-		tempOrder := -(i + 1) - 10000
-		if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ? WHERE id = ?`, tempOrder, sid); err != nil {
-			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed temp slot sort order for %s: %v", sid, err))
+		if groupingID == "" {
+			groupingID = itemGroupingID
+		} else if groupingID != itemGroupingID {
+			writeError(w, http.StatusBadRequest, "Slots must belong to the same grouping")
 			return
 		}
 	}
 
-	// Step 2: Apply target sort orders
-	usedOrders := make(map[int]bool)
-	updatedIDs := make(map[string]bool)
-	maxOrder := 0
-	for _, item := range items {
-		if item.ID != "" {
-			if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, item.SortOrder, item.ID); err != nil {
-				writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update slot sort order for %s: %v", item.ID, err))
-				return
-			}
-			usedOrders[item.SortOrder] = true
-			updatedIDs[item.ID] = true
-			if item.SortOrder > maxOrder {
-				maxOrder = item.SortOrder
-			}
+	rows, err := tx.Query(`SELECT id FROM form_group_slots WHERE grouping_id = ? ORDER BY sort_order ASC`, groupingID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to query grouping slots")
+		return
+	}
+	allSlotIDs := make(map[string]bool)
+	for rows.Next() {
+		var sid string
+		if err := rows.Scan(&sid); err == nil {
+			allSlotIDs[sid] = true
+		}
+	}
+	rows.Close()
+
+	if len(items) != len(allSlotIDs) {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Payload must contain all %d slots in grouping, got %d", len(allSlotIDs), len(items)))
+		return
+	}
+	for id := range allSlotIDs {
+		if !seenIDs[id] {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Missing slot in reorder payload: %s", id))
+			return
 		}
 	}
 
-	// Step 3: Restore unmentioned slots
-	nextOrder := maxOrder + 1
-	for _, sid := range allSlotIDs {
-		if !updatedIDs[sid] {
-			for usedOrders[nextOrder] {
-				nextOrder++
-			}
-			if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, nextOrder, sid); err != nil {
-				writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed restoring unmentioned slot %s: %v", sid, err))
-				return
-			}
-			usedOrders[nextOrder] = true
-			nextOrder++
+	// Step 1: Temporarily set negative sort orders for ALL slots in grouping
+	i := 0
+	for id := range allSlotIDs {
+		tempOrder := -(i + 1) - 10000
+		if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ? WHERE id = ?`, tempOrder, id); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed temp slot sort order for %s: %v", id, err))
+			return
+		}
+		i++
+	}
+
+	// Step 2: Apply target sort orders
+	for _, item := range items {
+		if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, item.SortOrder, item.ID); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update slot sort order for %s: %v", item.ID, err))
+			return
 		}
 	}
 
@@ -586,6 +639,115 @@ func (s *Server) reorderFormGroupingSlots(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) moveFormGroupingSlot(w http.ResponseWriter, r *http.Request) {
+	if !requireAdmin(w, r) {
+		return
+	}
+
+	slotID := strings.TrimSpace(r.PathValue("id"))
+	if slotID == "" {
+		writeError(w, http.StatusBadRequest, "slot id is required")
+		return
+	}
+
+	var req struct {
+		TargetGroupingID string `json:"target_grouping_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	targetGroupingID := strings.TrimSpace(req.TargetGroupingID)
+	if targetGroupingID == "" {
+		writeError(w, http.StatusBadRequest, "target_grouping_id is required")
+		return
+	}
+
+	tx, err := s.DB.Begin()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to start transaction")
+		return
+	}
+	defer tx.Rollback()
+
+	var sourceLayoutID, sourceGroupingID string
+	err = tx.QueryRow(`SELECT layout_id, grouping_id FROM form_group_slots WHERE id = ?`, slotID).Scan(&sourceLayoutID, &sourceGroupingID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Slot not found")
+		return
+	}
+
+	if sourceGroupingID == targetGroupingID {
+		writeError(w, http.StatusBadRequest, "Cannot move slot to its current grouping")
+		return
+	}
+
+	var targetLayoutID string
+	err = tx.QueryRow(`SELECT layout_id FROM form_groupings WHERE id = ?`, targetGroupingID).Scan(&targetLayoutID)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Target grouping not found")
+		return
+	}
+
+	if sourceLayoutID != targetLayoutID {
+		writeError(w, http.StatusBadRequest, "Target grouping belongs to a different layout")
+		return
+	}
+
+	// 1. Determine new sort order in target grouping (tail append)
+	var maxTargetOrder int
+	_ = tx.QueryRow(`SELECT COALESCE(MAX(sort_order), 0) FROM form_group_slots WHERE grouping_id = ?`, targetGroupingID).Scan(&maxTargetOrder)
+	newSortOrder := maxTargetOrder + 1
+
+	// Update the slot to targetGroupingID and newSortOrder
+	if _, err := tx.Exec(`UPDATE form_group_slots SET grouping_id = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, targetGroupingID, newSortOrder, slotID); err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to transfer slot: %v", err))
+		return
+	}
+
+	// 2. Re-index remaining slots in source grouping contiguously 1..(M-1)
+	rows, err := tx.Query(`SELECT id FROM form_group_slots WHERE grouping_id = ? ORDER BY sort_order ASC`, sourceGroupingID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to query remaining source slots: %v", err))
+		return
+	}
+	var remainingSourceIDs []string
+	for rows.Next() {
+		var sid string
+		if err := rows.Scan(&sid); err == nil {
+			remainingSourceIDs = append(remainingSourceIDs, sid)
+		}
+	}
+	rows.Close()
+
+	for i, sid := range remainingSourceIDs {
+		tempOrder := -(i + 1) - 10000
+		if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ? WHERE id = ?`, tempOrder, sid); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed temp source slot order: %v", err))
+			return
+		}
+	}
+	for i, sid := range remainingSourceIDs {
+		if _, err := tx.Exec(`UPDATE form_group_slots SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, i+1, sid); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to reindex source slot %s: %v", sid, err))
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to commit transfer transaction")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":                 true,
+		"slot_id":            slotID,
+		"source_grouping_id": sourceGroupingID,
+		"target_grouping_id": targetGroupingID,
+		"sort_order":         newSortOrder,
+	})
 }
 
 func (s *Server) createOrUpdatePredefinedField(w http.ResponseWriter, r *http.Request) {

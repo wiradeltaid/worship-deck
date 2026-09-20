@@ -173,13 +173,10 @@ export function DynamicFormBody({
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= layoutData.groupings.length) return;
 
-    const currentGroup = layoutData.groupings[index];
-    const targetGroup = layoutData.groupings[targetIndex];
-
-    const payload = [
-      { id: currentGroup.id, sort_order: targetGroup.sort_order },
-      { id: targetGroup.id, sort_order: currentGroup.sort_order },
-    ];
+    const reordered = [...layoutData.groupings];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    const payload = reordered.map((g, i) => ({ id: g.id, sort_order: i + 1 }));
 
     try {
       const res = await fetch('/api/admin/form-groupings/reorder', {

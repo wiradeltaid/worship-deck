@@ -104,8 +104,9 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
           <CustomLink
             href="/new"
             className={getLinkClass(pathname === '/new')}
+            aria-current={pathname === '/new' ? 'page' : undefined}
           >
-            Workspace
+            New Workspace Mockup
           </CustomLink>
           {isAdmin && (
             <>

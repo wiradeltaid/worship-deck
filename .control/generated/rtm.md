@@ -597,10 +597,10 @@ rtm:
   release: form-reordering-and-presenter-parity
   test:
   - tests/smoke-spec-53.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -611,10 +611,10 @@ rtm:
   release: form-reordering-and-presenter-parity
   test:
   - tests/smoke-spec-53.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -625,10 +625,10 @@ rtm:
   release: form-reordering-and-presenter-parity
   test:
   - tests/smoke-spec-53.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -1029,10 +1029,10 @@ rtm:
   release: form-reordering-and-presenter-parity
   test:
   - tests/smoke-spec-53.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -1255,10 +1255,10 @@ rtm:
   release: form-reordering-and-presenter-parity
   test:
   - tests/smoke-spec-53.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

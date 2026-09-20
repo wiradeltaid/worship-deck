@@ -113,6 +113,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/form-grouping-slots", s.createFormGroupingSlot)
 	mux.HandleFunc("DELETE /api/admin/form-grouping-slots/{id}", s.deleteFormGroupingSlot)
 	mux.HandleFunc("PUT /api/admin/form-grouping-slots/reorder", s.reorderFormGroupingSlots)
+	mux.HandleFunc("POST /api/admin/form-grouping-slots/{id}/move-grouping", s.moveFormGroupingSlot)
 	mux.HandleFunc("POST /api/admin/predefined-fields", s.createOrUpdatePredefinedField)
 	mux.HandleFunc("DELETE /api/admin/predefined-fields/{id}", s.deletePredefinedField)
 	mux.HandleFunc("POST /api/admin/predefined-fields/seed-defaults", s.seedDefaultPredefinedFields)
