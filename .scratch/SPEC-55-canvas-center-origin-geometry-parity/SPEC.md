@@ -1,6 +1,6 @@
 # SPEC-55 — Canvas Center-Origin Geometry Parity & Release Jump Elimination
 
-> **Status:** open  
+> **Status:** closed  
 > **Release:** canvas-center-origin-geometry-parity  
 > **Component:** registry  
 > **Touches:** artifacts, tests  

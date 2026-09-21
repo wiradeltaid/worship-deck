@@ -2602,7 +2602,7 @@ waves:
           - tests/smoke-spec-54.test.mjs
 
   - id: SPEC-55
-    status: open
+    status: closed
     release: canvas-center-origin-geometry-parity
     prd: [offline-deck]
     fr: [FR-20, FR-21]
@@ -2639,7 +2639,7 @@ waves:
         component: registry
         satisfies: [UC-14, FR-20, FR-21]
         blocked_by: ["SPEC-55-03"]
-        touches: [artifacts, tests]
+        touches: [artifacts]
         tests:
           - tests/smoke-spec-55.test.mjs
 

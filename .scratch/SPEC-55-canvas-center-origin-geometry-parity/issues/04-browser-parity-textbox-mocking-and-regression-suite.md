@@ -1,6 +1,6 @@
 # Issue SPEC-55-04 — Browser-Parity Textbox Mocking and Drag-Release Regression Test Suite
 
-**Status:** open  
+**Status:** closed  
 **Spec:** SPEC-55  
 **Component:** registry  
 **Satisfies:** [UC-14, FR-20, FR-21]  

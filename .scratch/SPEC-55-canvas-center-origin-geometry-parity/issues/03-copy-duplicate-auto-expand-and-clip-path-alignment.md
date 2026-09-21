@@ -1,6 +1,6 @@
 # Issue SPEC-55-03 — Copy, Duplicate, Auto-Expand-Height, and Clip-Path Center Alignment
 
-**Status:** open  
+**Status:** closed  
 **Spec:** SPEC-55  
 **Component:** registry  
 **Satisfies:** [UC-14, FR-20, FR-21]  
