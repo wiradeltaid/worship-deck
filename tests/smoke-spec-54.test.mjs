@@ -207,3 +207,42 @@ test('SPEC-54-01: buildHistoricalGrouping preserves unassigned saved field value
   assert.strictEqual(buildHistoricalGrouping(null, { x: '1' }), null);
 });
 
+export function scanSpec54_02Features(editFormSource, servicesGoSource) {
+  const findings = [];
+
+  if (editFormSource.includes('!base.family_photo')) {
+    findings.push('EditForm.tsx must NOT use "!base.family_photo" check; use "base.family_photo === undefined"');
+  }
+  if (editFormSource.includes('!base.youth_photo')) {
+    findings.push('EditForm.tsx must NOT use "!base.youth_photo" check; use "base.youth_photo === undefined"');
+  }
+  if (editFormSource.includes('!base.sermon_poster')) {
+    findings.push('EditForm.tsx must NOT use "!base.sermon_poster" check; use "base.sermon_poster === undefined"');
+  }
+  if (!editFormSource.includes('base.family_photo === undefined')) {
+    findings.push('EditForm.tsx must use "base.family_photo === undefined"');
+  }
+
+  // services.go per-key merge precedence
+  if (servicesGoSource.includes('if len(fields) > 0 {\n\t\treturn fields\n\t}') || servicesGoSource.includes('if len(fields) > 0 {\r\n\t\treturn fields\r\n\t}')) {
+    findings.push('services.go storedFieldValues must NOT do bulk len(fields)>0 return without per-key evaluation');
+  }
+  if (!servicesGoSource.includes('hasStoredKey')) {
+    findings.push('services.go storedFieldValues must implement per-key presence tracking via hasStoredKey');
+  }
+
+  return findings;
+}
+
+test('SPEC-54-02: Photo Deletion Persistence & Per-Key Merge Precedence guards', () => {
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+  const servicesGoPath = path.join(root, 'internal', 'httpapi', 'services.go');
+
+  const editFormSource = fs.readFileSync(editFormPath, 'utf8');
+  const servicesGoSource = fs.readFileSync(servicesGoPath, 'utf8');
+
+  const findings = scanSpec54_02Features(editFormSource, servicesGoSource);
+  assert.deepEqual(findings, [], `SPEC-54-02 findings detected:\n${findings.join('\n')}`);
+});
+
+

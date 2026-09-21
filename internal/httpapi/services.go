@@ -382,6 +382,7 @@ func upsertFieldValues(tx *sql.Tx, serviceID int64, fieldValues map[string]any) 
 
 func (s *Server) storedFieldValues(serviceID int, parsedJSON, imagesJSON string) map[string]string {
 	fields := make(map[string]string)
+	hasStoredKey := make(map[string]bool)
 	rows, err := s.DB.Query(`SELECT variable_name, value_text FROM service_field_values WHERE service_id = ?`, serviceID)
 	if err == nil {
 		defer rows.Close()
@@ -389,52 +390,50 @@ func (s *Server) storedFieldValues(serviceID int, parsedJSON, imagesJSON string)
 			var k, v string
 			if err := rows.Scan(&k, &v); err == nil {
 				fields[k] = v
+				hasStoredKey[k] = true
 			}
 		}
 	}
-	if len(fields) > 0 {
-		return fields
-	}
 
-	// Dual-read fallback from legacy parsed_data and images_payload
+	// Per-key fallback from legacy parsed_data and images_payload for keys not stored in service_field_values
 	if parsedJSON != "" {
 		var parsed map[string]any
 		if err := json.Unmarshal([]byte(parsedJSON), &parsed); err == nil {
 			if vr, ok := parsed["verseReading"].(map[string]any); ok {
-				if ref, ok := vr["reference"].(string); ok && ref != "" {
+				if ref, ok := vr["reference"].(string); ok && ref != "" && !hasStoredKey["scripture_reference"] {
 					fields["scripture_reference"] = ref
 				}
-				if text, ok := vr["text"].(string); ok && text != "" {
+				if text, ok := vr["text"].(string); ok && text != "" && !hasStoredKey["scripture_text"] {
 					fields["scripture_text"] = text
 				}
-				if trans, ok := vr["translation"].(string); ok && trans != "" {
+				if trans, ok := vr["translation"].(string); ok && trans != "" && !hasStoredKey["scripture_bible_version"] {
 					fields["scripture_bible_version"] = trans
 				}
 			}
 			if sermon, ok := parsed["sermon"].(map[string]any); ok {
-				if sp, ok := sermon["speaker"].(string); ok && sp != "" {
+				if sp, ok := sermon["speaker"].(string); ok && sp != "" && !hasStoredKey["sermon_speaker_name"] {
 					fields["sermon_speaker_name"] = sp
 				}
-				if title, ok := sermon["title"].(string); ok && title != "" {
+				if title, ok := sermon["title"].(string); ok && title != "" && !hasStoredKey["sermon_title"] {
 					fields["sermon_title"] = title
 				}
 			}
-			if cpp, ok := parsed["closingPrayerPerson"].(string); ok && cpp != "" {
+			if cpp, ok := parsed["closingPrayerPerson"].(string); ok && cpp != "" && !hasStoredKey["closing_prayer_person"] {
 				fields["closing_prayer_person"] = cpp
 			}
-			if ss, ok := parsed["specialSong"].(string); ok && ss != "" {
+			if ss, ok := parsed["specialSong"].(string); ok && ss != "" && !hasStoredKey["special_song"] {
 				fields["special_song"] = ss
 			}
-			if fn, ok := parsed["familyName"].(string); ok && fn != "" {
+			if fn, ok := parsed["familyName"].(string); ok && fn != "" && !hasStoredKey["family_name"] {
 				fields["family_name"] = fn
 			}
-			if fpr, ok := parsed["familyPrayerRequest"].(string); ok && fpr != "" {
+			if fpr, ok := parsed["familyPrayerRequest"].(string); ok && fpr != "" && !hasStoredKey["family_request"] {
 				fields["family_request"] = fpr
 			}
-			if yn, ok := parsed["youthName"].(string); ok && yn != "" {
+			if yn, ok := parsed["youthName"].(string); ok && yn != "" && !hasStoredKey["youth_name"] {
 				fields["youth_name"] = yn
 			}
-			if ypr, ok := parsed["youthPrayerRequest"].(string); ok && ypr != "" {
+			if ypr, ok := parsed["youthPrayerRequest"].(string); ok && ypr != "" && !hasStoredKey["youth_request"] {
 				fields["youth_request"] = ypr
 			}
 		}
@@ -442,13 +441,13 @@ func (s *Server) storedFieldValues(serviceID int, parsedJSON, imagesJSON string)
 	if imagesJSON != "" {
 		var images map[string]any
 		if err := json.Unmarshal([]byte(imagesJSON), &images); err == nil {
-			if sp, ok := images["sermonGraphicUrl"].(string); ok && sp != "" {
+			if sp, ok := images["sermonGraphicUrl"].(string); ok && sp != "" && !hasStoredKey["sermon_poster"] {
 				fields["sermon_poster"] = sp
 			}
-			if fp, ok := images["familyPhotoUrl"].(string); ok && fp != "" {
+			if fp, ok := images["familyPhotoUrl"].(string); ok && fp != "" && !hasStoredKey["family_photo"] {
 				fields["family_photo"] = fp
 			}
-			if yp, ok := images["youthPhotoUrl"].(string); ok && yp != "" {
+			if yp, ok := images["youthPhotoUrl"].(string); ok && yp != "" && !hasStoredKey["youth_photo"] {
 				fields["youth_photo"] = yp
 			}
 		}
@@ -936,7 +935,13 @@ func mergeImagesPayload(stored sql.NullString, body map[string]any) (*string, st
 	_, hasFamily := body["familyPhotoUrl"]
 	_, hasYouth := body["youthPhotoUrl"]
 	_, hasInserts := body["announcementInserts"]
-	if !hasImages && !hasSermon && !hasFamily && !hasYouth && !hasInserts {
+
+	fieldValues := fieldValuesFromBody(body)
+	_, hasFvSermon := fieldValues["sermon_poster"]
+	_, hasFvFamily := fieldValues["family_photo"]
+	_, hasFvYouth := fieldValues["youth_photo"]
+
+	if !hasImages && !hasSermon && !hasFamily && !hasYouth && !hasInserts && !hasFvSermon && !hasFvFamily && !hasFvYouth {
 		return nil, ""
 	}
 	current := map[string]any{
@@ -1027,6 +1032,27 @@ func mergeImagesPayload(stored sql.NullString, body map[string]any) (*string, st
 			current["announcementInserts"] = inserts
 		} else {
 			current["announcementInserts"] = []string{}
+		}
+	}
+	if hasFvSermon && !hasSermon {
+		if s, ok := fieldValues["sermon_poster"].(string); ok && strings.TrimSpace(s) != "" && plan.IsSafeImageURL(s) {
+			current["sermonGraphicUrl"] = s
+		} else {
+			current["sermonGraphicUrl"] = nil
+		}
+	}
+	if hasFvFamily && !hasFamily {
+		if s, ok := fieldValues["family_photo"].(string); ok && strings.TrimSpace(s) != "" && plan.IsSafeImageURL(s) {
+			current["familyPhotoUrl"] = s
+		} else {
+			current["familyPhotoUrl"] = nil
+		}
+	}
+	if hasFvYouth && !hasYouth {
+		if s, ok := fieldValues["youth_photo"].(string); ok && strings.TrimSpace(s) != "" && plan.IsSafeImageURL(s) {
+			current["youthPhotoUrl"] = s
+		} else {
+			current["youthPhotoUrl"] = nil
 		}
 	}
 	b, _ := json.Marshal(current)

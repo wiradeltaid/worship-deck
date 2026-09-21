@@ -121,9 +121,9 @@ export default function EditForm({
   });
   const [fieldValues, setFieldValues] = useState<Record<string, string>>(() => {
     const base: Record<string, string> = initialFieldValues ? { ...initialFieldValues } : {};
-    if (initialSermonGraphicUrl && !base.sermon_poster) base.sermon_poster = initialSermonGraphicUrl;
-    if (initialFamilyPhotoUrl && !base.family_photo) base.family_photo = initialFamilyPhotoUrl;
-    if (initialYouthPhotoUrl && !base.youth_photo) base.youth_photo = initialYouthPhotoUrl;
+    if (initialSermonGraphicUrl && base.sermon_poster === undefined) base.sermon_poster = initialSermonGraphicUrl;
+    if (initialFamilyPhotoUrl && base.family_photo === undefined) base.family_photo = initialFamilyPhotoUrl;
+    if (initialYouthPhotoUrl && base.youth_photo === undefined) base.youth_photo = initialYouthPhotoUrl;
     return base;
   });
   const [fieldSuggestions, setFieldSuggestions] = useState<Record<string, string>>({});
