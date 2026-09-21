@@ -94,9 +94,12 @@ export default function ParityDiagnosticPage() {
       const fabricOut: Record<string, any> = {};
       for (const [id, o] of Object.entries(fabricObjects)) {
         const br = o.getBoundingRect();
+        const isCenter = o.originX === 'center';
+        const aLeft = isCenter ? o.left - (o.width ?? 0) / 2 : o.left;
+        const aTop = isCenter ? o.top - (o.height ?? 0) / 2 : o.top;
         fabricOut[id] = {
-          authoredLeft: o.left,
-          authoredTop: o.top,
+          authoredLeft: aLeft,
+          authoredTop: aTop,
           width: o.width,
           height: o.height,
           scaleX: o.scaleX ?? 1,
