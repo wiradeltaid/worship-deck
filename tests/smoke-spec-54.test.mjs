@@ -1,0 +1,209 @@
+/**
+ * SPEC-54: Layout SSOT & Rundown Regex Sandbox Integration, Photo Deletion Persistence, and Canvas Element Rotation Parity
+ * Smoke Test & Executable Absence Guard Suite
+ *
+ * Verifies:
+ * - SPEC-54-01: Form Layout SSOT, Dynamic Hydration on Service Edit, and Seeder Song Set Cleanup
+ *   - Retirement of in-place layout customization and toolbar from DynamicFormBody.tsx
+ *   - Dynamic layout hydration in EditForm.tsx with "Preserved Historical Fields" zero-data-loss guarantee
+ *   - Seeder cleanup in internal/db/form_layout.go & src/lib/db/index.ts removing obsolete hardcoded song set slots
+ * - Defect Injection Proofs:
+ *   - Executable physical mutation tests proving guards catch regressions
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(__dirname, '..');
+
+export function scanSpec54_01Features(dynamicFormSource, editFormSource, dbFormLayoutGoSource, dbIndexTsSource) {
+  const findings = [];
+
+  // SPEC-54-01: Absence of in-place customization in DynamicFormBody.tsx
+  if (dynamicFormSource.includes('Kelola Layout Visual')) {
+    findings.push('DynamicFormBody.tsx must NOT contain "Kelola Layout Visual" button or label');
+  }
+  if (dynamicFormSource.includes('Seed Default Predefined Fields')) {
+    findings.push('DynamicFormBody.tsx must NOT contain "Seed Default Predefined Fields"');
+  }
+  if (dynamicFormSource.includes('Tambah Kartu Form Baru')) {
+    findings.push('DynamicFormBody.tsx must NOT contain "Tambah Kartu Form Baru"');
+  }
+  if (dynamicFormSource.includes('handleSeedDefaults')) {
+    findings.push('DynamicFormBody.tsx must NOT contain "handleSeedDefaults"');
+  }
+  if (dynamicFormSource.includes('isCustomizing')) {
+    findings.push('DynamicFormBody.tsx must NOT contain "isCustomizing" state or controls');
+  }
+
+  // SPEC-54-01: EditForm.tsx dynamic layout hydration & historical preservation
+  if (editFormSource.includes('prev.groupings.length > 0')) {
+    findings.push('EditForm.tsx fetchLayout must NOT freeze groupings to initial snapshot with prev.groupings.length > 0');
+  }
+  if (!editFormSource.includes('buildHistoricalGrouping') && !editFormSource.includes('Preserved Historical Fields')) {
+    findings.push('EditForm.tsx must preserve unassigned saved field values under "Preserved Historical Fields"');
+  }
+
+  // SPEC-54-01: Seeder cleanup in form_layout.go & src/lib/db/index.ts
+  const goDefaultGroupingsMatch = dbFormLayoutGoSource.match(/defaultGroupings\s*:=\s*\[\]groupingDef\{[\s\S]*?\n\t\}/);
+  if (goDefaultGroupingsMatch && goDefaultGroupingsMatch[0].includes('ds_opening_song')) {
+    findings.push('internal/db/form_layout.go defaultGroupings must NOT contain obsolete "ds_opening_song" slot');
+  }
+  if (goDefaultGroupingsMatch && goDefaultGroupingsMatch[0].includes('ds_closing_song')) {
+    findings.push('internal/db/form_layout.go defaultGroupings must NOT contain obsolete "ds_closing_song" slot');
+  }
+
+  const tsGroupingsMatch = dbIndexTsSource.match(/const groupings = \[[\s\S]*?\n\s*\];/);
+  if (tsGroupingsMatch && tsGroupingsMatch[0].includes('ds_opening_song')) {
+    findings.push('src/lib/db/index.ts default groupings must NOT contain obsolete "ds_opening_song" slot');
+  }
+
+  return findings;
+}
+
+test('SPEC-54-01: Form Layout SSOT & Dynamic Hydration source guards', () => {
+  const dynamicFormPath = path.join(root, 'src', 'operator', 'DynamicFormBody.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+  const dbFormLayoutGoPath = path.join(root, 'internal', 'db', 'form_layout.go');
+  const dbIndexTsPath = path.join(root, 'src', 'lib', 'db', 'index.ts');
+
+  const dynamicFormSource = fs.readFileSync(dynamicFormPath, 'utf8');
+  const editFormSource = fs.readFileSync(editFormPath, 'utf8');
+  const dbFormLayoutGoSource = fs.readFileSync(dbFormLayoutGoPath, 'utf8');
+  const dbIndexTsSource = fs.readFileSync(dbIndexTsPath, 'utf8');
+
+  const findings = scanSpec54_01Features(dynamicFormSource, editFormSource, dbFormLayoutGoSource, dbIndexTsSource);
+  assert.deepEqual(findings, [], `SPEC-54-01 findings detected:\n${findings.join('\n')}`);
+});
+
+test('SPEC-54-01-Absence-Guard: Real-File Defect Injection Proofs', () => {
+  const dynamicFormPath = path.join(root, 'src', 'operator', 'DynamicFormBody.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+  const dbFormLayoutGoPath = path.join(root, 'internal', 'db', 'form_layout.go');
+  const dbIndexTsPath = path.join(root, 'src', 'lib', 'db', 'index.ts');
+
+  const baseDynamicForm = fs.readFileSync(dynamicFormPath, 'utf8');
+  const baseEditForm = fs.readFileSync(editFormPath, 'utf8');
+  const baseDbGo = fs.readFileSync(dbFormLayoutGoPath, 'utf8');
+  const baseDbTs = fs.readFileSync(dbIndexTsPath, 'utf8');
+
+  // 1. Inject "Kelola Layout Visual"
+  const injectedKelola = scanSpec54_01Features(
+    baseDynamicForm + '\nconst x = "Kelola Layout Visual";',
+    baseEditForm,
+    baseDbGo.replace(/ds_opening_song/g, '').replace(/ds_closing_song/g, ''),
+    baseDbTs.replace(/ds_opening_song/g, '')
+  );
+  assert.ok(
+    injectedKelola.some((f) => f.includes('Kelola Layout Visual')),
+    'Absence guard must detect injected "Kelola Layout Visual"'
+  );
+
+  // 2. Inject "Seed Default Predefined Fields"
+  const injectedSeed = scanSpec54_01Features(
+    baseDynamicForm + '\nconst x = "Seed Default Predefined Fields";',
+    baseEditForm,
+    baseDbGo.replace(/ds_opening_song/g, '').replace(/ds_closing_song/g, ''),
+    baseDbTs.replace(/ds_opening_song/g, '')
+  );
+  assert.ok(
+    injectedSeed.some((f) => f.includes('Seed Default Predefined Fields')),
+    'Absence guard must detect injected "Seed Default Predefined Fields"'
+  );
+
+  // 3. Inject "Tambah Kartu Form Baru"
+  const injectedTambah = scanSpec54_01Features(
+    baseDynamicForm + '\nconst x = "Tambah Kartu Form Baru";',
+    baseEditForm,
+    baseDbGo.replace(/ds_opening_song/g, '').replace(/ds_closing_song/g, ''),
+    baseDbTs.replace(/ds_opening_song/g, '')
+  );
+  assert.ok(
+    injectedTambah.some((f) => f.includes('Tambah Kartu Form Baru')),
+    'Absence guard must detect injected "Tambah Kartu Form Baru"'
+  );
+
+  // 4. Inject "handleSeedDefaults"
+  const injectedHandler = scanSpec54_01Features(
+    baseDynamicForm + '\nfunction handleSeedDefaults() {}',
+    baseEditForm,
+    baseDbGo.replace(/ds_opening_song/g, '').replace(/ds_closing_song/g, ''),
+    baseDbTs.replace(/ds_opening_song/g, '')
+  );
+  assert.ok(
+    injectedHandler.some((f) => f.includes('handleSeedDefaults')),
+    'Absence guard must detect injected "handleSeedDefaults"'
+  );
+
+  // 5. Inject "isCustomizing"
+  const injectedCustomizing = scanSpec54_01Features(
+    baseDynamicForm + '\nconst isCustomizing = true;',
+    baseEditForm,
+    baseDbGo,
+    baseDbTs
+  );
+  assert.ok(
+    injectedCustomizing.some((f) => f.includes('isCustomizing')),
+    'Absence guard must detect injected "isCustomizing"'
+  );
+
+  // 6. Inject obsolete slot into defaultGroupings
+  const injectedGoObsolete = scanSpec54_01Features(
+    baseDynamicForm,
+    baseEditForm,
+    baseDbGo.replace('defaultGroupings := []groupingDef{', 'defaultGroupings := []groupingDef{\n\t\t// ds_opening_song\n'),
+    baseDbTs
+  );
+  assert.ok(
+    injectedGoObsolete.some((f) => f.includes('ds_opening_song')),
+    'Seeder guard must detect injected obsolete song set slot in form_layout.go'
+  );
+});
+
+test('SPEC-54-01: buildHistoricalGrouping preserves unassigned saved field values', async () => {
+  const { buildHistoricalGrouping } = await import('../src/lib/form-layout.ts');
+
+  const mockLayout = {
+    layout: { id: 'default-layout', title: 'Default', description: '', is_active: 1, version: 1 },
+    groupings: [
+      {
+        id: 'g1',
+        layout_id: 'default-layout',
+        label: 'Sermon',
+        description: '',
+        sort_order: 1,
+        slots: [
+          { id: 's1', layout_id: 'default-layout', grouping_id: 'g1', sort_order: 1, widget_kind: 'predefined_field', ref_key: 'sermon_title' },
+        ],
+      },
+    ],
+    predefined_fields: [
+      { id: 'f1', variable_name: 'sermon_title', shown_text: 'Sermon Title', field_type: 'text' },
+    ],
+  };
+
+  // Case 1: all saved fields are mapped
+  const allMapped = buildHistoricalGrouping(mockLayout, { sermon_title: 'Grace Abounds' });
+  assert.strictEqual(allMapped, null, 'Expected null when all fields are mapped');
+
+  // Case 2: an unmapped field exists with saved value
+  const unmapped = buildHistoricalGrouping(mockLayout, {
+    sermon_title: 'Grace Abounds',
+    mission_spotlight_speaker: 'Elder David',
+    empty_field: '',
+  });
+
+  assert.ok(unmapped, 'Expected historical grouping when unmapped fields exist');
+  assert.strictEqual(unmapped.id, 'grouping-preserved-historical');
+  assert.strictEqual(unmapped.label, 'Preserved Historical Fields');
+  assert.strictEqual(unmapped.slots.length, 1);
+  assert.strictEqual(unmapped.slots[0].ref_key, 'mission_spotlight_speaker');
+  assert.strictEqual(unmapped.slots[0].widget_kind, 'predefined_field');
+
+  // Case 3: null layout returns null
+  assert.strictEqual(buildHistoricalGrouping(null, { x: '1' }), null);
+});
+

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -47,7 +47,10 @@ import {
   type HymnIndexEntry,
   type WorshipFormFields,
 } from '@/lib/worship-form-fields';
-import { DynamicFormBody, type FormLayoutData } from './DynamicFormBody';
+import { DynamicFormBody, type FormGroupingDef, type FormLayoutData } from './DynamicFormBody';
+import { buildHistoricalGrouping } from '@/lib/form-layout';
+
+export { buildHistoricalGrouping };
 
 /** Module-level so the default keeps a stable identity across renders. */
 const EMPTY_HYMN_INDEX: HymnIndexEntry[] = [];
@@ -131,20 +134,22 @@ export default function EditForm({
       const res = await fetch('/api/worship-form-layout');
       if (res.ok) {
         const data = (await res.json()) as FormLayoutData;
-        setLayoutData((prev) => {
-          if (prev && prev.groupings && prev.groupings.length > 0) {
-            return {
-              ...prev,
-              predefined_fields: data.predefined_fields || [],
-            };
-          }
-          return data;
-        });
+        setLayoutData(data);
       }
     } catch {
       // ignore
     }
   };
+
+  const effectiveLayoutData = useMemo(() => {
+    if (!layoutData) return null;
+    const historical = buildHistoricalGrouping(layoutData, fieldValues);
+    if (!historical) return layoutData;
+    return {
+      ...layoutData,
+      groupings: [...(layoutData.groupings || []), historical],
+    };
+  }, [layoutData, fieldValues]);
 
   const [fields, setFields] = useState<WorshipFormFields>(() => ({
     ...fieldsFromParsed(initialParsed),
@@ -290,9 +295,7 @@ export default function EditForm({
         } catch {
           // ignore
         }
-        if (!layoutData || !layoutData.predefined_fields || layoutData.predefined_fields.length === 0) {
-          void fetchLayout();
-        }
+        void fetchLayout();
       } catch {
         // Non-blocking fallback
       }
@@ -991,9 +994,9 @@ export default function EditForm({
             </CardContent>
           </Card>
 
-          {layoutData && layoutData.groupings && layoutData.groupings.length > 0 ? (
+          {effectiveLayoutData !== null ? (
             <DynamicFormBody
-              layoutData={layoutData}
+              layoutData={effectiveLayoutData}
               fieldValues={fieldValues}
               onFieldValueChange={handleFieldValueChange}
               songSetValues={fields.songSets}

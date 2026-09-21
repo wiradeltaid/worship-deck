@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-055-daily-autopilot-mandate-layout-ssot-field-r
 
 ## Resume
 
-- Iteration: 0 (Starting)
+- Iteration: 1 (In Progress)
 - Run branch: autopilot/DEC-055
-- Stopped at: Mandate accepted; starting iteration 1 on SPEC-54
+- Stopped at: Finished SPEC-54-01; moving to SPEC-54-02
 - Blocked: —
 - Parked: [ad-n]
-- Next: Implement SPEC-54 tickets (01 through 04)
+- Next: SPEC-54-02 Photo Deletion Persistence & Anti-Resurrection Guard
 
 ## Smoke Test Results (FR-11, FR-20, FR-21, FR-32)
 
@@ -27,3 +27,4 @@ artifact: .control/decisions/DEC-055-daily-autopilot-mandate-layout-ssot-field-r
 | When | Where | Decided | Instead of | Cost if wrong | Landed in |
 |---|---|---|---|---|---|
 | I-0 (start) | mandate | Start daily autopilot mandate DEC-055 for Layout SSOT, Rundown Regex Sandbox Integration, Photo Deletion Persistence, and Canvas Rotation Parity (SPEC-54) | waiting for interactive manual dispatch | low | .control/decisions/DEC-055-daily-autopilot-mandate-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity.md |
+| I-1 (SPEC-54-01) | src/operator/DynamicFormBody.tsx & EditForm.tsx | Establish FormLayoutAdminPanel as layout SSOT, remove duplicate in-place layout editor, add Preserved Historical Fields compatibility, and clean obsolete song set slots from seeder | in-place layout customization and frozen snapshot layouts | high | src/operator/DynamicFormBody.tsx, src/operator/EditForm.tsx, src/lib/form-layout.ts, internal/db/form_layout.go, src/lib/db/index.ts, tests/smoke-spec-54.test.mjs |

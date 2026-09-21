@@ -1872,12 +1872,7 @@ export function migrateFormLayout(database: Database.Database): void {
         label: 'Song Set',
         description: 'Dynamic congregation song sets and hymns',
         sortOrder: 1,
-        slots: [
-          { id: 'slot-song-set-1', sortOrder: 1, widgetKind: 'song_set_entry', refKey: 'ds_opening_song' },
-          { id: 'slot-song-set-2', sortOrder: 2, widgetKind: 'song_set_entry', refKey: 'praise_song_1' },
-          { id: 'slot-song-set-3', sortOrder: 3, widgetKind: 'song_set_entry', refKey: 'praise_song_2' },
-          { id: 'slot-song-set-4', sortOrder: 4, widgetKind: 'song_set_entry', refKey: 'ds_closing_song' },
-        ],
+        slots: [] as Array<{ id: string; sortOrder: number; widgetKind: string; refKey: string }>,
       },
       {
         id: 'grouping-bible-talk',
@@ -1945,6 +1940,22 @@ export function migrateFormLayout(database: Database.Database): void {
         ],
       },
     ];
+
+    // SPEC-54: Idempotent cleanup of obsolete shipped default song set slots
+    database.prepare(`
+      DELETE FROM form_group_slots
+      WHERE layout_id = 'default-layout'
+        AND grouping_id = 'grouping-song-set'
+        AND id IN ('slot-song-set-1', 'slot-song-set-2', 'slot-song-set-3', 'slot-song-set-4')
+        AND ref_key IN ('ds_opening_song', 'praise_song_1', 'praise_song_2', 'ds_closing_song')
+    `).run();
+
+    const existingGroupCount = (database.prepare(`
+      SELECT COUNT(*) as count FROM form_groupings WHERE layout_id = 'default-layout'
+    `).get() as { count?: number })?.count ?? 0;
+    if (existingGroupCount > 0) {
+      return;
+    }
 
     const insertGrouping = database.prepare(`
       INSERT OR IGNORE INTO form_groupings (id, layout_id, label, description, sort_order)
