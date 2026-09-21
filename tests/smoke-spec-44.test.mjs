@@ -80,12 +80,20 @@ test('SPEC-44-04: Executable Absence Guard & defect injection for slot omission'
   );
 });
 
-test('SPEC-44-05: Admin UI includes ParserProfilesPanel in RegistryAdmin and localization catalogues', async () => {
+test('SPEC-44-05: Admin UI includes ParserProfilesPanel in Layout & Fields and localization catalogues', async () => {
   const registryAdminPath = path.join(root, 'src', 'components', 'admin', 'RegistryAdmin.tsx');
+  const formLayoutAdminPath = path.join(root, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx');
   const registryAdminSource = fs.readFileSync(registryAdminPath, 'utf8');
+  const formLayoutAdminSource = fs.readFileSync(formLayoutAdminPath, 'utf8');
 
-  assert.ok(registryAdminSource.includes('ParserProfilesPanel'), 'RegistryAdmin must import and render ParserProfilesPanel');
-  assert.ok(registryAdminSource.includes("id: 'parsing'"), "RegistryAdmin must have 'parsing' tab");
+  assert.ok(
+    registryAdminSource.includes('ParserProfilesPanel') || formLayoutAdminSource.includes('ParserProfilesPanel'),
+    'Admin must import and render ParserProfilesPanel'
+  );
+  assert.ok(
+    registryAdminSource.includes("id: 'parsing'") || formLayoutAdminSource.includes("activeTab === 'profiles'"),
+    "Admin must provide parser profiles access"
+  );
 
   const enCataloguePath = path.join(root, 'src', 'lib', 'i18n', 'catalogue-en.ts');
   const enSource = fs.readFileSync(enCataloguePath, 'utf8');

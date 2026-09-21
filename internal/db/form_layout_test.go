@@ -89,8 +89,8 @@ func TestFormLayoutSchemaAndAdaptiveSeeder(t *testing.T) {
 	if err := handle.QueryRow(`SELECT COUNT(*) FROM form_group_slots WHERE layout_id = 'default-layout'`).Scan(&slotCount); err != nil {
 		t.Fatalf("query slots: %v", err)
 	}
-	if slotCount != 21 {
-		t.Fatalf("expected 21 total slots (4 song, 2 bible, 1 divine, 4 sermon, 4 ann, 3 family, 3 youth), got %d", slotCount)
+	if slotCount != 17 {
+		t.Fatalf("expected 17 total slots (0 song, 2 bible, 1 divine, 4 sermon, 4 ann, 3 family, 3 youth), got %d", slotCount)
 	}
 
 	// 5. Test adaptive seeder idempotence
@@ -125,7 +125,7 @@ func TestFormLayoutSchemaAndAdaptiveSeeder(t *testing.T) {
 	// 7. Verify Cardinality Unique Constraint on form_group_slots (UNIQUE(layout_id, widget_kind, ref_key))
 	_, err = handle.Exec(`
 		INSERT INTO form_group_slots (id, layout_id, grouping_id, sort_order, widget_kind, ref_key)
-		VALUES ('slot-dup', 'default-layout', 'grouping-bible-talk', 99, 'song_set_entry', 'ds_opening_song')
+		VALUES ('slot-dup', 'default-layout', 'grouping-sermon', 99, 'predefined_field', 'scripture_reference')
 	`)
 	if err == nil {
 		t.Fatalf("expected unique constraint violation for duplicate slot across groupings, got nil")

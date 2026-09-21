@@ -1,6 +1,6 @@
 # Issue SPEC-54-01 — Form Layout SSOT, Dynamic Hydration on Service Edit, and Seeder Song Set Cleanup
 
-**Status:** ready-for-agent  
+**Status:** closed  
 **Spec:** SPEC-54  
 **Component:** hub  
 **Satisfies:** [UC-2, UC-5, FR-11]  

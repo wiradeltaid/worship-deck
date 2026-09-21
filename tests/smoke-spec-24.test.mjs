@@ -439,8 +439,12 @@ test('T-24-08: Absence guard: coordinate overwriting in serializeCanvas fails if
   );
 
   // Simulate injection of defect:
+  const targetPattern = cleanCode.includes('pxToPct(isCenterOrigin ? left - measuredWidth / 2 : left, CANVAS_WIDTH)')
+    ? 'const computedX = left === authoredLeft ? source.x : pxToPct(isCenterOrigin ? left - measuredWidth / 2 : left, CANVAS_WIDTH);'
+    : 'const computedX = left === authoredLeft ? source.x : pxToPct(left, CANVAS_WIDTH);';
+
   const injectedCode = cleanCode.replace(
-    'const computedX = left === authoredLeft ? source.x : pxToPct(left, CANVAS_WIDTH);',
+    targetPattern,
     'const computedX = isHealing || left === authoredLeft ? source.x : pxToPct(left, CANVAS_WIDTH);'
   );
   assert.notEqual(injectedCode, cleanCode, 'Defect injected');

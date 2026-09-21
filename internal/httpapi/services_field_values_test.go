@@ -252,3 +252,83 @@ func TestServiceDeleteTransactionRollbackOnTombstoneFailure(t *testing.T) {
 		t.Fatalf("expected tombstone write to be rolled back (count=0), got %d committed tombstones", tombstoneCount)
 	}
 }
+
+func TestPhotoDeletionPersistenceAndPerKeyMergePrecedence(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. Insert a legacy service with photos in images_payload and sermon.speaker in parsed_data
+	resLegacy, err := handle.Exec(`
+		INSERT INTO services (date, raw_payload, parsed_data, images_payload, updated_at)
+		VALUES ('2026-12-12', 'legacy raw',
+			'{"sermon":{"speaker":"Pastor Legacy","title":"Legacy Faith"}}',
+			'{"familyPhotoUrl":"https://example.com/family.jpg","sermonGraphicUrl":"https://example.com/sermon.jpg"}',
+			'2026-12-12T00:00:00Z')
+	`)
+	if err != nil {
+		t.Fatalf("insert legacy service: %v", err)
+	}
+	legacyID, _ := resLegacy.LastInsertId()
+
+	// 2. Fetch service: verify fallback reads both photos and sermon speaker
+	res := songSetRequest(t, ts, "GET", fmt.Sprintf("/api/services/%d", legacyID), "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get legacy service status = %d, want 200", res.StatusCode)
+	}
+	var svcResp struct {
+		FieldValues map[string]string `json:"field_values"`
+		UpdatedAt   string            `json:"updated_at"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&svcResp)
+	res.Body.Close()
+
+	if svcResp.FieldValues["family_photo"] != "https://example.com/family.jpg" {
+		t.Errorf("expected fallback family_photo, got %q", svcResp.FieldValues["family_photo"])
+	}
+	if svcResp.FieldValues["sermon_speaker_name"] != "Pastor Legacy" {
+		t.Errorf("expected fallback sermon_speaker_name, got %q", svcResp.FieldValues["sermon_speaker_name"])
+	}
+
+	// 3. Update service: explicit deletion of family_photo (field_values["family_photo"] = "")
+	updatePayload := fmt.Sprintf(`{
+		"updated_at": "%s",
+		"field_values": {
+			"family_photo": ""
+		}
+	}`, svcResp.UpdatedAt)
+
+	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", legacyID), updatePayload, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("update service status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 4. Fetch service again: verify family_photo is empty string and does NOT resurrect from images_payload
+	res = songSetRequest(t, ts, "GET", fmt.Sprintf("/api/services/%d", legacyID), "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get service status = %d, want 200", res.StatusCode)
+	}
+	var afterResp struct {
+		FieldValues   map[string]string `json:"field_values"`
+		ImagesPayload map[string]any    `json:"images_payload"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&afterResp)
+	res.Body.Close()
+
+	// family_photo must be empty string (deleted)
+	if afterResp.FieldValues["family_photo"] != "" {
+		t.Errorf("expected deleted family_photo to be empty string, got %q", afterResp.FieldValues["family_photo"])
+	}
+	// images_payload familyPhotoUrl must be nil or empty
+	if afterResp.ImagesPayload != nil && afterResp.ImagesPayload["familyPhotoUrl"] != nil && afterResp.ImagesPayload["familyPhotoUrl"] != "" {
+		t.Errorf("expected images_payload.familyPhotoUrl to be nil/cleared, got %v", afterResp.ImagesPayload["familyPhotoUrl"])
+	}
+	// sermon_speaker_name must still be preserved from legacy parsed_data
+	if afterResp.FieldValues["sermon_speaker_name"] != "Pastor Legacy" {
+		t.Errorf("expected sermon_speaker_name to be preserved via per-key merge, got %q", afterResp.FieldValues["sermon_speaker_name"])
+	}
+	// sermon_poster must still be preserved from legacy images_payload
+	if afterResp.FieldValues["sermon_poster"] != "https://example.com/sermon.jpg" {
+		t.Errorf("expected sermon_poster to be preserved via per-key merge, got %q", afterResp.FieldValues["sermon_poster"])
+	}
+}

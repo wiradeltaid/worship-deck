@@ -1,6 +1,6 @@
 # Issue SPEC-54-02 — Photo Deletion Persistence and Anti-Resurrection Guard
 
-**Status:** ready-for-agent  
+**Status:** closed  
 **Spec:** SPEC-54  
 **Component:** hub  
 **Satisfies:** [UC-5, FR-11]  

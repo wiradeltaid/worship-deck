@@ -295,7 +295,6 @@ func ensureFormLayoutTables(handle *sql.DB) error {
 	// Add extraction_regex to song_set_entries if not present
 	rows, err := handle.Query(`PRAGMA table_info(song_set_entries)`)
 	if err == nil {
-		defer rows.Close()
 		hasCol := false
 		for rows.Next() {
 			var cid, notnull, pk int
@@ -308,6 +307,7 @@ func ensureFormLayoutTables(handle *sql.DB) error {
 				}
 			}
 		}
+		rows.Close()
 		if !hasCol {
 			_, _ = handle.Exec(`ALTER TABLE song_set_entries ADD COLUMN extraction_regex TEXT`)
 		}
@@ -318,6 +318,15 @@ func ensureFormLayoutTables(handle *sql.DB) error {
 
 func SeedDefaultPredefinedFields(db *sql.DB) (SeedReport, error) {
 	var report SeedReport
+
+	// SPEC-54: Idempotent cleanup of obsolete shipped default song set slots
+	_, _ = db.Exec(`
+		DELETE FROM form_group_slots
+		WHERE layout_id = 'default-layout'
+		  AND grouping_id = 'grouping-song-set'
+		  AND id IN ('slot-song-set-1', 'slot-song-set-2', 'slot-song-set-3', 'slot-song-set-4')
+		  AND ref_key IN ('ds_opening_song', 'praise_song_1', 'praise_song_2', 'ds_closing_song')
+	`)
 
 	// Ensure default layout exists
 	_, err := db.Exec(`
@@ -390,12 +399,7 @@ func SeedDefaultPredefinedFields(db *sql.DB) (SeedReport, error) {
 			label:       "Song Set",
 			description: "Dynamic congregation song sets and hymns",
 			sortOrder:   1,
-			slots: []groupingSlotDef{
-				{id: "slot-song-set-1", sortOrder: 1, widgetKind: "song_set_entry", refKey: "ds_opening_song"},
-				{id: "slot-song-set-2", sortOrder: 2, widgetKind: "song_set_entry", refKey: "praise_song_1"},
-				{id: "slot-song-set-3", sortOrder: 3, widgetKind: "song_set_entry", refKey: "praise_song_2"},
-				{id: "slot-song-set-4", sortOrder: 4, widgetKind: "song_set_entry", refKey: "ds_closing_song"},
-			},
+			slots:       []groupingSlotDef{},
 		},
 		{
 			id:          "grouping-bible-talk",

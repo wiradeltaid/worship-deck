@@ -1,6 +1,6 @@
 # SPEC-54 — Layout SSOT & Rundown Regex Sandbox Integration, Photo Deletion Persistence, and Canvas Element Rotation Parity
 
-> **Status:** ready-for-agent  
+> **Status:** closed  
 > **Release:** layout-ssot-field-regex-sandbox-and-canvas-rotation-parity  
 > **Component:** hub  
 > **Touches:** operator, spa, artifacts, services, uploads, tests  

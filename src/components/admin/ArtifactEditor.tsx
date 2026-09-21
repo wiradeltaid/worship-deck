@@ -1109,13 +1109,15 @@ export default function ArtifactEditor({
           if (id) {
             const left = target.left ?? 0;
             const top = target.top ?? 0;
+            const w = target.getScaledWidth ? target.getScaledWidth() : (target.width ?? 0) * (target.scaleX ?? 1);
+            const h = target.getScaledHeight ? target.getScaledHeight() : (target.height ?? 0) * (target.scaleY ?? 1);
             setLiveElements((prev) =>
               prev.map((el) =>
                 el.id === id
                   ? {
                       ...el,
-                      x: pxToPct(left, CANVAS_WIDTH),
-                      y: pxToPct(top, CANVAS_HEIGHT),
+                      x: pxToPct(left - w / 2, CANVAS_WIDTH),
+                      y: pxToPct(top - h / 2, CANVAS_HEIGHT),
                     }
                   : el
               )
@@ -1227,8 +1229,8 @@ export default function ArtifactEditor({
                     : el.style;
                   return {
                     ...el,
-                    x: pxToPct(left, CANVAS_WIDTH),
-                    y: pxToPct(top, CANVAS_HEIGHT),
+                    x: pxToPct(left - w / 2, CANVAS_WIDTH),
+                    y: pxToPct(top - h / 2, CANVAS_HEIGHT),
                     w: pxToPct(w, CANVAS_WIDTH),
                     h: pxToPct(h, CANVAS_HEIGHT),
                     style: nextStyle,
@@ -1272,8 +1274,8 @@ export default function ArtifactEditor({
                 const nextStyle = isImage ? { ...el.style, objectFit: 'fill' as const } : el.style;
                 return {
                   ...el,
-                  x: pxToPct(left, CANVAS_WIDTH),
-                  y: pxToPct(top, CANVAS_HEIGHT),
+                  x: pxToPct(left - w / 2, CANVAS_WIDTH),
+                  y: pxToPct(top - h / 2, CANVAS_HEIGHT),
                   w: pxToPct(w, CANVAS_WIDTH),
                   h: pxToPct(h, CANVAS_HEIGHT),
                   style: nextStyle,
@@ -1286,6 +1288,39 @@ export default function ArtifactEditor({
         }
       };
       canvas.on('object:resizing', onObjectResizing);
+
+      // SPEC-54-04: On active object rotating, synchronize angle in real time to visual layer
+      const onObjectRotating = (opt: any) => {
+        if (isRestoringHistoryRef.current) return;
+        markUserDirty();
+        const target = opt.target;
+        if (target) {
+          const id = getElementId(target);
+          if (id) {
+            const angle = Math.round((((target.angle % 360) + 360) % 360)) % 360;
+            const left = target.left ?? 0;
+            const top = target.top ?? 0;
+            const w = target.getScaledWidth ? target.getScaledWidth() : (target.width ?? 0) * (target.scaleX ?? 1);
+            const h = target.getScaledHeight ? target.getScaledHeight() : (target.height ?? 0) * (target.scaleY ?? 1);
+            setLiveElements((prev) =>
+              prev.map((el) =>
+                el.id === id
+                  ? {
+                      ...el,
+                      rotation: angle,
+                      x: pxToPct(left - w / 2, CANVAS_WIDTH),
+                      y: pxToPct(top - h / 2, CANVAS_HEIGHT),
+                    }
+                  : el
+              )
+            );
+            if (syncTextClipOnMove(target)) {
+              canvas.requestRenderAll();
+            }
+          }
+        }
+      };
+      canvas.on('object:rotating', onObjectRotating);
 
       // SPEC-13-03 / SPEC-26-02 / SPEC-27-02 / SPEC-28-03: On object scaling/modification, recalculate fit & sync live elements
       const onObjectModified = (opt: any) => {
@@ -1530,6 +1565,7 @@ export default function ArtifactEditor({
         canvas.off('object:moving', onObjectMoving);
         canvas.off('object:scaling', onObjectScaling);
         canvas.off('object:resizing', onObjectResizing);
+        canvas.off('object:rotating', onObjectRotating);
         canvas.off('object:modified', onObjectModified);
         canvas.off('text:changed', onTextChanged);
         canvas.off('text:editing:entered' as any, onTextEditingEntered);

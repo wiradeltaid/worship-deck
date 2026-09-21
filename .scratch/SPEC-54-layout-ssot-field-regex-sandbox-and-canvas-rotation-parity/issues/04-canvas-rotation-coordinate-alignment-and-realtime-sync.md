@@ -1,6 +1,6 @@
 # Issue SPEC-54-04 — Canvas Element Rotation Coordinate Alignment and Real-Time Preview Sync
 
-**Status:** ready-for-agent  
+**Status:** closed  
 **Spec:** SPEC-54  
 **Component:** registry  
 **Satisfies:** [UC-14, FR-20, FR-21]  
