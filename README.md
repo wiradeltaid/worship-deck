@@ -110,8 +110,8 @@ Kode aplikasi dilisensikan di bawah [MIT License](LICENSE). Konten pihak ketiga 
 
 ## Nama dan Ikon (The Name and the Icon)
 
-Lisensi MIT pada [LICENSE](LICENSE) memberikan hak yang luas atas kode sumber perangkat lunak. Lisensi tersebut tidak mencakup hak atas nama dagang atau logo — perlindungan terpisah berlaku untuk nama **Worship Presenter Web**, nama studio **Wira Delta Indonesia** (**WDI**), serta ikon dan logo grafis proyek.
+Lisensi MIT pada [LICENSE](LICENSE) memberikan hak yang luas atas kode sumber perangkat lunak. Lisensi tersebut tidak mencakup hak atas nama dagang atau logo — perlindungan terpisah berlaku untuk nama **WorshipDeck**, nama studio **Wira Delta Indonesia** (**WDI**), serta ikon dan logo grafis proyek.
 
-Anda diperkenankan menyebut nama-nama tersebut untuk merujuk pada proyek ini (misalnya: *"berdasarkan Worship Presenter Web"*, *"fork dari Worship Presenter Web"*, atau *"kompatibel dengan Worship Presenter Web"*). Anda tidak diperkenankan menggunakannya sebagai nama produk turunan Anda sendiri atau dengan cara yang mengesankan adanya afiliasi maupun dukungan resmi dari proyek ini.
+Anda diperkenankan menyebut nama-nama tersebut untuk merujuk pada proyek ini (misalnya: *"berdasarkan WorshipDeck"*, *"fork dari WorshipDeck"*, atau *"kompatibel dengan WorshipDeck"*). Anda tidak diperkenankan menggunakannya sebagai nama produk turunan Anda sendiri atau dengan cara yang mengesankan adanya afiliasi maupun dukungan resmi dari proyek ini.
 
 Jika Anda mempublikasikan build modifikasi — dan adaptasi untuk tradisi liturgi gereja lain sangat dianjurkan — gunakan nama produk Anda sendiri agar jemaat yang menggunakannya mengetahui pihak yang bertanggung jawab atas dukungan teknisnya. Kode sumber bebas untuk Anda kembangkan; nama dan tanda merek tetap dilindungi.
