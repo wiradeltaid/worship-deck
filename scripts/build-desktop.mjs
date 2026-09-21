@@ -43,7 +43,7 @@ export async function buildDesktopPackage(options = {}) {
     {
       cwd: repoRoot,
       stdio: 'inherit',
-      shell: true,
+      shell: false,
       env: {
         ...process.env,
         GOOS: 'windows',
@@ -68,18 +68,23 @@ export async function buildDesktopPackage(options = {}) {
   console.log(`[build-desktop] 4/4: Checking Inno Setup compiler (ISCC) (requireInstaller: ${requireInstaller})...`);
   const issFile = path.join(repoRoot, 'installer', 'worship-deck.iss');
   const isccPaths = [
-    'ISCC.exe',
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Inno Setup 6', 'ISCC.exe'),
     'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe',
     'C:\\Program Files\\Inno Setup 6\\ISCC.exe',
+    'ISCC.exe',
   ];
 
   let isccBin = isccPaths.find((p) => {
-    try {
-      const res = spawnSync(p, ['/?'], { stdio: 'ignore', shell: true });
-      return res.status === 0;
-    } catch {
-      return false;
+    if (p !== 'ISCC.exe' && fs.existsSync(p)) return true;
+    if (p === 'ISCC.exe') {
+      try {
+        const res = spawnSync('where', ['ISCC.exe'], { stdio: 'ignore', shell: true });
+        return res.status === 0;
+      } catch {
+        return false;
+      }
     }
+    return false;
   });
 
   if (isccBin) {
@@ -87,7 +92,7 @@ export async function buildDesktopPackage(options = {}) {
     const innoRes = spawnSync(isccBin, [issFile], {
       cwd: repoRoot,
       stdio: 'inherit',
-      shell: true,
+      shell: false,
     });
     if (innoRes.status !== 0) {
       throw new Error(`Inno Setup compilation failed with exit code ${innoRes.status}`);

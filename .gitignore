@@ -133,6 +133,10 @@ data.db.bak-*
 /.what-rendered/
 /.how-rendered/
 
+# Desktop packaging and installer artifacts
+/dist-desktop/
+/dist-installer/
+
 # Ephemeral execution scratch and raw tool dumps
 .work/*.txt
 .work/*.log
