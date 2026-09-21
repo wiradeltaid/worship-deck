@@ -24,6 +24,10 @@ OutputBaseFilename=WorshipDeckSetup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=worship-deck.ico
+UninstallIconFile=worship-deck.ico
+WizardImageFile=wizard-image.bmp
+WizardSmallImageFile=wizard-small.bmp
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
@@ -45,6 +49,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Read-only Application Binaries and Assets in {app}
 Source: "..\dist-desktop\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist-desktop\package.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "worship-deck.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist-desktop\runtime\*"; DestDir: "{app}\runtime"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\dist-desktop\workers\*"; DestDir: "{app}\workers"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\dist-desktop\src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -52,9 +57,9 @@ Source: "..\dist-desktop\node_modules\*"; DestDir: "{app}\node_modules"; Flags: 
 Source: "..\spa\dist\*"; DestDir: "{app}\spa\dist"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
-Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\worship-deck.ico"; WorkingDir: "{app}"
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\worship-deck.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\worship-deck.ico"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
