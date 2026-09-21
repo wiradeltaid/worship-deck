@@ -1318,8 +1318,8 @@ decisions:
       - tests/smoke-spec-54.test.mjs
   - id: DEC-056
     type: mandate
-    status: accepted
-    applied_at: null
+    status: applied
+    applied_at: '2026-09-21'
     accepted_by: "kodesh87 (2026-09-21)"
     title: Daily Autopilot mandate for Canvas Center-Origin Geometry Parity & Release Jump Elimination (SPEC-55)
     file: .control/decisions/DEC-056-daily-autopilot-mandate-canvas-center-origin-geometry-parity.md

@@ -1,6 +1,6 @@
 # Issue SPEC-55-01 — Shared Center-Origin Bidirectional Geometry Helpers and Text/Shape/Line Constructor Alignment
 
-**Status:** open  
+**Status:** closed  
 **Spec:** SPEC-55  
 **Component:** registry  
 **Satisfies:** [UC-14, FR-20, FR-21]  

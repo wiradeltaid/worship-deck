@@ -123,6 +123,9 @@ import {
   NEW_SHAPE_SIZE_PX,
   NEW_TEXT_CONTENT,
   NEW_TEXT_SIZE_PX,
+  centerPxToTopLeftPct,
+  topLeftPctToCenterPx,
+  getScaledDimensions,
   clampFontSize,
   commitFontSizeFromDraft,
   computeContextMenuCoords,
@@ -1109,15 +1112,15 @@ export default function ArtifactEditor({
           if (id) {
             const left = target.left ?? 0;
             const top = target.top ?? 0;
-            const w = target.getScaledWidth ? target.getScaledWidth() : (target.width ?? 0) * (target.scaleX ?? 1);
-            const h = target.getScaledHeight ? target.getScaledHeight() : (target.height ?? 0) * (target.scaleY ?? 1);
+            const dims = getScaledDimensions(target);
+            const { x: newX, y: newY } = centerPxToTopLeftPct(left, top, dims.w, dims.h);
             setLiveElements((prev) =>
               prev.map((el) =>
                 el.id === id
                   ? {
                       ...el,
-                      x: pxToPct(left - w / 2, CANVAS_WIDTH),
-                      y: pxToPct(top - h / 2, CANVAS_HEIGHT),
+                      x: newX,
+                      y: newY,
                     }
                   : el
               )
@@ -1220,6 +1223,7 @@ export default function ArtifactEditor({
                 setImageFit('fill');
               }
 
+              const { x: newX, y: newY } = centerPxToTopLeftPct(left, top, w, h);
               setLiveElements((prev) =>
                 prev.map((el) => {
                   if (el.id !== id) return el;
@@ -1229,8 +1233,8 @@ export default function ArtifactEditor({
                     : el.style;
                   return {
                     ...el,
-                    x: pxToPct(left - w / 2, CANVAS_WIDTH),
-                    y: pxToPct(top - h / 2, CANVAS_HEIGHT),
+                    x: newX,
+                    y: newY,
                     w: pxToPct(w, CANVAS_WIDTH),
                     h: pxToPct(h, CANVAS_HEIGHT),
                     style: nextStyle,
@@ -1268,14 +1272,15 @@ export default function ArtifactEditor({
             const left = target.left ?? 0;
             const top = target.top ?? 0;
             targetData.authoredWidth = w;
+            const { x: newX, y: newY } = centerPxToTopLeftPct(left, top, w, h);
             setLiveElements((prev) =>
               prev.map((el) => {
                 if (el.id !== id) return el;
                 const nextStyle = isImage ? { ...el.style, objectFit: 'fill' as const } : el.style;
                 return {
                   ...el,
-                  x: pxToPct(left - w / 2, CANVAS_WIDTH),
-                  y: pxToPct(top - h / 2, CANVAS_HEIGHT),
+                  x: newX,
+                  y: newY,
                   w: pxToPct(w, CANVAS_WIDTH),
                   h: pxToPct(h, CANVAS_HEIGHT),
                   style: nextStyle,
@@ -1382,6 +1387,7 @@ export default function ArtifactEditor({
               const h = (mData?.authoredHeight ?? member.height ?? 50);
               const left = member.left ?? 0;
               const top = member.top ?? 0;
+              const { x: newX, y: newY } = centerPxToTopLeftPct(left, top, w, h);
               setLiveElements((prev) =>
                 prev.map((el) => {
                   if (el.id !== id) return el;
@@ -1391,8 +1397,8 @@ export default function ArtifactEditor({
                     : el.style;
                   return {
                     ...el,
-                    x: pxToPct(left, CANVAS_WIDTH),
-                    y: pxToPct(top, CANVAS_HEIGHT),
+                    x: newX,
+                    y: newY,
                     w: pxToPct(w, CANVAS_WIDTH),
                     h: pxToPct(h, CANVAS_HEIGHT),
                     style: nextStyle,
@@ -1460,12 +1466,12 @@ export default function ArtifactEditor({
                 : typeof liveEl?.h === 'number'
                   ? pctToPx(liveEl.h, CANVAS_HEIGHT)
                   : (target.height ?? 50) * Math.abs(target.scaleY ?? 1);
-            const currentTopPx =
-              typeof target.top === 'number'
+            const currentTopEdgePx =
+              (typeof target.top === 'number'
                 ? target.top
                 : liveEl?.y
-                  ? pctToPx(liveEl.y, CANVAS_HEIGHT)
-                  : 0;
+                  ? pctToPx(liveEl.y, CANVAS_HEIGHT) + currentH / 2
+                  : currentH / 2) - currentH / 2;
 
             const { boundedRequiredHeight, shouldExpand } = computeAutoExpandedHeight({
               textContent: newText,
@@ -1476,21 +1482,37 @@ export default function ArtifactEditor({
               fontFamily: liveEl?.style?.fontFamily || target.fontFamily,
               fontWeight: String(liveEl?.style?.fontWeight || target.fontWeight || 'normal'),
               fontStyle: String(liveEl?.style?.fontStyle || target.fontStyle || 'normal'),
-              topPx: currentTopPx,
+              topPx: currentTopEdgePx,
             });
 
             if (shouldExpand) {
-              target.set({ height: boundedRequiredHeight, scaleY: 1 });
+              const deltaY = (boundedRequiredHeight - currentH) / 2;
+              const angleDeg = typeof target.angle === 'number' ? target.angle : 0;
+              const rad = (angleDeg * Math.PI) / 180;
+              const deltaLeft = -deltaY * Math.sin(rad);
+              const deltaTop = deltaY * Math.cos(rad);
+              const newLeft = (target.left ?? 0) + deltaLeft;
+              const newTop = (target.top ?? 0) + deltaTop;
+
+              target.set({
+                height: boundedRequiredHeight,
+                left: newLeft,
+                top: newTop,
+                scaleY: 1,
+              });
               target.setCoords?.();
               targetData.authoredHeight = boundedRequiredHeight;
               targetData.heightChange = 'font-size-auto';
               syncTextClipOnScale(target);
+              const { x: newX, y: newY } = centerPxToTopLeftPct(newLeft, newTop, currentW, boundedRequiredHeight);
               setLiveElements((prev) =>
                 prev.map((el) =>
                   el.id === id
                     ? {
                         ...el,
                         content: newText,
+                        x: newX,
+                        y: newY,
                         h: pxToPct(boundedRequiredHeight, CANVAS_HEIGHT),
                       }
                     : el
@@ -2227,15 +2249,15 @@ export default function ArtifactEditor({
       const source = byId.get(elementId);
       if (!source) continue;
 
-      const leftPx = typeof obj.left === 'number' ? obj.left : pctToPx(source.x, CANVAS_WIDTH);
-      const topPx = typeof obj.top === 'number' ? obj.top : pctToPx(source.y, CANVAS_HEIGHT);
-      const liveX = pxToPct(leftPx, CANVAS_WIDTH);
-      const liveY = pxToPct(topPx, CANVAS_HEIGHT);
+      const center = topLeftPctToCenterPx(source.x, source.y, source.w, source.h);
+      const leftPx = typeof obj.left === 'number' ? obj.left : center.left;
+      const topPx = typeof obj.top === 'number' ? obj.top : center.top;
 
       const objW = Math.abs(obj.width ?? 0) * (obj.scaleX ?? 1);
       const objH = typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
         ? (obj as any).data.authoredHeight
         : Math.abs(obj.height ?? 0) * (obj.scaleY ?? 1);
+      const { x: liveX, y: liveY } = centerPxToTopLeftPct(leftPx, topPx, objW, objH);
       const liveW = objW > 0 ? pxToPct(objW, CANVAS_WIDTH) : source.w;
       const liveH = objH > 0 ? pxToPct(objH, CANVAS_HEIGHT) : source.h;
 
@@ -2597,13 +2619,19 @@ export default function ArtifactEditor({
       // Image element copies its URL string by reference (shared ref).
       const leftPx = typeof obj.left === 'number' ? obj.left : pctToPx(source.x, CANVAS_WIDTH);
       const topPx = typeof obj.top === 'number' ? obj.top : pctToPx(source.y, CANVAS_HEIGHT);
-      const liveX = Math.min(90, pxToPct(leftPx, CANVAS_WIDTH) + pxToPct(INSERT_CASCADE_PX, CANVAS_WIDTH));
-      const liveY = Math.min(90, pxToPct(topPx, CANVAS_HEIGHT) + pxToPct(INSERT_CASCADE_PX, CANVAS_HEIGHT));
+      const centerLeft = typeof obj.left === 'number' ? leftPx : leftPx + pctToPx(source.w / 2, CANVAS_WIDTH);
+      const centerTop = typeof obj.top === 'number' ? topPx : topPx + pctToPx(source.h / 2, CANVAS_HEIGHT);
 
       const objW = Math.abs(obj.width ?? 0) * (obj.scaleX ?? 1);
       const objH = Math.abs(obj.height ?? 0) * (obj.scaleY ?? 1);
+      const effectiveH = typeof (obj as any).data?.authoredHeight === 'number' && (obj as any).data.authoredHeight > 0
+        ? (obj as any).data.authoredHeight
+        : objH;
+      const { x: baseTopLeftX, y: baseTopLeftY } = centerPxToTopLeftPct(centerLeft, centerTop, objW, effectiveH);
+      const liveX = Math.min(90, baseTopLeftX + pxToPct(INSERT_CASCADE_PX, CANVAS_WIDTH));
+      const liveY = Math.min(90, baseTopLeftY + pxToPct(INSERT_CASCADE_PX, CANVAS_HEIGHT));
       const liveW = objW > 0 ? pxToPct(objW, CANVAS_WIDTH) : source.w;
-      const liveH = objH > 0 ? pxToPct(objH, CANVAS_HEIGHT) : source.h;
+      const liveH = effectiveH > 0 ? pxToPct(effectiveH, CANVAS_HEIGHT) : source.h;
 
       const clonedStyle: TextStyle & ImageStyle & ShapeStyle = source.style ? { ...source.style } : {};
 
@@ -3354,12 +3382,12 @@ export default function ArtifactEditor({
         : typeof liveEl?.h === 'number'
           ? pctToPx(liveEl.h, CANVAS_HEIGHT)
           : (textObj.height ?? 50) * Math.abs(textObj.scaleY ?? 1);
-    const currentTopPx =
-      typeof textObj.top === 'number'
+    const currentTopEdgePx =
+      (typeof textObj.top === 'number'
         ? textObj.top
         : liveEl?.y
-          ? pctToPx(liveEl.y, CANVAS_HEIGHT)
-          : 0;
+          ? pctToPx(liveEl.y, CANVAS_HEIGHT) + currentH / 2
+          : currentH / 2) - currentH / 2;
 
     const { boundedRequiredHeight, shouldExpand } = computeAutoExpandedHeight({
       textContent: value,
@@ -3370,21 +3398,37 @@ export default function ArtifactEditor({
       fontFamily: liveEl?.style?.fontFamily || textObj.fontFamily,
       fontWeight: String(liveEl?.style?.fontWeight || textObj.fontWeight || 'normal'),
       fontStyle: String(liveEl?.style?.fontStyle || textObj.fontStyle || 'normal'),
-      topPx: currentTopPx,
+      topPx: currentTopEdgePx,
     });
 
     if (shouldExpand) {
-      textObj.set({ height: boundedRequiredHeight, scaleY: 1 });
+      const deltaY = (boundedRequiredHeight - currentH) / 2;
+      const angleDeg = typeof textObj.angle === 'number' ? textObj.angle : 0;
+      const rad = (angleDeg * Math.PI) / 180;
+      const deltaLeft = -deltaY * Math.sin(rad);
+      const deltaTop = deltaY * Math.cos(rad);
+      const newLeft = (textObj.left ?? 0) + deltaLeft;
+      const newTop = (textObj.top ?? 0) + deltaTop;
+
+      textObj.set({
+        height: boundedRequiredHeight,
+        left: newLeft,
+        top: newTop,
+        scaleY: 1,
+      });
       textObj.setCoords?.();
       objData.authoredHeight = boundedRequiredHeight;
       objData.heightChange = 'font-size-auto';
       syncTextClipOnScale(textObj);
+      const { x: newX, y: newY } = centerPxToTopLeftPct(newLeft, newTop, currentW, boundedRequiredHeight);
       setLiveElements((prev) =>
         prev.map((el) =>
           el.id === id
             ? {
                 ...el,
                 content: value,
+                x: newX,
+                y: newY,
                 h: pxToPct(boundedRequiredHeight, CANVAS_HEIGHT),
               }
             : el
@@ -3447,12 +3491,12 @@ export default function ArtifactEditor({
           : typeof liveEl?.h === 'number'
             ? pctToPx(liveEl.h, CANVAS_HEIGHT)
             : (obj.height ?? 50) * Math.abs(obj.scaleY ?? 1);
-      const currentTopPx =
-        typeof obj.top === 'number'
+      const currentTopEdgePx =
+        (typeof obj.top === 'number'
           ? obj.top
           : liveEl?.y
-            ? pctToPx(liveEl.y, CANVAS_HEIGHT)
-            : 0;
+            ? pctToPx(liveEl.y, CANVAS_HEIGHT) + currentH / 2
+            : currentH / 2) - currentH / 2;
 
       const { boundedRequiredHeight, shouldExpand } = computeAutoExpandedHeight({
         textContent: obj.text ?? liveEl?.content ?? '',
@@ -3463,20 +3507,36 @@ export default function ArtifactEditor({
         fontFamily: liveEl?.style?.fontFamily || obj.fontFamily,
         fontWeight: String(liveEl?.style?.fontWeight || obj.fontWeight || 'normal'),
         fontStyle: String(liveEl?.style?.fontStyle || obj.fontStyle || 'normal'),
-        topPx: currentTopPx,
+        topPx: currentTopEdgePx,
       });
 
       if (shouldExpand) {
-        obj.set({ height: boundedRequiredHeight, scaleY: 1 });
+        const deltaY = (boundedRequiredHeight - currentH) / 2;
+        const angleDeg = typeof obj.angle === 'number' ? obj.angle : 0;
+        const rad = (angleDeg * Math.PI) / 180;
+        const deltaLeft = -deltaY * Math.sin(rad);
+        const deltaTop = deltaY * Math.cos(rad);
+        const newLeft = (obj.left ?? 0) + deltaLeft;
+        const newTop = (obj.top ?? 0) + deltaTop;
+
+        obj.set({
+          height: boundedRequiredHeight,
+          left: newLeft,
+          top: newTop,
+          scaleY: 1,
+        });
         obj.setCoords?.();
         objData.authoredHeight = boundedRequiredHeight;
         objData.heightChange = 'font-size-auto';
         syncTextClipOnScale(obj);
+        const { x: newX, y: newY } = centerPxToTopLeftPct(newLeft, newTop, currentW, boundedRequiredHeight);
         setLiveElements((prev) =>
           prev.map((el) =>
             el.id === id
               ? {
                   ...el,
+                  x: newX,
+                  y: newY,
                   h: pxToPct(boundedRequiredHeight, CANVAS_HEIGHT),
                   style: { ...el.style, fontSize: result.fontSize },
                 }

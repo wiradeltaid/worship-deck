@@ -43,6 +43,44 @@ export function pxToPct(value: number, total: number) {
   return (value / total) * 100;
 }
 
+export function centerPxToTopLeftPct(
+  centerLeftPx: number,
+  centerTopPx: number,
+  widthPx: number,
+  heightPx: number
+): { x: number; y: number } {
+  return {
+    x: pxToPct(centerLeftPx - widthPx / 2, CANVAS_WIDTH),
+    y: pxToPct(centerTopPx - heightPx / 2, CANVAS_HEIGHT),
+  };
+}
+
+export function topLeftPctToCenterPx(
+  xPct: number,
+  yPct: number,
+  wPct: number,
+  hPct: number
+): { left: number; top: number; width: number; height: number } {
+  const width = pctToPx(wPct, CANVAS_WIDTH);
+  const height = pctToPx(hPct, CANVAS_HEIGHT);
+  return {
+    left: pctToPx(xPct + wPct / 2, CANVAS_WIDTH),
+    top: pctToPx(yPct + hPct / 2, CANVAS_HEIGHT),
+    width,
+    height,
+  };
+}
+
+export function getScaledDimensions(obj: any): { w: number; h: number } {
+  const w = typeof obj?.getScaledWidth === 'function'
+    ? obj.getScaledWidth()
+    : Math.abs(obj?.width ?? 0) * Math.abs(obj?.scaleX ?? 1);
+  const h = typeof obj?.getScaledHeight === 'function'
+    ? obj.getScaledHeight()
+    : Math.abs(obj?.data?.authoredHeight ?? obj?.height ?? 0) * Math.abs(obj?.scaleY ?? 1);
+  return { w, h };
+}
+
 export const MIN_ELEMENT_W_PCT = pxToPct(1, CANVAS_WIDTH);
 export const MIN_ELEMENT_H_PCT = pxToPct(1, CANVAS_HEIGHT);
 
@@ -180,12 +218,16 @@ export function buildTextFabricOptions(
   element: CanvasElement,
   options?: { editable?: boolean; fabric?: any }
 ) {
-  const left = pctToPx(element.x, CANVAS_WIDTH);
-  const top = pctToPx(element.y, CANVAS_HEIGHT);
-  const width = pctToPx(element.w, CANVAS_WIDTH);
-  const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const { left, top, width, height } = topLeftPctToCenterPx(
+    element.x,
+    element.y,
+    element.w,
+    element.h
+  );
   const editable = options?.editable ?? false;
   const common = {
+    originX: 'center',
+    originY: 'center',
     left,
     top,
     width,
@@ -242,10 +284,12 @@ export function buildShapeFabricOptions(
   element: CanvasElement,
   options?: { editable?: boolean }
 ) {
-  const width = pctToPx(element.w, CANVAS_WIDTH);
-  const height = pctToPx(element.h, CANVAS_HEIGHT);
-  const left = pctToPx(element.x + element.w / 2, CANVAS_WIDTH);
-  const top = pctToPx(element.y + element.h / 2, CANVAS_HEIGHT);
+  const { left, top, width, height } = topLeftPctToCenterPx(
+    element.x,
+    element.y,
+    element.w,
+    element.h
+  );
   const editable = options?.editable ?? false;
   const common = {
     originX: 'center',
@@ -397,10 +441,13 @@ export function applyFabricTextFit(
   // Clip text overflow outside authored box
   if (typeof fabric?.Rect === 'function') {
     tb.clipPath = new fabric.Rect({
+      originX: tb.originX ?? 'center',
+      originY: tb.originY ?? 'center',
       left: tb.left,
       top: tb.top,
       width: boxWidth,
       height: boxHeight,
+      angle: tb.angle ?? 0,
       absolutePositioned: true,
     });
   }
@@ -460,10 +507,12 @@ export function elementToFabricObject(
   editable: boolean = false,
   options?: { isHealing?: boolean; transparentProxy?: boolean }
 ): any {
-  const width = pctToPx(element.w, CANVAS_WIDTH);
-  const height = pctToPx(element.h, CANVAS_HEIGHT);
-  const left = pctToPx(element.x + element.w / 2, CANVAS_WIDTH);
-  const top = pctToPx(element.y + element.h / 2, CANVAS_HEIGHT);
+  const { left, top, width, height } = topLeftPctToCenterPx(
+    element.x,
+    element.y,
+    element.w,
+    element.h
+  );
   const isProxy = Boolean(options?.transparentProxy);
   const common = {
     originX: 'center',
@@ -730,10 +779,13 @@ export function elementToFabricObject(
       const clipBox =
         typeof fabric?.Rect === 'function'
           ? new fabric.Rect({
+              originX: 'center',
+              originY: 'center',
               left,
               top,
               width,
               height,
+              angle: typeof element.rotation === 'number' ? element.rotation : 0,
               absolutePositioned: true,
             })
           : undefined;
@@ -1316,8 +1368,9 @@ export function serializeCanvas(
             ? pxToPct(measuredHeight, CANVAS_HEIGHT)
             : source.h;
 
-    // SPEC-24-03 / SPEC-54-04: Non-destructive center-origin canvas serialization.
+    // SPEC-24-03 / SPEC-54-04 / SPEC-55-01: Non-destructive center-origin canvas serialization.
     // Coordinates reflect live Fabric object positions when moved; converts center (left, top) back to top-left (x, y) if originX is center.
+    const centerDerived = centerPxToTopLeftPct(left, top, measuredWidth, measuredHeight);
     const computedX = left === authoredLeft ? source.x : pxToPct(isCenterOrigin ? left - measuredWidth / 2 : left, CANVAS_WIDTH);
     const computedY = top === authoredTop ? source.y : pxToPct(isCenterOrigin ? top - measuredHeight / 2 : top, CANVAS_HEIGHT);
 
@@ -1661,20 +1714,26 @@ export function updateImageElementFit(
   let clipBox = imgObj.clipPath;
   if (!clipBox && fabric?.Rect) {
     clipBox = new fabric.Rect({
+      originX: 'center',
+      originY: 'center',
       left: boxLeft,
       top: boxTop,
       width: boxWidth,
       height: boxHeight,
+      angle: typeof imgObj.angle === 'number' ? imgObj.angle : 0,
       scaleX: 1,
       scaleY: 1,
       absolutePositioned: true,
     });
   } else if (clipBox) {
     clipBox.set({
+      originX: 'center',
+      originY: 'center',
       left: boxLeft,
       top: boxTop,
       width: boxWidth,
       height: boxHeight,
+      angle: typeof imgObj.angle === 'number' ? imgObj.angle : 0,
       scaleX: 1,
       scaleY: 1,
       absolutePositioned: true,
@@ -1727,8 +1786,11 @@ export function syncImageClipOnMove(target: any): boolean {
   const targetTop = target.top ?? 0;
 
   clip.set({
+    originX: target.originX ?? 'center',
+    originY: target.originY ?? 'center',
     left: targetLeft + offsetX,
     top: targetTop + offsetY,
+    angle: target.angle ?? 0,
   });
   if (typeof clip.setCoords === 'function') {
     clip.setCoords();
@@ -1772,6 +1834,8 @@ export function syncImageClipOnScale(target: any): boolean {
   const targetTop = target.top ?? 0;
 
   clip.set({
+    originX: target.originX ?? 'center',
+    originY: target.originY ?? 'center',
     left: targetLeft + offsetX * ratioX,
     top: targetTop + offsetY * ratioY,
     width: origClipWidth * ratioX,

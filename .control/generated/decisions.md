@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**56 decisions** — accepted: 1 · applied: 55.
+**56 decisions** — applied: 56.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -63,4 +63,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-053` | Daily Autopilot mandate for Unified Workspace Schedule-Preset Rundown Slide0 Architecture (SPEC-52) | `applied` | mandate | `.control/memlog/autopilot-DEC-053.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-52-unified-workspace-schedule-preset-rundown-slide0-architecture/SPEC.md`, `src/operator/workspace/`, `spa/src/`, `tests/smoke-spec-52.test.mjs` | `.control/decisions/DEC-053-daily-autopilot-mandate-unified-workspace-schedule-preset-rundown-slide0.md` |
 | `DEC-054` | Daily Autopilot mandate for Form Card Slot Reorder and Presenter Transition Parity (SPEC-53) | `applied` | mandate | `.control/memlog/autopilot-DEC-054.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-53-form-card-slot-reorder-and-presenter-transition-parity/SPEC.md`, `src/operator/workspace/`, `spa/src/`, `tests/smoke-spec-53.test.mjs` | `.control/decisions/DEC-054-daily-autopilot-mandate-form-card-slot-reorder-and-presenter-parity.md` |
 | `DEC-055` | Daily Autopilot mandate for Layout SSOT, Rundown Regex Sandbox Integration, Photo Deletion Persistence, and C… | `applied` | mandate | `.control/memlog/autopilot-DEC-055.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-54-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity/SPEC.md`, `src/operator/`, `src/components/admin/`, `src/lib/registry/`, `internal/httpapi/`, `internal/db/`, `tests/smoke-spec-54.test.mjs` | `.control/decisions/DEC-055-daily-autopilot-mandate-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity.md` |
-| `DEC-056` | Daily Autopilot mandate for Canvas Center-Origin Geometry Parity & Release Jump Elimination (SPEC-55) | `accepted` | mandate | `.control/memlog/autopilot-DEC-056.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-55-canvas-center-origin-geometry-parity/SPEC.md`, `src/lib/registry/`, `src/components/admin/`, `tests/smoke-spec-55.test.mjs` | `.control/decisions/DEC-056-daily-autopilot-mandate-canvas-center-origin-geometry-parity.md` |
+| `DEC-056` | Daily Autopilot mandate for Canvas Center-Origin Geometry Parity & Release Jump Elimination (SPEC-55) | `applied` | mandate | `.control/memlog/autopilot-DEC-056.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-55-canvas-center-origin-geometry-parity/SPEC.md`, `src/lib/registry/`, `src/components/admin/`, `tests/smoke-spec-55.test.mjs` | `.control/decisions/DEC-056-daily-autopilot-mandate-canvas-center-origin-geometry-parity.md` |
