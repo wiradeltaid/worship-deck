@@ -166,7 +166,7 @@ const LIVENESS_POLL_INTERVAL_MS = 200;
  * the handle we keep.
  */
 function projectorWindowName(serviceId: number): string {
-  return `bic-projector-${serviceId}`;
+  return `worship-deck-projector-${serviceId}`;
 }
 
 function SlideListRow({

@@ -241,7 +241,7 @@ function PredefinedFieldSlotRenderer({
         {hasSuggestion && (
           <div className="flex items-center gap-1.5">
             <Badge variant="secondary" className="text-[10px] font-normal border-primary/30">
-              Saran: {suggestion.slice(0, 30)}
+              Suggestion: {suggestion.slice(0, 30)}
               {suggestion.length > 30 ? '...' : ''}
             </Badge>
             <Button
@@ -252,7 +252,7 @@ function PredefinedFieldSlotRenderer({
               onClick={onAcceptSuggestion}
               disabled={disabled}
             >
-              Gunakan
+              Use
             </Button>
           </div>
         )}
@@ -342,7 +342,7 @@ function SongSetSlotRenderer({
         {suggestion && (
           <div className="flex items-center gap-1.5">
             <Badge variant="outline" className="border-primary/40 text-[10px]">
-              Saran: #{suggestion.songNumber || suggestion.number} ({suggestion.songBookCode || 'SDAH'})
+              Suggestion: #{suggestion.songNumber || suggestion.number} ({suggestion.songBookCode || 'SDAH'})
             </Badge>
             <Button
               type="button"
@@ -352,7 +352,7 @@ function SongSetSlotRenderer({
               onClick={onAcceptSuggestion}
               disabled={disabled}
             >
-              Gunakan
+              Use
             </Button>
           </div>
         )}
@@ -386,7 +386,7 @@ function SongSetSlotRenderer({
             bookCode={selectedBookCode}
             onChange={(v) => onChange('songNumber', v)}
             hymnIndex={hymnIndex}
-            placeholder="Nomor lagu..."
+            placeholder="Song number..."
             disabled={disabled}
           />
         </div>
@@ -424,7 +424,7 @@ function SongSetSlotRenderer({
               className="h-9 px-3 text-xs"
               onClick={onToggleLyricEditor}
             >
-              {isLyricOpen ? 'Tutup Lirik' : 'Edit Lirik'}
+              {isLyricOpen ? 'Close Lyrics' : 'Edit Lyrics'}
             </Button>
           )}
           {hasValidNum && onSaveToBook && (
@@ -436,7 +436,7 @@ function SongSetSlotRenderer({
               onClick={onSaveToBook}
               disabled={disabled || isSavingBook}
             >
-              {isSavingBook ? 'Menyimpan...' : 'Simpan ke Buku'}
+              {isSavingBook ? 'Saving...' : 'Save to Book'}
             </Button>
           )}
         </div>

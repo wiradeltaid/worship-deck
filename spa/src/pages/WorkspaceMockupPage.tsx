@@ -527,8 +527,8 @@ export default function WorkspaceMockupPage() {
           announcementData: {
             looping: true,
             flyers: [
-              { id: 'f-new-1', title: 'Pengumuman Baru A', url: '/assets/flyer1.jpg', category: 'announcement' },
-              { id: 'f-new-2', title: 'Pengumuman Baru B', url: '/assets/flyer2.jpg', category: 'announcement' },
+              { id: 'f-new-1', title: 'New Announcement A', url: '/assets/flyer1.jpg', category: 'announcement' },
+              { id: 'f-new-2', title: 'New Announcement B', url: '/assets/flyer2.jpg', category: 'announcement' },
             ],
           },
         };
@@ -537,8 +537,8 @@ export default function WorkspaceMockupPage() {
         newItem = {
           id: nextId,
           type: 'scripture',
-          title: 'Pembacaan Firman Tambahan',
-          subtitle: 'Mazmur 23:1-6 (TB2)',
+          title: 'Additional Scripture Reading',
+          subtitle: 'Psalm 23:1-6 (KJV)',
           duration: '10:40',
           slidesCount: 1,
         };
@@ -547,14 +547,14 @@ export default function WorkspaceMockupPage() {
         newItem = {
           id: nextId,
           type: 'sermon',
-          title: 'Renungan Tambahan',
-          subtitle: 'Pnt. Pembicara Tamu',
+          title: 'Additional Sermon',
+          subtitle: 'Guest Speaker',
           duration: '10:45',
           slidesCount: 1,
           sermonData: {
-            speaker: 'Pnt. Pembicara Tamu',
-            title: 'Renungan Tambahan',
-            scriptureRef: 'Mazmur 23',
+            speaker: 'Guest Speaker',
+            title: 'Additional Sermon',
+            scriptureRef: 'Psalm 23',
           },
         };
         break;
@@ -562,14 +562,14 @@ export default function WorkspaceMockupPage() {
         newItem = {
           id: nextId,
           type: 'custom_slide',
-          title: 'Slide Bebas Baru',
-          subtitle: 'Kustom Konten',
+          title: 'New Custom Slide',
+          subtitle: 'Custom Content',
           duration: '10:50',
           slidesCount: 1,
           customSlideData: {
-            title: 'Slide Bebas Baru',
-            content: 'Ketik nats, puisi, atau responsif warta di sini...',
-            subtitle: 'Kustom Konten',
+            title: 'New Custom Slide',
+            content: 'Type scripture, poem, or responsive liturgy here...',
+            subtitle: 'Custom Content',
             backgroundUrl: '/assets/background-navy.jpg',
             style: {
               alignment: 'center',

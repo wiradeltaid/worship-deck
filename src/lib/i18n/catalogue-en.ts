@@ -15,7 +15,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
     'Saved. Hub screens now use Indonesian. Projector and slideshow are unchanged.',
   'admin.uiLocale.saveFailed':
     'Could not save the language setting. Try again or reload the page.',
-  'chrome.brand.title': 'BIC Presenter Hub',
+  'chrome.brand.title': 'WorshipDeck',
   'chrome.brand.tagline': 'Manage presentation slides',
   'chrome.nav.dashboard': 'Dashboard',
   'chrome.nav.artifacts': 'Artifacts',

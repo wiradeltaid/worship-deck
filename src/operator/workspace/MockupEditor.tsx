@@ -86,7 +86,7 @@ export default function MockupEditor({
   const isSlide0 = item.id === PINNED_SLIDE_0_ID;
 
   const [rawText, setRawText] = useState(
-    `09:00 - Pembukaan & Ucapan Selamat Datang\n09:05 - Lagu Buka: SDAH 123 "Hai Pujilah Tuhan"\n09:15 - Doa Pembuka\n09:20 - Warta Jemaat Mingguan\n09:30 - Pembacaan Alkitab: Yohanes 3:16\n09:35 - Khotbah: Pdt. John Doe "Kasih yang Mengubahkan"\n10:15 - Lagu Tutup: SDAH 45 "Tuhan Allah Beserta Engkau"\n10:25 - Doa Berkat`
+    `09:00 - Welcome Remarks\n09:05 - Opening Song: SDAH 123 "O Worship the Lord"\n09:15 - Opening Prayer\n09:20 - Weekly Announcements\n09:30 - Scripture Reading: John 3:16\n09:35 - Sermon: Pr. John Doe "Transforming Grace"\n10:15 - Closing Song: SDAH 45 "God Be with You"\n10:25 - Benediction`
   );
 
   // Modal drawer states for in-place creation simulation
@@ -105,12 +105,12 @@ export default function MockupEditor({
 
   const handleSimulateAddSong = () => {
     if (!newSongTitle.trim()) {
-      toast.error('Judul lagu tidak boleh kosong');
+      toast.error('Song title cannot be empty');
       return;
     }
-    toast.success(`Lagu "${newSongTitle}" berhasil ditambahkan ke pustaka lagu`);
+    toast.success(`Song "${newSongTitle}" added to song library`);
     onUpdateItem({
-      title: `Lagu — ${newSongTitle}`,
+      title: `Song — ${newSongTitle}`,
       subtitle: newSongNumber ? `SDAH ${newSongNumber}` : undefined,
       songData: {
         ...item.songData,
@@ -124,7 +124,7 @@ export default function MockupEditor({
 
   const handleSimulateUploadFlyer = () => {
     if (!newFlyerTitle.trim()) {
-      toast.error('Judul warta tidak boleh kosong');
+      toast.error('Announcement title cannot be empty');
       return;
     }
     const newFlyers = [
@@ -146,7 +146,7 @@ export default function MockupEditor({
       },
       slidesCount: newFlyers.length,
     });
-    toast.success(`Flyer "${newFlyerTitle}" berhasil diunggah ke slot warta`);
+    toast.success(`Flyer "${newFlyerTitle}" uploaded to announcements`);
     setUploadFlyerModalOpen(false);
     setNewFlyerTitle('');
   };
@@ -188,7 +188,7 @@ export default function MockupEditor({
         isMasterBound: false,
         songData: item.songData ? JSON.parse(JSON.stringify(item.songData)) : undefined,
       });
-      toast.success('Lagu telah dilepas (detached) dari Master Songset.');
+      toast.success('Song has been detached from Master Songset.');
     }
   };
 
@@ -204,7 +204,7 @@ export default function MockupEditor({
           ? JSON.parse(JSON.stringify(item.announcementData))
           : undefined,
       });
-      toast.success('Warta telah dilepas (detached) dari Master Warta.');
+      toast.success('Announcement has been detached from Master Announcements.');
     }
   };
 
@@ -313,11 +313,11 @@ export default function MockupEditor({
                 className="w-full h-44 font-mono text-xs p-3 rounded-xl border border-border/80 bg-background/90 focus:outline-hidden focus:ring-1 focus:ring-amber-500"
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
-                placeholder="Tempel rundown dari WhatsApp atau catatan rapat di sini (contoh: 09:00 - Lagu Buka: SDAH 123...)"
+                placeholder="Paste rundown from WhatsApp or meeting notes here (e.g. 09:00 - Opening Song: SDAH 123...)"
                 data-testid="raw-rundown-textarea"
               />
               <p className="text-[11px] text-muted-foreground">
-                Parser otomatis menguraikan nomor lagu SDAH, pembacaan firman, pengkhotbah, dan warta ke slide 1..N.
+                Auto-parser extracts hymn numbers, scripture readings, speaker, and announcements into formatted slides.
               </p>
             </div>
 
@@ -326,7 +326,7 @@ export default function MockupEditor({
               <div className="flex items-center justify-between border-b border-border/60 pb-2">
                 <div className="flex items-center gap-2 text-foreground font-bold text-xs">
                   <Tag className="w-4 h-4 text-primary" />
-                  <span>Variabel Formulir Ibadah Mingguan ({'{tokens}'})</span>
+                  <span>Weekly Service Form Variables ({'{tokens}'})</span>
                 </div>
                 <span className="text-[11px] text-muted-foreground font-mono">
                   DEC-004 Instance Binding
@@ -337,7 +337,7 @@ export default function MockupEditor({
                 {/* Sermon Speaker */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold">Pengkhotbah ({'{sermon_speaker}'})</Label>
+                    <Label className="text-xs font-semibold">Speaker ({'{sermon_speaker}'})</Label>
                     <Button
                       type="button"
                       variant="link"
@@ -345,7 +345,7 @@ export default function MockupEditor({
                       onClick={() => setDutyRosterOpen(true)}
                       className="h-auto p-0 text-[11px] text-primary hover:underline"
                     >
-                      Buka Roster
+                      Open Roster
                     </Button>
                   </div>
                   <Input
@@ -354,21 +354,21 @@ export default function MockupEditor({
                       if (onUpdateWeeklyVars) onUpdateWeeklyVars({ sermon_speaker: e.target.value });
                     }}
                     className="h-8 text-xs bg-background/90"
-                    placeholder="Nama Pengkhotbah..."
+                    placeholder="Speaker name..."
                     data-testid="sermon-speaker-input"
                   />
                 </div>
 
                 {/* Sermon Title */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Judul Khotbah ({'{sermon_title}'})</Label>
+                  <Label className="text-xs font-semibold">Sermon Title ({'{sermon_title}'})</Label>
                   <Input
                     value={weeklyVars.sermon_title}
                     onChange={(e) => {
                       if (onUpdateWeeklyVars) onUpdateWeeklyVars({ sermon_title: e.target.value });
                     }}
                     className="h-8 text-xs bg-background/90"
-                    placeholder="Judul Khotbah..."
+                    placeholder="Sermon title..."
                     data-testid="sermon-title-input"
                   />
                 </div>
@@ -420,7 +420,7 @@ export default function MockupEditor({
               <div className="pt-2 border-t border-border/60 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-foreground">
-                    Slot Flyer Warta Jemaat Mingguan
+                    Weekly Announcement Flyer Slots
                   </Label>
                   <Button
                     size="sm"
@@ -429,7 +429,7 @@ export default function MockupEditor({
                     onClick={() => setUploadFlyerModalOpen(true)}
                   >
                     <Upload className="w-3 h-3" />
-                    <span>Unggah Flyer Mingguan</span>
+                    <span>Upload Weekly Flyer</span>
                   </Button>
                 </div>
 
@@ -466,7 +466,7 @@ export default function MockupEditor({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-cyan-700 dark:text-cyan-300 font-bold text-xs">
-                    🔗 Terikat Master: {item.masterSongSetTitle || item.title}
+                    🔗 Linked to Master: {item.masterSongSetTitle || item.title}
                   </span>
                 </div>
                 <Button
@@ -477,7 +477,7 @@ export default function MockupEditor({
                   data-testid="detach-master-songset-button"
                 >
                   <Unlink className="w-3 h-3" />
-                  <span>🔓 Detach dari Master Songset</span>
+                  <span>🔓 Detach from Master Songset</span>
                 </Button>
               </div>
             )}
@@ -489,7 +489,7 @@ export default function MockupEditor({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-purple-700 dark:text-purple-300 font-bold text-xs">
-                    🔗 Terikat Master Warta: {item.masterAnnouncementSetTitle || item.title}
+                    🔗 Linked to Master Announcements: {item.masterAnnouncementSetTitle || item.title}
                   </span>
                 </div>
                 <Button
@@ -500,7 +500,7 @@ export default function MockupEditor({
                   data-testid="detach-master-announcement-button"
                 >
                   <Unlink className="w-3 h-3" />
-                  <span>🔓 Detach dari Master Warta</span>
+                  <span>🔓 Detach from Master Announcements</span>
                 </Button>
               </div>
             )}
@@ -630,22 +630,22 @@ export default function MockupEditor({
                 data-testid="open-media-gallery-button"
               >
                 <ImageIcon className="w-3.5 h-3.5 text-primary" />
-                <span>Pilih Background</span>
+                <span>Select Background</span>
               </Button>
             </div>
 
             {/* Predefined Field Compact Token Inserter Palette */}
             <div className="p-2.5 rounded-xl border border-border/70 bg-card/40 space-y-1.5" data-testid="token-palette">
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                Sisipkan Variabel Mingguan ke Teks Slide
+                Insert Weekly Variables into Slide Text
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
-                  { token: '{sermon_speaker}', label: 'Pengkhotbah' },
-                  { token: '{sermon_title}', label: 'Judul Khotbah' },
-                  { token: '{scripture_reference}', label: 'Ayat Alkitab' },
-                  { token: '{worship_leader}', label: 'Liturgis' },
-                  { token: '{family_of_the_week}', label: 'Keluarga Syafaat' },
+                  { token: '{sermon_speaker}', label: 'Speaker' },
+                  { token: '{sermon_title}', label: 'Sermon Title' },
+                  { token: '{scripture_reference}', label: 'Scripture' },
+                  { token: '{worship_leader}', label: 'Worship Leader' },
+                  { token: '{family_of_the_week}', label: 'Prayer Family' },
                 ].map(({ token, label }) => (
                   <Button
                     key={token}
@@ -654,7 +654,7 @@ export default function MockupEditor({
                     size="sm"
                     onClick={() => handleInsertToken(token)}
                     className="h-auto px-2 py-1 rounded-md text-[11px] font-mono bg-muted hover:bg-primary/20 hover:text-primary transition-colors border border-border/80 cursor-pointer flex items-center gap-1"
-                    title={`Sisipkan ${token}`}
+                    title={`Insert ${token}`}
                     data-testid={`insert-token-${token.replace(/[{}]/g, '')}`}
                   >
                     <span>{token}</span>
@@ -667,9 +667,9 @@ export default function MockupEditor({
             {/* Direct Slide Text Body (Canvas-First) */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                <span>Konten Teks Slide (WYSIWYG Kanvas)</span>
+                <span>Slide Text Content (Canvas WYSIWYG)</span>
                 <span className="text-[11px] font-normal text-muted-foreground">
-                  Judul kartu timeline otomatis diambil dari baris pertama teks.
+                  Card title in timeline is automatically derived from the first line.
                 </span>
               </Label>
               <Textarea
@@ -690,7 +690,7 @@ export default function MockupEditor({
                     },
                   });
                 }}
-                placeholder="Ketik isi teks slide atau sisipkan token di sini..."
+                placeholder="Type slide text or insert tokens here..."
                 rows={6}
                 className="text-xs bg-background/90 resize-none font-sans p-3 leading-relaxed"
                 data-testid="slide-content-textarea"
@@ -703,7 +703,7 @@ export default function MockupEditor({
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-bold text-xs">
                     <Music className="w-4 h-4" />
-                    <span>Konfigurasi Lagu & Lirik Pujian</span>
+                    <span>Hymn & Lyrics Configuration</span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <Button
@@ -716,7 +716,7 @@ export default function MockupEditor({
                       data-testid="choose-master-song-set-button"
                     >
                       <Copy className="w-3 h-3" />
-                      <span>Pilih dari Master Songset</span>
+                      <span>Select from Master Songset</span>
                     </Button>
                     <Button
                       size="sm"
@@ -726,12 +726,12 @@ export default function MockupEditor({
                         if (onSaveToMasterSongSet) {
                           onSaveToMasterSongSet(item);
                         } else {
-                          toast.success(`Lagu "${item.title}" berhasil disimpan ke Master Songset.`);
+                          toast.success(`Song "${item.title}" saved to Master Songset.`);
                         }
                       }}
                       data-testid="save-to-master-song-set-button"
                     >
-                      <span>Simpan ke Master Songset</span>
+                      <span>Save to Master Songset</span>
                     </Button>
                     <Button
                       size="sm"
@@ -741,21 +741,21 @@ export default function MockupEditor({
                       data-testid="add-local-song-button"
                     >
                       <Plus className="w-3 h-3" />
-                      <span>Tambah Lagu Lokal</span>
+                      <span>Add Local Song</span>
                     </Button>
                   </div>
                 </div>
 
                 {/* Dual-Column 1920 Full HD Ergonomic Song Editor */}
                 <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
-                  {/* Left Column: Metadata & Nada Lagu */}
+                  {/* Left Column: Metadata & Song Key */}
                   <div className="space-y-3 p-3 rounded-lg bg-background/60 border border-border/60">
                     <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Metadata & Nada Lagu
+                      Song Metadata & Key
                     </h4>
                     <div className="space-y-2.5">
                       <div className="space-y-1">
-                        <Label className="text-xs">Buku Lagu</Label>
+                        <Label className="text-xs">Songbook</Label>
                         <Select
                           value={item.songData?.bookCode || 'SDAH'}
                           onValueChange={(val) =>
@@ -776,7 +776,7 @@ export default function MockupEditor({
                       </div>
 
                       <div className="space-y-1">
-                        <Label className="text-xs">Nomor Lagu</Label>
+                        <Label className="text-xs">Song Number</Label>
                         <Input
                           value={item.songData?.hymnNumber ? `#${item.songData.hymnNumber}` : '#123'}
                           readOnly
@@ -785,7 +785,7 @@ export default function MockupEditor({
                       </div>
 
                       <div className="space-y-1">
-                        <Label className="text-xs">Nada Dasar</Label>
+                        <Label className="text-xs">Key</Label>
                         <Select
                           value={item.songData?.key || 'D'}
                           onValueChange={(val) =>
@@ -800,7 +800,7 @@ export default function MockupEditor({
                           <SelectContent>
                             {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((k) => (
                               <SelectItem key={k} value={k}>
-                                Kunci {k}
+                                Key {k}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -808,7 +808,7 @@ export default function MockupEditor({
                       </div>
 
                       <div className="space-y-1">
-                        <Label className="text-xs">Background Slide</Label>
+                        <Label className="text-xs">Slide Background</Label>
                         <Select
                           value={item.songData?.backgroundUrl || '/assets/background-navy.jpg'}
                           onValueChange={(val) =>
@@ -821,9 +821,9 @@ export default function MockupEditor({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="/assets/background-navy.jpg">Gradient Default (Navy)</SelectItem>
-                            <SelectItem value="/assets/background-sanctuary.jpg">Sanctuary Mimbar</SelectItem>
-                            <SelectItem value="/assets/background-nature.jpg">Alam / Nature</SelectItem>
+                            <SelectItem value="/assets/background-navy.jpg">Default Gradient (Navy)</SelectItem>
+                            <SelectItem value="/assets/background-sanctuary.jpg">Sanctuary / Stage</SelectItem>
+                            <SelectItem value="/assets/background-nature.jpg">Nature</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -833,10 +833,10 @@ export default function MockupEditor({
                   {/* Right Column: Verses Selector */}
                   <div className="space-y-3 p-3 rounded-lg bg-background/60 border border-border/60">
                     <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Bait yang Dinyanyikan
+                      Stanzas to Sing
                     </h4>
                     <div className="space-y-1.5 pt-1">
-                      <Label className="text-xs font-semibold">Pilih Bait Aktif</Label>
+                      <Label className="text-xs font-semibold">Select Active Stanzas</Label>
                       <div className="flex flex-wrap items-center gap-2" data-testid="verse-checkboxes">
                         {[1, 2, 3, 4].map((v) => {
                           const activeVerses = item.songData?.activeVerses || [1, 2, 4];
@@ -880,7 +880,7 @@ export default function MockupEditor({
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-bold text-xs">
                     <Megaphone className="w-4 h-4" />
-                    <span>Set Warta Jemaat (Carousel Slide)</span>
+                    <span>Weekly Announcements (Carousel Slide)</span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <Button
@@ -893,7 +893,7 @@ export default function MockupEditor({
                       data-testid="choose-master-announcement-button"
                     >
                       <Copy className="w-3 h-3" />
-                      <span>Pilih dari Master Warta</span>
+                      <span>Select from Master Announcements</span>
                     </Button>
                     <Button
                       size="sm"
@@ -903,12 +903,12 @@ export default function MockupEditor({
                         if (onSaveToMasterAnnouncementSet) {
                           onSaveToMasterAnnouncementSet(item);
                         } else {
-                          toast.success('Koleksi flyer warta berhasil disimpan sebagai Master Warta Baru.');
+                          toast.success('Announcement collection saved as Master Announcements.');
                         }
                       }}
                       data-testid="save-to-master-announcement-button"
                     >
-                      <span>Simpan sebagai Master Warta Baru</span>
+                      <span>Save as New Master Announcements</span>
                     </Button>
                     <Button
                       size="sm"
@@ -917,7 +917,7 @@ export default function MockupEditor({
                       onClick={() => setUploadFlyerModalOpen(true)}
                     >
                       <Upload className="w-3 h-3" />
-                      <span>Unggah Flyer...</span>
+                      <span>Upload Flyer...</span>
                     </Button>
                   </div>
                 </div>
@@ -925,8 +925,8 @@ export default function MockupEditor({
                 {/* 4-Slot Flyer Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5" data-testid="flyer-slots-grid">
                   {(item.announcementData?.flyers || [
-                    { id: 'f1', title: 'Seminar Kesehatan', url: '/assets/flyer1.jpg', category: 'announcement' },
-                    { id: 'f2', title: 'Perkemahan Pemuda', url: '/assets/flyer2.jpg', category: 'announcement' },
+                    { id: 'f1', title: 'Health Seminar', url: '/assets/flyer1.jpg', category: 'announcement' },
+                    { id: 'f2', title: 'Youth Camp', url: '/assets/flyer2.jpg', category: 'announcement' },
                   ]).map((flyer, idx) => (
                     <div
                       key={flyer.id}
@@ -954,7 +954,7 @@ export default function MockupEditor({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-xs">
                     <Presentation className="w-4 h-4" />
-                    <span>Predefined Field Khotbah & Pembicara</span>
+                    <span>Sermon & Speaker Predefined Fields</span>
                   </div>
                   <Button
                     type="button"
@@ -965,7 +965,7 @@ export default function MockupEditor({
                     data-testid="open-duty-roster-button"
                   >
                     <Users className="w-3.5 h-3.5" />
-                    <span>Pilih dari Roster Pelayan</span>
+                    <span>Select from Duty Roster</span>
                   </Button>
                 </div>
 
@@ -976,7 +976,7 @@ export default function MockupEditor({
                 >
                   <span className="text-xs font-bold text-muted-foreground">Token Binding:</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
-                    {'{sermon_speaker}'} → {weeklyVars.sermon_speaker || item.sermonData?.speaker || 'Pdt. Pembicara'}
+                    {'{sermon_speaker}'} → {weeklyVars.sermon_speaker || item.sermonData?.speaker || 'Guest Speaker'}
                   </span>
                   <span className="text-muted-foreground text-xs">•</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold">
@@ -995,7 +995,7 @@ export default function MockupEditor({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
                     <FileCode className="w-4 h-4" />
-                    <span>Slide Bebas (Kanvas Kustom)</span>
+                    <span>Custom Slide (Free Canvas)</span>
                   </div>
                   <Button
                     type="button"
@@ -1005,13 +1005,13 @@ export default function MockupEditor({
                     onClick={() => setMediaGalleryOpen(true)}
                   >
                     <ImageIcon className="w-3 h-3" />
-                    <span>Galeri Media</span>
+                    <span>Media Gallery</span>
                   </Button>
                 </div>
 
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Judul Slide Bebas</Label>
+                    <Label className="text-xs font-semibold">Custom Slide Title</Label>
                     <Input
                       value={item.customSlideData?.title || item.title}
                       onChange={(e) => {
@@ -1031,7 +1031,7 @@ export default function MockupEditor({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Konten / Teks Bebas (Multi-Baris)</Label>
+                    <Label className="text-xs font-semibold">Custom Content / Text (Multi-Line)</Label>
                     <Textarea
                       value={item.customSlideData?.content || item.textContent || ''}
                       onChange={(e) => {
@@ -1045,7 +1045,7 @@ export default function MockupEditor({
                           },
                         });
                       }}
-                      placeholder="Ketik lirik bebas, puisi, responsif warta, atau kutipan nats di sini..."
+                      placeholder="Type freeform lyrics, responsive liturgy, quotes, or scripture verses here..."
                       rows={4}
                       className="text-xs bg-background/80 resize-none font-mono"
                       data-testid="custom-slide-content-textarea"
@@ -1075,7 +1075,7 @@ export default function MockupEditor({
         currentSpeaker={weeklyVars.sermon_speaker}
         onSelectSpeaker={(speakerName) => {
           if (onUpdateWeeklyVars) onUpdateWeeklyVars({ sermon_speaker: speakerName });
-          toast.success(`${speakerName} ditetapkan sebagai Pengkhotbah.`);
+          toast.success(`${speakerName} assigned as Speaker.`);
         }}
       />
 
@@ -1086,7 +1086,7 @@ export default function MockupEditor({
           onUpdateItem({
             canvasStyle: { ...item.canvasStyle, backgroundUrl: assetUrl },
           });
-          toast.success('Background berhasil diterapkan.');
+          toast.success('Background applied successfully.');
         }}
       />
 
@@ -1094,34 +1094,34 @@ export default function MockupEditor({
       <Dialog open={addSongModalOpen} onOpenChange={setAddSongModalOpen}>
         <DialogContent className="sm:max-w-md" data-testid="add-song-dialog">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold">Tambah Lagu Lokal</DialogTitle>
+            <DialogTitle className="text-sm font-bold">Add Local Song</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label className="text-xs">Judul Lagu</Label>
+              <Label className="text-xs">Song Title</Label>
               <Input
                 value={newSongTitle}
                 onChange={(e) => setNewSongTitle(e.target.value)}
-                placeholder="Contoh: Indah Kasih-Nya..."
+                placeholder="e.g. Amazing Grace..."
                 className="h-8 text-xs"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Nomor Lagu (Opsional)</Label>
+              <Label className="text-xs">Song Number (Optional)</Label>
               <Input
                 value={newSongNumber}
                 onChange={(e) => setNewSongNumber(e.target.value)}
-                placeholder="Contoh: 145"
+                placeholder="e.g. 145"
                 className="h-8 text-xs"
               />
             </div>
           </div>
           <DialogFooter>
             <Button size="sm" variant="ghost" onClick={() => setAddSongModalOpen(false)}>
-              Batal
+              Cancel
             </Button>
             <Button size="sm" onClick={handleSimulateAddSong}>
-              Simpan Lagu
+              Save Song
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1131,25 +1131,25 @@ export default function MockupEditor({
       <Dialog open={uploadFlyerModalOpen} onOpenChange={setUploadFlyerModalOpen}>
         <DialogContent className="sm:max-w-md" data-testid="upload-flyer-dialog">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold">Unggah Flyer Warta</DialogTitle>
+            <DialogTitle className="text-sm font-bold">Upload Announcement Flyer</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label className="text-xs">Judul Acara / Warta</Label>
+              <Label className="text-xs">Event / Announcement Title</Label>
               <Input
                 value={newFlyerTitle}
                 onChange={(e) => setNewFlyerTitle(e.target.value)}
-                placeholder="Contoh: Seminar Alkitab Khusus..."
+                placeholder="e.g. Special Bible Seminar..."
                 className="h-8 text-xs"
               />
             </div>
           </div>
           <DialogFooter>
             <Button size="sm" variant="ghost" onClick={() => setUploadFlyerModalOpen(false)}>
-              Batal
+              Cancel
             </Button>
             <Button size="sm" onClick={handleSimulateUploadFlyer}>
-              Simpan Flyer
+              Save Flyer
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1159,35 +1159,35 @@ export default function MockupEditor({
       <Dialog open={isFormLayoutModalOpen} onOpenChange={setIsFormLayoutModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold">Konfigurasi Tata Letak Formulir Ibadah</DialogTitle>
+            <DialogTitle className="text-sm font-bold">Configure Worship Form Layout</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2 text-xs text-muted-foreground">
             <p>
-              Sesuaikan urutan dan visibilitas kolom formulir mingguan khusus jadwal ini.
-              Perubahan di sini hanya memengaruhi instance jadwal aktif tanpa mengubah skema baku kamus master (DEC-004 boundary).
+              Customize order and visibility of weekly form fields for this schedule.
+              Changes affect this schedule instance without altering master dictionary schema (DEC-004 boundary).
             </p>
             <div className="space-y-2 p-3 rounded-lg bg-muted/40 border border-border">
               <div className="flex items-center justify-between">
-                <span>Pengkhotbah & Judul Khotbah</span>
-                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
+                <span>Speaker & Sermon Title</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Ayat Pembacaan Pokok</span>
-                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
+                <span>Key Scripture Reading</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Pemimpin Acara & Keluarga Syafaat</span>
-                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
+                <span>Worship Leader & Intercessory Prayer</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Slot Flyer Warta Jemaat</span>
-                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Aktif</span>
+                <span>Weekly Announcement Flyer Slots</span>
+                <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button size="sm" onClick={() => setIsFormLayoutModalOpen(false)}>
-              Tutup & Terapkan
+              Close & Apply
             </Button>
           </DialogFooter>
         </DialogContent>

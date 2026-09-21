@@ -36,31 +36,31 @@ export function getTypeBadge(type: TimelineItemType) {
   switch (type) {
     case 'song':
       return {
-        label: 'Pujian',
+        label: 'Hymn',
         icon: <Music className="w-3.5 h-3.5" />,
         className: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
       };
     case 'scripture':
       return {
-        label: 'Firman',
+        label: 'Scripture',
         icon: <BookOpen className="w-3.5 h-3.5" />,
         className: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
       };
     case 'announcement':
       return {
-        label: 'Warta',
+        label: 'Announcement',
         icon: <Megaphone className="w-3.5 h-3.5" />,
         className: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
       };
     case 'sermon':
       return {
-        label: 'Khotbah',
+        label: 'Sermon',
         icon: <Presentation className="w-3.5 h-3.5" />,
         className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
       };
     case 'custom_slide':
       return {
-        label: 'Slide Bebas',
+        label: 'Custom Slide',
         icon: <FileText className="w-3.5 h-3.5" />,
         className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
       };
@@ -95,11 +95,11 @@ export default function MockupTimeline({
           <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
             <span>Rundown Timeline</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-              {regularItems.length} item slide
+              {regularItems.length} slides
             </span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Urutan jadwal ibadah dan slide aktif
+            Service schedule order and active presentation slides
           </p>
         </div>
 
@@ -109,7 +109,7 @@ export default function MockupTimeline({
             data-testid="add-timeline-item-button"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Item</span>
+            <span>Add Item</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
@@ -118,7 +118,7 @@ export default function MockupTimeline({
               data-testid="add-song-option"
             >
               <Music className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
-              <span>Lagu / Pujian Baru</span>
+              <span>New Song / Hymn</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer text-xs"
@@ -126,7 +126,7 @@ export default function MockupTimeline({
               data-testid="add-announcement-option"
             >
               <Megaphone className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-              <span>Set Warta Jemaat</span>
+              <span>Announcement Set</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer text-xs"
@@ -134,7 +134,7 @@ export default function MockupTimeline({
               data-testid="add-scripture-option"
             >
               <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-              <span>Ayat Pembacaan Alkitab</span>
+              <span>Scripture Reading</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer text-xs"
@@ -142,7 +142,7 @@ export default function MockupTimeline({
               data-testid="add-sermon-option"
             >
               <Presentation className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-              <span>Slide Khotbah / Pembicara</span>
+              <span>Sermon / Speaker Slide</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer text-xs"
@@ -150,7 +150,7 @@ export default function MockupTimeline({
               data-testid="add-custom-slide-option"
             >
               <FileText className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-              <span>Slide Bebas (Kanvas Kustom)</span>
+              <span>Custom Slide (Canvas)</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer text-xs"
@@ -206,10 +206,10 @@ export default function MockupTimeline({
                 </div>
 
                 <h3 className="text-xs font-bold text-foreground truncate">
-                  {slide0?.title || 'Slide 0: Rundown & Formulir Ibadah'}
+                  {slide0?.title || 'Slide 0: Service Rundown & Form'}
                 </h3>
                 <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                  {slide0?.subtitle || 'Pusat integrasi teks rundown mentah dan variabel formulir mingguan'}
+                  {slide0?.subtitle || 'Integration hub for raw rundown text and weekly form variables'}
                 </p>
               </div>
             </div>
@@ -222,10 +222,10 @@ export default function MockupTimeline({
             data-testid="timeline-empty-state"
           >
             <p className="text-xs text-muted-foreground font-semibold">
-              Belum ada slide presentasi (Jadwal Bersih)
+              No presentation slides yet (Clean Schedule)
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Tempel teks rundown di Slide 0 atau gunakan [Salin Preset] untuk menyalin template susunan slide.
+              Paste service rundown in Slide 0 or click [Copy Preset] to populate the schedule.
             </p>
             <Button
               type="button"

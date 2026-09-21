@@ -156,7 +156,7 @@ export function adoptsSharedState(
 }
 
 export function presentChannelName(serviceId: number | string): string {
-  return `bic-present-${serviceId}`;
+  return `worship-deck-present-${serviceId}`;
 }
 
 export function openPresentChannel(

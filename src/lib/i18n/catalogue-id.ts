@@ -15,7 +15,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
     'Tersimpan. Layar hub sekarang memakai bahasa Indonesia. Proyektor dan slideshow tidak berubah.',
   'admin.uiLocale.saveFailed':
     'Pengaturan bahasa tidak dapat disimpan. Coba lagi atau muat ulang halaman.',
-  'chrome.brand.title': 'BIC Presenter Hub',
+  'chrome.brand.title': 'WorshipDeck',
   'chrome.brand.tagline': 'Kelola slide presentasi',
   'chrome.nav.dashboard': 'Dasbor',
   'chrome.nav.artifacts': 'Artefak',

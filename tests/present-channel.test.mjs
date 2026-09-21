@@ -33,8 +33,8 @@ const { DEFAULT_SLIDE_TRANSITION, SLIDE_TRANSITIONS } = await import(
 );
 
 test('channel name is stable and scoped to one service', () => {
-  assert.equal(presentChannelName(7), 'bic-present-7');
-  assert.equal(presentChannelName('7'), 'bic-present-7');
+  assert.equal(presentChannelName(7), 'worship-deck-present-7');
+  assert.equal(presentChannelName('7'), 'worship-deck-present-7');
   assert.notEqual(presentChannelName(7), presentChannelName(8));
 });
 

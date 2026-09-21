@@ -807,8 +807,8 @@ export async function generatePptxFromPlan(
   const pres = new PptxGenJS();
   // Modern PowerPoint 16:9 widescreen layout (33.867 cm x 19.05 cm / 960 pt x 540 pt)
   pres.layout = 'LAYOUT_WIDE';
-  pres.title = `BIC Worship — ${serviceDate}`;
-  pres.author = 'BIC PPTX Workflow';
+  pres.title = `Worship Service — ${serviceDate}`;
+  pres.author = 'WorshipDeck';
 
   const ctx: SlideCtx = {
     pres,
