@@ -2,7 +2,7 @@
 status: Accepted
 ---
 
-# Constitution — worship-presenter-web
+# Constitution — WorshipDeck
 
 Everything in `.constitution/` that is method text arrives from the public WDI
 Method package via `npx wdi-method install` / `update`. Articles 1, 2, and 5

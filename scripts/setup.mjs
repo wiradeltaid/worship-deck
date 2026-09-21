@@ -140,7 +140,7 @@ function reportPrivateOverride() {
 }
 
 say('');
-say('Setting up worship-presenter-web');
+say('Setting up worship-deck');
 say('');
 ensureEnv();
 checkCorpora();

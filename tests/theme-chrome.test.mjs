@@ -2253,7 +2253,7 @@ test('AC-1/AC-2: the operator shell mounts the theme provider', () => {
 });
 
 // Story 17.3 — browser tab/bookmark name the product, not create-next-app.
-test('Story 17.3: root metadata names Worship Presenter Web, not create-next-app boilerplate', () => {
+test('Story 17.3: root metadata names WorshipDeck, not create-next-app boilerplate', () => {
   for (const file of ['spa/index.html', 'spa/projected.html']) {
     const html = read(file);
     assert.doesNotMatch(
@@ -2268,7 +2268,7 @@ test('Story 17.3: root metadata names Worship Presenter Web, not create-next-app
     );
     assert.match(
       html,
-      /<title>Worship Presenter Web<\/title>/,
+      /<title>WorshipDeck<\/title>/,
       `${file} title must be the product-owned name from design-system.md frontmatter`
     );
   }

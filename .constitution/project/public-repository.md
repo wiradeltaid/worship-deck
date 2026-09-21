@@ -70,7 +70,7 @@ push. Cursor: `.cursor/rules/public-repo-commit-audit.mdc`. All hosts: the
 
 ## Active vs frozen repository
 
-- **Active:** this repository (`worship-presenter-web`) — all product work,
+- **Active:** this repository (`worship-deck`) — all product work,
   tests, and agent tooling happen here.
 - **Frozen / retired:** the legacy private repository `bic-pptx-workflow` — do
   not implement features, open PRs, or treat it as the working tree for new

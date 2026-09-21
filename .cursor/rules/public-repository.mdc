@@ -17,4 +17,4 @@ This repository is public. Before any commit:
 
 Full constitution: `.constitution/project/public-repository.md` and `.constitution/project/private-data.md`.
 
-The legacy repo `bic-pptx-workflow` is frozen; develop only here (`worship-presenter-web`).
+The legacy repo `bic-pptx-workflow` is frozen; develop only here (`worship-deck`).

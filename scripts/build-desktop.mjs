@@ -35,9 +35,7 @@ export async function buildDesktopPackage(options = {}) {
 
   // 2. Compile Go desktop executable
   console.log('[build-desktop] 2/4: Compiling Go binary...');
-  const exeName = fs.existsSync(path.join(repoRoot, 'installer', 'worship-deck.iss'))
-    ? 'worship-deck.exe'
-    : 'worship-presenter.exe';
+  const exeName = 'worship-deck.exe';
   const exePath = path.join(distDesktop, exeName);
   const goRes = spawnSync(
     'go',
@@ -68,9 +66,7 @@ export async function buildDesktopPackage(options = {}) {
   // 4. Compile Inno Setup installer
   const requireInstaller = options.requireInstaller ?? (process.argv.includes('--installer') || process.env.REQUIRE_INSTALLER === '1');
   console.log(`[build-desktop] 4/4: Checking Inno Setup compiler (ISCC) (requireInstaller: ${requireInstaller})...`);
-  const issFile = fs.existsSync(path.join(repoRoot, 'installer', 'worship-deck.iss'))
-    ? path.join(repoRoot, 'installer', 'worship-deck.iss')
-    : path.join(repoRoot, 'installer', 'worship-presenter.iss');
+  const issFile = path.join(repoRoot, 'installer', 'worship-deck.iss');
   const isccPaths = [
     'ISCC.exe',
     'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe',

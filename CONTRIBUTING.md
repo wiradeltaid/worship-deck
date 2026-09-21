@@ -1,9 +1,9 @@
-# Contributing to Worship Presenter Web
+# Contributing to WorshipDeck
 
-Thank you for your interest in contributing to Worship Presenter Web! We welcome contributions, particularly from other congregations adapting this system to different liturgies and orders of service.
+Thank you for your interest in contributing to WorshipDeck! We welcome contributions, particularly from other congregations adapting this system to different liturgies and orders of service.
 
 ## 1. Ground Rules & Scope
-- We keep Worship Presenter Web lean, offline-first, and zero-telemetry. We prioritize correctness and congregation privacy over feature volume.
+- We keep WorshipDeck lean, offline-first, and zero-telemetry. We prioritize correctness and congregation privacy over feature volume.
 - For non-trivial features or architectural changes, please open an Issue to discuss before opening a PR.
 
 ## 2. Before Your First Commit (Private Data Invariant)
@@ -17,8 +17,8 @@ Read [`.constitution/project/private-data.md`](.constitution/project/private-dat
 ## 4. Local Development Setup
 
 ```bash
-git clone https://github.com/wiradeltaid/worship-presenter-web.git
-cd worship-presenter-web
+git clone https://github.com/wiradeltaid/worship-deck.git
+cd worship-deck
 npm install
 npm run setup
 npm run dev
@@ -52,4 +52,4 @@ Slide layouts are data, not code. Edit them in the browser at `/admin/artifacts`
 
 ## 9. Licensing of Contributions & Trademarks
 - By submitting a pull request, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
-- Contributions do not grant ownership of the project's trademarks, names ("Wira Delta Indonesia", "WDI", "Worship Presenter Web"), or visual logos (see `README.md` §Nama dan Ikon).
+- Contributions do not grant ownership of the project's trademarks, names ("Wira Delta Indonesia", "WDI", "WorshipDeck"), or visual logos (see `README.md` §Nama dan Ikon).

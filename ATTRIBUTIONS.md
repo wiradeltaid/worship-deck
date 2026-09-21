@@ -32,7 +32,7 @@ licence — neither ours to give nor granted to us.
 ### Removal requests
 
 If you hold rights in this material and want it removed or changed, please open
-an issue at <https://github.com/wiradeltaid/worship-presenter-web/issues> or
+an issue at <https://github.com/wiradeltaid/worship-deck/issues> or
 contact the maintainer through the org at <https://github.com/wiradeltaid>.
 Requests will be honoured promptly and without argument.
 
