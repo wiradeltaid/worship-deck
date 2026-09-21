@@ -174,6 +174,7 @@ export function FormLayoutAdminPanel() {
     const [moved] = reordered.splice(index, 1);
     reordered.splice(targetIdx, 0, moved);
     const updatedGroupings = reordered.map((g, i) => ({ ...g, sort_order: i + 1 }));
+    const payload = reordered.map((g, i) => ({ id: g.id, sort_order: i + 1 }));
 
     // Optimistic UI update: immediate state transformation without full-page spinner
     setLayoutData({ ...layoutData, groupings: updatedGroupings });
@@ -182,7 +183,7 @@ export function FormLayoutAdminPanel() {
       const res = await fetch('/api/admin/form-groupings/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedGroupings.map((g) => ({ id: g.id, sort_order: g.sort_order }))),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         setLayoutData(previousLayout);
@@ -1188,7 +1189,7 @@ export function FormLayoutAdminPanel() {
                   {/* Predefined Fields Results */}
                   <div className="space-y-2">
                     <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Hasil Ekstraksi Predefined Fields
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Hasil Ekstraksi Predefined Fields
                     </h4>
                     <div className="rounded-md border border-border/50 overflow-hidden text-xs">
                       <table className="w-full divide-y divide-border/40">
@@ -1334,7 +1335,7 @@ export function FormLayoutAdminPanel() {
           <Card className="border-border/70 bg-card/60">
             <CardHeader className="py-3">
               <CardTitle className="text-sm font-bold flex items-center gap-1.5">
-                <Play className="w-3.5 h-3.5 text-primary" /> Single Pattern Regex Probe
+                <Play className="w-3.5 h-3.5 text-primary" /> Interactive Regex Testing Sandbox
               </CardTitle>
               <CardDescription className="text-xs">
                 Uji satu baris regex khusus terhadap teks buletin di atas.

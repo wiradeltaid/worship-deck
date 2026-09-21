@@ -1221,8 +1221,13 @@ export function serializeCanvas(
     const scaleY = Math.abs(obj.scaleY ?? 1);
     const isText = source.type === 'text' && isFabricTextObject(obj);
 
-    const authoredCenterX = pctToPx(source.x + source.w / 2, CANVAS_WIDTH);
-    const authoredCenterY = pctToPx(source.y + source.h / 2, CANVAS_HEIGHT);
+    const isCenterOrigin = (obj as any).originX === 'center';
+    const authoredLeft = isCenterOrigin
+      ? pctToPx(source.x + source.w / 2, CANVAS_WIDTH)
+      : pctToPx(source.x, CANVAS_WIDTH);
+    const authoredTop = isCenterOrigin
+      ? pctToPx(source.y + source.h / 2, CANVAS_HEIGHT)
+      : pctToPx(source.y, CANVAS_HEIGHT);
     const authoredWidth = pctToPx(source.w, CANVAS_WIDTH);
     const authoredHeight = pctToPx(source.h, CANVAS_HEIGHT);
     const isUserResizedW = (obj as any).data?.userResizedWidth === true;
@@ -1312,10 +1317,9 @@ export function serializeCanvas(
             : source.h;
 
     // SPEC-24-03 / SPEC-54-04: Non-destructive center-origin canvas serialization.
-    // Coordinates reflect live Fabric object positions when moved; converts center (left, top) back to top-left (x, y).
-    const isMoved = Math.abs(left - authoredCenterX) > 0.5 || Math.abs(top - authoredCenterY) > 0.5;
-    const computedX = (!isMoved && !isWidthResized) ? source.x : pxToPct(left - measuredWidth / 2, CANVAS_WIDTH);
-    const computedY = (!isMoved && !isHeightResized) ? source.y : pxToPct(top - measuredHeight / 2, CANVAS_HEIGHT);
+    // Coordinates reflect live Fabric object positions when moved; converts center (left, top) back to top-left (x, y) if originX is center.
+    const computedX = left === authoredLeft ? source.x : pxToPct(isCenterOrigin ? left - measuredWidth / 2 : left, CANVAS_WIDTH);
+    const computedY = top === authoredTop ? source.y : pxToPct(isCenterOrigin ? top - measuredHeight / 2 : top, CANVAS_HEIGHT);
 
     // SPEC-21-02: Retain minimum dimension floor, but do not truncate off-canvas bleeding
     const clampedW = isHealing ? w : Math.max(MIN_ELEMENT_W_PCT, w);

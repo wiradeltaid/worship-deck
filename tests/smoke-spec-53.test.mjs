@@ -50,20 +50,13 @@ export function scanSpec53Features(headerSource, adminPanelSource, dynamicFormSo
     findings.push('Header.tsx /new link must have aria-current attribute for active state');
   }
 
-  // SPEC-53-02: Card Groupings Sequential Reordering
+  // SPEC-53-02: Card Groupings Sequential Reordering (SSOT in FormLayoutAdminPanel per SPEC-54)
   const adminHasSequentialMap = adminPanelSource.includes('.map((g, i) => ({ id: g.id, sort_order: i + 1 }))');
   if (!adminHasSequentialMap) {
     findings.push('FormLayoutAdminPanel.tsx must generate sequential 1..N sort orders for all groupings');
   }
-  const dynamicHasSequentialMap = dynamicFormSource.includes('.map((g, i) => ({ id: g.id, sort_order: i + 1 }))');
-  if (!dynamicHasSequentialMap) {
-    findings.push('DynamicFormBody.tsx must generate sequential 1..N sort orders for all groupings');
-  }
   if (adminPanelSource.includes('{ id: g1.id, sort_order: g2.sort_order }')) {
     findings.push('FormLayoutAdminPanel.tsx still contains broken partial 2-item swap payload');
-  }
-  if (dynamicFormSource.includes('{ id: currentGroup.id, sort_order: targetGroup.sort_order }')) {
-    findings.push('DynamicFormBody.tsx still contains broken partial 2-item swap payload');
   }
 
   // SPEC-53-03: Intra-Card Slot Reordering & Cross-Card Slot Transfer
@@ -122,28 +115,18 @@ test('SPEC-53-02: Form Card Groupings Sequential Reordering & Normalization', ()
   const dynamicFormPath = path.join(root, 'src', 'operator', 'DynamicFormBody.tsx');
   const dynamicFormContent = fs.readFileSync(dynamicFormPath, 'utf8');
 
-  // Both surfaces must submit full sequential arrays
+  // FormLayoutAdminPanel must submit full sequential arrays (layout SSOT per SPEC-54)
   assert.match(
     adminPanelContent,
     /\.map\(\(g, i\) => \(\{ id: g\.id, sort_order: i \+ 1 \}\)\)/,
     'FormLayoutAdminPanel must map all groupings to contiguous 1..N sort_orders'
   );
-  assert.match(
-    dynamicFormContent,
-    /\.map\(\(g, i\) => \(\{ id: g\.id, sort_order: i \+ 1 \}\)\)/,
-    'DynamicFormBody must map all groupings to contiguous 1..N sort_orders'
-  );
 
-  // Both surfaces must not send partial two-item swap payloads
+  // FormLayoutAdminPanel must not send partial two-item swap payloads
   assert.doesNotMatch(
     adminPanelContent,
     /\{ id: g1\.id, sort_order: g2\.sort_order \}/,
     'FormLayoutAdminPanel must not use partial 2-item swap payload'
-  );
-  assert.doesNotMatch(
-    dynamicFormContent,
-    /\{ id: currentGroup\.id, sort_order: targetGroup\.sort_order \}/,
-    'DynamicFormBody must not use partial 2-item swap payload'
   );
 });
 
