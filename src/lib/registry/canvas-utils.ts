@@ -242,12 +242,14 @@ export function buildShapeFabricOptions(
   element: CanvasElement,
   options?: { editable?: boolean }
 ) {
-  const left = pctToPx(element.x, CANVAS_WIDTH);
-  const top = pctToPx(element.y, CANVAS_HEIGHT);
   const width = pctToPx(element.w, CANVAS_WIDTH);
   const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const left = pctToPx(element.x + element.w / 2, CANVAS_WIDTH);
+  const top = pctToPx(element.y + element.h / 2, CANVAS_HEIGHT);
   const editable = options?.editable ?? false;
   const common = {
+    originX: 'center',
+    originY: 'center',
     left,
     top,
     width,
@@ -412,8 +414,11 @@ export function syncTextClipOnMove(target: any): boolean {
   if (!target || !target.clipPath) return false;
   const clip = target.clipPath;
   clip.set({
+    originX: target.originX ?? 'center',
+    originY: target.originY ?? 'center',
     left: target.left ?? 0,
     top: target.top ?? 0,
+    angle: target.angle ?? 0,
   });
   if (typeof clip.setCoords === 'function') {
     clip.setCoords();
@@ -435,10 +440,13 @@ export function syncTextClipOnScale(target: any): boolean {
   const w = authoredW * (target.scaleX ?? 1);
   const h = authoredH * (target.scaleY ?? 1);
   clip.set({
+    originX: target.originX ?? 'center',
+    originY: target.originY ?? 'center',
     left: target.left ?? 0,
     top: target.top ?? 0,
     width: w,
     height: h,
+    angle: target.angle ?? 0,
   });
   if (typeof clip.setCoords === 'function') {
     clip.setCoords();
@@ -452,12 +460,14 @@ export function elementToFabricObject(
   editable: boolean = false,
   options?: { isHealing?: boolean; transparentProxy?: boolean }
 ): any {
-  const left = pctToPx(element.x, CANVAS_WIDTH);
-  const top = pctToPx(element.y, CANVAS_HEIGHT);
   const width = pctToPx(element.w, CANVAS_WIDTH);
   const height = pctToPx(element.h, CANVAS_HEIGHT);
+  const left = pctToPx(element.x + element.w / 2, CANVAS_WIDTH);
+  const top = pctToPx(element.y + element.h / 2, CANVAS_HEIGHT);
   const isProxy = Boolean(options?.transparentProxy);
   const common = {
+    originX: 'center',
+    originY: 'center',
     left,
     top,
     width,
@@ -1211,8 +1221,8 @@ export function serializeCanvas(
     const scaleY = Math.abs(obj.scaleY ?? 1);
     const isText = source.type === 'text' && isFabricTextObject(obj);
 
-    const authoredLeft = pctToPx(source.x, CANVAS_WIDTH);
-    const authoredTop = pctToPx(source.y, CANVAS_HEIGHT);
+    const authoredCenterX = pctToPx(source.x + source.w / 2, CANVAS_WIDTH);
+    const authoredCenterY = pctToPx(source.y + source.h / 2, CANVAS_HEIGHT);
     const authoredWidth = pctToPx(source.w, CANVAS_WIDTH);
     const authoredHeight = pctToPx(source.h, CANVAS_HEIGHT);
     const isUserResizedW = (obj as any).data?.userResizedWidth === true;
@@ -1301,10 +1311,11 @@ export function serializeCanvas(
             ? pxToPct(measuredHeight, CANVAS_HEIGHT)
             : source.h;
 
-    // SPEC-24-03: Non-destructive canvas serialization.
-    // Coordinates reflect live Fabric object positions when moved; never force source.x/y when left/top has moved.
-    const computedX = left === authoredLeft ? source.x : pxToPct(left, CANVAS_WIDTH);
-    const computedY = top === authoredTop ? source.y : pxToPct(top, CANVAS_HEIGHT);
+    // SPEC-24-03 / SPEC-54-04: Non-destructive center-origin canvas serialization.
+    // Coordinates reflect live Fabric object positions when moved; converts center (left, top) back to top-left (x, y).
+    const isMoved = Math.abs(left - authoredCenterX) > 0.5 || Math.abs(top - authoredCenterY) > 0.5;
+    const computedX = (!isMoved && !isWidthResized) ? source.x : pxToPct(left - measuredWidth / 2, CANVAS_WIDTH);
+    const computedY = (!isMoved && !isHeightResized) ? source.y : pxToPct(top - measuredHeight / 2, CANVAS_HEIGHT);
 
     // SPEC-21-02: Retain minimum dimension floor, but do not truncate off-canvas bleeding
     const clampedW = isHealing ? w : Math.max(MIN_ELEMENT_W_PCT, w);

@@ -292,5 +292,110 @@ test('SPEC-54-03: Card Grouping Regex Integration, Live Rundown Test Area & Opti
   assert.deepEqual(findings, [], `SPEC-54-03 findings detected:\n${findings.join('\n')}`);
 });
 
+export function scanSpec54_04Features(canvasUtilsSource, artifactEditorSource) {
+  const findings = [];
+
+  // canvas-utils.ts center-origin geometry
+  if (!canvasUtilsSource.includes("originX: 'center'") || !canvasUtilsSource.includes("originY: 'center'")) {
+    findings.push("canvas-utils.ts must configure Fabric objects with originX: 'center' and originY: 'center'");
+  }
+
+  // ArtifactEditor.tsx real-time object:rotating synchronization
+  if (!artifactEditorSource.includes("canvas.on('object:rotating'")) {
+    findings.push("ArtifactEditor.tsx must register 'object:rotating' event listener for real-time rotation sync");
+  }
+
+  return findings;
+}
+
+test('SPEC-54-04: Canvas Rotation Center-Origin Alignment & Real-Time Sync guards', () => {
+  const canvasUtilsPath = path.join(root, 'src', 'lib', 'registry', 'canvas-utils.ts');
+  const artifactEditorPath = path.join(root, 'src', 'components', 'admin', 'ArtifactEditor.tsx');
+
+  const canvasUtilsSource = fs.readFileSync(canvasUtilsPath, 'utf8');
+  const artifactEditorSource = fs.readFileSync(artifactEditorPath, 'utf8');
+
+  const findings = scanSpec54_04Features(canvasUtilsSource, artifactEditorSource);
+  assert.deepEqual(findings, [], `SPEC-54-04 findings detected:\n${findings.join('\n')}`);
+});
+
+test('SPEC-54-04: Numerical Geometry Invariants across Cardinal Rotation Angles (0°, 90°, 180°, 270°)', async () => {
+  const { CANVAS_WIDTH, CANVAS_HEIGHT, pctToPx, pxToPct, elementToFabricObject, serializeCanvas } = await import('../src/lib/registry/canvas-utils.ts');
+
+  const angles = [0, 90, 180, 270];
+
+  for (const angle of angles) {
+    const element = {
+      id: `el-test-rot-${angle}`,
+      type: 'text',
+      x: 15.5,
+      y: 22.0,
+      w: 40.0,
+      h: 12.0,
+      rotation: angle,
+      content: 'Rotated Prayer Request',
+      zIndex: 1,
+    };
+
+    // 1. Ingestion: elementToFabricObject constructs object centered at (x + w/2, y + h/2)
+    const mockFabric = {};
+    const fabricObj = elementToFabricObject(mockFabric, element, true, { transparentProxy: true });
+
+    assert.strictEqual(fabricObj.originX, 'center', `Expected originX: 'center' at ${angle}°`);
+    assert.strictEqual(fabricObj.originY, 'center', `Expected originY: 'center' at ${angle}°`);
+
+    const expectedCenterX = pctToPx(element.x + element.w / 2, CANVAS_WIDTH);
+    const expectedCenterY = pctToPx(element.y + element.h / 2, CANVAS_HEIGHT);
+
+    assert.ok(
+      Math.abs(fabricObj.left - expectedCenterX) < 0.01,
+      `Fabric left (${fabricObj.left}) must match visual center X (${expectedCenterX}) at ${angle}°`
+    );
+    assert.ok(
+      Math.abs(fabricObj.top - expectedCenterY) < 0.01,
+      `Fabric top (${fabricObj.top}) must match visual center Y (${expectedCenterY}) at ${angle}°`
+    );
+    assert.strictEqual(fabricObj.angle, angle, `Fabric angle must match element rotation at ${angle}°`);
+
+    // 2. Serialization: serializeCanvas roundtrips center back to exact top-left
+    const mockCanvas = {
+      getObjects: () => [
+        {
+          ...fabricObj,
+          left: fabricObj.left,
+          top: fabricObj.top,
+          angle: fabricObj.angle,
+          width: pctToPx(element.w, CANVAS_WIDTH),
+          height: pctToPx(element.h, CANVAS_HEIGHT),
+          scaleX: 1,
+          scaleY: 1,
+          data: { ...fabricObj.data },
+        },
+      ],
+    };
+
+    const layout = {
+      version: 1,
+      elements: [element],
+    };
+
+    const serialized = serializeCanvas(mockCanvas, layout, new Map());
+    assert.strictEqual(serialized.length, 1);
+    const resultEl = serialized[0];
+
+    assert.ok(
+      Math.abs(resultEl.x - element.x) < 0.01,
+      `Serialized x (${resultEl.x}) must roundtrip to authored x (${element.x}) at ${angle}°`
+    );
+    assert.ok(
+      Math.abs(resultEl.y - element.y) < 0.01,
+      `Serialized y (${resultEl.y}) must roundtrip to authored y (${element.y}) at ${angle}°`
+    );
+    assert.strictEqual(resultEl.rotation, angle, `Serialized rotation must equal ${angle}°`);
+  }
+});
+
+
+
 
 

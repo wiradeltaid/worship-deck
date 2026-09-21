@@ -2560,7 +2560,7 @@ waves:
           - tests/smoke-spec-53.test.mjs
 
   - id: SPEC-54
-    status: ready-for-agent
+    status: closed
     release: layout-ssot-field-regex-sandbox-and-canvas-rotation-parity
     prd: [operator-turn, offline-deck]
     fr: [FR-11, FR-20, FR-21, FR-32]

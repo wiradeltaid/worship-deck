@@ -1293,7 +1293,8 @@ decisions:
       - tests/smoke-spec-53.test.mjs
   - id: DEC-055
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-21'
     accepted_by: "kodesh87 (2026-09-21)"
     title: Daily Autopilot mandate for Layout SSOT, Rundown Regex Sandbox Integration, Photo Deletion Persistence, and Canvas Rotation Parity (SPEC-54)
     file: .control/decisions/DEC-055-daily-autopilot-mandate-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity.md
