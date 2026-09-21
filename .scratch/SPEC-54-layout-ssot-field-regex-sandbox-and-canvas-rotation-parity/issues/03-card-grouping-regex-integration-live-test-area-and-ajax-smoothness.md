@@ -1,6 +1,6 @@
 # Issue SPEC-54-03 — Card Grouping Regex Integration, Live Rundown Test Area, and AJAX Smoothness
 
-**Status:** ready-for-agent  
+**Status:** closed  
 **Spec:** SPEC-54  
 **Component:** hub  
 **Satisfies:** [UC-2, UC-5, FR-11, FR-32]  

@@ -11,11 +11,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw } from 'lucide-react';
-import { compileProfileRegex } from '@/lib/parser-rules';
-import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/operator/DynamicFormBody';
+import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, HelpCircle, Sliders } from 'lucide-react';
+import { toast } from 'sonner';
+import { compileProfileRegex, extractPredefinedFields, parseRundownWithProfile } from '@/lib/parser-rules';
+import { matchSongSets, type SongSetEntrySlot } from '@/lib/song-set-matching';
+import { ParserProfilesPanel } from '@/components/admin/ParserProfilesPanel';
+import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/lib/form-layout';
 
-type AdminTab = 'layout' | 'fields' | 'sandbox';
+type AdminTab = 'layout' | 'fields' | 'sandbox' | 'profiles';
+
+const DEFAULT_RUNDOWN_SAMPLE = `SABBATH, OCTOBER 24, 2026
+DIVINE SERVICE
+Introit: SDAH #100
+Praise Song: SDAH #159
+Scripture Reading: Romans 8:28 (KJV)
+Special Song: Sanctuary Choir
+Sermon: Pastor Alexander "The Blessed Hope"
+Closing Prayer: Deacon Michael
+Family & Youth: Johnson Family`;
 
 export function FormLayoutAdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>('layout');
@@ -42,36 +55,62 @@ export function FormLayoutAdminPanel() {
   const [extractionRegex, setExtractionRegex] = useState('');
   const [fieldFormError, setFieldFormError] = useState<string | null>(null);
 
+  // Inline slot regex edit state
+  const [editingSlotRegexVar, setEditingSlotRegexVar] = useState<string | null>(null);
+  const [slotInlineRegex, setSlotInlineRegex] = useState('');
+
   // Seeder state
   const [seeding, setSeeding] = useState(false);
   const [seedReport, setSeedReport] = useState<string | null>(null);
 
-  // Sandbox state
-  const [sandboxText, setSandboxText] = useState(
-`SABBATH, OCTOBER 24, 2026
-DIVINE SERVICE
-Introit: #100
-Guest Speaker: Pastor Alexander
-Opening Song: SDAH #159
-Sermon: Pastor Alexander "The Blessed Hope"
-Closing Prayer: Deacon Michael`
-  );
-  const [sandboxRegex, setSandboxRegex] = useState('(?i)^Guest\\s+Speaker\\s*[:\\-]\\s*(?<value>.*)$');
-  const [sandboxResult, setSandboxResult] = useState<string | null>(null);
+  // Master data for testing sandbox
+  const [songSetEntries, setSongSetEntries] = useState<SongSetEntrySlot[]>([]);
+  const [defaultProfile, setDefaultProfile] = useState<any>(null);
+
+  // Sandbox & Test Area state
+  const [testRundownText, setTestRundownText] = useState(DEFAULT_RUNDOWN_SAMPLE);
+  const [singleRegexPattern, setSingleRegexPattern] = useState('(?i)^Sermon\\s*[:\\-]\\s*(?<value>.+?)(?:\\s+[\"“](?<title>[^\"”]+)[\"”])?\\s*$');
+  const [singleRegexResult, setSingleRegexResult] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<{
+    fields: Array<{ label: string; variableName: string; value: string; status: 'matched' | 'empty regex' | 'unmatched' }>;
+    songs: Array<{ slotVariable: string; title: string; songNumber?: number; songBookCode?: string; matchKind?: string; status: 'matched' | 'unfilled' }>;
+    unmappedLines: string[];
+    overflowSongs: Array<{ line: string; number: number; bookCode: string }>;
+  } | null>(null);
 
   const fetchLayout = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/worship-form-layout');
-      if (res.ok) {
-        const data = (await res.json()) as FormLayoutData;
+      const [resLayout, resEntries, resProfiles] = await Promise.all([
+        fetch('/api/worship-form-layout'),
+        fetch('/api/song-set-entries'),
+        fetch('/api/parser-profiles'),
+      ]);
+
+      if (resLayout.ok) {
+        const data = (await resLayout.json()) as FormLayoutData;
         setLayoutData(data);
         if (data.groupings.length > 0 && !targetGroupingId) {
           setTargetGroupingId(data.groupings[0].id);
         }
       } else {
         setError('Failed to load form layout');
+      }
+
+      if (resEntries.ok) {
+        const d = (await resEntries.json()) as { entries?: SongSetEntrySlot[] };
+        if (Array.isArray(d.entries)) {
+          setSongSetEntries(d.entries);
+        }
+      }
+
+      if (resProfiles.ok) {
+        const pData = (await resProfiles.json()) as { profiles?: any[] };
+        if (Array.isArray(pData.profiles)) {
+          const def = pData.profiles.find((p) => p.isDefault) || pData.profiles[0];
+          setDefaultProfile(def);
+        }
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error loading form layout');
@@ -80,9 +119,25 @@ Closing Prayer: Deacon Michael`
     }
   };
 
+  const fetchLayoutQuiet = async () => {
+    try {
+      const res = await fetch('/api/worship-form-layout');
+      if (res.ok) {
+        const data = (await res.json()) as FormLayoutData;
+        setLayoutData(data);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     void fetchLayout();
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Optimistic AJAX Actions with Automatic Snapshot Rollback
+  // ---------------------------------------------------------------------------
 
   const handleCreateGrouping = async () => {
     if (!newGroupLabel.trim()) return;
@@ -99,10 +154,13 @@ Closing Prayer: Deacon Michael`
       if (res.ok) {
         setNewGroupLabel('');
         setNewGroupDesc('');
-        await fetchLayout();
+        await fetchLayoutQuiet();
+        toast.success('Card grouping created successfully');
+      } else {
+        toast.error('Failed to create card grouping');
       }
     } catch {
-      // ignore
+      toast.error('Network error creating card grouping');
     }
   };
 
@@ -111,77 +169,140 @@ Closing Prayer: Deacon Michael`
     const targetIdx = direction === 'up' ? index - 1 : index + 1;
     if (targetIdx < 0 || targetIdx >= layoutData.groupings.length) return;
 
+    const previousLayout = layoutData;
     const reordered = [...layoutData.groupings];
     const [moved] = reordered.splice(index, 1);
     reordered.splice(targetIdx, 0, moved);
-    const payload = reordered.map((g, i) => ({ id: g.id, sort_order: i + 1 }));
+    const updatedGroupings = reordered.map((g, i) => ({ ...g, sort_order: i + 1 }));
+
+    // Optimistic UI update: immediate state transformation without full-page spinner
+    setLayoutData({ ...layoutData, groupings: updatedGroupings });
 
     try {
       const res = await fetch('/api/admin/form-groupings/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(updatedGroupings.map((g) => ({ id: g.id, sort_order: g.sort_order }))),
       });
-      if (res.ok) await fetchLayout();
+      if (!res.ok) {
+        setLayoutData(previousLayout);
+        toast.error('Failed to save card order. Reverting changes.');
+      }
     } catch {
-      // ignore
+      setLayoutData(previousLayout);
+      toast.error('Network error during card reorder. Reverting changes.');
     }
   };
 
   const handleMoveSlot = async (groupingId: string, slotIndex: number, direction: 'up' | 'down') => {
     if (!layoutData) return;
-    const grouping = layoutData.groupings.find(g => g.id === groupingId);
-    if (!grouping) return;
+    const gIndex = layoutData.groupings.findIndex((g) => g.id === groupingId);
+    if (gIndex === -1) return;
+    const grouping = layoutData.groupings[gIndex];
     const targetIdx = direction === 'up' ? slotIndex - 1 : slotIndex + 1;
     if (targetIdx < 0 || targetIdx >= grouping.slots.length) return;
 
-    const reordered = [...grouping.slots];
-    const [moved] = reordered.splice(slotIndex, 1);
-    reordered.splice(targetIdx, 0, moved);
+    const previousLayout = layoutData;
+    const reorderedSlots = [...grouping.slots];
+    const [moved] = reorderedSlots.splice(slotIndex, 1);
+    reorderedSlots.splice(targetIdx, 0, moved);
+    const updatedSlots = reorderedSlots.map((s, i) => ({ ...s, sort_order: i + 1 }));
 
-    const payload = {
-      grouping_id: groupingId,
-      slots: reordered.map((s, i) => ({ id: s.id, sort_order: i + 1 })),
-    };
+    const updatedGroupings = [...layoutData.groupings];
+    updatedGroupings[gIndex] = { ...grouping, slots: updatedSlots };
+
+    // Optimistic UI update
+    setLayoutData({ ...layoutData, groupings: updatedGroupings });
 
     try {
       const res = await fetch('/api/admin/form-grouping-slots/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          grouping_id: groupingId,
+          slots: updatedSlots.map((s) => ({ id: s.id, sort_order: s.sort_order })),
+        }),
       });
-      if (res.ok) await fetchLayout();
+      if (!res.ok) {
+        setLayoutData(previousLayout);
+        toast.error('Failed to save slot order. Reverting changes.');
+      }
     } catch {
-      // ignore
+      setLayoutData(previousLayout);
+      toast.error('Network error during slot reorder. Reverting changes.');
     }
   };
 
   const handleTransferSlot = async (slotId: string, targetGroupingId: string) => {
-    if (!targetGroupingId) return;
+    if (!layoutData || !targetGroupingId) return;
+    const previousLayout = layoutData;
+
+    let foundSlot: any = null;
+    const updatedGroupings = layoutData.groupings.map((g) => {
+      const s = g.slots.find((sl) => sl.id === slotId);
+      if (s) {
+        foundSlot = { ...s, grouping_id: targetGroupingId };
+        return { ...g, slots: g.slots.filter((sl) => sl.id !== slotId) };
+      }
+      return g;
+    });
+
+    if (!foundSlot) return;
+
+    const targetGIndex = updatedGroupings.findIndex((g) => g.id === targetGroupingId);
+    if (targetGIndex !== -1) {
+      foundSlot.sort_order = updatedGroupings[targetGIndex].slots.length + 1;
+      updatedGroupings[targetGIndex] = {
+        ...updatedGroupings[targetGIndex],
+        slots: [...updatedGroupings[targetGIndex].slots, foundSlot],
+      };
+    }
+
+    // Optimistic UI update
+    setLayoutData({ ...layoutData, groupings: updatedGroupings });
+
     try {
       const res = await fetch(`/api/admin/form-grouping-slots/${slotId}/move-grouping`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_grouping_id: targetGroupingId }),
       });
-      if (res.ok) await fetchLayout();
+      if (!res.ok) {
+        setLayoutData(previousLayout);
+        toast.error('Failed to transfer slot. Reverting changes.');
+      } else {
+        toast.success('Slot transferred successfully');
+      }
     } catch {
-      // ignore
+      setLayoutData(previousLayout);
+      toast.error('Network error during slot transfer. Reverting changes.');
     }
   };
 
   const handleDeleteGrouping = async (id: string) => {
-    if (!window.confirm('Delete this grouping card and its slots?')) return;
+    if (!layoutData || !window.confirm('Delete this grouping card and all its slots?')) return;
+    const previousLayout = layoutData;
+    setLayoutData({
+      ...layoutData,
+      groupings: layoutData.groupings.filter((g) => g.id !== id),
+    });
+
     try {
       const res = await fetch(`/api/admin/form-groupings/${id}`, { method: 'DELETE' });
-      if (res.ok) await fetchLayout();
+      if (!res.ok) {
+        setLayoutData(previousLayout);
+        toast.error('Failed to delete grouping. Reverting changes.');
+      } else {
+        toast.success('Grouping card deleted');
+      }
     } catch {
-      // ignore
+      setLayoutData(previousLayout);
+      toast.error('Network error deleting grouping. Reverting changes.');
     }
   };
 
   const handleAddSlot = async () => {
-    if (!targetGroupingId || !newSlotRefKey.trim()) return;
+    if (!layoutData || !targetGroupingId || !newSlotRefKey.trim()) return;
     try {
       const res = await fetch('/api/admin/form-grouping-slots', {
         method: 'POST',
@@ -194,21 +315,56 @@ Closing Prayer: Deacon Michael`
       });
       if (res.ok) {
         setNewSlotRefKey('');
-        await fetchLayout();
+        const newSlot = (await res.json()) as any;
+        if (newSlot && newSlot.id) {
+          setLayoutData((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              groupings: prev.groupings.map((g) => {
+                if (g.id === targetGroupingId) {
+                  return { ...g, slots: [...g.slots, newSlot] };
+                }
+                return g;
+              }),
+            };
+          });
+        } else {
+          await fetchLayoutQuiet();
+        }
+        toast.success('Slot added to grouping');
       } else if (res.status === 409) {
-        alert('This slot already exists in this layout (cardinality limit).');
+        toast.error('This slot already exists in this layout (cardinality limit).');
+      } else {
+        toast.error('Failed to add slot');
       }
     } catch {
-      // ignore
+      toast.error('Network error adding slot');
     }
   };
 
   const handleDeleteSlot = async (slotId: string) => {
+    if (!layoutData) return;
+    const previousLayout = layoutData;
+    setLayoutData({
+      ...layoutData,
+      groupings: layoutData.groupings.map((g) => ({
+        ...g,
+        slots: g.slots.filter((s) => s.id !== slotId),
+      })),
+    });
+
     try {
       const res = await fetch(`/api/admin/form-grouping-slots/${slotId}`, { method: 'DELETE' });
-      if (res.ok) await fetchLayout();
+      if (!res.ok) {
+        setLayoutData(previousLayout);
+        toast.error('Failed to delete slot. Reverting changes.');
+      } else {
+        toast.success('Slot removed');
+      }
     } catch {
-      // ignore
+      setLayoutData(previousLayout);
+      toast.error('Network error deleting slot. Reverting changes.');
     }
   };
 
@@ -245,13 +401,45 @@ Closing Prayer: Deacon Michael`
         setInputLength(100);
         setInitialLines(5);
         setExtractionRegex('');
-        await fetchLayout();
+        await fetchLayoutQuiet();
+        toast.success('Predefined field saved successfully');
       } else {
         const errData = (await res.json().catch(() => ({}))) as { error?: string };
         setFieldFormError(errData.error || 'Failed to save field');
       }
     } catch (err: unknown) {
       setFieldFormError(err instanceof Error ? err.message : 'Error saving field');
+    }
+  };
+
+  const handleSaveInlineSlotRegex = async (varName: string) => {
+    const field = layoutData?.predefined_fields.find((f) => f.variable_name === varName);
+    if (!field) return;
+
+    try {
+      const res = await fetch('/api/admin/predefined-fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: field.id,
+          variable_name: field.variable_name,
+          shown_text: field.shown_text,
+          field_type: field.field_type,
+          input_length: field.input_length,
+          initial_lines: field.initial_lines,
+          extraction_regex: slotInlineRegex.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        setEditingSlotRegexVar(null);
+        setSlotInlineRegex('');
+        await fetchLayoutQuiet();
+        toast.success(`Regex updated for ${field.shown_text}`);
+      } else {
+        toast.error('Failed to update regex pattern');
+      }
+    } catch {
+      toast.error('Network error updating regex');
     }
   };
 
@@ -263,7 +451,8 @@ Closing Prayer: Deacon Michael`
       if (res.ok) {
         const report = (await res.json()) as { inserted: number; skipped: number; inactive_skipped: number };
         setSeedReport(`Seeded: ${report.inserted} inserted, ${report.skipped} skipped, ${report.inactive_skipped} inactive skipped.`);
-        await fetchLayout();
+        await fetchLayoutQuiet();
+        toast.success('Default predefined fields seeded');
       }
     } catch {
       setSeedReport('Failed to run default seeder');
@@ -272,29 +461,89 @@ Closing Prayer: Deacon Michael`
     }
   };
 
-  const runSandboxTest = () => {
-    if (!sandboxRegex.trim()) {
-      setSandboxResult('Please enter a valid regex pattern.');
+  // ---------------------------------------------------------------------------
+  // Production-Parity Live Rundown Test Area Execution
+  // ---------------------------------------------------------------------------
+
+  const handleRunRundownTest = () => {
+    if (!testRundownText.trim() || !layoutData) return;
+
+    // 1. Predefined Fields extraction
+    const extractedFieldsMap = extractPredefinedFields(testRundownText, layoutData.predefined_fields || []);
+    const fieldResults = (layoutData.predefined_fields || []).map((f) => {
+      const val = extractedFieldsMap[f.variable_name] || '';
+      let status: 'matched' | 'empty regex' | 'unmatched' = 'unmatched';
+      if (!f.extraction_regex || !f.extraction_regex.trim()) {
+        status = 'empty regex';
+      } else if (val) {
+        status = 'matched';
+      }
+      return {
+        label: f.shown_text,
+        variableName: f.variable_name,
+        value: val,
+        status,
+      };
+    });
+
+    // 2. Parser rules & song sets matching
+    const parsed = parseRundownWithProfile(testRundownText, defaultProfile?.rules || null);
+    const songMatching = matchSongSets(
+      parsed.songCandidates || [],
+      songSetEntries || [],
+      defaultProfile?.rules?.song_set_matching
+    );
+
+    const songResults = (songSetEntries || []).map((entry) => {
+      const sug = songMatching.suggestions[entry.variableName];
+      if (sug) {
+        return {
+          slotVariable: entry.variableName,
+          title: entry.title,
+          songNumber: sug.songNumber,
+          songBookCode: sug.songBookCode,
+          matchKind: sug.matchKind,
+          status: 'matched' as const,
+        };
+      }
+      return {
+        slotVariable: entry.variableName,
+        title: entry.title,
+        status: 'unfilled' as const,
+      };
+    });
+
+    setTestResults({
+      fields: fieldResults,
+      songs: songResults,
+      unmappedLines: parsed.unmappedLines || [],
+      overflowSongs: songMatching.songOverflow || [],
+    });
+  };
+
+  const runSingleRegexTest = () => {
+    if (!singleRegexPattern.trim()) {
+      setSingleRegexResult('Please enter a valid regex pattern.');
       return;
     }
     try {
-      const re = compileProfileRegex(sandboxRegex.trim());
-      const lines = sandboxText.split('\n');
+      const re = compileProfileRegex(singleRegexPattern.trim());
+      const lines = testRundownText.split('\n');
       for (const line of lines) {
         const m = line.match(re);
         if (m) {
           const val = m.groups?.value || (m[1] !== undefined ? m[1] : m[0]);
-          setSandboxResult(`Match on line: "${line}"\nExtracted value: "${val}"\nGroups: ${JSON.stringify(m.groups || {})}`);
+          setSingleRegexResult(`Match on line: "${line}"\nExtracted value: "${val}"\nNamed Groups: ${JSON.stringify(m.groups || {})}`);
           return;
         }
       }
-      setSandboxResult('No match found across any line in sample text.');
+      setSingleRegexResult('No match found across any line in sample text.');
     } catch (err: unknown) {
-      setSandboxResult(`Regex Compilation Error: ${err instanceof Error ? err.message : String(err)}`);
+      setSingleRegexResult(`Regex Compilation Error: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
-  if (loading) {
+  if (loading && !layoutData) {
     return <div className="p-8 text-center text-xs text-muted-foreground">Loading Form Layout Settings...</div>;
   }
 
@@ -303,7 +552,7 @@ Closing Prayer: Deacon Michael`
       {/* Sub-tabs header */}
       <Card className="p-1.5 bg-muted/40">
         <div className="flex flex-wrap gap-1.5 items-center justify-between">
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             <Button
               type="button"
               variant={activeTab === 'layout' ? 'secondary' : 'ghost'}
@@ -320,7 +569,7 @@ Closing Prayer: Deacon Michael`
               className="text-xs font-semibold"
               onClick={() => setActiveTab('fields')}
             >
-              Predefined Fields
+              Predefined Fields & Regex
             </Button>
             <Button
               type="button"
@@ -329,7 +578,16 @@ Closing Prayer: Deacon Michael`
               className="text-xs font-semibold"
               onClick={() => setActiveTab('sandbox')}
             >
-              Regex Testing Sandbox
+              Rundown Test Area & Sandbox
+            </Button>
+            <Button
+              type="button"
+              variant={activeTab === 'profiles' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="text-xs font-semibold flex items-center gap-1.5"
+              onClick={() => setActiveTab('profiles')}
+            >
+              <Sliders className="w-3.5 h-3.5" /> Advanced Parser Profiles
             </Button>
           </div>
 
@@ -465,7 +723,7 @@ Closing Prayer: Deacon Michael`
             </CardContent>
           </Card>
 
-          {/* Existing Groupings & Slots List */}
+          {/* Existing Groupings & Slots List with Inline Regex Indicators */}
           <div className="space-y-4">
             {layoutData.groupings.map((grouping, idx) => (
               <Card key={grouping.id} className="border-border/70 bg-card/60">
@@ -489,6 +747,7 @@ Closing Prayer: Deacon Michael`
                       className="h-7 w-7 p-0"
                       disabled={idx === 0}
                       onClick={() => handleMoveGrouping(idx, 'up')}
+                      title="Move Grouping Up"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </Button>
@@ -499,6 +758,7 @@ Closing Prayer: Deacon Michael`
                       className="h-7 w-7 p-0"
                       disabled={idx === layoutData.groupings.length - 1}
                       onClick={() => handleMoveGrouping(idx, 'down')}
+                      title="Move Grouping Down"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </Button>
@@ -508,6 +768,7 @@ Closing Prayer: Deacon Michael`
                       size="sm"
                       className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                       onClick={() => handleDeleteGrouping(grouping.id)}
+                      title="Delete Grouping"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
@@ -518,76 +779,155 @@ Closing Prayer: Deacon Michael`
                     <p className="text-xs text-muted-foreground italic">Belum ada slot pada kartu ini.</p>
                   ) : (
                     <div className="divide-y divide-border/40">
-                      {grouping.slots.map((s, sIdx) => (
-                        <div key={s.id} className="py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-2 font-mono">
-                            <span className="text-muted-foreground">#{s.sort_order}</span>
-                            <Badge variant="secondary" className="text-[10px] uppercase">
-                              {s.widget_kind}
-                            </Badge>
-                            <span className="font-semibold">{s.ref_key}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              disabled={sIdx === 0}
-                              onClick={() => handleMoveSlot(grouping.id, sIdx, 'up')}
-                              title="Move Slot Up"
-                            >
-                              <ArrowUp className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              disabled={sIdx === grouping.slots.length - 1}
-                              onClick={() => handleMoveSlot(grouping.id, sIdx, 'down')}
-                              title="Move Slot Down"
-                            >
-                              <ArrowDown className="w-3 h-3" />
-                            </Button>
+                      {grouping.slots.map((s, sIdx) => {
+                        const fieldDef = layoutData.predefined_fields.find((f) => f.variable_name === s.ref_key);
+                        const hasRegex = !!fieldDef?.extraction_regex;
 
-                            {layoutData.groupings.filter((g) => g.id !== grouping.id).length > 0 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  className="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-6 text-[11px] px-1.5 py-0 font-normal text-muted-foreground hover:text-foreground cursor-pointer"
-                                  title="Pindah Kartu..."
+                        return (
+                          <div key={s.id} className="py-2.5 space-y-1.5 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-2 font-mono">
+                                <span className="text-muted-foreground">#{s.sort_order}</span>
+                                <Badge variant="secondary" className="text-[10px] uppercase">
+                                  {s.widget_kind}
+                                </Badge>
+                                <span className="font-semibold text-foreground">{s.ref_key}</span>
+                                {fieldDef && (
+                                  <span className="text-[11px] text-muted-foreground font-sans">
+                                    ({fieldDef.shown_text})
+                                  </span>
+                                )}
+                                {s.widget_kind === 'predefined_field' && (
+                                  hasRegex ? (
+                                    <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 dark:text-emerald-400 text-[10px]">
+                                      Regex Aktif
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-muted-foreground/70 text-[10px]">
+                                      Tanpa Regex
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                {s.widget_kind === 'predefined_field' && fieldDef && fieldDef.field_type !== 'image' && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 text-[11px] px-2 text-primary"
+                                    onClick={() => {
+                                      if (editingSlotRegexVar === s.ref_key) {
+                                        setEditingSlotRegexVar(null);
+                                      } else {
+                                        setEditingSlotRegexVar(s.ref_key);
+                                        setSlotInlineRegex(fieldDef.extraction_regex || '');
+                                      }
+                                    }}
+                                  >
+                                    {editingSlotRegexVar === s.ref_key ? 'Tutup Regex' : 'Edit Regex'}
+                                  </Button>
+                                )}
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  disabled={sIdx === 0}
+                                  onClick={() => handleMoveSlot(grouping.id, sIdx, 'up')}
+                                  title="Move Slot Up"
                                 >
-                                  Pindah Kartu...
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="text-xs">
-                                  {layoutData.groupings
-                                    .filter((g) => g.id !== grouping.id)
-                                    .map((g) => (
-                                      <DropdownMenuItem
-                                        key={g.id}
-                                        onClick={() => handleTransferSlot(s.id, g.id)}
-                                        className="cursor-pointer text-xs"
-                                      >
-                                        → {g.label}
-                                      </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                  <ArrowUp className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  disabled={sIdx === grouping.slots.length - 1}
+                                  onClick={() => handleMoveSlot(grouping.id, sIdx, 'down')}
+                                  title="Move Slot Down"
+                                >
+                                  <ArrowDown className="w-3 h-3" />
+                                </Button>
+
+                                {layoutData.groupings.filter((g) => g.id !== grouping.id).length > 0 && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                      className="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground h-6 text-[11px] px-1.5 py-0 font-normal text-muted-foreground hover:text-foreground cursor-pointer"
+                                      title="Pindah Kartu..."
+                                    >
+                                      Pindah Kartu...
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="text-xs">
+                                      {layoutData.groupings
+                                        .filter((g) => g.id !== grouping.id)
+                                        .map((g) => (
+                                          <DropdownMenuItem
+                                            key={g.id}
+                                            onClick={() => handleTransferSlot(s.id, g.id)}
+                                            className="cursor-pointer text-xs"
+                                          >
+                                            → {g.label}
+                                          </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                  onClick={() => handleDeleteSlot(s.id)}
+                                  title="Delete Slot"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Active Regex display line */}
+                            {hasRegex && editingSlotRegexVar !== s.ref_key && (
+                              <p className="text-[11px] font-mono text-muted-foreground bg-muted/30 px-2 py-0.5 rounded truncate max-w-2xl">
+                                regex: {fieldDef?.extraction_regex}
+                              </p>
                             )}
 
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDeleteSlot(s.id)}
-                              title="Delete Slot"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {/* Inline Regex Editor Row */}
+                            {editingSlotRegexVar === s.ref_key && (
+                              <div className="flex gap-2 items-center pt-1">
+                                <Input
+                                  value={slotInlineRegex}
+                                  onChange={(e) => setSlotInlineRegex(e.target.value)}
+                                  placeholder="(?i)^Pattern\s*[:\-]\s*(?<value>.*)$"
+                                  className="text-xs font-mono h-7 flex-1"
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="text-xs h-7 px-2.5"
+                                  onClick={() => handleSaveInlineSlotRegex(s.ref_key)}
+                                >
+                                  Simpan
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-7 px-2"
+                                  onClick={() => setEditingSlotRegexVar(null)}
+                                >
+                                  Batal
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -742,9 +1082,18 @@ Closing Prayer: Deacon Michael`
                         Seeded
                       </Badge>
                     )}
+                    {f.extraction_regex ? (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[10px]">
+                        Regex Configured
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground/60 text-[10px]">
+                        No Regex
+                      </Badge>
+                    )}
                   </div>
                   {f.extraction_regex && (
-                    <p className="text-[11px] font-mono text-muted-foreground bg-muted/40 p-1 rounded">
+                    <p className="text-[11px] font-mono text-muted-foreground bg-muted/40 p-1.5 rounded">
                       regex: {f.extraction_regex}
                     </p>
                   )}
@@ -775,7 +1124,8 @@ Closing Prayer: Deacon Michael`
                     onClick={async () => {
                       if (!window.confirm(`Archive / soft-delete field "${f.shown_text}"?`)) return;
                       await fetch(`/api/admin/predefined-fields/${f.id}`, { method: 'DELETE' });
-                      await fetchLayout();
+                      await fetchLayoutQuiet();
+                      toast.success('Field archived');
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -787,53 +1137,242 @@ Closing Prayer: Deacon Michael`
         </div>
       )}
 
-      {/* TAB 3: Regex Testing Sandbox */}
+      {/* TAB 3: Executable Production-Parity Rundown Test Area & Sandbox */}
       {activeTab === 'sandbox' && (
-        <Card className="border-border/70 bg-card/60">
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-1.5">
-              <Play className="w-4 h-4 text-primary" /> Interactive Regex Testing Sandbox
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Uji regex ekstraksi terhadap contoh buletin warta secara real time menggunakan dialek regex aman.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">
-                Sample Bulletin Text
-              </label>
-              <Textarea
-                rows={7}
-                value={sandboxText}
-                onChange={(e) => setSandboxText(e.target.value)}
-                className="text-xs font-mono w-full"
-              />
-            </div>
+        <div className="space-y-6" data-slot="rundown-test-area">
+          <Card className="border-border/70 bg-card/60">
+            <CardHeader className="py-3.5">
+              <CardTitle className="text-base font-bold flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-primary" /> Rundown Parsing Test Area (Production-Parity)
+                </span>
+                <Badge variant="outline" className="font-mono text-xs">
+                  Active Layout: {layoutData?.layout.title || 'Default'}
+                </Badge>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Tempel teks buletin warta di bawah ini untuk menguji ekstraksi otomatis predefined fields dan song set matching secara real-time dengan parser produksi.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">
+                  Raw Rundown Text / Teks Warta Acara
+                </label>
+                <Textarea
+                  rows={8}
+                  value={testRundownText}
+                  onChange={(e) => setTestRundownText(e.target.value)}
+                  className="text-xs font-mono w-full"
+                  placeholder="Tempel rundown lengkap di sini..."
+                />
+              </div>
 
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">
-                Test Extraction Regex (with (?&lt;value&gt;...) group)
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="text-xs h-8 gap-1.5"
+                  onClick={handleRunRundownTest}
+                >
+                  <Play className="w-3.5 h-3.5" /> Test Rundown Extraction (Production Parity)
+                </Button>
+                <span className="text-[11px] text-muted-foreground">
+                  Evaluates against {layoutData?.predefined_fields.length || 0} predefined fields & {songSetEntries.length} song set slots
+                </span>
+              </div>
+
+              {/* Extraction Results */}
+              {testResults && (
+                <div className="space-y-4 pt-3 border-t border-border/50">
+                  {/* Predefined Fields Results */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Hasil Ekstraksi Predefined Fields
+                    </h4>
+                    <div className="rounded-md border border-border/50 overflow-hidden text-xs">
+                      <table className="w-full divide-y divide-border/40">
+                        <thead className="bg-muted/40 font-semibold">
+                          <tr>
+                            <th className="p-2 text-left">Field Label</th>
+                            <th className="p-2 text-left">Variable Name</th>
+                            <th className="p-2 text-left">Extracted Value</th>
+                            <th className="p-2 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/30">
+                          {testResults.fields.map((f) => (
+                            <tr key={f.variableName} className="hover:bg-muted/20">
+                              <td className="p-2 font-medium">{f.label}</td>
+                              <td className="p-2 font-mono text-muted-foreground">{f.variableName}</td>
+                              <td className="p-2">
+                                {f.value ? (
+                                  <span className="font-semibold text-foreground">{f.value}</span>
+                                ) : (
+                                  <span className="text-muted-foreground italic">—</span>
+                                )}
+                              </td>
+                              <td className="p-2 text-center">
+                                {f.status === 'matched' && (
+                                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                                    Matched
+                                  </Badge>
+                                )}
+                                {f.status === 'empty regex' && (
+                                  <Badge variant="outline" className="text-muted-foreground/60 text-[10px]">
+                                    Empty Regex
+                                  </Badge>
+                                )}
+                                {f.status === 'unmatched' && (
+                                  <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400 text-[10px]">
+                                    Unmatched
+                                  </Badge>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Song Sets Results */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Hasil Ekstraksi Song Set Entries
+                    </h4>
+                    {testResults.songs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">Belum ada song set entries terdaftar.</p>
+                    ) : (
+                      <div className="rounded-md border border-border/50 overflow-hidden text-xs">
+                        <table className="w-full divide-y divide-border/40">
+                          <thead className="bg-muted/40 font-semibold">
+                            <tr>
+                              <th className="p-2 text-left">Slot Variable</th>
+                              <th className="p-2 text-left">Slot Title</th>
+                              <th className="p-2 text-left">Matched Song / Number</th>
+                              <th className="p-2 text-center">Match Kind</th>
+                              <th className="p-2 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/30">
+                            {testResults.songs.map((s) => (
+                              <tr key={s.slotVariable} className="hover:bg-muted/20">
+                                <td className="p-2 font-mono text-muted-foreground">{s.slotVariable}</td>
+                                <td className="p-2 font-medium">{s.title}</td>
+                                <td className="p-2">
+                                  {s.status === 'matched' ? (
+                                    <span className="font-semibold text-foreground">
+                                      {s.songBookCode} #{s.songNumber}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground italic">Unfilled</span>
+                                  )}
+                                </td>
+                                <td className="p-2 text-center font-mono text-[11px]">
+                                  {s.matchKind || '—'}
+                                </td>
+                                <td className="p-2 text-center">
+                                  {s.status === 'matched' ? (
+                                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                                      Matched
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-muted-foreground/60 text-[10px]">
+                                      Unfilled
+                                    </Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Overflow Songs & Unmapped Lines */}
+                  {(testResults.overflowSongs.length > 0 || testResults.unmappedLines.length > 0) && (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2 text-xs text-amber-700 dark:text-amber-300">
+                      {testResults.overflowSongs.length > 0 && (
+                        <div>
+                          <p className="font-semibold flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Lagu Melebihi Slot (Overflow Songs):
+                          </p>
+                          <ul className="list-disc pl-5 mt-1 font-mono text-[11px]">
+                            {testResults.overflowSongs.map((os, idx) => (
+                              <li key={idx}>
+                                {os.bookCode} #{os.number} ("{os.line}")
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {testResults.unmappedLines.length > 0 && (
+                        <div>
+                          <p className="font-semibold flex items-center gap-1">
+                            <HelpCircle className="w-3.5 h-3.5" /> Baris Teks Tidak Terpetakan (Unmapped Lines):
+                          </p>
+                          <ul className="list-disc pl-5 mt-1 font-mono text-[11px] max-h-32 overflow-y-auto">
+                            {testResults.unmappedLines.map((ul, idx) => (
+                              <li key={idx} className="truncate">
+                                {ul}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Single Regex Evaluator */}
+          <Card className="border-border/70 bg-card/60">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-bold flex items-center gap-1.5">
+                <Play className="w-3.5 h-3.5 text-primary" /> Single Pattern Regex Probe
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Uji satu baris regex khusus terhadap teks buletin di atas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div className="flex gap-2">
                 <Input
-                  value={sandboxRegex}
-                  onChange={(e) => setSandboxRegex(e.target.value)}
+                  value={singleRegexPattern}
+                  onChange={(e) => setSingleRegexPattern(e.target.value)}
                   className="text-xs font-mono flex-1 h-8"
+                  placeholder="(?i)^Pattern\s*[:\-]\s*(?<value>.*)$"
                 />
-                <Button type="button" size="sm" className="text-xs h-8 gap-1.5" onClick={runSandboxTest}>
-                  <Play className="w-3.5 h-3.5" /> Test Pattern
+                <Button type="button" size="sm" className="text-xs h-8 gap-1.5" onClick={runSingleRegexTest}>
+                  <Play className="w-3.5 h-3.5" /> Test Single Regex
                 </Button>
               </div>
-            </div>
 
-            {sandboxResult && (
-              <div className="p-3 bg-muted/40 border border-border/50 rounded font-mono text-xs whitespace-pre-wrap">
-                {sandboxResult}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {singleRegexResult && (
+                <div className="p-3 bg-muted/40 border border-border/50 rounded font-mono text-xs whitespace-pre-wrap">
+                  {singleRegexResult}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 4: Advanced Parser Profiles Embedded Sub-View */}
+      {activeTab === 'profiles' && (
+        <div className="space-y-4">
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-xs text-muted-foreground flex items-center justify-between">
+            <span>
+              Kelola profil parser warta jemaat (SDAH numbering, book aliases, dan section delimiters). Terintegrasi dengan Card Groupings & Predefined Fields di atas.
+            </span>
+          </div>
+          <ParserProfilesPanel />
+        </div>
       )}
     </div>
   );

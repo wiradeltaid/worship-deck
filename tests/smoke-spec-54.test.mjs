@@ -245,4 +245,52 @@ test('SPEC-54-02: Photo Deletion Persistence & Per-Key Merge Precedence guards',
   assert.deepEqual(findings, [], `SPEC-54-02 findings detected:\n${findings.join('\n')}`);
 });
 
+export function scanSpec54_03Features(registryAdminSource, formLayoutAdminSource) {
+  const findings = [];
+
+  // RegistryAdmin.tsx navigation consolidation
+  if (registryAdminSource.includes("{ id: 'parsing',") || registryAdminSource.includes('{ id: "parsing",')) {
+    findings.push('RegistryAdmin.tsx must retire the redundant top-level "parsing" tab');
+  }
+  if (registryAdminSource.includes("activeTab === 'parsing'")) {
+    findings.push('RegistryAdmin.tsx must not render standalone parsing tab view');
+  }
+
+  // FormLayoutAdminPanel.tsx parser profile embedding
+  if (!formLayoutAdminSource.includes('ParserProfilesPanel')) {
+    findings.push('FormLayoutAdminPanel.tsx must embed ParserProfilesPanel for Advanced Parser Profiles');
+  }
+
+  // FormLayoutAdminPanel.tsx live rundown test area & production parity
+  if (!formLayoutAdminSource.includes('extractPredefinedFields') && !formLayoutAdminSource.includes('parseRundownWithProfile')) {
+    findings.push('FormLayoutAdminPanel.tsx must execute production-parity parsing via extractPredefinedFields or parseRundownWithProfile');
+  }
+  if (!formLayoutAdminSource.includes('rundown-test-area') && !formLayoutAdminSource.includes('Rundown Test Area')) {
+    findings.push('FormLayoutAdminPanel.tsx must provide an integrated Rundown Test Area');
+  }
+
+  // Optimistic UI: no jarring full-page loading flashes on grouping/slot moves
+  if (formLayoutAdminSource.includes('handleMoveGrouping = async') && formLayoutAdminSource.includes('setLoading(true)')) {
+    // Check if handleMoveGrouping itself calls setLoading(true)
+    const moveFn = formLayoutAdminSource.match(/const handleMoveGrouping = async[\s\S]*?\n  \};/);
+    if (moveFn && moveFn[0].includes('setLoading(true)')) {
+      findings.push('handleMoveGrouping must NOT call setLoading(true); use optimistic in-place state');
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-54-03: Card Grouping Regex Integration, Live Rundown Test Area & Optimistic AJAX guards', () => {
+  const registryAdminPath = path.join(root, 'src', 'components', 'admin', 'RegistryAdmin.tsx');
+  const formLayoutAdminPath = path.join(root, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx');
+
+  const registryAdminSource = fs.readFileSync(registryAdminPath, 'utf8');
+  const formLayoutAdminSource = fs.readFileSync(formLayoutAdminPath, 'utf8');
+
+  const findings = scanSpec54_03Features(registryAdminSource, formLayoutAdminSource);
+  assert.deepEqual(findings, [], `SPEC-54-03 findings detected:\n${findings.join('\n')}`);
+});
+
+
 
