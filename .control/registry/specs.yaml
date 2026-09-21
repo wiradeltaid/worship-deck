@@ -2601,6 +2601,49 @@ waves:
         tests:
           - tests/smoke-spec-54.test.mjs
 
+  - id: SPEC-55
+    status: open
+    release: canvas-center-origin-geometry-parity
+    prd: [offline-deck]
+    fr: [FR-20, FR-21]
+    size: M
+    depends_on: [SPEC-54]
+    spec_folder: .scratch/SPEC-55-canvas-center-origin-geometry-parity/
+    spec_reviewed:
+      date: '2026-09-21'
+      sha: '20fe8d2'
+      lenses: [structure, prose, edge-case-hunter, geometry-invariant, browser-parity, defect-injection]
+    tickets:
+      - id: "SPEC-55-01"
+        component: registry
+        satisfies: [UC-14, FR-20, FR-21]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-55.test.mjs
+      - id: "SPEC-55-02"
+        component: registry
+        satisfies: [UC-14, FR-20, FR-21]
+        blocked_by: ["SPEC-55-01"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-55.test.mjs
+      - id: "SPEC-55-03"
+        component: registry
+        satisfies: [UC-14, FR-20, FR-21]
+        blocked_by: ["SPEC-55-02"]
+        touches: [artifacts]
+        tests:
+          - tests/smoke-spec-55.test.mjs
+      - id: "SPEC-55-04"
+        component: registry
+        satisfies: [UC-14, FR-20, FR-21]
+        blocked_by: ["SPEC-55-03"]
+        touches: [artifacts, tests]
+        tests:
+          - tests/smoke-spec-55.test.mjs
+
+
 
 
 
