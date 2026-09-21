@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 func newTestDB(t *testing.T) (*sql.DB, string) {

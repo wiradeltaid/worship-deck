@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 // BackgroundLibraryImage represents one image in the background or media library (UC-25, S10, SPEC-39, SPEC-40).

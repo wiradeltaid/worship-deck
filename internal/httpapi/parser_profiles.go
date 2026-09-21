@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"database/sql"
@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/parse"
 )
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)

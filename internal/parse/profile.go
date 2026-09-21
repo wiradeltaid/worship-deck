@@ -1,4 +1,4 @@
-package parse
+﻿package parse
 
 import (
 	"database/sql"
@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 type PreprocessRules struct {

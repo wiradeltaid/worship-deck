@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 const maxAnnouncementSetLabelRunes = 80

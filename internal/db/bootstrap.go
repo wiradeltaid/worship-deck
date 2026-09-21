@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/auth"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 const (

@@ -1,10 +1,10 @@
-package parse
+﻿package parse
 
 import (
 	"path/filepath"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 func TestDynamicFieldAndSongSetExtraction(t *testing.T) {

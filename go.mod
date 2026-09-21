@@ -1,4 +1,4 @@
-module github.com/wiradeltaid/worship-presenter-web
+module github.com/wiradeltaid/worship-deck
 
 go 1.22
 

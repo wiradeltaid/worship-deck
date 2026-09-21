@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 func (s *Server) getHymns(w http.ResponseWriter, r *http.Request) {

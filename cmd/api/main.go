@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"flag"
@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/desktop"
-	"github.com/wiradeltaid/worship-presenter-web/internal/httpapi"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/desktop"
+	"github.com/wiradeltaid/worship-deck/internal/httpapi"
 )
 
 func main() {

@@ -1,8 +1,8 @@
 > Read in [English](README.en.md)
 
-# Worship Presenter Web
+# WorshipDeck
 
-Aplikasi penampil ibadah gereja mandiri (*self-hosted*) yang mengubah susunan acara (*rundown*) ibadah menjadi slide presentasi siap pakai — menghasilkan file PowerPoint (.pptx) untuk kebutuhan luring (*offline*) dan konsol presenter dua layar untuk proyektor jemaat.
+Aplikasi penampil dan staging ibadah gereja mandiri (*local-first church presentation & staging suite*) yang mengubah susunan acara (*rundown*) ibadah menjadi slide presentasi siap pakai — menghasilkan file PowerPoint (.pptx) untuk kebutuhan luring (*offline*), konsol presenter dua layar untuk proyektor jemaat, dan remote smartphone Wi-Fi lokal.
 
 Dibangun dengan arsitektur lokal (*local-first*); template slide disimpan sebagai data terkelola (bukan kode), sehingga jemaat dengan tata ibadah serupa dapat langsung menyesuaikannya lewat peramban.
 
@@ -25,8 +25,8 @@ Lirik lagu diambil dari korpus database lokal berdasarkan nomor lagu. Tata letak
 Aplikasi dijalankan langsung dari sumber menggunakan Go dan Node.js:
 
 ```bash
-git clone https://github.com/wiradeltaid/worship-presenter-web.git
-cd worship-presenter-web
+git clone https://github.com/wiradeltaid/worship-deck.git
+cd worship-deck
 npm install
 npm run setup
 npm run dev

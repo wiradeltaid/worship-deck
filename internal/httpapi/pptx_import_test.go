@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/pptximport"
+	"github.com/wiradeltaid/worship-deck/internal/auth"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/pptximport"
 )
 
 // Helper to create synthetic 16:9 PPTX payload

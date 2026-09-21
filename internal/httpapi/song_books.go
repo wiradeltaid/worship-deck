@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 type songBookItem struct {

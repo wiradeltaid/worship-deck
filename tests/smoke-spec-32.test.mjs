@@ -371,9 +371,9 @@ test('T-32-07: Full Go test suites pass for pptximport, plan, and httpapi', () =
     cwd: root,
     encoding: 'utf8',
   });
-  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-presenter-web/internal/pptximport'));
-  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-presenter-web/internal/plan'));
-  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-presenter-web/internal/httpapi'));
+  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/pptximport'));
+  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/plan'));
+  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/httpapi'));
 });
 
 // --------------------------------------------------------------------------

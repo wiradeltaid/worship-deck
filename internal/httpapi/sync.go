@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 // SyncPushPayload defines the incoming batch of local changes pushed to the server.

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
+	"github.com/wiradeltaid/worship-deck/internal/auth"
 )
 
 var positiveID = regexp.MustCompile(`^\d+$`)

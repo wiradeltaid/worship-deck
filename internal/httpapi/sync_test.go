@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 func TestSync_Unauthenticated(t *testing.T) {

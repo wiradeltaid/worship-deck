@@ -35,7 +35,10 @@ export async function buildDesktopPackage(options = {}) {
 
   // 2. Compile Go desktop executable
   console.log('[build-desktop] 2/4: Compiling Go binary...');
-  const exePath = path.join(distDesktop, 'worship-presenter.exe');
+  const exeName = fs.existsSync(path.join(repoRoot, 'installer', 'worship-deck.iss'))
+    ? 'worship-deck.exe'
+    : 'worship-presenter.exe';
+  const exePath = path.join(distDesktop, exeName);
   const goRes = spawnSync(
     'go',
     ['build', '-trimpath', '-ldflags=-s -w', '-o', exePath, './cmd/api'],
@@ -65,7 +68,9 @@ export async function buildDesktopPackage(options = {}) {
   // 4. Compile Inno Setup installer
   const requireInstaller = options.requireInstaller ?? (process.argv.includes('--installer') || process.env.REQUIRE_INSTALLER === '1');
   console.log(`[build-desktop] 4/4: Checking Inno Setup compiler (ISCC) (requireInstaller: ${requireInstaller})...`);
-  const issFile = path.join(repoRoot, 'installer', 'worship-presenter.iss');
+  const issFile = fs.existsSync(path.join(repoRoot, 'installer', 'worship-deck.iss'))
+    ? path.join(repoRoot, 'installer', 'worship-deck.iss')
+    : path.join(repoRoot, 'installer', 'worship-presenter.iss');
   const isccPaths = [
     'ISCC.exe',
     'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe',
@@ -91,7 +96,9 @@ export async function buildDesktopPackage(options = {}) {
     if (innoRes.status !== 0) {
       throw new Error(`Inno Setup compilation failed with exit code ${innoRes.status}`);
     }
-    const outputSetup = path.join(repoRoot, 'dist-installer', 'WorshipPresenterSetup.exe');
+    const outputSetup = fs.existsSync(path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe'))
+      ? path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe')
+      : path.join(repoRoot, 'dist-installer', 'WorshipPresenterSetup.exe');
     if (!fs.existsSync(outputSetup)) {
       throw new Error(`Expected installer output not found at ${outputSetup}`);
     }
@@ -99,7 +106,7 @@ export async function buildDesktopPackage(options = {}) {
   } else if (requireInstaller) {
     throw new Error('Inno Setup compiler (ISCC.exe) is required for package:installer but was not found on PATH or Program Files');
   } else {
-    console.log('[build-desktop] Note: ISCC.exe not found on system PATH. The desktop staging directory (dist-desktop) and installer script (installer/worship-presenter.iss) are ready for packaging.');
+    console.log('[build-desktop] Note: ISCC.exe not found on system PATH. The desktop staging directory (dist-desktop) and installer script (installer/worship-deck.iss) are ready for packaging.');
   }
 
   return { distDesktop, exePath, stageResult, isccBin };

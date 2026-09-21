@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 // newSongSetTestServer boots a real server over a scratch SQLite database

@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"crypto/rand"
@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/parse"
 )
 
 func randomHex(bytes int) string {

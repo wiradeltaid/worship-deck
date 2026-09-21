@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 func newParseTestDB(t *testing.T) (*sql.DB, string) {

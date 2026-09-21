@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 var uploadRef = regexp.MustCompile(`(?i)^[a-f0-9]{32,64}\.(jpe?g|png|gif|webp|bin|ttf|otf|woff2?)$`)

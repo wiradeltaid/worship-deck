@@ -1,6 +1,6 @@
 ﻿package parse
 
-import "github.com/wiradeltaid/worship-presenter-web/internal/plan"
+import "github.com/wiradeltaid/worship-deck/internal/plan"
 
 func (p Rundown) ToPlan() plan.ParsedRundown {
 	items := make([]plan.ParsedItem, 0, len(p.Items))

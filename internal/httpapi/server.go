@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
-	"github.com/wiradeltaid/worship-presenter-web/internal/gate"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
-	"github.com/wiradeltaid/worship-presenter-web/internal/pptx"
+	"github.com/wiradeltaid/worship-deck/internal/auth"
+	"github.com/wiradeltaid/worship-deck/internal/gate"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/pptx"
 )
 
 type Server struct {

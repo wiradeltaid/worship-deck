@@ -1,11 +1,11 @@
-package main
+﻿package main
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/desktop"
+	"github.com/wiradeltaid/worship-deck/internal/desktop"
 )
 
 func TestDesktopDataDirResolution(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
-	"github.com/wiradeltaid/worship-presenter-web/internal/pptximport"
+	"github.com/wiradeltaid/worship-deck/internal/auth"
+	"github.com/wiradeltaid/worship-deck/internal/pptximport"
 )
 
 func TestFontRoutesAndSecurity(t *testing.T) {

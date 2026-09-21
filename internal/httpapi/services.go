@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/parse"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 type serviceListItem struct {

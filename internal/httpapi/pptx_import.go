@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/pptximport"
+	"github.com/wiradeltaid/worship-deck/internal/pptximport"
 )
 
 func newImportedTemplateID() (string, error) {

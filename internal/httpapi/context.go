@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/auth"
+	"github.com/wiradeltaid/worship-deck/internal/auth"
 )
 
 type ctxKey int

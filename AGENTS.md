@@ -1,4 +1,4 @@
-# Agent Rules — worship-presenter-web
+# Agent Rules — worship-deck
 
 This repository is **public**. Congregation data never enters it. How to install and
 update WDI Method lives in the marked block below — do not copy those instructions

@@ -16,8 +16,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 var kebabTemplateID = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)

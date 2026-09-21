@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 func newAnnTestServer(t *testing.T) (*httptest.Server, *dbHandleAndRoot) {

@@ -10,9 +10,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
-	"github.com/wiradeltaid/worship-presenter-web/internal/parse"
-	"github.com/wiradeltaid/worship-presenter-web/internal/plan"
+	"github.com/wiradeltaid/worship-deck/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/parse"
+	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
 // timeNowRFC3339Nano matches the updated_at convention used across the

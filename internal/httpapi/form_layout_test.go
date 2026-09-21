@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 func TestFormLayoutAPI_FullCoverage(t *testing.T) {

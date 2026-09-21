@@ -1,8 +1,8 @@
 > Baca dalam [Bahasa Indonesia](README.md)
 
-# Worship Presenter Web
+# WorshipDeck
 
-A self-hosted hub that turns a worship service rundown into slides — a downloadable PowerPoint deck for offline use, and a dual-screen presenter for the room.
+A local-first church presentation and staging suite that turns a worship service rundown into slides — a downloadable PowerPoint deck with embedded fonts for offline use, a dual-screen presenter for the room, and a smartphone remote control.
 
 Built for a Seventh-day Adventist congregation, but the slide templates are data rather than code, so any church running a similar order of service can adopt it by editing them.
 
@@ -41,8 +41,8 @@ Go 1.24 and Node.js 22 or newer. `npm install` installs the SPA, PPTX worker, an
 ## Quickstart
 
 ```bash
-git clone https://github.com/wiradeltaid/worship-presenter-web.git
-cd worship-presenter-web
+git clone https://github.com/wiradeltaid/worship-deck.git
+cd worship-deck
 npm install
 npm run setup
 npm run dev

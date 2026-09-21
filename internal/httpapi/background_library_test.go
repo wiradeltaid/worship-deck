@@ -1,4 +1,4 @@
-package httpapi
+﻿package httpapi
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 func jsonDecode(r io.Reader, v any) error {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/db"
+	"github.com/wiradeltaid/worship-deck/internal/db"
 )
 
 // saveSongSetToBook implements POST /api/services/{id}/song-sets/{variableName}/save-to-book

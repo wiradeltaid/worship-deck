@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/wiradeltaid/worship-presenter-web/internal/scripture"
+	"github.com/wiradeltaid/worship-deck/internal/scripture"
 )
 
 func (s *Server) getScripture(w http.ResponseWriter, r *http.Request) {
