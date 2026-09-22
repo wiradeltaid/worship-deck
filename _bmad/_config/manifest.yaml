@@ -28,5 +28,5 @@ modules:
     sha: 0e4ff9233a792db1a1cd00f22a482f338168cdc3
 ides:
   - claude-code
-  - cursor
+
 
