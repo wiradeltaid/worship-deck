@@ -7,9 +7,9 @@ updated: 2026-08-22
 satisfies: [FR-15, FR-16, FR-19, FR-22, FR-33, FR-35]
 reviewed:
   date: '2026-09-22'
-  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
+  sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
   lenses: [structure, prose]
-  note: 'Re-review of the delta since 411a59d only (wdi-upgrade 0.5.13->0.6.1): the UC Catalogue table was replaced with a pointer to usecases.yaml (component: presenter) — no promise, FR, or UC content changed. Structure lens confirmed UC-11, 12, 13, 27, 29 are all present in usecases.yaml under component: presenter. Prose lens found no orphaned reference. Zero findings.'
+  note: 'Re-review of the delta since 6281284: a corpus-vs-code reconciliation pass closed OQ-25 (verse-overlay resend on sync, confirmed shipped in src/lib/present-channel.ts and ProjectorClient.tsx) — removed from Open Items and the Assumptions hedge. No promise or FR changed. Zero findings.'
 ---
 
 # SRS — Presenter

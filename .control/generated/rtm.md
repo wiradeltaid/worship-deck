@@ -52,6 +52,20 @@ rtm:
   FR: FR-10
   DEC: []
   UC: UC-7
+  ticket: SPEC-58-01
+  spec: SPEC-58
+  release: delete-service-unlinks-uploads
+  test:
+  - internal/httpapi/services_delete_uploads_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-3
+  FR: FR-10
+  DEC: []
+  UC: UC-7
   ticket: W8-05
   spec: W8
   release: hub-service-ops
@@ -3629,6 +3643,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-16
+  ticket: SPEC-59-01
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-16
+  ticket: SPEC-59-02
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -8188,6 +8230,34 @@ rtm:
   FR: FR-4
   DEC: []
   UC: UC-20
+  ticket: SPEC-59-01
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-59-02
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
   ticket: W3-2
   spec: W3
   release: dec004-completion
@@ -8233,6 +8303,34 @@ rtm:
   FR: FR-5
   DEC: []
   UC: UC-20
+  ticket: SPEC-59-01
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-59-02
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
   ticket: W3-2
   spec: W3
   release: dec004-completion
@@ -8259,6 +8357,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-59-01
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-59-02
+  spec: SPEC-59
+  release: announcement-set-freeze-snapshot
+  test:
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6

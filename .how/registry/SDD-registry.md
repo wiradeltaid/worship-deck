@@ -8,9 +8,9 @@ realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25, UC-32]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
   date: '2026-09-22'
-  sha: '840014f763d92094bb911b3c09f9fc53e4ef2aa3'
+  sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
   lenses: [structure, prose, edge-case-hunter]
-  note: 'Re-review of the delta since 6281284: G4 depth backfilled for SPEC-32/39/40/47''s Registry-owned surface (Fonts, Media Library, Manual Sync''s asset half), none of which had ever been given its own FR, UC, or SDD depth. Widened LC-11/LC-15''s Structure rows rather than minting new LCs, matching this component''s own stated "wider surface, not a new LC" precedent — checked against that precedent''s own wording before applying it, since Hub''s parallel backfill went the other way for a documented reason (no equivalent wide gateway there). Added one Failure Behaviour row per new resource group, and wrote UC-32''s full flow (critical: true, mode: deep requires one for every critical UC). Edge-case-hunter re-verified the deletion-fonts gap (no DELETE handler exists for fonts — a real, reported asymmetry, not fixed here) and the 50 MB-vs-unbounded size-limit inconsistency between the two Manual Sync contract halves. Zero findings beyond what is already reported as findings in the contracts themselves.'
+  note: 'Re-review of the delta since 840014f: a corpus-vs-code reconciliation pass corrected the AD-31 row (Song Set Entry''s real identity now lives in a separate song_set_entries table with a genuine DB-level UNIQUE constraint, not solely in artifact_templates as previously stated) and BR-16/UC-32''s sync-lock claim (push-only in code; the SDD did not itself carry this claim, but the sibling BR/UC files did and are cross-referenced here). The Announcement Set freeze gap (BR-8/AD-35 promising a snapshot the code does not implement) was found in the same pass and left as-is here deliberately — it is a real code gap, not documentation staleness, tracked as SPEC-59. Zero findings remaining beyond SPEC-59 and what is already reported as findings in the contracts themselves.'
 ---
 
 # SDD — Registry

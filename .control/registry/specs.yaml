@@ -2724,6 +2724,11 @@ waves:
     size: S
     depends_on: []
     spec_folder: .scratch/SPEC-58-delete-service-unlinks-uploads/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent) quota-exhausted across every account profile; reviewed in-session instead. Found the ticket's TS-port reference missed service_field_values as an upload-reference table (sermon_poster/family_photo/youth_photo) -- folded into the ticket's acceptance criteria."
     tickets:
       - id: "SPEC-58-01"
         component: hub
@@ -2741,6 +2746,11 @@ waves:
     size: M
     depends_on: []
     spec_folder: .scratch/SPEC-59-announcement-set-freeze-snapshot/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent) quota-exhausted across every account profile; reviewed in-session instead. Found and fixed: (1) the freeze write site is one shared function, cloneLiveToService, covering two callers, not two separate sites as first framed; (2) missing ON DELETE CASCADE requirement -- Service deletion relies entirely on FK cascade, never an explicit snapshot delete; (3) the cited prior-art test file (snapshot_test.go) does not exist -- corrected to state the boundary test must be written from scratch."
     tickets:
       - id: "SPEC-59-01"
         component: registry
@@ -2765,6 +2775,11 @@ waves:
     size: S
     depends_on: []
     spec_folder: .scratch/SPEC-60-hymns-404-unregistered-book-code/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent) quota-exhausted across every account profile; reviewed in-session instead. Found a fresh-database edge case: no-book_code-given default resolution can fall through to a hardcoded SDAH constant that isn't yet a real song_books row before first hymn upsert -- folded into the ticket's acceptance criteria so the new check doesn't 404 that path."
     tickets:
       - id: "SPEC-60-01"
         component: hub
