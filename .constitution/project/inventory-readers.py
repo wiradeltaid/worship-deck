@@ -117,6 +117,47 @@ DEFAULT_API_DESC = {
     "GET /api/session": "Current session",
     "GET /api/services/[id]": "One Service plus assembled plan",
     "POST /api/webhook": "picoclaw intake / correction",
+    # SPEC-44: configurable rundown parser profiles.
+    "GET /api/admin/parser-profiles": "List rundown parser profiles",
+    "POST /api/admin/parser-profiles": "Create a rundown parser profile",
+    "GET /api/admin/parser-profiles/[id]": "One rundown parser profile",
+    "PATCH /api/admin/parser-profiles/[id]": "Update a rundown parser profile",
+    "PUT /api/admin/parser-profiles/[id]": "Update a rundown parser profile",
+    "DELETE /api/admin/parser-profiles/[id]": "Delete a rundown parser profile",
+    "POST /api/admin/parser-profiles/[id]/set-default": "Mark a parser profile as the default",
+    "GET /api/parser-profiles": "Rundown parser profiles the Operator may choose from",
+    # SPEC-46: configurable form layout and predefined fields.
+    "GET /api/worship-form-layout": "The assembled Service form layout (groupings, slots, predefined fields)",
+    "POST /api/admin/form-groupings": "Create or update a form grouping",
+    "DELETE /api/admin/form-groupings/[id]": "Delete a form grouping",
+    "PUT /api/admin/form-groupings/reorder": "Reorder form groupings",
+    "POST /api/admin/form-grouping-slots": "Create a form grouping slot",
+    "DELETE /api/admin/form-grouping-slots/[id]": "Delete a form grouping slot",
+    "PUT /api/admin/form-grouping-slots/reorder": "Reorder form grouping slots within a grouping",
+    "POST /api/admin/form-grouping-slots/[id]/move-grouping": "Move a form grouping slot to another grouping",
+    "POST /api/admin/predefined-fields": "Create or update a predefined form field",
+    "DELETE /api/admin/predefined-fields/[id]": "Delete a predefined form field",
+    "POST /api/admin/predefined-fields/seed-defaults": "Seed the built-in predefined fields",
+    "PUT /api/admin/song-set-entries/[variableName]/extraction-regex": "Set a Song Set entry's lyric-extraction regex",
+    # SPEC-47: offline desktop app, fonts, media library, manual device sync.
+    "GET /api/fonts": "List installed fonts",
+    "GET /api/fonts/[id]": "One installed font file",
+    "POST /api/admin/fonts": "Upload a font",
+    "POST /api/admin/artifacts/fonts": "Upload a font for use in templates",
+    "POST /api/admin/artifacts/import-pptx": "Import a .pptx as an authored template",
+    "GET /api/admin/media-library": "List the media library",
+    "POST /api/admin/media-library": "Add a media asset",
+    "PATCH /api/admin/media-library/[id]": "Update a media asset",
+    "POST /api/admin/media-library/[id]/replace": "Replace a media asset's file in place",
+    "DELETE /api/admin/media-library/[id]": "Remove a media asset",
+    "GET /api/media-library": "Media assets the Operator may choose from",
+    "POST /api/admin/background-library/[id]/replace": "Replace a background image's file in place",
+    "POST /api/sync/push": "Push local changes to a peer device (manual sync)",
+    "GET /api/sync/pull": "Pull changes from a peer device (manual sync)",
+    "GET /api/sync/status": "Current sync state for this device",
+    "POST /api/sync/assets/check": "Check which asset hashes the peer already holds",
+    "POST /api/sync/assets/upload": "Upload a content-addressed asset for sync",
+    "GET /api/sync/assets/[sha256]": "Download a content-addressed synced asset",
 }
 
 DEFAULT_DB_HOLDS = {
@@ -140,6 +181,17 @@ DEFAULT_DB_HOLDS = {
     "service_song_set_layouts": "Per-Service frozen copy of the shared trio (S13 R4)",
     "song_set_inputs": "Per-Service weekly song-set input: number, book, background, lyric override",
     "bible_book_names": "Book names per translation",
+    # DEC-004 / AD-31: Admin-configurable list of song-set entries (Master Data).
+    "song_set_entries": "Admin-configurable list of song-set entries (Master Data, DEC-004/AD-31)",
+    # SPEC-44: configurable rundown parser profiles.
+    "rundown_parser_profiles": "Configurable rundown parsing rule profiles (SPEC-44)",
+    # SPEC-46: configurable form layout and predefined fields.
+    "form_layouts": "Named Service form layouts (SPEC-46)",
+    "form_groupings": "Groupings inside a form layout (SPEC-46)",
+    "form_group_slots": "Slots inside a form grouping, each bound to one field widget (SPEC-46)",
+    "predefined_fields": "Admin-defined Service form fields (SPEC-46)",
+    "service_field_values": "Per-Service values entered for predefined fields (SPEC-46)",
+    "service_form_layout_snapshots": "Per-Service frozen copy of the form layout (SPEC-46)",
 }
 
 # Table → PC: from `owns:` in components.yaml against the DDL names in db/index.ts.
@@ -172,6 +224,18 @@ TABLE_PC = {
     "song_set_inputs": "hub",
     # Sits beside bible_books, per translation.
     "bible_book_names": "presenter",
+    # UC-24: Admin adds/renames/removes a Song Set entry — Registry-owned like
+    # song_set_layouts and the other DEC-004 Master Data tables.
+    "song_set_entries": "registry",
+    # SPEC-44/46 tickets are all component: hub — the Service creation form and
+    # its rundown-parsing/layout configuration are Hub concerns.
+    "rundown_parser_profiles": "hub",
+    "form_layouts": "hub",
+    "form_groupings": "hub",
+    "form_group_slots": "hub",
+    "predefined_fields": "hub",
+    "service_field_values": "hub",
+    "service_form_layout_snapshots": "hub",
 }
 
 # One-shot rebuild names in the same file: created, copied, dropped, renamed. Not live tables.
@@ -320,6 +384,16 @@ REGISTRY_API_PREFIXES = (
     "/api/background-library",
     "/api/song-books",
     "/api/song-set-entries",
+    # SPEC-47: fonts and the media library are Artifact Registry assets, like
+    # backgrounds and templates. `/api/sync/assets*` is the content-addressed
+    # asset side of manual sync (SPEC-47-06) — the mutation side
+    # (/api/sync/push, /pull, /status) is Hub (SPEC-47-05) and MUST NOT match
+    # this prefix, hence the narrower "/api/sync/assets" rather than "/api/sync".
+    "/api/admin/fonts",
+    "/api/fonts",
+    "/api/admin/media-library",
+    "/api/media-library",
+    "/api/sync/assets",
 )
 
 
@@ -458,11 +532,17 @@ DEFAULT_SCREEN_UC = {
     "/services/[id]/present": "UC-12, UC-13",
     "/services/[id]/present/projector": "UC-12",
     "/services/[id]/remote": "UC-29",
+    # SPEC-26: canvas-vs-presenter visual parity diagnostic, Registry-owned like /admin/artifacts.
+    "/services/diagnostic-parity": "UC-14",
+    # SPEC-48: unified schedule workspace visual prototype, built toward the Hub run sheet.
+    "/new": "UC-5",
+    # SPEC-47-06: manual device sync has no use case of its own in the catalogue yet — see
+    # the open question this inventory's Findings section files.
 }
 
 
 def _screen_owner(route: str) -> str:
-    if route.startswith("/admin/artifacts"):
+    if route.startswith("/admin/artifacts") or route in ("/admin/sync", "/services/diagnostic-parity"):
         return "registry"
     # `/remote` is presenter-owned too (UC-29, DEC-006): it is the presenter view on a
     # second device. It does not contain "/present", so it fell to hub until 2026-08-22.

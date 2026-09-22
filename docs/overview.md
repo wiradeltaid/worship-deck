@@ -6,7 +6,7 @@ WorshipDeck is a local-first presentation and staging suite engineered specifica
 
 ## 1. Core Architecture
 
-WorshipDeck operates 100% disconnected from the cloud, ensuring congregation privacy with zero external telemetry:
+WorshipDeck has no cloud backend and sends zero telemetry — every request stays on your machine or your church's local network. The one feature that talks to another host at all is Manual Sync, and that host is another WorshipDeck instance you run, reached only when an operator triggers it:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -18,8 +18,9 @@ WorshipDeck operates 100% disconnected from the cloud, ensuring congregation pri
 [Go API Server & Embedded DB]                       [React Single-Page App]
 • Embedded SQLite (modernc.org/sqlite)              • Vite + Tailwind CSS + Radix UI
 • Natural language rundown regex parser             • FOH Dark Operator Console (#0B0F14)
-• Hymnal corpus (SDAH, Kidung, KJV)                • Dual-screen 16:9 Projector Shell
-• Local HTTP API on port 3000                       • Fabric.js Visual Canvas Editor
+• Configurable parser profiles & form layouts        • Dual-screen 16:9 Projector Shell
+• Hymnal corpus (SDAH, Kidung, KJV)                • Fabric.js Visual Canvas Editor
+• Local HTTP API on port 3000                       • Media library, font & sync admin
     │                                                               │
     └───────────────────────────────┬───────────────────────────────┘
                                     │
@@ -29,6 +30,7 @@ WorshipDeck operates 100% disconnected from the cloud, ensuring congregation pri
                      • ECMA-376 OpenXML PPTX Generator
                      • Embedded TrueType Font Archive
                      • Local Wi-Fi Smartphone Remote
+                     • On-demand manual sync between two instances (LAN, no cloud)
 ```
 
 ---
@@ -37,7 +39,7 @@ WorshipDeck operates 100% disconnected from the cloud, ensuring congregation pri
 
 * **[Getting Started](getting-started.md)**: Install via the Windows setup wizard, extract the standalone portable bundle, or build from source on any platform.
 * **[Features & Workflows](features.md)**: Explore the natural rundown intake, visual canvas editing, dual-screen projection, offline PowerPoint generation, and mobile remote.
-* **[Configuration & Administration](configuration.md)**: Customize dynamic service form fields, test regex parsing in the sandbox, configure webhooks, and manage database backups.
+* **[Configuration & Administration](configuration.md)**: Customize dynamic service form fields and rundown parser profiles, manage the media library and fonts, configure webhooks, run manual device sync, and manage database backups.
 * **[Contributing Guide](contributing.md)**: Development environment prerequisites, public repository privacy guard invariants, and automated test commands.
 
 ---

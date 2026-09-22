@@ -55,3 +55,21 @@ Control the service presentation from anywhere within the sanctuary:
 1. Open `/services/:id/remote` on any smartphone connected to the church local Wi-Fi.
 2. Enter the one-time 4-digit pairing code displayed on the operator console.
 3. The worship leader or speaker can advance slides or view speaker notes directly from their mobile browser with responsive swipe gestures.
+
+---
+
+## 6. Configurable Rundown Parsing & Service Form
+
+For congregations whose rundown format doesn't match the default:
+1. Open **Admin → Registry (`/admin/artifacts`)**.
+2. Under **Rundown Parser Profiles**, author a named profile with its own extraction rules per field, and switch the active profile without a code change.
+3. Under **Form Layout**, arrange Predefined Fields, Song Set entries, and announcement slots into groupings — this is the shape the **New Service** form renders.
+
+---
+
+## 7. Media Library, Fonts & Manual Device Sync
+
+Also under **Admin → Registry (`/admin/artifacts`)**:
+* **Media Library:** a shared pool of background and flyer images, reusable across templates and replaceable in place.
+* **Custom Fonts:** upload TrueType fonts for the canvas editor and PPTX export.
+* **Manual Sync (`/admin/sync`):** on a multi-device setup, push and pull Services, Song Set entries, backgrounds, and announcements directly between two WorshipDeck instances on the same local network — an explicit, on-demand action, never a background or cloud sync.

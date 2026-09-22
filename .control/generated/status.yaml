@@ -281,13 +281,7 @@ work_progress:
   work_progress: 100%
 gate_readiness: 100%
 validators_red: []
-validators_skipped:
-  review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
-    (changed at 0af4065, reviewed at bfb680a), .how/hub/SDD-hub.md (changed at 0af4065, reviewed at af3b6f3),
-    .how/presenter/SDD-presenter.md (changed at 56db449, reviewed at 411a59d), .how/registry/SDD-registry.md
-    (changed at e48efde, reviewed at 42c967c), .what/hub/SRS-hub.md (changed at 56db449, reviewed at af3b6f3),
-    .what/presenter/SRS-presenter.md (changed at 56db449, reviewed at 411a59d), .what/registry/SRS-registry.md
-    (changed at 56db449, reviewed at 42c967c)'
+validators_skipped: {}
 open_questions:
   blocking: 0
   assumptions: 49

@@ -36,6 +36,9 @@ Hymn lyrics come from a local corpus, looked up by number. Layouts come from a r
 - **Announcement flyers** — a persistent list, with images uploaded to the hub or pulled from an allow-listed URL.
 - **Custom typography** — import custom font files with automated variant pairing and ECMA-376 PowerPoint embedding.
 - **Accounts and roles** — per-person admin and operator accounts, rate-limited sign-in, and sessions that can actually be revoked.
+- **Configurable rundown parsing and form layout** — author named parser profiles and arrange the Service form's fields and groupings from the admin panel, no code change needed.
+- **Media library** — a shared, reusable pool of background and flyer images, separate from any one template.
+- **Manual device sync** — push and pull Services, Song Set entries, backgrounds, and announcements between two WorshipDeck instances on the same local network, on demand. No cloud, no background sync.
 
 ## Requirements
 

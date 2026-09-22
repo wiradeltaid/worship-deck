@@ -66,6 +66,7 @@ product_components:
       - SongBook
       - SongSetLayout
       - ServiceSongSetLayout
+      - SongSetEntry
     srs: .what/registry/SRS-registry.md
     sdd: .how/registry/SDD-registry.md
     containers:

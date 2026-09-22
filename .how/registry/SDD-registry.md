@@ -7,9 +7,10 @@ updated: 2026-08-22
 realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
-  date: '2026-08-22'
-  sha: '42c967cbaf9c7b73adcb57b16c1bf35a4124c205'
+  date: '2026-09-22'
+  sha: '06edf6796b34abf825756a307c040e57ca9157dd'
   lenses: [structure, prose, edge-case-hunter]
+  note: 'Re-review of the delta since 42c967c: (1) the "Inherited Constraints" table dropped its "Quoted rule" column (restated ARCHITECTURE-SPINE.md''s own AD-N Rule text verbatim) — no promise or rule content changed. (2) `binds:` gained AD-38 but the table had no AD-38 row; added one. (3) Edge-case-hunter found AD-38''s row 1 (repeat spine placement) contradicted AD-31''s still-standing uniqueness clause, confirmed live by tests/registry-go-http.test.mjs test W11-01. Resolved via DEC-057 (owner ruling 2026-09-22): AD-31''s uniqueness clause is superseded in part; the AD-38 row here is accurate to the resolved rule. Zero findings remaining.'
 ---
 
 # SDD — Registry
@@ -108,6 +109,7 @@ registry now owns platform rows 25–28, 31–32 and 37–69. This sentence prev
 | AD-34 | Registry owns and serves the Background Library table and its default flag (UC-25); the live switch itself (UC-27) is a Presenter-owned session action over AD-10's channel and never calls into this component's write path. |
 | AD-35 | Service creation / Sync (Hub LC-2) calls into LC-15's clone routine, which now also walks every referenced `ann_set_id` and clones its `announcement_set_slides` rows into the snapshot tables (below), not just the spine. |
 | AD-36 | Registry owns the `SongBook` entity, so this AD binds here even though `hymns` is Hub's. The bootstrap-once write and the 10→11 repair migration are named under AD-17 above. Its *Extended* clause (OQ-38, OQ-39 closed) is what makes `POST /api/admin/song-books` (row 58) legitimate at all — an Admin may create a book with no corpus file, supplying all five AD-26 fields; `05-song-books.md` carries the collision and marker-granularity cases. Whether an Admin may **delete** a book is a promise nobody wrote: **OQ-48**. |
+| AD-38 | Main Spine composition, canvas authoring, and the Song Set / Announcement Set workspaces are this component's `ArtifactEditor.tsx` and canvas engine (LC-15). Fixed `spine_position` fields are retired: multiple insertions of the same Song Set or Announcement Set each generate their own spine node (`artifact_templates` row), reordered directly in place. |
 
 AD-1, AD-2, AD-4, AD-10, AD-24 are not listed here (OQ-30): they bind the container / chrome, not
 Registry rows.

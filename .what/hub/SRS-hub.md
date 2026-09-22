@@ -6,9 +6,10 @@ created: 2026-08-18
 updated: 2026-08-22
 satisfies: [FR-1, FR-2, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-17, FR-18, FR-23, FR-24, FR-25, FR-27, FR-28, FR-32, FR-34]
 reviewed:
-  date: '2026-08-22'
-  sha: 'af3b6f3f641f14560778d8badccff85e12e1be7e'
-  lenses: [structure, prose, edge-case-hunter]
+  date: '2026-09-22'
+  sha: '06edf6796b34abf825756a307c040e57ca9157dd'
+  lenses: [structure, prose]
+  note: 'Re-review of the delta since af3b6f3 only (wdi-upgrade 0.5.13->0.6.1): the UC Catalogue table was replaced with a pointer to usecases.yaml (component: hub) — no promise, FR, or UC content changed. Structure lens confirmed every UC previously listed (UC-1..10, 17-19, 21, 22, 23, 26, 28) is present in usecases.yaml under component: hub; the pointer loses nothing. Prose lens found no orphaned reference. Zero findings.'
 ---
 
 # SRS — Hub
