@@ -8,7 +8,7 @@ realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25, UC-32]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
   date: '2026-09-22'
-  sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+  sha: 'bc6c6949c0c1e63f5b57808653155579714999c2'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 840014f: a corpus-vs-code reconciliation pass corrected the AD-31 row (Song Set Entry''s real identity now lives in a separate song_set_entries table with a genuine DB-level UNIQUE constraint, not solely in artifact_templates as previously stated) and BR-16/UC-32''s sync-lock claim (push-only in code; the SDD did not itself carry this claim, but the sibling BR/UC files did and are cross-referenced here). The Announcement Set freeze gap (BR-8/AD-35 promising a snapshot the code does not implement) was found in the same pass and left as-is here deliberately — it is a real code gap, not documentation staleness, tracked as SPEC-59. Zero findings remaining beyond SPEC-59 and what is already reported as findings in the contracts themselves.'
 ---

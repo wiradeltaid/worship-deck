@@ -7,7 +7,7 @@ updated: 2026-08-22
 satisfies: [FR-15, FR-16, FR-19, FR-22, FR-33, FR-35]
 reviewed:
   date: '2026-09-22'
-  sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+  sha: 'bc6c6949c0c1e63f5b57808653155579714999c2'
   lenses: [structure, prose]
   note: 'Re-review of the delta since 6281284: a corpus-vs-code reconciliation pass closed OQ-25 (verse-overlay resend on sync, confirmed shipped in src/lib/present-channel.ts and ProjectorClient.tsx) — removed from Open Items and the Assumptions hedge. No promise or FR changed. Zero findings.'
 ---

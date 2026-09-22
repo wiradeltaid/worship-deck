@@ -8,7 +8,7 @@ realizes: [UC-11, UC-12, UC-13, UC-27, UC-29]
 binds: [AD-1, AD-5, AD-7, AD-10, AD-12, AD-23, AD-24, AD-25, AD-26, AD-27, AD-28, AD-29, AD-30, AD-33, AD-34, AD-37]
 reviewed:
   date: '2026-09-22'
-  sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+  sha: 'bc6c6949c0c1e63f5b57808653155579714999c2'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 6281284: a corpus-vs-code reconciliation pass found six restated-derived-fact staleness findings and fixed them in the same commit — the entire remote-control relay (UC-29/FR-35), OQ-25''s overlay-on-sync resend, the Background Library reader, Announcement Set grouping (BR-9), and per-translation book names (AD-27) were all marked `[MISSING]`/open despite being built and shipped; the remote-control Failure Behaviour table also had three wrong details (401 vs 403, a false 404-on-pair claim, a false 409-on-repair claim contradicted by this same corpus''s own state machine). All six corrected to match verified code. No promise or rule changed — only restated facts. Zero findings remaining after those six fixes.'
 ---
