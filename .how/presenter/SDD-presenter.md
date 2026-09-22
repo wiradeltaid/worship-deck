@@ -8,7 +8,7 @@ realizes: [UC-11, UC-12, UC-13, UC-27, UC-29]
 binds: [AD-1, AD-5, AD-7, AD-10, AD-12, AD-23, AD-24, AD-25, AD-26, AD-27, AD-28, AD-29, AD-30, AD-33, AD-34, AD-37]
 reviewed:
   date: '2026-09-22'
-  sha: '06edf6796b34abf825756a307c040e57ca9157dd'
+  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
   lenses: [structure, prose]
   note: 'Re-review of the delta since 411a59d only: the "Inherited Constraints" table dropped its "Quoted rule" column (restated ARCHITECTURE-SPINE.md''s own AD-N Rule text verbatim). No promise or rule content changed — this is the restated-derived-fact class this skill''s own guide says to delete, and the deletion is what happened. Zero findings.'
 ---

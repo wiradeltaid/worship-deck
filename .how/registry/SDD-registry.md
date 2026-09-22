@@ -8,7 +8,7 @@ realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
   date: '2026-09-22'
-  sha: '06edf6796b34abf825756a307c040e57ca9157dd'
+  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 42c967c: (1) the "Inherited Constraints" table dropped its "Quoted rule" column (restated ARCHITECTURE-SPINE.md''s own AD-N Rule text verbatim) — no promise or rule content changed. (2) `binds:` gained AD-38 but the table had no AD-38 row; added one. (3) Edge-case-hunter found AD-38''s row 1 (repeat spine placement) contradicted AD-31''s still-standing uniqueness clause, confirmed live by tests/registry-go-http.test.mjs test W11-01. Resolved via DEC-057 (owner ruling 2026-09-22): AD-31''s uniqueness clause is superseded in part; the AD-38 row here is accurate to the resolved rule. Zero findings remaining.'
 ---

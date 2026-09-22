@@ -7,7 +7,7 @@ updated: 2026-08-20
 satisfies: [FR-4, FR-5, FR-6, FR-20, FR-21, FR-29, FR-30, FR-31]
 reviewed:
   date: '2026-09-22'
-  sha: '06edf6796b34abf825756a307c040e57ca9157dd'
+  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
   lenses: [structure, prose]
   note: 'Re-review of the delta since 42c967c only (wdi-upgrade 0.5.13->0.6.1): the UC Catalogue table was replaced with a pointer to usecases.yaml (component: registry) — no promise, FR, or UC content changed. Structure lens confirmed UC-14, 15, 16, 20, 24, 25 are all present in usecases.yaml under component: registry. Prose lens found no orphaned reference. Zero findings.'
 ---

@@ -8,7 +8,7 @@ realizes: [UC-1, UC-2, UC-3, UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-16, U
 binds: [AD-1, AD-2, AD-3, AD-4, AD-5, AD-6, AD-7, AD-8, AD-9, AD-12, AD-16, AD-23, AD-24, AD-25, AD-26, AD-28, AD-30, AD-31, AD-34, AD-35, AD-36]
 reviewed:
   date: '2026-09-22'
-  sha: '06edf6796b34abf825756a307c040e57ca9157dd'
+  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
   lenses: [structure, prose]
   note: 'Re-review of the delta since af3b6f3 only: the "Inherited Constraints" table dropped its "Quoted rule" column (which restated ARCHITECTURE-SPINE.md''s own AD-N Rule text verbatim) and one dangling citation to the retired `_bmad-output/implementation-artifacts/deferred-work.md` (confirmed gone from disk, DEC-001). No promise or rule content changed — this is the restated-derived-fact class this skill''s own guide says to delete, and the deletion is what happened. Zero findings.'
 ---
