@@ -2671,6 +2671,34 @@ waves:
         tests:
           - tests/placeholder-catalog.test.mjs
 
+  - id: SPEC-57
+    status: open
+    release: node-schema-mirror-parity
+    prd: [offline-deck]
+    fr: [FR-39, FR-40]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-57-node-schema-mirror-parity/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
+      lenses: [edge-case-hunter, schema-migration, test-design, runtime-packaging]
+    tickets:
+      - id: "SPEC-57-01"
+        component: hub
+        satisfies: [FR-39, FR-40]
+        blocked_by: []
+        touches: [db-schema]
+        tests:
+          - tests/corpus-closure.test.mjs
+      - id: "SPEC-57-02"
+        component: hub
+        satisfies: [FR-39, FR-40]
+        blocked_by: ["SPEC-57-01"]
+        touches: [db-schema]
+        tests:
+          - tests/schema-parity.test.mjs
+
 
 
 

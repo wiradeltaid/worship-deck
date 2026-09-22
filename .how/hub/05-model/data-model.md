@@ -157,6 +157,80 @@ numbered `data_version` migration (AD-21) that ships the `save-to-book` route �
 route MUST NOT ship: shipping the write path first, with the old unconditional reconcile still
 running, would silently discard the Operator's correction on the very next restart.
 
+## New tables (2026-09-22 backfill — FR-36, FR-37, FR-40)
+
+**Note found while backfilling:** `song_set_inputs` above is marked "(planned)" throughout this
+file, but the table is shipped and live in `src/lib/db/index.ts` today — that staleness predates
+this backfill and is reported here rather than fixed, since it is unrelated to FR-36/37/40 and
+fixing it would exceed this pass's scope.
+
+```mermaid
+erDiagram
+  form_layouts ||--o{ form_groupings : "layout_id"
+  form_groupings ||--o{ form_group_slots : "grouping_id"
+  services ||--o| service_form_layout_snapshots : "service_id"
+  services ||--o{ service_field_values : "service_id"
+  predefined_fields ||..o{ form_group_slots : "ref_key (soft, widget_kind-scoped)"
+```
+
+| Entity | Table | Identified by |
+| --- | --- | --- |
+| Rundown Parser Profile | `rundown_parser_profiles` | `id` / `slug` |
+| Form Layout | `form_layouts` | `id` |
+| Form Grouping | `form_groupings` | `id` |
+| Form Grouping Slot | `form_group_slots` | `id` |
+| Predefined Field | `predefined_fields` | `id` / `variable_name` |
+| Service Field Value | `service_field_values` | `(service_id, variable_name)` |
+| Service Form Layout Snapshot | `service_form_layout_snapshots` | `service_id` |
+
+**Relationships.** One Form Layout has zero or many Form Groupings, ordered by `sort_order`
+(`UNIQUE(layout_id, sort_order)`). One Form Grouping has zero or many Form Grouping Slots, ordered
+the same way. A Form Grouping Slot's `ref_key` is a soft reference (no `FOREIGN KEY`) scoped by its
+own `widget_kind` — `predefined_field` (this table), `song_set_entry` (Registry's
+`song_set_entries.variable_name`), or `announcement_slot` — the same one-table-two-owners shape
+`song_set_inputs.variable_name` already has for the Registry's Song Set entries.
+`UNIQUE(layout_id, widget_kind, ref_key)` prevents the same ref occupying two slots in one layout. A
+Service has zero or one Service Form Layout Snapshot, taken in the same transaction as Service
+creation (`internal/httpapi/services.go:202`), and zero or many Service Field Values, one per
+Predefined Field entered on it.
+
+| Table | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| rundown_parser_profiles | id | TEXT PK | Profile identity |
+| rundown_parser_profiles | slug | TEXT UNIQUE | URL/reference-safe name |
+| rundown_parser_profiles | title, description | TEXT | Admin-facing labels |
+| rundown_parser_profiles | rules_json | TEXT | The extraction rule set `internal/parse` applies |
+| rundown_parser_profiles | is_builtin | INTEGER | 1 for the shipped default; MUST NOT be deleted |
+| rundown_parser_profiles | is_default | INTEGER | Exactly one row may hold 1 at a time |
+| rundown_parser_profiles | version | INTEGER | Bumped on update |
+| form_layouts | id | TEXT PK | Layout identity |
+| form_layouts | is_active | INTEGER | The Service form renders whichever layout holds 1; falls back to `id = 'default-layout'` if none does |
+| form_groupings | id | TEXT PK | Grouping identity |
+| form_groupings | layout_id | TEXT, FK → form_layouts.id ON DELETE CASCADE | Owning layout |
+| form_groupings | sort_order | INTEGER | Position within the layout |
+| form_group_slots | id | TEXT PK | Slot identity |
+| form_group_slots | layout_id | TEXT, FK → form_layouts.id ON DELETE CASCADE | Denormalized for the `UNIQUE(layout_id, widget_kind, ref_key)` constraint |
+| form_group_slots | grouping_id | TEXT, FK → form_groupings.id ON DELETE CASCADE | Owning grouping |
+| form_group_slots | widget_kind | TEXT | `predefined_field` \| `song_set_entry` \| `announcement_slot` |
+| form_group_slots | ref_key | TEXT | The referenced entity's own key, meaning depends on `widget_kind` |
+| predefined_fields | id | TEXT PK | Field identity |
+| predefined_fields | variable_name | TEXT UNIQUE | `/^[a-z][a-z0-9_]{1,63}$/`, the cross-boundary key (DEC-058) |
+| predefined_fields | field_type | TEXT | `text` \| `text_area` \| `image` |
+| predefined_fields | is_system | INTEGER | Marks a shipped default field |
+| predefined_fields | is_active | INTEGER | 0 = soft-deleted; the row survives so no `service_field_values` row orphans |
+| service_field_values | service_id | TEXT, FK → services.id ON DELETE CASCADE | Owning Service |
+| service_field_values | variable_name | TEXT | Which Predefined Field, soft reference |
+| service_field_values | value_text | TEXT | The entered value |
+| service_form_layout_snapshots | service_id | TEXT PK, FK → services.id ON DELETE CASCADE | One per Service |
+| service_form_layout_snapshots | layout_version | INTEGER | Which Form Layout version was frozen |
+| service_form_layout_snapshots | snapshot_json | TEXT | The frozen layout structure |
+
+**Invariants.** `UNIQUE(layout_id, sort_order)` on `form_groupings`; `UNIQUE(grouping_id, sort_order)`
+and `UNIQUE(layout_id, widget_kind, ref_key)` on `form_group_slots`; `UNIQUE(variable_name)` on both
+`rundown_parser_profiles` (as `slug`) and `predefined_fields`. Deleting a Predefined Field is a soft
+delete (`is_active = 0`, `deletePredefinedField`) — no cascade to `service_field_values`, matching
+BR-15. Deleting a built-in or the active default parser profile is refused, not cascaded.
+
 ## Physical notes
 
 One SQLite file `DB_PATH`, WAL, `busy_timeout` 5000, FK on. Not a separate container.

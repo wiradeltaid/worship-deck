@@ -8,7 +8,7 @@ realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25, UC-32]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
   date: '2026-09-22'
-  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 6281284: G4 depth backfilled for SPEC-32/39/40/47''s Registry-owned surface (Fonts, Media Library, Manual Sync''s asset half), none of which had ever been given its own FR, UC, or SDD depth. Widened LC-11/LC-15''s Structure rows rather than minting new LCs, matching this component''s own stated "wider surface, not a new LC" precedent — checked against that precedent''s own wording before applying it, since Hub''s parallel backfill went the other way for a documented reason (no equivalent wide gateway there). Added one Failure Behaviour row per new resource group, and wrote UC-32''s full flow (critical: true, mode: deep requires one for every critical UC). Edge-case-hunter re-verified the deletion-fonts gap (no DELETE handler exists for fonts — a real, reported asymmetry, not fixed here) and the 50 MB-vs-unbounded size-limit inconsistency between the two Manual Sync contract halves. Zero findings beyond what is already reported as findings in the contracts themselves.'
 ---
@@ -34,11 +34,12 @@ Like every other registry structure, the trio is **frozen into the per-service s
 creation** (AD-16, reversed 2026-08-20 from an earlier live-read design — see below); it is not
 read live at render time.
 Two more Admin-maintained collections join the component: a **Background Library** (images only,
-one global default) and a **Song Book** list (one global default), both referenced by weekly/live
-choices elsewhere but owned and CRUD'd here. A Predefined Field is now a `{key}` token mixed into
-a text element's own content — the closed catalog vocabulary is still a code list (AD-19), not a
-table, and an unrecognised token never blocks generation (BR-13); it is flagged only when the
-slide is saved.
+one global default, now also serving Announcement Sets under the "Media Library" name, FR-38) and a
+**Song Book** list (one global default), both referenced by weekly/live choices elsewhere but owned
+and CRUD'd here. A Predefined Field is now a `{key}` token mixed into a text element's own content —
+the catalog vocabulary is Hub-authored data (`predefined_fields`, DEC-058), not a code list, though
+this component's own validator has not been updated to read it yet (SPEC-56) — and an unrecognised
+token never blocks generation (BR-13); it is flagged only when the slide is saved.
 
 Two surfaces, unchanged: this component does not take weekly hymn numbers, Song Book choices,
 backgrounds, lyric corrections, or live background switches — those are Hub/Presenter (FR-32,

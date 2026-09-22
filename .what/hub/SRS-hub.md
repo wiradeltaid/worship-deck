@@ -7,7 +7,7 @@ updated: 2026-08-22
 satisfies: [FR-1, FR-2, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-17, FR-18, FR-23, FR-24, FR-25, FR-27, FR-28, FR-32, FR-34]
 reviewed:
   date: '2026-09-22'
-  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 6281284: the Actor Register row for Admin gained two new grants (UC-30 Rundown Parser Profiles, UC-31 Form Layout) backfilled by wdi-product/wdi-blueprint after SPEC-44/46 shipped them with no FR or UC of their own. The UC Catalogue pointer to usecases.yaml needs no edit — it already includes UC-30/31 by construction. Edge-case-hunter checked the new FR-36/FR-37 proof text (requirements-rundown-to-service.yaml, requirements-operator-turn.yaml) against the corresponding contract files (09-rundown-parser-profiles.md, 10-form-layout.md) for consistency — no contradiction found. Zero findings.'
 ---

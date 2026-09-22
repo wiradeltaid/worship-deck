@@ -13,7 +13,7 @@ sources: []
 companions: []
 reviewed:
   date: '2026-09-22'
-  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 6281284: AD-19 and AD-32 gained a second supersession note each, for DEC-058 — the Predefined Field Catalog''s key is now Admin-authored (SPEC-46''s `predefined_fields` table, `POST /api/admin/predefined-fields` accepting any well-formed `variable_name`), not the code-plus-tests change both ADs previously stated. Edge-case-hunter traced the actual runtime effect before accepting the supersession: confirmed `internal/plan/plan.go`''s substitution loop already applies any `service_field_values` key regardless of catalog membership (text fields work today), but `internal/plan/validate_artifact.go`''s `catalogKeys` map and `src/lib/registry/placeholder-catalog.ts`''s `CATALOG_BY_KEY` are both still the static 17-key list — an admin-created **image** field is hard-rejected on save, and the editor false-flags every admin-created field as "unknown." This gap is real and is not what DEC-058 itself claims to fix; DEC-058''s Cost section names it explicitly and points to SPEC-56 (opened, ticketed, Terra-reviewed accept-with-changes, tickets revised) rather than leaving it implied. Zero findings beyond what DEC-058 already discloses.'
 ---

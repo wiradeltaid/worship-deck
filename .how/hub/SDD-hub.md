@@ -8,7 +8,7 @@ realizes: [UC-1, UC-2, UC-3, UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-16, U
 binds: [AD-1, AD-2, AD-3, AD-4, AD-5, AD-6, AD-7, AD-8, AD-9, AD-12, AD-16, AD-19, AD-23, AD-24, AD-25, AD-26, AD-28, AD-30, AD-31, AD-32, AD-34, AD-35, AD-36]
 reviewed:
   date: '2026-09-22'
-  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
   lenses: [structure, prose, edge-case-hunter]
   note: 'Re-review of the delta since 6281284: G4 depth backfilled for SPEC-44/46/47''s Hub-owned surface, which shipped under an autopilot mandate with no FR, UC, or SDD depth at all. Added: three LC rows (LC-19 parser profiles, LC-20 form layout, LC-23 sync mutation, each a genuinely new resource family — Hub has no existing wide gateway to widen the way Registry''s LC-11 is); two Inherited Constraints rows (AD-19, AD-32 — Hub now owns the Predefined Field Catalog''s CRUD, DEC-058 noted); three Failure Behaviour rows (parser profiles, form layout, sync mutation), the sync row naming the CORS/auth gap as the dominant failure mode rather than an edge case, and the form-layout row naming a real silent-failure bug (`fetchLayout` swallows every error). Edge-case-hunter cross-checked every new AD/DEC/FR/UC id against ARCHITECTURE-SPINE.md, the two PRDs, and usecases.yaml for contradiction — found none beyond what DEC-057/058 already resolved. Zero findings remaining.'
 ---

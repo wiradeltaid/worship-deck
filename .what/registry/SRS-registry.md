@@ -7,9 +7,9 @@ updated: 2026-08-20
 satisfies: [FR-4, FR-5, FR-6, FR-20, FR-21, FR-29, FR-30, FR-31]
 reviewed:
   date: '2026-09-22'
-  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
   lenses: [structure, prose, edge-case-hunter]
-  note: 'Re-review of the delta since 6281284: the Actor Register row for Admin gained one new grant (UC-32 Manual Device Sync, marked experimental), backfilled by wdi-product/wdi-blueprint after SPEC-47 shipped it with no FR or UC of its own. The UC Catalogue pointer needs no edit. Edge-case-hunter checked FR-40''s proof text (requirements-offline-deck.yaml) against UC-32''s full flow and both manual-sync contract files (Hub''s 11-manual-sync.md, this component''s 07-manual-sync.md) for consistency, and confirmed UC-32''s critical:true is justified (moves personal data to a second instance, per PRIVACY.md''s own Manual Sync section). Zero findings.'
+  note: 'Re-review of the delta since 6281284: the Actor Register row for Admin gained one new grant (UC-32 Manual Device Sync, marked experimental), backfilled by wdi-product/wdi-blueprint after SPEC-47 shipped it with no FR or UC of its own. The UC Catalogue pointer needs no edit. Edge-case-hunter checked FR-40''s proof text (requirements-offline-deck.yaml) against UC-32''s full flow and both manual-sync contract files (Hub''s 11-manual-sync.md, this component''s 07-manual-sync.md) for consistency, and confirmed UC-32''s critical:true is justified (moves personal data to a second instance, per PRIVACY.md''s own Manual Sync section). Three restated-derived-fact staleness findings caught on a second pass and fixed in the same commit: Prerequisite still said the Predefined Field catalog is closed (superseded by DEC-058, and the SPEC-56 wiring gap named so a reader does not assume it already works); Gate Checklist''s critical count was 1/6, now 2/7 with UC-32; Slots'' Flows list omitted the new `UC-32-manual-device-sync.md` file. Zero findings remaining after those three fixes.'
 ---
 
 # SRS — Registry
@@ -46,7 +46,7 @@ Two surfaces: the Artifact Registry owns order, labels, layout, and announcement
 
 ## Prerequisite · [G3]
 
-Predefined Field catalog is closed; expanding it = development. An unrecognised `{token}` never blocks generation (FR-30) — it renders empty and is flagged at save time, not at generate time.
+Predefined Field catalog is Admin-authored (DEC-058) — expanding it is an Admin action, not a code change, though the canvas validator's actual recognition of a newly Admin-created key is not yet wired to that table (SPEC-56). An unrecognised `{token}` never blocks generation (FR-30) — it renders empty and is flagged at save time, not at generate time.
 
 ## Success Signal · [G3]
 
@@ -71,7 +71,7 @@ A Registry edit that makes lyrics unreadable (NFR-3).
 
 ## Gate Checklist · [G3]
 
-★ UC titles are user sentences: yes. critical 1/6.
+★ UC titles are user sentences: yes. critical 2/7.
 
 ## Design Reference · [G3]
 
@@ -79,7 +79,7 @@ A Registry edit that makes lyrics unreadable (NFR-3).
 
 ## Slots
 
-`mode: deep`. Rules: `02-rules/rules-registry.md` (BR-8…BR-13; BR-11 retired, superseded by DEC-004). Domain: `03-domain/domain-model.md`, `state-machines.md`, `deck-frame.md`. Flows: `04-usecases/UC-14-edit-layout.md` (amended DEC-004), `UC-15-reorder-and-delete.md` (critical, amended DEC-004), `UC-16-sync-artifact.md` (amended DEC-004), `UC-20-deck-matches-payload.md`, `UC-24-song-set-entries.md`, `UC-25-background-library.md`. Branches: `05-scenarios/SCN-5-delete-survives-restart.md`.
+`mode: deep`. Rules: `02-rules/rules-registry.md` (BR-8…BR-13; BR-11 retired, superseded by DEC-004). Domain: `03-domain/domain-model.md`, `state-machines.md`, `deck-frame.md`. Flows: `04-usecases/UC-14-edit-layout.md` (amended DEC-004), `UC-15-reorder-and-delete.md` (critical, amended DEC-004), `UC-16-sync-artifact.md` (amended DEC-004), `UC-20-deck-matches-payload.md`, `UC-24-song-set-entries.md`, `UC-25-background-library.md`, `UC-32-manual-device-sync.md` (critical, experimental). Branches: `05-scenarios/SCN-5-delete-survives-restart.md`.
 
 ## Open Items
 
