@@ -32,12 +32,27 @@ after the database delete commits.
       Service's own uploads stored this way, and could wrongly delete a file another Service still
       references only through its own `service_field_values` row. The collection and the
       still-referenced check must both cover `service_field_values` too.
-- [ ] Deleting a Service removes every local file under `UPLOADS_DIR` that was referenced only by
-      that Service (photos, flyers) — confirmed by asserting the file no longer exists on disk after
-      the DELETE request completes.
-- [ ] An uploaded file still referenced by another Service, or by the Artifact Registry (Background
-      Library, Announcement Sets) — anything outside this one Service's own scope — is NOT deleted.
-      FR-10's proof text is explicit that the Artifact Registry's assets "remain untouched."
+- [ ] Deleting a Service removes every local file under `UPLOADS_DIR` that was collected as **this
+      Service's own upload** — meaning it came from that Service's own `images_payload` or
+      `service_field_values` rows — and is not still referenced anywhere else. Confirmed by asserting
+      the file no longer exists on disk after the DELETE request completes.
+- [ ] **The collection scope and the still-referenced check are two different things — do not conflate
+      them (confirmed by a second peer-review round).** Only `services.images_payload` and
+      `service_field_values` name what belongs to *this* Service and is therefore a *candidate* for
+      deletion. `announcement_items.image_url`, `artifact_templates.payload`,
+      `announcement_set_slides.payload`, and `background_library_images.url` are read only to check
+      whether a candidate file is *still referenced elsewhere* before deleting it — they must never be
+      added to the collection step itself. This matters concretely for `announcement_items`: its
+      `service_id` column survives Service deletion on purpose (the FK to `services` was deliberately
+      dropped in `internal/db/migrate_announcement_items_cascade.go` specifically so this Registry-owned
+      content keeps working after the Service that referenced it is gone) — an announcement flyer must
+      never be deleted by this ticket's logic, regardless of what else does or doesn't reference it,
+      because it is never this Service's own upload to begin with. FR-10's proof text is explicit that
+      the Artifact Registry's assets "remain untouched." State a test for this exact case: a Service
+      deleted while an `announcement_items` row (with that Service's old `service_id`) still points at
+      an uploaded image — the image must survive.
+- [ ] An uploaded file still referenced by another Service (via its own `images_payload` or
+      `service_field_values`) is NOT deleted.
 - [ ] The unlink happens after the database delete/commit succeeds, not before — a failed delete must
       not leave the Service's row gone but its files also gone (or vice versa in a way that orphans
       files silently).

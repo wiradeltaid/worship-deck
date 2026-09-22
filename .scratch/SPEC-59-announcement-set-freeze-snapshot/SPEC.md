@@ -61,14 +61,48 @@ in preference to the live table whenever a frozen row exists for that Service �
   Confirmed by peer review: actual Service deletion (`deleteService`) never issues an explicit delete
   against `service_registry_snapshots` — it relies entirely on this FK cascade — so the new table
   needs the identical cascade or a Service delete orphans its frozen announcement rows forever.
-- `loadAnnouncementSlidesIntoSnapshot` gains the same `serviceID`-gated choice `LoadSnapshot` already
-  makes for `service_registry_snapshots`: if a frozen row exists for this Service, read from
-  `service_announcement_set_slides`; otherwise (unfrozen Service, or the live preview at `serviceID
-  0`) read live from `announcement_set_slides`, exactly as today.
+- `loadAnnouncementSlidesIntoSnapshot` gains a `serviceID`-gated choice, but **the predicate must be
+  the Service's own freeze state, not `service_announcement_set_slides` row existence** — corrected
+  after a second peer-review round found the naive version broken: an Announcement Set with zero
+  slides at freeze time freezes with zero child rows, which is indistinguishable from "never frozen"
+  if row-count is the test, and a live slide added afterward would then leak into that
+  already-frozen Service exactly the way this spec exists to prevent. Use the same freeze-state check
+  `LoadSnapshot` already uses for `service_registry_snapshots` (its own row count is a safe predicate
+  there only because a spine can't be genuinely empty; it is not safe to reuse for a set that can). If
+  a frozen row exists for this Service, read from `service_announcement_set_slides` (which may
+  legitimately be empty); otherwise (unfrozen Service, or the live preview at `serviceID 0`) read live
+  from `announcement_set_slides`, exactly as today.
 - Deleting a Service's frozen snapshot (`DELETE FROM service_registry_snapshots WHERE service_id = ?`,
   both existing call sites) must delete the paired `service_announcement_set_slides` rows in the same
   transaction — an orphaned frozen-announcement row with no matching `service_registry_snapshots` row
   would freeze silently forever with no Sync able to reach it.
+- **`cloneLiveToService` has its own pre-existing freeze gap this spec's correctness depends on
+  closing (found by the same second peer-review round; this narrows the Out of Scope section below).**
+  Its `SELECT id, label, base_type, payload, updated_at FROM artifact_templates` and matching
+  `INSERT INTO service_registry_snapshots` never carry `variable_name` or `ann_set_id` — both columns
+  are left NULL on every row it writes. Sync Artifact's own write (`internal/httpapi/registry.go`
+  `SELECT ... variable_name, ann_set_id FROM artifact_templates` / matching `INSERT`) already carries
+  both correctly. `LoadSnapshot`'s `COALESCE(s.ann_set_id, a.ann_set_id)` silently papers over this for
+  reads by falling back to the *live* `artifact_templates` row's `ann_set_id` whenever the snapshot's
+  own column is NULL — which means a Service frozen at creation time (never yet Synced) has its
+  `ann-set-marker` rows still pointing at whatever the *live* marker's Announcement Set is, right now,
+  not the one it was created with. Retargeting or removing that live marker later changes which
+  Announcement Set an already-frozen, never-Synced Service shows — the same class of leak this spec
+  exists to close, just for the marker's *identity* rather than its *slide content*. Fix
+  `cloneLiveToService` to select and insert `variable_name`/`ann_set_id` exactly as the Sync Artifact
+  path already does, so the two write sites agree.
+- **The upgrade path for Services already frozen before this spec ships must be decided, not left
+  implicit (found by the same review round).** `migrateSnapshots` (the AD-16 bulk migration) only
+  processes Services where `registry_snapshot_at IS NULL` — a Service already frozen under the old
+  scheme will never have `cloneLiveToService` run against it again, so it will never get an initial
+  `service_announcement_set_slides` row from that path. Since no historical announcement-slide content
+  was ever recorded for these Services, their freeze boundary cannot be reconstructed — the choice is
+  between (a) a companion one-time migration that clones *today's* live announcement content into
+  `service_announcement_set_slides` for every Service that already has `registry_snapshot_at` set,
+  treating "now" as their initial freeze point (matches how AD-16's own original migration bootstrapped
+  pre-existing Services), or (b) leaving them unfrozen for announcements until their next explicit Sync,
+  which is more honest about not inventing history but means those specific Services keep the current
+  (already-known-wrong) live-read behavior a while longer. Ticket 01 decides and states which.
 
 ## Testing Decisions
 
@@ -88,8 +122,13 @@ in preference to the live table whenever a frozen row exists for that Service �
 
 ## Out of Scope
 
-- No change to `artifact_templates`/`service_registry_snapshots` or the Song Set layout trio — both
-  already work correctly and are not part of this gap.
+- No change to `artifact_templates`/`service_registry_snapshots`'s slide **content** freeze, or the
+  Song Set layout trio — both already work correctly for what they carry. **Narrowed by a second
+  peer-review round:** `cloneLiveToService` leaving `variable_name`/`ann_set_id` NULL is a real,
+  pre-existing gap in the *marker identity* half of that same freeze (see Implementation Decisions),
+  and closing it is in scope here because this spec's own correctness depends on it — an
+  `ann-set-marker` whose target can still silently drift live defeats the announcement-content freeze
+  this spec adds. Nothing about `artifact_templates`' slide/label content itself changes.
 - No change to what UC-16/UC-20/BR-8/AD-35 promise — the promise stays as written; this spec makes the
   code match it.
 - Not fixing the Song Set Entry data-model documentation gap (identity now split across

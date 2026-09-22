@@ -2728,7 +2728,7 @@ waves:
       date: '2026-09-22'
       sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
       lenses: [edge-case-hunter, correctness, scope-boundary]
-      note: "Terra (kiro-agent) quota-exhausted across every account profile; reviewed in-session instead. Found the ticket's TS-port reference missed service_field_values as an upload-reference table (sermon_poster/family_photo/youth_photo) -- folded into the ticket's acceptance criteria."
+      note: "Round 1 (in-session, Terra was quota-exhausted across every account profile at the time): found the ticket's TS-port reference missed service_field_values as an upload-reference table (sermon_poster/family_photo/youth_photo) -- folded in. Round 2 (2026-09-23, Terra back online, second opinion on the revised ticket): found the collection scope (this Service's own uploads) and the still-referenced check (broader, includes announcement_items etc.) were conflated -- an announcement flyer must never be deleted regardless of reference count, since announcement_items.service_id deliberately survives Service deletion (the FK was dropped for exactly that reason) and a flyer is therefore never this Service's own upload to begin with. Corrected."
     tickets:
       - id: "SPEC-58-01"
         component: hub
@@ -2750,7 +2750,7 @@ waves:
       date: '2026-09-22'
       sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
       lenses: [edge-case-hunter, correctness, scope-boundary]
-      note: "Terra (kiro-agent) quota-exhausted across every account profile; reviewed in-session instead. Found and fixed: (1) the freeze write site is one shared function, cloneLiveToService, covering two callers, not two separate sites as first framed; (2) missing ON DELETE CASCADE requirement -- Service deletion relies entirely on FK cascade, never an explicit snapshot delete; (3) the cited prior-art test file (snapshot_test.go) does not exist -- corrected to state the boundary test must be written from scratch."
+      note: "Round 1 (in-session, Terra was quota-exhausted across every account profile at the time): found and fixed (1) the freeze write site is one shared function, cloneLiveToService, covering two callers, not two separate sites as first framed; (2) missing ON DELETE CASCADE requirement -- Service deletion relies entirely on FK cascade, never an explicit snapshot delete; (3) the cited prior-art test file (snapshot_test.go) does not exist -- corrected to state the boundary test must be written from scratch. Round 2 (2026-09-23, Terra back online, second opinion on the revised ticket): found and fixed three more gaps -- (4) the freeze predicate must be the Service's own freeze state, not service_announcement_set_slides row existence, since an Announcement Set with zero slides at freeze time is indistinguishable from never-frozen under a row-count test; (5) cloneLiveToService also omits variable_name/ann_set_id on the service_registry_snapshots rows it writes, unlike Sync Artifact's own write -- LoadSnapshot's COALESCE fallback to the live marker masks this, so a Service frozen at creation (never Synced) can still have its Announcement Set association silently retargeted by a later live edit; (6) the upgrade path for Services already frozen before this ships was unspecified -- migrateSnapshots only processes registry_snapshot_at IS NULL rows, so a companion one-time migration cloning today's live content as the initial freeze is now required and stated explicitly."
     tickets:
       - id: "SPEC-59-01"
         component: registry
@@ -2779,7 +2779,7 @@ waves:
       date: '2026-09-22'
       sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
       lenses: [edge-case-hunter, correctness, scope-boundary]
-      note: "Terra (kiro-agent) quota-exhausted across every account profile; reviewed in-session instead. Found a fresh-database edge case: no-book_code-given default resolution can fall through to a hardcoded SDAH constant that isn't yet a real song_books row before first hymn upsert -- folded into the ticket's acceptance criteria so the new check doesn't 404 that path."
+      note: "Round 1 (in-session, Terra was quota-exhausted across every account profile at the time): found a fresh-database edge case -- no-book_code-given default resolution can fall through to a hardcoded SDAH constant that isn't yet a real song_books row before first hymn upsert -- folded in. Round 2 (2026-09-23, Terra back online, second opinion on the revised ticket): correct and complete as scoped, no further change."
     tickets:
       - id: "SPEC-60-01"
         component: hub
