@@ -1,0 +1,107 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Tag agrees with package.json version
+        shell: pwsh
+        run: |
+          $pkg = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = $env:GITHUB_REF_NAME -replace '^v', ''
+          if ($pkg -ne $tag) {
+            throw "tag $env:GITHUB_REF_NAME implies version $tag, but package.json is $pkg"
+          }
+          "VERSION=$pkg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Changelog has a section for this tag
+        shell: pwsh
+        run: |
+          $lines = Get-Content CHANGELOG.md
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^##\s+\[$([regex]::Escape($env:VERSION))\]") { $start = $i; break }
+          }
+          if ($start -lt 0) {
+            throw "CHANGELOG.md has no '## [$env:VERSION]' section. Add one before tagging."
+          }
+          $body = New-Object System.Collections.Generic.List[string]
+          for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^##\s') { break }
+            $body.Add($lines[$i])
+          }
+          $text = ($body -join "`n").Trim()
+          if (-not $text) {
+            throw "CHANGELOG.md section '## [$env:VERSION]' is empty. Release notes are required."
+          }
+          Set-Content changelog-section.md -Value $text -Encoding utf8
+          Write-Host "--- Release notes for $env:VERSION ---"
+          Write-Host $text
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Inno Setup 6 (Portable)
+        shell: pwsh
+        run: |
+          $expected = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+          curl.exe -sSLf -o innosetup.exe 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
+          $actual = (Get-FileHash innosetup.exe -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) { throw "Inno Setup checksum mismatch: got $actual" }
+          $dir = Join-Path $PWD 'inno'
+          & .\innosetup.exe /PORTABLE=1 /VERYSILENT /SUPPRESSMSGBOXES "/DIR=$dir" | Out-Null
+          if (-not (Test-Path (Join-Path $dir 'ISCC.exe'))) {
+            throw "ISCC.exe not found in $dir after the portable install"
+          }
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Run verification tests & guards
+        shell: pwsh
+        run: |
+          go test ./cmd/... ./internal/...
+          npm run typecheck
+          node --import ./tests/register-ts-resolve.mjs --test tests/public-repo-guard.test.mjs
+          node --import ./tests/register-ts-resolve.mjs --test tests/theme-chrome.test.mjs
+
+      - name: Package Windows desktop installer
+        run: npm run package:installer
+
+      - name: Compute SHA-256 checksums
+        shell: pwsh
+        run: |
+          $installer = "dist-installer\WorshipDeckSetup.exe"
+          if (-not (Test-Path $installer)) { throw "Installer not found at $installer" }
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          $name = [System.IO.Path]::GetFileName($installer)
+          "$hash  $name" | Set-Content dist-installer\SHA256SUMS.txt -Encoding utf8
+          Write-Host "SHA256: $hash ($name)"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: changelog-section.md
+          files: |
+            dist-installer/WorshipDeckSetup.exe
+            dist-installer/SHA256SUMS.txt
+          draft: false
+          prerelease: false
