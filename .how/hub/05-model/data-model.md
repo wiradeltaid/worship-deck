@@ -3,13 +3,12 @@ type: model
 component: hub
 layer: physical
 created: 2026-08-18
-updated: 2026-08-20
+updated: 2026-09-23
 ---
 
 # Model — Hub (physical)
 
-Source: `src/lib/db/index.ts` startup DDL. [verified] plus one planned table below (DEC-004, not yet
-in the DDL — [MISSING], see Invariants).
+Source: `src/lib/db/index.ts` startup DDL. [verified], including `song_set_inputs` (DEC-004).
 
 ```mermaid
 erDiagram
@@ -24,7 +23,7 @@ erDiagram
 | Entity | Table | Identified by |
 | --- | --- | --- |
 | Service | `services` | `id` |
-| Song Set Weekly Input / Lyric Override | `song_set_inputs` (planned, DEC-004) | `(service_id, variable_name)` |
+| Song Set Weekly Input / Lyric Override | `song_set_inputs` (DEC-004) | `(service_id, variable_name)` |
 | Account | `accounts` | `id` / `username` |
 | AppSetting | `settings` | `key` |
 | Hymn (corpus) | `hymns` | `(book_code, number)` |
@@ -59,13 +58,13 @@ to a Registry table, since the entry list is Registry-owned data in a different 
 | hymns | number | INTEGER | Number in that book |
 | hymns | title | TEXT | Hymn title in the Song Book |
 | hymns | lyrics | TEXT | Verse/refrain lyrics; the "Save to Song Book" action (UC-28) is the only planned write path here besides the bootstrap-once loader — see *Migration* below (AD-36) |
-| song_set_inputs (planned) | service_id | INTEGER, FK → services.id ON DELETE CASCADE | Owning Service |
-| song_set_inputs (planned) | variable_name | TEXT | Which Song Set entry this row is for (Registry-owned identity, DEC-004 Supplement S2); soft reference, not a DB foreign key |
-| song_set_inputs (planned) | song_number | INTEGER NULL | This week's hymn number for the entry (FR-32) |
-| song_set_inputs (planned) | song_book_code | TEXT NULL | This week's Song Book choice; null falls back to `settings.default_song_book` (Supplement S3) |
-| song_set_inputs (planned) | background_id | TEXT NULL | This week's Verse/Reff background choice from the Background Library; null falls back to the Admin global default (Supplement S4); never the **live** override, which AD-34 keeps unpersisted |
-| song_set_inputs (planned) | lyric_override | TEXT NULL | This Service's edited lyric text (FR-34); null = untouched, falls through to `hymns.lyrics` (BR-7) |
-| song_set_inputs (planned) | updated_at | TEXT | Optimistic concurrency token, same discipline as the rest of the Service row (AD-6) |
+| song_set_inputs | service_id | INTEGER, FK → services.id ON DELETE CASCADE | Owning Service |
+| song_set_inputs | variable_name | TEXT | Which Song Set entry this row is for (Registry-owned identity, DEC-004 Supplement S2); soft reference, not a DB foreign key |
+| song_set_inputs | song_number | INTEGER NULL | This week's hymn number for the entry (FR-32) |
+| song_set_inputs | song_book_code | TEXT NULL | This week's Song Book choice; null falls back to `settings.default_song_book` (Supplement S3) |
+| song_set_inputs | background_id | TEXT NULL | This week's Verse/Reff background choice from the Background Library; null falls back to the Admin global default (Supplement S4); never the **live** override, which AD-34 keeps unpersisted |
+| song_set_inputs | lyric_override | TEXT NULL | This Service's edited lyric text (FR-34); null = untouched, falls through to `hymns.lyrics` (BR-7) |
+| song_set_inputs | updated_at | TEXT | Optimistic concurrency token, same discipline as the rest of the Service row (AD-6) |
 | ~~announcement_items~~ | ~~id~~ | ~~INTEGER PK~~ | Retired from Hub's write paths (DEC-004); table's physical fate below |
 | accounts | id | INTEGER PK | Account identity |
 | accounts | username | TEXT UNIQUE | Sign-in name |
@@ -85,8 +84,8 @@ to a Registry table, since the entry list is Registry-owned data in a different 
 ## Invariants
 
 - `UNIQUE(book_code, number)`
-- `PRIMARY KEY (service_id, variable_name)` on `song_set_inputs` (planned) — one row per entry per Service, upsert not insert
-- Deleting a Service cascades `song_set_inputs` (planned) — same `ON DELETE CASCADE` shape as the retired `announcement_items.service_id`
+- `PRIMARY KEY (service_id, variable_name)` on `song_set_inputs` — one row per entry per Service, upsert not insert
+- Deleting a Service cascades `song_set_inputs` — same `ON DELETE CASCADE` shape as the retired `announcement_items.service_id`
 - Schema only through startup DDL (AD-9); `song_set_inputs` is a **numbered migration** (AD-21), never a reseed (AD-17) — existing Services get empty rows, not a synthetic backfill, except the one Family/Youth/song-number JSON-key migration named below, which is a normalize-on-read change to the *contents* of `parsed_data`, not a schema migration
 
 ## Migration — `song_set_inputs` (new table, DEC-004 / FR-32 / FR-34)
@@ -158,11 +157,6 @@ route MUST NOT ship: shipping the write path first, with the old unconditional r
 running, would silently discard the Operator's correction on the very next restart.
 
 ## New tables (2026-09-22 backfill — FR-36, FR-37, FR-40)
-
-**Note found while backfilling:** `song_set_inputs` above is marked "(planned)" throughout this
-file, but the table is shipped and live in `src/lib/db/index.ts` today — that staleness predates
-this backfill and is reported here rather than fixed, since it is unrelated to FR-36/37/40 and
-fixing it would exceed this pass's scope.
 
 ```mermaid
 erDiagram
