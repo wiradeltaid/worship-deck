@@ -34,7 +34,7 @@ Accessible via `/admin/artifacts` (the Registry Admin panel):
 Also under `/admin/artifacts`:
 * **Media Library:** A shared pool of background and flyer images, separate from any one template — upload once, reuse or replace across the deck.
 * **Custom Fonts:** Upload TrueType font files for use in canvas templates and PPTX export.
-* **Manual Sync (`/admin/sync`):** For a multi-device setup (e.g. one laptop running the desktop app, one running the browser build), push and pull Services, Song Set entries, background images, and announcement items between two WorshipDeck instances over the local network — content-addressed by SHA-256, so an unchanged asset is never re-uploaded. This is a deliberate, on-demand action, never a background or cloud sync.
+* **Manual Sync (`/admin/sync`):** For a multi-device setup (e.g. one laptop running the desktop app, one running the browser build), push and pull Services, Song Set entries, background images, and announcement items between two WorshipDeck instances over the local network — content-addressed by SHA-256, so an unchanged asset is never re-uploaded. This is a deliberate, on-demand action, never a background or cloud sync. **Experimental:** verified so far only as one server syncing with itself; genuine cross-machine sync has not been confirmed working end-to-end.
 
 ---
 
@@ -71,4 +71,4 @@ All church records remain 100% under your congregation's physical control — no
 * **Primary Database:** `./data.db` (or `%LocalAppData%\WorshipDeck\data.db`).
 * **Media Storage:** `./data/uploads/`.
 * **Backup Procedure:** While the WorshipDeck application is closed, simply copy `data.db` and the `uploads/` folder to a USB drive or local encrypted network backup. No cloud export tools or subscription renewals required.
-* **Manual Sync is device-to-device, not cloud:** the Sync feature (§3) moves data directly between two WorshipDeck instances you run; nothing passes through a hosted service, and it only runs when an operator triggers it from `/admin/sync`.
+* **Manual Sync is device-to-device, not cloud:** the Sync feature (§3) moves data directly between two WorshipDeck instances you run; nothing passes through a hosted service, and it only runs when an operator triggers it from `/admin/sync`. It is experimental, not yet confirmed to work between two separate machines.

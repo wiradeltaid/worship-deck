@@ -40,6 +40,6 @@ npm run dev
 
 When launched for the first time, WorshipDeck executes an automatic bootstrap sequence:
 1. **SQLite Provisioning:** Creates `./data.db` (or `%LocalAppData%\WorshipDeck\data.db` on desktop) with full table schemas and migrations.
-2. **Hymnal Corpus Ingestion:** Loads the complete 695-song *Seventh-day Adventist Hymnal* (SDAH) and 31,102 verses of the King James Version Bible (KJV) into local full-text search indexes.
-3. **Template Seeding:** Seeds 28 default 16:9 widescreen presentation templates covering opening hymns, scripture reading, sermon titles, announcements, and benedictions.
+2. **Hymnal Corpus Ingestion:** Loads the complete 695-song *Seventh-day Adventist Hymnal* (SDAH) and 31,102 verses of the King James Version Bible (KJV) into local SQLite tables for instant lookup.
+3. **Template Seeding:** Seeds 38 default 16:9 widescreen presentation templates covering opening hymns, scripture reading, sermon titles, announcements, and benedictions.
 4. **Initial Account Setup:** Displays the default administrative credentials (`admin`) on the first boot screen and prompts you to configure a secure password.

@@ -6,7 +6,7 @@ WorshipDeck is a local-first presentation and staging suite engineered specifica
 
 ## 1. Core Architecture
 
-WorshipDeck has no cloud backend and sends zero telemetry — every request stays on your machine or your church's local network. The one feature that talks to another host at all is Manual Sync, and that host is another WorshipDeck instance you run, reached only when an operator triggers it:
+WorshipDeck has no cloud backend and sends zero telemetry — every request stays on your machine or your church's local network. The one feature that talks to another host at all is Manual Sync, and that host is another WorshipDeck instance you run, reached only when an operator triggers it. Manual Sync is experimental — verified so far only as one server syncing with itself, not yet confirmed working between two separate machines:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐

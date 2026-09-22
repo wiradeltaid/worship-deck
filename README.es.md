@@ -29,7 +29,7 @@ Las letras de los himnos se consultan directamente por número en la base de dat
 
 - **Ingesta automática del programa de culto:** Pegue texto plano o envíelo vía webhook autenticado. Las líneas no reconocidas se muestran con total transparencia.
 - **División automática de estrofas y coros:** Los himnos referenciados por número se desglosan en título, estrofas y coros repetitivos para facilitar el canto de la congregación.
-- **Editor visual de plantillas (WYSIWYG):** 28 plantillas integradas con manipulación en lienzo: arrastre, redimensione, personalice tipografías y agregue elementos gráficos.
+- **Editor visual de plantillas (WYSIWYG):** 38 plantillas integradas con manipulación en lienzo: arrastre, redimensione, personalice tipografías y agregue elementos gráficos.
 - **Un diseño para cuatro salidas (16:9 panorámico):** Una única estructura de datos alimenta presentaciones PPTX, visualización web, proyector de congregación y vista previa en vivo en proporción 1:1.
 - **Modo operador de dos pantallas:** Vista de diapositiva actual y siguiente, tira de fotogramas en miniatura, lista de servicio y ventana independiente para arrastrar al proyector.
 - **Función de pantalla en negro (Blank Screen):** Oculte instantáneamente la imagen del proyector y recupérela sin perder el punto de avance (`B`).
@@ -38,6 +38,9 @@ Las letras de los himnos se consultan directamente por número en la base de dat
 - **Gestión de anuncios:** Administración de volantes y afiches desde almacenamiento local o URLs autorizadas.
 - **Incrustación de fuentes personalizadas:** Incrustación ECMA-376 para renderizado fiel en cualquier equipo con Microsoft PowerPoint.
 - **Cuentas y roles:** Separación entre administradores y operadores, limitación de intentos de acceso y sesiones revocables.
+- **Parser de programas y diseño de formulario configurables:** Cree perfiles de análisis con nombre y organice los campos/agrupaciones del formulario de Servicio desde el panel de administración, sin tocar código.
+- **Biblioteca de medios:** Un conjunto reutilizable de imágenes de fondo y volantes, independiente de cualquier plantilla.
+- **Sincronización manual entre dispositivos** *(experimental — aún no verificada entre dos máquinas reales)*: Envíe y reciba Servicios, entradas de Song Set, fondos y anuncios entre dos instancias de WorshipDeck en la misma red local, bajo demanda. Sin nube, sin sincronización en segundo plano.
 
 ## Requisitos del Sistema
 
@@ -70,5 +73,5 @@ npm run dev
 
 - **Licencia de Código:** Distribuido bajo la [Licencia MIT](LICENSE).
 - **Atribuciones y Contenidos:** Himnarios, versiones bíblicas y componentes de terceros están detallados en [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Privacidad y Seguridad:** 100% local-first. Los datos de la congregación permanecen exclusivamente en su equipo; cero telemetría y cero analíticas (consulte [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md)).
+- **Privacidad y Seguridad:** Sin backend en la nube y cero telemetría — cada solicitud permanece en su equipo o en la red local de su iglesia. La única función que se comunica con otro host es la Sincronización Manual, y ese host es otra instancia de WorshipDeck que usted mismo ejecuta, alcanzada solo cuando un operador la activa (consulte [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md)).
 - **Nombre e Icono:** La licencia MIT concede derechos sobre el código fuente, no sobre los nombres ni logotipos. Los nombres **WorshipDeck** y **Wira Delta Indonesia**, así como el icono del producto, son propiedad exclusiva de PT Wira Delta Indonesia.

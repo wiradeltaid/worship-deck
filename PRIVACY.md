@@ -71,6 +71,19 @@ reporting, and no licence or update check.
   your own database — no request leaves your server, and no third-party host is contacted.
 - **Hymn lyrics** come from a corpus file shipped with the application. No lookup leaves your
   server.
+- **Manual Sync (`/admin/sync`).** If you run more than one WorshipDeck instance — for example a
+  desktop app on one laptop and a browser build on another — an administrator can push and pull
+  Services, member names in them, photographs, Song Set entries, background images, and
+  announcements between those two instances, over your local network, address entered by hand.
+  This is the one feature that moves the data in "What the application holds" above to somewhere
+  other than the server it was entered on. It runs only when an administrator on one instance
+  triggers it, never automatically, and only reaches the address that administrator supplies — no
+  third party, and never Wira Delta Indonesia. **If you sync, the second instance becomes a second
+  copy of that data**, and you are the data controller for that copy too. **This feature is
+  experimental.** It has been verified as one server exchanging data with itself; syncing between
+  two genuinely separate machines has not yet been confirmed working end-to-end, and the browser's
+  own cross-origin rules may refuse the request outright before any data moves. Do not rely on it
+  as your only path to keep two instances consistent until this is confirmed.
 
 Once a PowerPoint deck is downloaded, running the service needs no network at all — which is
 deliberate, because the deck is what runs the service if anything else fails.
@@ -98,6 +111,9 @@ The software being private does not make your installation compliant. At minimum
 4. **Remove accounts when people leave** a role, and revoke their sessions.
 5. **Decide how long you keep past services and photographs**, and actually delete them. Nothing
    in the application expires on its own.
+6. **If you use Manual Sync**, treat the second instance as a second copy of every record it
+   receives — deleting a member's data on one instance does not remove it from the other, and
+   both need their own retention decision.
 
 ## Questions
 

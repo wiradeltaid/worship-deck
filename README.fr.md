@@ -29,7 +29,7 @@ Les paroles des cantiques sont indexées directement par numéro depuis la base 
 
 - **Import automatique du programme :** Collez le texte brut ou transmettez-le par webhook sécurisé. Les lignes non reconnues restent visibles sans être ignorées.
 - **Découpage des strophes et refrains :** Les cantiques référencés par numéro sont automatiquement scindés en titre, strophes et refrains récurrents.
-- **Éditeur visuel de modèles (WYSIWYG) :** 28 modèles intégrés modifiables directement sur le canevas : repositionnement, redimensionnement et polices personnalisées.
+- **Éditeur visuel de modèles (WYSIWYG) :** 38 modèles intégrés modifiables directement sur le canevas : repositionnement, redimensionnement et polices personnalisées.
 - **Une disposition pour quatre affichages (16:9 large) :** Une structure de données unique alimente PowerPoint, affichage Web, projecteur et aperçu en direct à l'échelle 1:1.
 - **Mode régie double écran :** Diapositives actuelle et suivante, pellicule miniature, déroulé du culte et fenêtre indépendante à glisser vers le projecteur.
 - **Fonction écran noir (Blank Screen) :** Masquez instantanément l'affichage du projecteur sans perdre votre position de lecture (`B`).
@@ -38,6 +38,9 @@ Les paroles des cantiques sont indexées directement par numéro depuis la base 
 - **Annonces paroissiales :** Gestion des affiches et avis paroissiaux depuis les fichiers locaux ou des adresses approuvées.
 - **Intégration de polices personnalisées :** Intégration ECMA-376 assurant un rendu parfait sur n'importe quel ordinateur doté de Microsoft PowerPoint.
 - **Gestion des accès :** Séparation des comptes administrateur et opérateur, limitation du débit de connexion contre les attaques par force brute.
+- **Analyse du programme et mise en page de formulaire configurables :** Créez des profils d'analyse nommés et organisez les champs/groupes du formulaire de Service depuis le panneau d'administration, sans toucher au code.
+- **Bibliothèque de médias :** Un ensemble réutilisable d'images de fond et d'affiches, indépendant de tout modèle.
+- **Synchronisation manuelle entre appareils** *(expérimental — pas encore vérifié entre deux machines réelles)* : Envoyez et récupérez les Services, les entrées Song Set, les fonds et les annonces entre deux instances de WorshipDeck sur le même réseau local, à la demande. Sans cloud, sans synchronisation en arrière-plan.
 
 ## Prérequis Système
 
@@ -70,5 +73,5 @@ npm run dev
 
 - **Licence du Code :** Distribué sous [Licence MIT](LICENSE).
 - **Recueils de Cantiques & Attributions :** Les recueils de chants, traductions bibliques et attributions tierces sont détaillés dans [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Confidentialité & Sécurité :** 100% local-first. Les données de l'assemblée restent exclusivement sur votre machine locale ; zéro télémétrie (voir [PRIVACY.md](PRIVACY.md) et [SECURITY.md](SECURITY.md)).
+- **Confidentialité & Sécurité :** Aucun backend cloud et zéro télémétrie — chaque requête reste sur votre machine ou le réseau local de votre église. La seule fonctionnalité qui communique avec un autre hôte est la Synchronisation Manuelle, et cet hôte est une autre instance de WorshipDeck que vous exploitez vous-même, jointe uniquement à l'initiative d'un opérateur (voir [PRIVACY.md](PRIVACY.md) et [SECURITY.md](SECURITY.md)).
 - **Nom et Marque :** La licence MIT accorde des droits sur le code source, mais n'accorde aucun droit sur les noms ou logos. Les noms **WorshipDeck** et **Wira Delta Indonesia**, ainsi que l'icône du produit, restent la propriété exclusive de PT Wira Delta Indonesia.

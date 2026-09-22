@@ -72,4 +72,4 @@ For congregations whose rundown format doesn't match the default:
 Also under **Admin → Registry (`/admin/artifacts`)**:
 * **Media Library:** a shared pool of background and flyer images, reusable across templates and replaceable in place.
 * **Custom Fonts:** upload TrueType fonts for the canvas editor and PPTX export.
-* **Manual Sync (`/admin/sync`):** on a multi-device setup, push and pull Services, Song Set entries, backgrounds, and announcements directly between two WorshipDeck instances on the same local network — an explicit, on-demand action, never a background or cloud sync.
+* **Manual Sync (`/admin/sync`):** on a multi-device setup, push and pull Services, Song Set entries, backgrounds, and announcements directly between two WorshipDeck instances on the same local network — an explicit, on-demand action, never a background or cloud sync. **Experimental:** this has been tested one server talking to itself, not yet two independent machines end-to-end — treat it as unstable until that is confirmed.

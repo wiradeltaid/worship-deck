@@ -29,7 +29,7 @@ Liedtexte werden anhand der Liednummer direkt aus der lokalen Datenbank geladen.
 
 - **Automatischer Ablauf-Import:** Text einfügen oder per Webhook übermitteln. Nicht erkannte Zeilen werden transparent ausgewiesen und niemals verworfen.
 - **Automatische Strophen- und Refrainteilung:** Anhand der Nummer ausgewählte Lieder werden übersichtlich in Titel, Strophen und Refrains aufgeteilt.
-- **Visueller Vorlagen-Editor (WYSIWYG):** 28 integrierte Vorlagen können direkt auf der Leinwand verschoben, vergrößert und formatiert werden.
+- **Visueller Vorlagen-Editor (WYSIWYG):** 38 integrierte Vorlagen können direkt auf der Leinwand verschoben, vergrößert und formatiert werden.
 - **Ein Layout für vier Ausgaben (16:9 Breitbild):** Ein einheitlicher Foliendatensatz steuert PPTX, Web-Präsentation, Beamer-Fenster und Live-Vorschau pixelgenau an.
 - **Zwei-Bildschirm-Präsentationsmodus:** Aktuelle und nächste Folie, Miniaturstreifen, Ablaufübersicht und eigenständiges Beamer-Fenster.
 - **Blackout-Funktion (Blank Screen):** Den Beamer sofort abdunkeln und ohne Verlust der Folienposition wieder einblenden (`B`).
@@ -38,6 +38,9 @@ Liedtexte werden anhand der Liednummer direkt aus der lokalen Datenbank geladen.
 - **Gemeindeankündigungen:** Verwaltung von Ankündigungsfolien aus lokalem Speicher oder von freigegebenen Adressen.
 - **Einbettung eigener Schriftarten:** ECMA-376-Schrifteinbettung für originalgetreue Darstellung auf jedem Windows-PC mit PowerPoint.
 - **Benutzerrollen und Sicherheit:** Getrennte Konten für Administratoren und Bediener, Ratengrenzen gegen Brute-Force-Angriffe.
+- **Konfigurierbarer Ablauf-Parser und Formularlayout:** Benannte Parser-Profile im Admin-Panel anlegen und Felder/Gruppierungen des Service-Formulars ohne Code-Änderung anordnen.
+- **Medienbibliothek:** Ein wiederverwendbarer Pool aus Hintergrund- und Ankündigungsbildern, unabhängig von einer einzelnen Vorlage.
+- **Manuelle Geräte-Synchronisation** *(experimentell — noch nicht zwischen zwei echten Geräten verifiziert)*: Services, Song-Set-Einträge, Hintergründe und Ankündigungen zwischen zwei WorshipDeck-Instanzen im selben lokalen Netzwerk auf Wunsch übertragen. Keine Cloud, keine Hintergrundsynchronisation.
 
 ## Systemanforderungen
 
@@ -70,5 +73,5 @@ npm run dev
 
 - **Code-Lizenz:** Veröffentlicht unter der [MIT-Lizenz](LICENSE).
 - **Liedkorpus & Danksagungen:** Gesangbücher, Bibelübersetzungen und Lizenzen Dritter sind in [ATTRIBUTIONS.md](ATTRIBUTIONS.md) aufgeführt.
-- **Datenschutz & Sicherheit:** 100% lokal (Local-first). Gemeindedaten verbleiben ausschließlich auf Ihrem Rechner; null Telemetrie (siehe [PRIVACY.md](PRIVACY.md) und [SECURITY.md](SECURITY.md)).
+- **Datenschutz & Sicherheit:** Kein Cloud-Backend und null Telemetrie — jede Anfrage bleibt auf Ihrem Rechner oder im lokalen Netzwerk Ihrer Gemeinde. Die einzige Funktion, die mit einem anderen Host spricht, ist die manuelle Synchronisation, und dieser Host ist eine weitere WorshipDeck-Instanz, die Sie selbst betreiben und die nur erreicht wird, wenn ein Bediener sie auslöst (siehe [PRIVACY.md](PRIVACY.md) und [SECURITY.md](SECURITY.md)).
 - **Markenhinweis:** Die MIT-Lizenz gewährt Rechte am Code, nicht an Namen oder Logos. Die Namen **WorshipDeck** und **Wira Delta Indonesia** sowie das Produktlogo sind Eigentum der PT Wira Delta Indonesia.

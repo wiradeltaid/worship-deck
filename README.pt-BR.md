@@ -29,7 +29,7 @@ As letras dos hinos são consultadas diretamente por número no banco de dados l
 
 - **Importação rápida de roteiros:** Cole o texto do culto ou envie via webhook com chave secreta. Linhas não reconhecidas são exibidas com total transparência.
 - **Divisão automática de estrofes e repetição de refrão:** Hinos chamados pelo número são automaticamente divididos em título, estrofes e refrãos repetidos para facilitar o canto congregacional.
-- **Editor visual de modelos (WYSIWYG):** 28 modelos nativos editáveis diretamente na tela: arraste, redimensione, personalize tipografias e adicione elementos gráficos.
+- **Editor visual de modelos (WYSIWYG):** 38 modelos nativos editáveis diretamente na tela: arraste, redimensione, personalize tipografias e adicione elementos gráficos.
 - **Um único layout para quatro saídas (16:9 widescreen):** Uma estrutura única de dados abastece o arquivo PPTX, apresentação web, janela do projetor e pré-visualização em tempo real na proporção exata de 1:1.
 - **Modo apresentador em duas telas:** Slide atual e próximo, miniaturas em película, lista do culto e janela independente para arrastar ao projetor da igreja.
 - **Função tela preta (Blank Screen):** Escureça instantaneamente a projeção da igreja e retorne sem perder o ponto de avanço (`B`).
@@ -38,6 +38,9 @@ As letras dos hinos são consultadas diretamente por número no banco de dados l
 - **Mural de avisos da igreja:** Gerencie cartazes e anúncios locais a partir de arquivos locais ou endereços autorizados.
 - **Embutimento de fontes personalizadas:** Padrão ECMA-376 para renderização perfeita em qualquer computador com Microsoft PowerPoint.
 - **Gestão de contas e permissões:** Perfis separados de administrador e operador, bloqueio por limite de tentativas contra força bruta.
+- **Parser de roteiro e layout de formulário configuráveis:** Crie perfis de análise nomeados e organize os campos/agrupamentos do formulário de Culto pelo painel administrativo, sem tocar em código.
+- **Biblioteca de mídia:** Um conjunto reutilizável de imagens de fundo e cartazes, independente de qualquer modelo específico.
+- **Sincronização manual entre dispositivos** *(experimental — ainda não verificada entre duas máquinas reais)*: Envie e receba Cultos, entradas do Song Set, fundos e avisos entre duas instâncias do WorshipDeck na mesma rede local, sob demanda. Sem nuvem, sem sincronização em segundo plano.
 
 ## Requisitos de Sistema
 
@@ -70,5 +73,5 @@ O comando `npm run setup` gera o arquivo `.env`, inicializa o banco SQLite, cada
 
 - **Licença do Código:** Distribuído sob a [Licença MIT](LICENSE).
 - **Hinários e Direitos de Terceiros:** Hinários, traduções bíblicas e componentes de terceiros estão detalhados em [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Privacidade e Segurança:** 100% local-first. Os dados da igreja ficam armazenados exclusivamente no seu computador local; zero telemetria (consulte [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md)).
+- **Privacidade e Segurança:** Sem backend em nuvem e zero telemetria — toda requisição permanece no seu computador ou na rede local da igreja. A única funcionalidade que fala com outro host é a Sincronização Manual, e esse host é outra instância do WorshipDeck que você mesmo executa, acionada apenas quando um operador a inicia (consulte [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md)).
 - **Nome e Marca Registrada:** A licença MIT concede direitos sobre o código-fonte, não sobre nomes ou logotipos. Os nomes **WorshipDeck** e **Wira Delta Indonesia**, bem como o ícone do produto, permanecem como propriedade da PT Wira Delta Indonesia.
