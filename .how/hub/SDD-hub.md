@@ -3,14 +3,14 @@ type: sdd
 component: hub
 status: draft
 created: 2026-08-18
-updated: 2026-08-22
-realizes: [UC-1, UC-2, UC-3, UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-16, UC-17, UC-18, UC-19, UC-22, UC-23, UC-26, UC-28]
-binds: [AD-1, AD-2, AD-3, AD-4, AD-5, AD-6, AD-7, AD-8, AD-9, AD-12, AD-16, AD-23, AD-24, AD-25, AD-26, AD-28, AD-30, AD-31, AD-34, AD-35, AD-36]
+updated: 2026-09-22
+realizes: [UC-1, UC-2, UC-3, UC-4, UC-5, UC-6, UC-7, UC-8, UC-9, UC-10, UC-16, UC-17, UC-18, UC-19, UC-22, UC-23, UC-26, UC-28, UC-30, UC-31, UC-32]
+binds: [AD-1, AD-2, AD-3, AD-4, AD-5, AD-6, AD-7, AD-8, AD-9, AD-12, AD-16, AD-19, AD-23, AD-24, AD-25, AD-26, AD-28, AD-30, AD-31, AD-32, AD-34, AD-35, AD-36]
 reviewed:
   date: '2026-09-22'
-  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
-  lenses: [structure, prose]
-  note: 'Re-review of the delta since af3b6f3 only: the "Inherited Constraints" table dropped its "Quoted rule" column (which restated ARCHITECTURE-SPINE.md''s own AD-N Rule text verbatim) and one dangling citation to the retired `_bmad-output/implementation-artifacts/deferred-work.md` (confirmed gone from disk, DEC-001). No promise or rule content changed — this is the restated-derived-fact class this skill''s own guide says to delete, and the deletion is what happened. Zero findings.'
+  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  lenses: [structure, prose, edge-case-hunter]
+  note: 'Re-review of the delta since 6281284: G4 depth backfilled for SPEC-44/46/47''s Hub-owned surface, which shipped under an autopilot mandate with no FR, UC, or SDD depth at all. Added: three LC rows (LC-19 parser profiles, LC-20 form layout, LC-23 sync mutation, each a genuinely new resource family — Hub has no existing wide gateway to widen the way Registry''s LC-11 is); two Inherited Constraints rows (AD-19, AD-32 — Hub now owns the Predefined Field Catalog''s CRUD, DEC-058 noted); three Failure Behaviour rows (parser profiles, form layout, sync mutation), the sync row naming the CORS/auth gap as the dominant failure mode rather than an edge case, and the form-layout row naming a real silent-failure bug (`fetchLayout` swallows every error). Edge-case-hunter cross-checked every new AD/DEC/FR/UC id against ARCHITECTURE-SPINE.md, the two PRDs, and usecases.yaml for contradiction — found none beyond what DEC-057/058 already resolved. Zero findings remaining.'
 ---
 
 # SDD — Hub
@@ -47,19 +47,24 @@ Two expensive choices reversed: (1) one authorization gate on the Go API plus a 
 | LC-12 | service | parse Rundown + write Service |
 | LC-13 | job | generate PPTX |
 | LC-16 | service | `buildSlidePlan` (also used by Presenter) |
+| LC-19 | gateway | Rundown Parser Profiles CRUD (`09-rundown-parser-profiles.md`, FR-36) |
+| LC-20 | gateway | Form Layout / Form Grouping / Predefined Field CRUD (`10-form-layout.md`, FR-37) |
+| LC-23 | gateway | Manual Sync push/pull/status, mutation half (`11-manual-sync.md`, FR-40, experimental) |
 
-Direction: Hub screens → LC-1…LC-7 → LC-12…; picoclaw → LC-8 is later (CAP-11). All SQLite is in `web`.
+Direction: Hub screens → LC-1…LC-7, LC-19, LC-20, LC-23 → LC-12…; picoclaw → LC-8 is later (CAP-11). All SQLite is in `web`.
 
 Screens (`inventory-screen` 1–6) are not yet `LC` `ui-screen`: that is a `wdi-ux` slot, skipped at the owner's request.
 
 ## Inherited Constraints · [guarded]
 
-Full text in `.how/_platform/ARCHITECTURE-SPINE.md`. ADs that do not bind Hub (AD-10, AD-11, AD-13–AD-15, AD-17–AD-22, AD-27, AD-29) are not listed.
+Full text in `.how/_platform/ARCHITECTURE-SPINE.md`. ADs that do not bind Hub (AD-10, AD-11, AD-13–AD-15, AD-17, AD-18, AD-20–AD-22, AD-27, AD-29) are not listed.
 
 | AD | How it lands here |
 | --- | --- |
 | AD-1 | PPTX download is the guarantee; the slideshow is a complementary link. |
 | AD-2 | One repo; Hub lives in `api` + `spa` + `pptx-worker`. |
+| AD-19 | Binds `base_type` and — until DEC-058 — bound the Predefined Field Catalog key set too; `general`'s own closed, non-editable treatment is unaffected and Hub does not own `general`. |
+| AD-32 | The Predefined Field's shape (inline `{key}` token vs. whole-element binding) is authored on the Registry's canvas, not here; Hub owns only the catalog's CRUD (`10-form-layout.md`) — **superseded in part by DEC-058** for the key-is-a-code-change clause, which no longer binds Hub's CRUD surface. |
 | AD-4 | Durable `DB_PATH` on the Go process. |
 | AD-5 | `/api/webhook` is `WEBHOOK_SECRET` only. Session expiry at save/delete is this gate's 401 before the handler (OQ-23). As-built until cutover: `internal/gate`. |
 | AD-3 | Hub form writes Service now; LC-8 writes the same Service later (CAP-11). |
@@ -116,6 +121,9 @@ separate Song Set PUT this design proposed was never built (see its row below).
 | GET `/api/admin/settings` | Read waits | 500 if settings helpers throw | Not Admin → 403 | Previous chrome language / transition stay on screen | helper `console.error` in `src/lib/settings.ts` if a read throws |
 | PUT `/api/admin/settings` | Timeout | 500 | Unknown transition / locale → 400; `pptx_retention_days` present and not a non-negative integer → 400; not Admin → 403. Keys written: `pptx_retention_days`, `slide_transition`, `ui_locale` | Previous settings remain | `Error updating settings:` (`internal/httpapi`) |
 | POST `/api/webhook` | Timeout is on picoclaw; Hub does not retry | Secret unset → 503. Agent down: Hub silent | Wrong secret → 401 (secret not logged). Bad JSON → 400. Specified: no date → no row (OQ-21); images attach or fail visibly (OQ-22) | CAP-11 later: Events get no read-back. Operator sees Hub. Not this phase's handover | `Error processing webhook:` on 500 (`internal/httpapi`). Does not log the secret |
+| `/api/admin/parser-profiles*` (8 rows, `09-rundown-parser-profiles.md`) | Admin panel waits on each request | 500 on a DB failure | 404 unknown id; 409 duplicate `slug`; 400 malformed `rules_json`, deleting the builtin, or deleting the active default | Admin panel names the specific rejection; the Operator's Rundown-paste surface silently keeps using whichever profile was already active | Handler-level `log.Printf` per operation; secrets never appear in a parser rule |
+| `/api/admin/form-groupings*`, `/api/admin/form-grouping-slots*`, `/api/admin/predefined-fields*`, `GET /api/worship-form-layout` (11 rows, `10-form-layout.md`) | Admin panel waits; Operator's Service form fetch waits on `GET /api/worship-form-layout` | `fetchLayout` in `CreateForm.tsx`/`EditForm.tsx` catches silently (`catch { // ignore }`) — a failed or non-OK response leaves `layoutData` unset and the form renders **no** dynamic Predefined Fields at all, with no error shown to the Operator | 404 unknown grouping/slot/field; 409 duplicate slot ref or duplicate `variable_name`; 400 invalid `widget_kind` or `variable_name` format | Admin panel names the rejection. Operator sees a form silently missing its configured fields — no error, no retry offered | Handler-level `log.Printf` per operation; the client-side fetch failure is not logged anywhere |
+| `/api/sync/push`, `/api/sync/pull`, `/api/sync/status` (`11-manual-sync.md`) | No timeout enforced server-side; a slow peer just makes the Admin wait | Peer unreachable → the browser's own network error, never a WorshipDeck response | 409 `presenter_active` while a presentation is live; **cross-origin call silently fails at the browser's CORS layer before reaching any of the above** — this is the dominant failure mode today, not an edge case | Admin Sync screen shows whatever generic failure the browser surfaces for a blocked/failed fetch — not a WorshipDeck-authored message | No client-side error surfaced beyond the browser's own network console; server-side, `internal/httpapi/sync.go` logs per operation |
 | `/login` | Waits on POST login | Login API 500 → form error | Wrong credentials → same 401 copy | Login form; never Hub | none on the page (client shows the API body) |
 | `/` | List fetch waits on the API | Uncaught DB throw → framework error page | Corrupt `parsed_data` still listed by date | Dated list, or error page — not a silent empty Hub | none in `spa/src/pages/ServicesListPage.tsx`; API list logs as above if the client refetch fails |
 | `/services/new` | Preview POST may lag on each paste | Preview 500 → empty preview pane | No date → 400, no row. Partial parse with date → save what was readable (OQ-22) | Form names the miss (UC-2). Cards: Bible Talk → Divine Worship → Sermon → Family → Youth, each Song Set entry rendering its own group (FR-32) with an inline lyric editor (UC-28). No Announcement Flyers card (DEC-004, FR-3 retired). Live Slide Preview only | `Preview error:` in `src/operator/CreateForm.tsx` |

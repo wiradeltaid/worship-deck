@@ -4,9 +4,9 @@ kind: endpoint
 scope: hub
 status: draft
 created: '2026-08-18'
-updated: '2026-08-20'
+updated: '2026-09-22'
 derived_from: code
-verified: '84db8e7'
+verified: '75d990b'
 ---
 
 # Inventory — endpoints of Hub
@@ -44,6 +44,28 @@ Numbers match `.how/_platform/inventory-api.md` for Hub-owned rows. Spec per res
 | 23 | GET | `/api/admin/settings` | `07-settings.md` | published |
 | 24 | PUT | `/api/admin/settings` | `07-settings.md` | published |
 | 30 | POST | `/api/webhook` | `08-webhook.md` | published |
+| 84 | PUT | `/api/admin/form-groupings/reorder` | `10-form-layout.md` | published |
+| 85 | POST | `/api/admin/form-groupings` | `10-form-layout.md` | published |
+| 83 | DELETE | `/api/admin/form-groupings/[id]` | `10-form-layout.md` | published |
+| 82 | POST | `/api/admin/form-grouping-slots` | `10-form-layout.md` | published |
+| 80 | DELETE | `/api/admin/form-grouping-slots/[id]` | `10-form-layout.md` | published |
+| 81 | PUT | `/api/admin/form-grouping-slots/reorder` | `10-form-layout.md` | published |
+| 79 | POST | `/api/admin/form-grouping-slots/[id]/move-grouping` | `10-form-layout.md` | published |
+| 100 | POST | `/api/admin/predefined-fields` | `10-form-layout.md` | published |
+| 98 | DELETE | `/api/admin/predefined-fields/[id]` | `10-form-layout.md` | published |
+| 99 | POST | `/api/admin/predefined-fields/seed-defaults` | `10-form-layout.md` | published |
+| 112 | GET | `/api/worship-form-layout` | `10-form-layout.md` | published |
+| 96 | GET | `/api/admin/parser-profiles` | `09-rundown-parser-profiles.md` | published |
+| 97 | POST | `/api/admin/parser-profiles` | `09-rundown-parser-profiles.md` | published |
+| 93 | GET | `/api/admin/parser-profiles/[id]` | `09-rundown-parser-profiles.md` | published |
+| 94 | PATCH | `/api/admin/parser-profiles/[id]` | `09-rundown-parser-profiles.md` | published |
+| 95 | PUT | `/api/admin/parser-profiles/[id]` | `09-rundown-parser-profiles.md` | published |
+| 92 | DELETE | `/api/admin/parser-profiles/[id]` | `09-rundown-parser-profiles.md` | published |
+| 91 | POST | `/api/admin/parser-profiles/[id]/set-default` | `09-rundown-parser-profiles.md` | published |
+| 105 | GET | `/api/parser-profiles` | `09-rundown-parser-profiles.md` | published |
+| 110 | POST | `/api/sync/push` | `11-manual-sync.md` | published |
+| 109 | GET | `/api/sync/pull` | `11-manual-sync.md` | published |
+| 111 | GET | `/api/sync/status` | `11-manual-sync.md` | published |
 
 ## Findings
 
@@ -55,3 +77,8 @@ Numbers match `.how/_platform/inventory-api.md` for Hub-owned rows. Spec per res
   the explicit lyric save-to-book action) but have no number yet: this component cannot assign one
   without editing `.how/_platform/inventory-api.md`, which is out of scope here and is reported to the
   platform/blueprint owner instead.
+- **2026-09-22:** rows 79–85, 91–100, 105, 109–112 added — SPEC-44 (Rundown Parser Profiles, FR-36),
+  SPEC-46 (Form Layout / Predefined Fields, FR-37), and the mutation half of SPEC-47's Manual Device
+  Sync (FR-40; the asset half, rows 106–108, is Registry's, see `.how/registry/02-contracts/00-inventory.md`).
+  All three shipped before their `FR`/`UC` or this contract existed; `wdi-reconcile` → `wdi-product` →
+  `wdi-blueprint` → `wdi-component` backfilled the chain in that order.

@@ -4,14 +4,17 @@ component: registry
 lc: LC-11
 direction: exposed
 created: 2026-08-20
+updated: '2026-09-22'
 ---
 
 # Contract — Song Set Entries and the shared layout trio
 
 ## Source of truth
 
-None yet — designed at G4, not built. Backing tables: `artifact_templates` (rows with
-`base_type = 'song-set-entry'`), `song_set_layouts`.
+`none`. Backing tables: `song_set_entries` — the Master Data catalog (own table, decoupled from
+spine placement); `artifact_templates` rows with `base_type = 'song-set-entry'` are the main-spine
+**placements** referencing it, now potentially more than one placement per entry — DEC-057;
+`song_set_layouts`.
 
 ## Purpose
 
@@ -24,6 +27,7 @@ UC-24 (entry list), UC-14 (trio layout edit). Admin-only (AD-14).
 | GET `/api/admin/song-set-entries` | Ordered list of live entries (`variable_name`, title, position) | UC-24 |
 | POST `/api/admin/song-set-entries` | Add an entry (`{ variable_name, title }`), appended to the spine | UC-24 |
 | PATCH `/api/admin/song-set-entries/[variable_name]` | Rename title and/or `variable_name` (migrating `song_set_inputs` atomically per SPEC-13-06 Option A) | UC-24 |
+| PUT `/api/admin/song-set-entries/[variableName]/extraction-regex` | Set the regex the Rundown parser uses to pull this entry's hymn number out of a pasted Rundown line | UC-24, UC-30 |
 | DELETE `/api/admin/song-set-entries/[variable_name]` | Remove the entry from the spine; Hub's weekly values for that name stay stored, inert until reused or replaced | UC-24 (UC-15 shape) |
 | GET `/api/admin/song-set-layouts/[role]` | One trio layout (`role` = `title`\|`verse`\|`reff`) | UC-14 |
 | PUT `/api/admin/song-set-layouts/[role]` | Save that layout | UC-14 |

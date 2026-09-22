@@ -86,7 +86,7 @@ usecases:
     title: "I change a slide's layout"
     actor: Admin
     component: registry
-    satisfies: [FR-20, FR-30]
+    satisfies: [FR-20, FR-30, FR-39]
     critical: false
   - id: UC-15
     title: "I reorder slides and deletions stay deleted"
@@ -152,7 +152,7 @@ usecases:
     title: "I maintain the background library and set the global default"
     actor: Admin
     component: registry
-    satisfies: [FR-31]
+    satisfies: [FR-31, FR-38]
     critical: false
   - id: UC-26
     title: "I enter this week's song numbers, books, and backgrounds for however many songs are configured"
@@ -178,3 +178,21 @@ usecases:
     component: presenter
     satisfies: [FR-35]
     critical: false
+  - id: UC-30
+    title: "I configure how the Rundown parser reads our congregation's format"
+    actor: Admin
+    component: hub
+    satisfies: [FR-36]
+    critical: false
+  - id: UC-31
+    title: "I configure which fields the Service form shows, and how they're grouped"
+    actor: Admin
+    component: hub
+    satisfies: [FR-37]
+    critical: false
+  - id: UC-32
+    title: "I sync this WorshipDeck with another instance"
+    actor: Admin
+    component: registry
+    satisfies: [FR-40]
+    critical: true

@@ -4,9 +4,9 @@ kind: endpoint
 scope: registry
 status: draft
 created: '2026-08-18'
-updated: '2026-08-22'
+updated: '2026-09-22'
 derived_from: code
-verified: '3b8c3ac'
+verified: '75d990b'
 ---
 
 # Inventory — endpoints of Registry
@@ -32,6 +32,12 @@ verified: '3b8c3ac'
 | 66 | GET | `/api/background-library` | `04-background-library.md` | published |
 | 57,58,56,55 | GET/POST/PATCH/DELETE | `/api/admin/song-books*` | `05-song-books.md` | published |
 | 68 | GET | `/api/song-books` | `05-song-books.md` | published |
+| 101 | PUT | `/api/admin/song-set-entries/[variableName]/extraction-regex` | `02-song-set-entries.md` | published |
+| 76 | POST | `/api/admin/artifacts/import-pptx` | `01-artifacts.md` | published |
+| 77 | POST | `/api/admin/background-library/[id]/replace` | `04-background-library.md` | published |
+| 86,87,88,89,90,104 | POST/DELETE/PATCH/GET/POST/GET | `/api/admin/media-library*`, `/api/media-library` | `06-media-library.md` | published |
+| 75,78,102,103 | POST/POST/GET/GET | `/api/admin/artifacts/fonts`, `/api/admin/fonts`, `/api/fonts/[id]`, `/api/fonts` | `06-media-library.md` | published |
+| 106,107,108 | GET/POST/POST | `/api/sync/assets/[sha256]`, `/api/sync/assets/check`, `/api/sync/assets/upload` | `07-manual-sync.md` | published |
 
 ## Findings
 
@@ -46,6 +52,11 @@ verified: '3b8c3ac'
 - Three of those rows are Operator-facing reads whose failure behaviour is still unwritten in
   `SDD-registry.md`: 66, 68 and 69 (**OQ-49**). Admin CRUD of song books is served but no `FR` or
   `UC` promises it (**OQ-48**).
+- **2026-09-22:** rows 75–78, 86–90, 101–104, 106–108 added — SPEC-32 (Fonts, FR-39, folded into
+  FR-20/UC-14 at the time and never given its own promise), SPEC-39/40 (Media Library, widening
+  FR-31's existing Background Library into FR-38), and the asset half of SPEC-47's Manual Device
+  Sync (FR-40; the mutation half is Hub's, `.how/hub/02-contracts/00-inventory.md`). `wdi-reconcile`
+  → `wdi-product` → `wdi-blueprint` → `wdi-component` backfilled the missing chain.
 - `.how/_platform/inventory-api.md` rows 10–14 (`/api/announcements*`) **were removed** on 2026-08-22
   and now sit in that file's `## Retired` section with their reason. Their numbers are not reused.
   This component did not remove them; they were Hub-owned rows and `wdi-blueprint` retired them.

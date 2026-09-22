@@ -125,6 +125,10 @@ functional:
       each one lands on the room screen. Another Operator signed in elsewhere, who has not connected to this
       laptop, cannot drive it. The phone is then closed, put to sleep, or taken off the network, and the
       laptop keeps driving the service exactly as it did before the phone joined.
+  - id: FR-37
+    capability: CAP-4
+    title: "Admin configures the Hub form's fields and their grouping, not a code change"
+    proof: "Admin defines a Predefined Field (text, text area, or image) and places it in a named grouping on a form layout; the next time the Operator opens the Service form, that field appears in that grouping, in the order Admin set. Removing a field or grouping removes it from the form the same way, with no deploy."
 
 nonfunctional:
   - id: NFR-6

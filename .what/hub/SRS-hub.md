@@ -7,9 +7,9 @@ updated: 2026-08-22
 satisfies: [FR-1, FR-2, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-17, FR-18, FR-23, FR-24, FR-25, FR-27, FR-28, FR-32, FR-34]
 reviewed:
   date: '2026-09-22'
-  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
-  lenses: [structure, prose]
-  note: 'Re-review of the delta since af3b6f3 only (wdi-upgrade 0.5.13->0.6.1): the UC Catalogue table was replaced with a pointer to usecases.yaml (component: hub) — no promise, FR, or UC content changed. Structure lens confirmed every UC previously listed (UC-1..10, 17-19, 21, 22, 23, 26, 28) is present in usecases.yaml under component: hub; the pointer loses nothing. Prose lens found no orphaned reference. Zero findings.'
+  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  lenses: [structure, prose, edge-case-hunter]
+  note: 'Re-review of the delta since 6281284: the Actor Register row for Admin gained two new grants (UC-30 Rundown Parser Profiles, UC-31 Form Layout) backfilled by wdi-product/wdi-blueprint after SPEC-44/46 shipped them with no FR or UC of their own. The UC Catalogue pointer to usecases.yaml needs no edit — it already includes UC-30/31 by construction. Edge-case-hunter checked the new FR-36/FR-37 proof text (requirements-rundown-to-service.yaml, requirements-operator-turn.yaml) against the corresponding contract files (09-rundown-parser-profiles.md, 10-form-layout.md) for consistency — no contradiction found. Zero findings.'
 ---
 
 # SRS — Hub
@@ -28,7 +28,7 @@ Without Hub, the multimedia turn falls back to one person assembling files. This
 | --- | --- | --- |
 | Operator | Multimedia team | List, create, edit, generate, download, delete, Run-Sheet. **Not announcements** (FR-3 retired, DEC-004) |
 | Events | Later: Rundown sender on Telegram | Not a Hub user this phase |
-| Admin | Account and settings manager | Accounts, transitions, locale |
+| Admin | Account and settings manager | Accounts, transitions, locale, Rundown parser profiles (UC-30), Service form fields and layout (UC-31) |
 
 ## UC Catalogue · [G3]
 

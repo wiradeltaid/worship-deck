@@ -24,6 +24,7 @@ updated: 2026-08-20
 | 2026-08-18 | This initiative was born from the `weekly-sabbath` split. Area: assemble the Deck, download PPTX, file retention, Artifact Registry. FR-4…7, FR-14, FR-20, FR-21, FR-26. | A reader looking for “the Sabbath file” or “change slide order” does not open the intake PRD. | as-built |
 | 2026-08-19 | FR-5 proof names the shipped lyric join and chorus repeat. FR-21 proof names that each Announcement registry row expands the whole live list and that repeats are intended. | Those rules lived only in a G5-era spec; a later wave must project them, not invent them. | as-built · later |
 | 2026-08-20 | FR-21 no longer promises that an Announcement row expands the whole live Hub list. The Registry spine may now carry any number of independent Announcement Sets, each its own authored slide sequence Admin composes directly in the Registry; copied images share one file by reference so deleting a slide never deletes an asset still used elsewhere. FR-20's shared Title/Verse/Reff trio is confirmed to cover every song-set entry, however many Admin defines — there is no fixed count of song-set rows any more. Three new promises are born: Admin defines the song-set list itself here (FR-29), an unrecognised `{token}` in authored text never stops a Deck from generating (FR-30), and Admin now maintains an image-only background library with one global default for the blank Verse/Reff canvas (FR-31). | Owner ratified DEC-004: Announcement composition and the song-set count both moved from a Hub-owned, code-fixed shape to Admin-authored structure inside the Artifact Registry. | as-built · later |
+| 2026-09-22 | Three promises backfilled to match shipped behaviour. FR-38 makes explicit that FR-31's background library (SPEC-39/40) is one shared image store also serving Announcement Sets, not backgrounds alone — no new table, an existing promise widened. FR-39 makes explicit a promise SPEC-32 shipped and cited only against FR-20's general layout promise: Admin installs custom fonts, embedded into PPTX. A new capability, Manual Device Sync (CAP-12), promises Admin can push/pull Services and Registry assets between two WorshipDeck instances on demand (FR-40, SPEC-47) — stated as **experimental**, since only same-instance exchange is confirmed working (`docs/threat-model.md` §3.7). | `wdi-reconcile` found each of the three had shipped citing only an adjacent FR or none, never a statement of its own specific promise. This row closes the G2 half of that gap; FR-40's wording does not overclaim what is verified. | as-built |
 
 ## 1. Why This Initiative
 
@@ -64,7 +65,15 @@ Does not add a new UJ. UJ-4 (brief) for *presenting* the PPTX; UJ-2 for the revi
 
 **Capability:** CAP-9 — serves BG-1.
 
-**Realizes:** FR-20, FR-21, FR-29, FR-30, FR-31
+**Realizes:** FR-20, FR-21, FR-29, FR-30, FR-31, FR-38, FR-39
+
+### 3.4 Manual Device Sync — experimental
+
+**Capability:** CAP-12 — serves BG-3.
+
+**Description:** Not the offline PPTX guarantee (FR-14) and not a replacement for it — a second, independent path for keeping a backup instance current. Genuinely cross-machine operation is unverified; see `docs/threat-model.md` §3.7 before relying on it.
+
+**Realizes:** FR-40
 
 ## 4. MVP Scope
 

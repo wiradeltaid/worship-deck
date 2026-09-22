@@ -3,14 +3,14 @@ type: sdd
 component: registry
 status: draft
 created: 2026-08-18
-updated: 2026-08-22
-realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25]
+updated: 2026-09-22
+realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25, UC-32]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
   date: '2026-09-22'
-  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
+  sha: '75d990b26447e6024df9d00bc432f193502030a3'
   lenses: [structure, prose, edge-case-hunter]
-  note: 'Re-review of the delta since 42c967c: (1) the "Inherited Constraints" table dropped its "Quoted rule" column (restated ARCHITECTURE-SPINE.md''s own AD-N Rule text verbatim) — no promise or rule content changed. (2) `binds:` gained AD-38 but the table had no AD-38 row; added one. (3) Edge-case-hunter found AD-38''s row 1 (repeat spine placement) contradicted AD-31''s still-standing uniqueness clause, confirmed live by tests/registry-go-http.test.mjs test W11-01. Resolved via DEC-057 (owner ruling 2026-09-22): AD-31''s uniqueness clause is superseded in part; the AD-38 row here is accurate to the resolved rule. Zero findings remaining.'
+  note: 'Re-review of the delta since 6281284: G4 depth backfilled for SPEC-32/39/40/47''s Registry-owned surface (Fonts, Media Library, Manual Sync''s asset half), none of which had ever been given its own FR, UC, or SDD depth. Widened LC-11/LC-15''s Structure rows rather than minting new LCs, matching this component''s own stated "wider surface, not a new LC" precedent — checked against that precedent''s own wording before applying it, since Hub''s parallel backfill went the other way for a documented reason (no equivalent wide gateway there). Added one Failure Behaviour row per new resource group, and wrote UC-32''s full flow (critical: true, mode: deep requires one for every critical UC). Edge-case-hunter re-verified the deletion-fonts gap (no DELETE handler exists for fonts — a real, reported asymmetry, not fixed here) and the 50 MB-vs-unbounded size-limit inconsistency between the two Manual Sync contract halves. Zero findings beyond what is already reported as findings in the contracts themselves.'
 ---
 
 # SDD — Registry
@@ -69,8 +69,8 @@ Screens (`inventory-screen` row 7) are not an `LC` `ui-screen`: that is a `wdi-u
 
 | LC | type | Responsibility |
 | --- | --- | --- |
-| LC-11 | gateway | GET/PUT/DELETE artifacts, POST reset, PUT order (as-built) **+** CRUD for Song Set entries, Announcement Sets and their slides, Background Library, Song Books (new — same gateway, wider surface, not a new `LC`) |
-| LC-15 | service | SQLite store + AD-15 validation + snapshot clone (as-built) **+** the five new tables' store logic, `variable_name`/referential checks, migration runner (new — same service, wider surface) |
+| LC-11 | gateway | GET/PUT/DELETE artifacts, POST reset, PUT order (as-built) **+** CRUD for Song Set entries, Announcement Sets and their slides, Background Library, Song Books (new — same gateway, wider surface, not a new `LC`) **+** Media Library, Fonts, and the asset half of Manual Device Sync (2026-09-22 backfill — same reasoning: same trust boundary, same Admin caller, one more resource family each, not a new `LC`) |
+| LC-15 | service | SQLite store + AD-15 validation + snapshot clone (as-built) **+** the five new tables' store logic, `variable_name`/referential checks, migration runner (new — same service, wider surface) **+** the media/font store and content-addressed asset store (2026-09-22 backfill) |
 
 Direction unchanged: Admin screen → LC-11 → LC-15 → SQLite. Hub/Presenter render through LC-16
 (Slide plan builder), not this API. No new `LC` is registered by this design: every new HTTP
@@ -81,6 +81,13 @@ same container (`api`), same caller. Registration of any new endpoint row belong
 does not write there. Those rows were landed by that skill on 2026-08-22 (commit `0b24d5e`);
 registry now owns platform rows 25–28, 31–32 and 37–69. This sentence previously pointed at a
 "Drift" section that does not exist in this document.
+
+**2026-09-22 backfill note:** Fonts (SPEC-32), Media Library (SPEC-39/40), and Manual Device Sync's
+asset half (SPEC-47) all shipped under this same "wider surface, not a new `LC`" reasoning without
+it ever being written down for them specifically — `wdi-reconcile` found the gap while backfilling
+FR-38/FR-39/FR-40 and their UCs. Manual Device Sync's **mutation** half (Services, Song Set entries,
+etc.) is Hub's own `LC-23`, a genuinely new gateway there — Hub has no equivalent "one wide admin
+gateway" LC to widen the way Registry's LC-11 already is one.
 
 ## Inherited Constraints · [guarded]
 
@@ -116,11 +123,12 @@ Registry rows.
 
 ## Failure Behaviour · [guarded]
 
-Boundaries = the 38 rows `.how/_platform/inventory-api.md` attributes to `registry`, numbers 25–28,
-31–32, 37–69. Every family below now carries a platform number: `wdi-blueprint` refreshed the three
-inventories from code on 2026-08-22 (commit `0b24d5e`), which retired this section's earlier claim
-that "none has a platform inventory row yet". Process timeout: Go API. Registry does not retry to
-the client; Admin presses again.
+Boundaries = the rows `.how/_platform/inventory-api.md` attributes to `registry` — originally 38
+(25–28, 31–32, 37–69), plus 16 more landed 2026-09-22 (75–78, 86–90, 101–104, 106–108: Fonts, Media
+Library, and Manual Device Sync's asset half). Every family below now carries a platform number:
+`wdi-blueprint` refreshed the three inventories from code on 2026-08-22 (commit `0b24d5e`) and again
+on 2026-09-22, which retired this section's earlier claim that "none has a platform inventory row
+yet". Process timeout: Go API. Registry does not retry to the client; Admin presses again.
 
 Three Operator-facing reads are **not** covered below — `GET /api/song-books` (68),
 `GET /api/background-library` (66) and `GET /api/song-set-entries` (69). They became registry-owned
@@ -165,6 +173,8 @@ New surfaces:
 | POST `/api/admin/song-books` | Add until browser timeout | 403; empty `book_code`/name → 400 | Duplicate `book_code` → 409 | New book appended | console.error on 500 |
 | PATCH `/api/admin/song-books/[book_code]` (rename / set default) | Save until browser timeout | 403; missing → 404 | Stale `updatedAt` → 409 | Name or default flag updates | console.error on 500 |
 | DELETE `/api/admin/song-books/[book_code]` | Delete until browser timeout | 403; missing → 404 | In use by a hymn row (`hymns.book_code`, S3) → 409, do not orphan hymn rows | Book removed only when no hymn references it | console.error on 500 |
+| `/api/admin/media-library*`, `/api/media-library`, `/api/admin/fonts`, `/api/admin/artifacts/fonts`, `/api/fonts*` (`06-media-library.md`) | Upload/list until browser timeout | 403 on admin routes; 404 unknown media/font id | Non-image body → 400; font extension other than `.ttf`/`.otf` → 400 with the exact message named in the contract | Media list or font list updates; a rejected upload leaves the prior list unchanged | console.error on 500 |
+| `/api/sync/assets/check`, `/api/sync/assets/upload`, `/api/sync/assets/[sha256]` (`07-manual-sync.md`) | Upload/download until browser timeout, or until the 50 MB body cap refuses it outright | 403 non-Admin; 404 unknown hash on download | A malformed hash in a `check` request is silently skipped, not reported — the caller cannot distinguish "not asked for" from "not found" from the response alone | Admin Sync screen's push/pull progress; a refused oversized upload | console.error on 500; the 50 MB cap refuses before any handler code runs |
 
 Plan read (Hub LC-16, `loadRegistrySnapshot` or the service freeze): a corrupt row in any of the
 new tables is omitted from the Deck and logged with id + reason, same as today (AD-17) — never

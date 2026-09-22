@@ -2130,7 +2130,7 @@ waves:
           - tests/smoke-spec-44.test.mjs
       - id: "SPEC-44-05"
         component: hub
-        satisfies: [UC-5]
+        satisfies: [UC-5, UC-30]
         blocked_by: ["SPEC-44-04"]
         touches: [services]
         tests:
@@ -2199,7 +2199,7 @@ waves:
     tickets:
       - id: "SPEC-46-01"
         component: hub
-        satisfies: [UC-5]
+        satisfies: [UC-5, UC-31]
         blocked_by: []
         touches: [services]
         tests:
@@ -2242,7 +2242,7 @@ waves:
           - tests/smoke-spec-46.test.mjs
       - id: "SPEC-46-06"
         component: hub
-        satisfies: [UC-2, UC-5]
+        satisfies: [UC-2, UC-5, UC-31]
         blocked_by: ["SPEC-46-05"]
         touches: [services, artifacts]
         tests:
@@ -2300,7 +2300,7 @@ waves:
           - tests/smoke-spec-47.test.mjs
       - id: "SPEC-47-06"
         component: registry
-        satisfies: [UC-5, UC-14]
+        satisfies: [UC-5, UC-14, UC-32]
         blocked_by: ["SPEC-47-03", "SPEC-47-05"]
         touches: [uploads, artifacts]
         tests:
@@ -2642,6 +2642,34 @@ waves:
         touches: [artifacts]
         tests:
           - tests/smoke-spec-55.test.mjs
+
+  - id: SPEC-56
+    status: open
+    release: wire-dynamic-predefined-field-catalog
+    prd: [operator-turn]
+    fr: [FR-37]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-56-wire-dynamic-predefined-field-catalog/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: '75d990b26447e6024df9d00bc432f193502030a3'
+      lenses: [edge-case-hunter, correctness, data-lifecycle, contract-consistency]
+    tickets:
+      - id: "SPEC-56-01"
+        component: registry
+        satisfies: [UC-14, FR-37]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - internal/plan/validate_artifact_test.go
+      - id: "SPEC-56-02"
+        component: registry
+        satisfies: [UC-14, FR-37]
+        blocked_by: ["SPEC-56-01"]
+        touches: [artifacts]
+        tests:
+          - tests/placeholder-catalog.test.mjs
 
 
 

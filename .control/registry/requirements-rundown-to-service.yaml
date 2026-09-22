@@ -41,6 +41,10 @@ functional:
     capability: CAP-1
     title: "Create a new Service from the Hub form"
     proof: "After the Operator pastes a valid Rundown for one date, the Hub shows one Service with the same roles, times, the configured hymn numbers, and speaker as the text; an existing date is not duplicated without override."
+  - id: FR-36
+    capability: CAP-1
+    title: "Admin configures the Rundown parser through named profiles, not a code change"
+    proof: "Admin creates a named parser profile with its own extraction rules and switches which profile is active; the next Rundown pasted for that congregation is parsed under the active profile's rules, with no deploy in between. A built-in profile ships and stays the default until Admin picks another."
 
 nonfunctional:
   - id: NFR-5

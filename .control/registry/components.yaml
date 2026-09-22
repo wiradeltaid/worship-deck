@@ -27,6 +27,13 @@ product_components:
       - Account
       - AppSetting
       - SongSetInput
+      - RundownParserProfile
+      - PredefinedField
+      - FormLayout
+      - FormGrouping
+      - FormGroupingSlot
+      - ServiceFieldValue
+      - ServiceFormLayoutSnapshot
     srs: .what/hub/SRS-hub.md
     sdd: .how/hub/SDD-hub.md
     containers:
@@ -198,3 +205,21 @@ logical_components:
     component: hub
     container: api
     area: slide-plan
+  - id: LC-19
+    name: "Hub rundown parser profiles API"
+    type: gateway
+    component: hub
+    container: api
+    area: parser-profiles
+  - id: LC-20
+    name: "Hub form layout API"
+    type: gateway
+    component: hub
+    container: api
+    area: form-layout
+  - id: LC-23
+    name: "Hub sync mutation API"
+    type: gateway
+    component: hub
+    container: api
+    area: sync

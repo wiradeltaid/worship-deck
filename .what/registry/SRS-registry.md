@@ -7,9 +7,9 @@ updated: 2026-08-20
 satisfies: [FR-4, FR-5, FR-6, FR-20, FR-21, FR-29, FR-30, FR-31]
 reviewed:
   date: '2026-09-22'
-  sha: '628128454b72a5e7e8da9ad72060c8e700af8106'
-  lenses: [structure, prose]
-  note: 'Re-review of the delta since 42c967c only (wdi-upgrade 0.5.13->0.6.1): the UC Catalogue table was replaced with a pointer to usecases.yaml (component: registry) — no promise, FR, or UC content changed. Structure lens confirmed UC-14, 15, 16, 20, 24, 25 are all present in usecases.yaml under component: registry. Prose lens found no orphaned reference. Zero findings.'
+  sha: '75d990b26447e6024df9d00bc432f193502030a3'
+  lenses: [structure, prose, edge-case-hunter]
+  note: 'Re-review of the delta since 6281284: the Actor Register row for Admin gained one new grant (UC-32 Manual Device Sync, marked experimental), backfilled by wdi-product/wdi-blueprint after SPEC-47 shipped it with no FR or UC of its own. The UC Catalogue pointer needs no edit. Edge-case-hunter checked FR-40''s proof text (requirements-offline-deck.yaml) against UC-32''s full flow and both manual-sync contract files (Hub''s 11-manual-sync.md, this component''s 07-manual-sync.md) for consistency, and confirmed UC-32''s critical:true is justified (moves personal data to a second instance, per PRIVACY.md''s own Manual Sync section). Zero findings.'
 ---
 
 # SRS — Registry
@@ -26,7 +26,7 @@ Changing the worship order must not wait for a deploy, and must not overwrite a 
 
 | Actor | Who they are | What they may do |
 | --- | --- | --- |
-| Admin | Structure editor | Layout, order, add, rename, delete, Sync Artifact |
+| Admin | Structure editor | Layout, order, add, rename, delete, Sync Artifact, Manual Device Sync to a second instance (UC-32, experimental) |
 | Operator | Sees the result | Sees the Deck matching the payload; does not edit Registry |
 
 ## UC Catalogue · [G3]

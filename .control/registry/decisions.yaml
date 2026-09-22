@@ -1347,6 +1347,14 @@ decisions:
       - .how/_platform/ARCHITECTURE-SPINE.md
       - .how/registry/SDD-registry.md
       - .control/registry/decisions.yaml
+  - id: DEC-058
+    status: applied
+    accepted_by: "kodesh87 (2026-09-22)"
+    title: A Predefined Field key is Admin-authored data, not a code-plus-tests change
+    file: .control/decisions/DEC-058-predefined-field-key-is-admin-authored.md
+    touches:
+      - .how/_platform/ARCHITECTURE-SPINE.md
+      - .control/registry/decisions.yaml
 
 
 

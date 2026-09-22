@@ -4,13 +4,16 @@ component: registry
 lc: LC-11
 direction: exposed
 created: 2026-08-20
+updated: '2026-09-22'
 ---
 
 # Contract — Background Library
 
 ## Source of truth
 
-None yet — designed at G4, not built. Backing table: `background_library_images`.
+`none`. Backing table: `background_library_images` (`category` column: `background` is this
+contract's scope; `announcement`/`flyer` is `06-media-library.md`'s — one table, two contracts by
+category, per FR-38's widening of this list).
 
 ## Purpose
 
@@ -24,6 +27,7 @@ switch (FR-33, UC-27) — those are read paths into this list, not writes; see C
 | GET `/api/admin/background-library` | List images and which one (if any) is default | UC-25 |
 | POST `/api/admin/background-library` | Add an image (images only, S10) | UC-25 |
 | PATCH `/api/admin/background-library/[id]` | Mark this image the global default (clears the prior default) | UC-25 |
+| POST `/api/admin/background-library/[id]/replace` | Replace this image's file in place, keeping its id and default flag | UC-25 |
 | DELETE `/api/admin/background-library/[id]` | Remove an image; any weekly/live reference falls through to the next step of AD-33's resolution order | UC-25 |
 
 ## Five lanes

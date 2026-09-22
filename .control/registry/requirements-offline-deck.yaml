@@ -29,6 +29,12 @@ capabilities:
     target_release: as-built
     priority: must
     depends_on: [CAP-2]
+  - id: CAP-12
+    title: "Manual Device Sync — keep a second WorshipDeck instance consistent"
+    goal: BG-3
+    target_release: as-built
+    priority: should
+    depends_on: [CAP-9]
 
 functional:
   - id: FR-4
@@ -76,6 +82,18 @@ functional:
     capability: CAP-9
     title: "Admin maintains an image-only background library and a global default background for Verse/Reff"
     proof: "Admin adds and removes images (no colours, no gradients) in a background library and names one of them the global default. A Verse or Reff slide with no background chosen for that week falls back to the global default, and with neither set renders on a blank canvas."
+  - id: FR-38
+    capability: CAP-9
+    title: "Admin's image library serves Announcement Sets as well as Verse/Reff backgrounds, from one shared pool"
+    proof: "The same library FR-31 gives Admin for backgrounds also holds images for Announcement Set slides, grouped by category (background vs. announcement); replacing an image's file in place updates it everywhere it is referenced, with no re-upload per slide. This extends FR-31 rather than replacing it — the global-default flag stays background-category-only."
+  - id: FR-39
+    capability: CAP-9
+    title: "Admin installs custom fonts for canvas templates and PPTX export"
+    proof: "Admin uploads a TrueType font file; it becomes selectable in the canvas editor's font list, and a PPTX generated from a template using it embeds the font, so the deck's typography survives on a machine that never had the font installed."
+  - id: FR-40
+    capability: CAP-12
+    title: "Admin pushes and pulls Services, Song Set entries, backgrounds, and announcements between two WorshipDeck instances, on demand"
+    proof: "From one instance's Admin Sync screen, an explicit Push or Pull action exchanges the listed record kinds with an address the Admin supplies, content-addressing shared image assets by SHA-256 so an unchanged asset is never re-uploaded; nothing moves automatically or on a schedule. Verified so far as one instance exchanging data with itself; exchanging with a genuinely separate, second machine has not yet been confirmed working end-to-end (`docs/threat-model.md` §3.7) — this promise covers the push/pull protocol as built, not a completed cross-machine deployment."
 
 nonfunctional:
   - id: NFR-1

@@ -29,6 +29,7 @@ UC-14, UC-15. Admin-only (AD-14).
 | POST `/api/admin/artifacts/[id]/reset` | Restore seed on a still-live **seeded** row | UC-15 |
 | DELETE `/api/admin/artifacts/[id]` | Remove a live entry; compact `position` to `0..N-1`; bump every survivor's token | UC-15 (OQ-A) |
 | PUT `/api/admin/artifacts/order` | Replace the whole ordered list in one transaction | UC-15 (OQ-A) |
+| POST `/api/admin/artifacts/import-pptx` | Import a `.pptx` file as a new authored General template | UC-15 |
 
 Static `/order` is not a template id (the seed does not ship `order`; create refuses that id).
 
@@ -37,7 +38,7 @@ Static `/order` is not a template id (the seed does not ship `order`; create ref
 | Lane | Answer |
 | --- | --- |
 | Authentication | Admin + AD-5 matcher. No session / not Admin → 403 Forbidden. |
-| Validation | AD-15 structure + AD-8 images; kind does not widen (AD-22). Create body is `{ label }` (optional `id` for tests). PUT, PATCH, Reset, and DELETE require `updatedAt`. A rejected PUT names the failing property (`Unknown field: template.x`, `layouts.default.elements[0].style.fontSize must be positive`). An image placeholder element must still bind a key from the Placeholder Catalog (AD-19, AD-32 unchanged for images); a text element's inline `{key}` tokens are instead checked against the Predefined Field Catalog (AD-32, BR-13) — same validator, same rule as `announcement_set_slides` (`03-announcement-sets.md`). Reorder body is `{ items: [{ id, updatedAt }, ...] }` covering every live row exactly once. Reset requires a still-live **seeded** row (OQ-24, OQ-15). Authored origin is `seed_hash IS NULL`. |
+| Validation | AD-15 structure + AD-8 images; kind does not widen (AD-22). Create body is `{ label }` (optional `id` for tests). PUT, PATCH, Reset, and DELETE require `updatedAt`. A rejected PUT names the failing property (`Unknown field: template.x`, `layouts.default.elements[0].style.fontSize must be positive`). An image placeholder element must still bind a key from the Placeholder Catalog (AD-19, AD-32); a text element's inline `{key}` tokens are instead checked against the Predefined Field Catalog (AD-32, BR-13) — same validator, same rule as `announcement_set_slides` (`03-announcement-sets.md`). **This check is a static 17-key list, not yet reading the Admin-authored `predefined_fields` table DEC-058 made authoritative — an Admin-created field's key is rejected here today; tracked as SPEC-56.** Reorder body is `{ items: [{ id, updatedAt }, ...] }` covering every live row exactly once. Reset requires a still-live **seeded** row (OQ-24, OQ-15). Authored origin is `seed_hash IS NULL`. |
 | Error handling | Envelope in `cross-cutting.md`. Fail closed on a corrupt row (AD-17). 400 validation / membership mismatch / authored Reset. 404 id. Stale write: 409. Duplicate create id: 409. Reset on a gone id: 404, not a revive. |
 | Rate limiting | `none` — Admin-only on one host; not a public surface. |
 | Idempotency | GET is safe. PUT same value is safe. Repeated Reset to the same seed is safe on a still-live seed row. Reset on a gone id is 404, not undelete. DELETE of a gone id is 404. PUT order with the same membership and tokens is a write that still refreshes tokens. |
