@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="WorshipDeck Lockup Right (White)">
+  <title>WorshipDeck Lockup Right (White)</title>
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&amp;display=swap');
+      .lk-rt-wh-text {
+        font-family: 'Inter', 'Geist Sans', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        font-size: 136px;
+        font-weight: 700;
+        letter-spacing: -0.022em;
+        fill: #FFFFFF;
+      }
+    </style>
+    <rect id="lk-rt-wh-card" x="158.2" y="240.1" width="308" height="173.25" rx="19" ry="19"
+          fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linejoin="round"/>
+    <rect id="lk-rt-wh-mask" x="158.2" y="240.1" width="308" height="173.25" rx="19" ry="19"
+          fill="black" stroke="black" stroke-width="25.5" stroke-linejoin="round"/>
+    <mask id="lk-rt-wh-mb" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#lk-rt-wh-mask" transform="rotate(-22 158.2 413.3)"/>
+      <use href="#lk-rt-wh-mask" transform="rotate(0 158.2 413.3)"/>
+    </mask>
+    <mask id="lk-rt-wh-mm" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#lk-rt-wh-mask" transform="rotate(0 158.2 413.3)"/>
+    </mask>
+    <clipPath id="lk-rt-wh-clip">
+      <rect x="170.2" y="252.1" width="284.0" height="149.25" rx="13.0" ry="13.0"/>
+    </clipPath>
+  </defs>
+  <!-- Mark Element -->
+  <g transform="translate(21.15, 6.75) scale(0.7000)">
+  <!-- 3 Fanned 16:9 Frames -->
+  <g mask="url(#lk-rt-wh-mb)"><use href="#lk-rt-wh-card" transform="rotate(-44 158.2 413.3)"/></g>
+  <g mask="url(#lk-rt-wh-mm)"><use href="#lk-rt-wh-card" transform="rotate(-22 158.2 413.3)"/></g>
+  <use href="#lk-rt-wh-card" transform="rotate(0 158.2 413.3)"/>
+  <!-- Screen Glass Glare (Arah B /) -->
+  <g clip-path="url(#lk-rt-wh-clip)">
+    <polygon points="345,252.1 403,252.1 283,401.35 225,401.35" fill="#FFFFFF" opacity="0.45"/>
+    <polygon points="418,252.1 434,252.1 314,401.35 298,401.35" fill="#FFFFFF" opacity="0.28"/>
+  </g>
+
+  </g>
+
+  <!-- Wordmark 'WorshipDeck' -->
+  <text x="388.0" y="216.0" class="lk-rt-wh-text">WorshipDeck</text>
+</svg>

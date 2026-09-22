@@ -78,10 +78,12 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
     <header className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border/80 pb-6 gap-4 relative">
       <div className="flex items-center gap-4">
         <CustomLink href="/" className="flex items-center gap-4 group">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-border bg-card shadow-md text-primary group-hover:border-primary/50 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0h.5m-.5 0h-10.5m.5 0h-1.5" />
-            </svg>
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-border bg-card shadow-md text-primary group-hover:border-primary/50 transition-colors overflow-hidden">
+            <img
+              src="/branding/worship-deck-icon-square.svg"
+              alt="WorshipDeck"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">

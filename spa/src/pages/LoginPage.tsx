@@ -12,23 +12,14 @@ const LOGIN_FIELD =
 function BrandMark() {
   return (
     <div
-      className="mb-6 flex size-12 items-center justify-center rounded-xl border border-border bg-card/80 text-primary shadow-md backdrop-blur-md"
+      className="mb-6 flex size-12 items-center justify-center rounded-xl border border-border bg-card/80 text-primary shadow-md backdrop-blur-md overflow-hidden"
       aria-hidden
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className="size-6"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0h.5m-.5 0h-10.5m.5 0h-1.5"
-        />
-      </svg>
+      <img
+        src="/branding/worship-deck-icon-square.svg"
+        alt="WorshipDeck"
+        className="size-full object-cover"
+      />
     </div>
   );
 }

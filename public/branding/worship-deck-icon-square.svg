@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="WorshipDeck Square Icon (Gold)">
+  <title>WorshipDeck Square Icon (Gold)</title>
+  <defs>
+    <rect id="sq-g-card" x="158.2" y="240.1" width="308" height="173.25" rx="19" ry="19"
+          fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linejoin="round"/>
+    <rect id="sq-g-mask" x="158.2" y="240.1" width="308" height="173.25" rx="19" ry="19"
+          fill="black" stroke="black" stroke-width="25.5" stroke-linejoin="round"/>
+    <mask id="sq-g-mb" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#sq-g-mask" transform="rotate(-22 158.2 413.3)"/>
+      <use href="#sq-g-mask" transform="rotate(0 158.2 413.3)"/>
+    </mask>
+    <mask id="sq-g-mm" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#sq-g-mask" transform="rotate(0 158.2 413.3)"/>
+    </mask>
+    <clipPath id="sq-g-clip">
+      <rect x="170.2" y="252.1" width="284.0" height="149.25" rx="13.0" ry="13.0"/>
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="108" ry="108" fill="#B8860B"/>
+  <!-- 3 Fanned 16:9 Frames -->
+  <g mask="url(#sq-g-mb)"><use href="#sq-g-card" transform="rotate(-44 158.2 413.3)"/></g>
+  <g mask="url(#sq-g-mm)"><use href="#sq-g-card" transform="rotate(-22 158.2 413.3)"/></g>
+  <use href="#sq-g-card" transform="rotate(0 158.2 413.3)"/>
+  <!-- Screen Glass Glare (Arah B /) -->
+  <g clip-path="url(#sq-g-clip)">
+    <polygon points="345,252.1 403,252.1 283,401.35 225,401.35" fill="#FFFFFF" opacity="0.58"/>
+    <polygon points="418,252.1 434,252.1 314,401.35 298,401.35" fill="#FFFFFF" opacity="0.38"/>
+  </g>
+
+</svg>

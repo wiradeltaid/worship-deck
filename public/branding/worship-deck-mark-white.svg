@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="WorshipDeck Standalone Mark (White)">
+  <title>WorshipDeck Standalone Mark (White)</title>
+  <defs>
+    <rect id="mk-wh-card" x="158.2" y="240.1" width="308" height="173.25" rx="19" ry="19"
+          fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linejoin="round"/>
+    <rect id="mk-wh-mask" x="158.2" y="240.1" width="308" height="173.25" rx="19" ry="19"
+          fill="black" stroke="black" stroke-width="25.5" stroke-linejoin="round"/>
+    <mask id="mk-wh-mb" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#mk-wh-mask" transform="rotate(-22 158.2 413.3)"/>
+      <use href="#mk-wh-mask" transform="rotate(0 158.2 413.3)"/>
+    </mask>
+    <mask id="mk-wh-mm" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white"/>
+      <use href="#mk-wh-mask" transform="rotate(0 158.2 413.3)"/>
+    </mask>
+    <clipPath id="mk-wh-clip">
+      <rect x="170.2" y="252.1" width="284.0" height="149.25" rx="13.0" ry="13.0"/>
+    </clipPath>
+  </defs>
+  <!-- 3 Fanned 16:9 Frames -->
+  <g mask="url(#mk-wh-mb)"><use href="#mk-wh-card" transform="rotate(-44 158.2 413.3)"/></g>
+  <g mask="url(#mk-wh-mm)"><use href="#mk-wh-card" transform="rotate(-22 158.2 413.3)"/></g>
+  <use href="#mk-wh-card" transform="rotate(0 158.2 413.3)"/>
+  <!-- Screen Glass Glare (Arah B /) -->
+  <g clip-path="url(#mk-wh-clip)">
+    <polygon points="345,252.1 403,252.1 283,401.35 225,401.35" fill="#FFFFFF" opacity="0.45"/>
+    <polygon points="418,252.1 434,252.1 314,401.35 298,401.35" fill="#FFFFFF" opacity="0.28"/>
+  </g>
+
+</svg>
