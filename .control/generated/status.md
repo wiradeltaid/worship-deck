@@ -314,14 +314,14 @@ validators_red: []
 validators_skipped: {}
 open_questions:
   blocking: 0
-  assumptions: 49
+  assumptions: 37
   external: 1
-  answered: 10
+  answered: 23
   open_by_whose:
     owner: 0
     run: 0
     frozen: 0
-    unstated: 49
+    unstated: 37
   blocking_budget: 9
   blocking_over_budget: false
   assumptions_budget_per_gate: 15

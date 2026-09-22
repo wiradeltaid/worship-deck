@@ -6,10 +6,10 @@ created: 2026-08-18
 updated: 2026-08-22
 satisfies: [FR-15, FR-16, FR-19, FR-22, FR-33, FR-35]
 reviewed:
-  date: '2026-09-22'
+  date: '2026-09-23'
   sha: 'bc6c6949c0c1e63f5b57808653155579714999c2'
   lenses: [structure, prose]
-  note: 'Re-review of the delta since 6281284: a corpus-vs-code reconciliation pass closed OQ-25 (verse-overlay resend on sync, confirmed shipped in src/lib/present-channel.ts and ProjectorClient.tsx) — removed from Open Items and the Assumptions hedge. No promise or FR changed. Zero findings.'
+  note: 'Re-review of the delta since bc6c694: a corpus-vs-code reconciliation pass found the Assumptions section still called plan identity "deferred" (AD-10) even though SDD-presenter.md already corrected this fact — an internal corpus contradiction, not merely stale wording. Closed OQ-5 and OQ-26 (split: two clauses confirmed shipped, two clauses reopened as OQ-60 with the exact remaining gap named). Assumptions and Open Items corrected to match. No promise or FR changed.'
 ---
 
 # SRS — Presenter
@@ -59,11 +59,11 @@ Projector shows only slides. Blank does not itself shift Deck position. Slidesho
 
 ### Assumptions
 
-PPTX remains the offline guarantee; the browser slideshow is best-effort after one Service is loaded (OQ-5).
+PPTX remains the offline guarantee; the browser slideshow is best-effort after one Service is loaded (AD-1, OQ-5 closed 2026-09-23).
 
 Blank covers an open overlay; unblank reveals that overlay if it is still open. Reload of control or projector resends index, overlay, and blank.
 
-Plan identity on the presenter channel stays deferred (AD-10). Empty verse reference and lookup timeout fail closed (SCN-4). No projector → refuse lookup. Missing Service or plan → return to Hub as UC-11; presenter does not open (OQ-26).
+Plan identity travels on every shared-state message on the presenter channel — shipped (AD-10, OQ-26 closed 2026-09-23). Empty verse reference fails closed (SCN-4). Lookup timeout and no-projector-refuse-lookup remain open (OQ-60). A missing Service returns to Hub as UC-11; a present Service with an empty plan does not redirect the same way (OQ-60).
 
 ### Risks
 
@@ -87,4 +87,4 @@ Slideshow is mistaken for the Sabbath guarantee.
 
 ## Open Items
 
-OQ-5 · OQ-26
+OQ-60

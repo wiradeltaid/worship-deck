@@ -6,10 +6,10 @@ created: 2026-08-18
 updated: 2026-08-20
 satisfies: [FR-4, FR-5, FR-6, FR-20, FR-21, FR-29, FR-30, FR-31]
 reviewed:
-  date: '2026-09-22'
+  date: '2026-09-23'
   sha: '840014f763d92094bb911b3c09f9fc53e4ef2aa3'
   lenses: [structure, prose, edge-case-hunter]
-  note: 'Re-review of the delta since 6281284: the Actor Register row for Admin gained one new grant (UC-32 Manual Device Sync, marked experimental), backfilled by wdi-product/wdi-blueprint after SPEC-47 shipped it with no FR or UC of its own. The UC Catalogue pointer needs no edit. Edge-case-hunter checked FR-40''s proof text (requirements-offline-deck.yaml) against UC-32''s full flow and both manual-sync contract files (Hub''s 11-manual-sync.md, this component''s 07-manual-sync.md) for consistency, and confirmed UC-32''s critical:true is justified (moves personal data to a second instance, per PRIVACY.md''s own Manual Sync section). Three restated-derived-fact staleness findings caught on a second pass and fixed in the same commit: Prerequisite still said the Predefined Field catalog is closed (superseded by DEC-058, and the SPEC-56 wiring gap named so a reader does not assume it already works); Gate Checklist''s critical count was 1/6, now 2/7 with UC-32; Slots'' Flows list omitted the new `UC-32-manual-device-sync.md` file. Zero findings remaining after those three fixes.'
+  note: 'Re-review of the delta since 840014f: a corpus-vs-code reconciliation pass closed all four Assumptions (OQ-24, OQ-15, OQ-14, OQ-32), each confirmed true against the actual code (see .control/questions/answered.md) — Assumptions and Open Items both cleared. No promise or FR changed.'
 ---
 
 # SRS — Registry
@@ -56,10 +56,7 @@ A deleted entry stays deleted after restart. An old Service does not change unti
 
 ### Assumptions
 
-- OQ-24 — Registry `gone` is terminal. Reset is live→live only and does not undelete. Wrong: Admin ships undelete, or Reset on a gone id is undefined.
-- OQ-15 — Reset restores the shipped label (including a rename), and an authored row exposes no Reset (`seed_hash` NULL; Story 20.3). Wrong: two rows in one list keep offering Reset on an authored General.
-- OQ-14 — Until AD-16 ships, a stale snapshot has no extra operator affordance. Wrong: Story 20.8 must add a badge.
-- OQ-32 — A corrupt live Registry row is omitted and logged at Sync, the same as a plan read; it is not frozen into the snapshot. Wrong: Sync fails closed with no recovery, or freezes a corrupt row into the snapshot.
+— (OQ-24, OQ-15, OQ-14, OQ-32 all closed 2026-09-23, confirmed true against code; see `.control/questions/answered.md`.)
 
 ### Risks
 
@@ -83,4 +80,4 @@ A Registry edit that makes lyrics unreadable (NFR-3).
 
 ## Open Items
 
-OQ-24 · OQ-15 · OQ-14 · OQ-32.
+—

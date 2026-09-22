@@ -60,7 +60,7 @@ The congregation. An Admin who edits the Registry. The Operator while *presentin
 
 **Description:** The Operator creates a Service in Hub. Lyric resolve is in the API (FR-2), not a web search. Realizes UJ-5.
 
-**Realizes:** FR-27, FR-2, FR-3, FR-36
+**Realizes:** FR-27, FR-2, FR-36 (FR-3 retired 2026-08-20 — see Revision History; its Operator-facing promise moved to `offline-deck` FR-21)
 
 ### 3.2 Telegram intake — last phase
 

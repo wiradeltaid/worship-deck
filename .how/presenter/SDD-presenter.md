@@ -84,8 +84,8 @@ Process timeout: the Go API default. The "Next/Node default" this line used to n
 | GET /api/scripture | Overlay waits. After timeout, fail closed (SCN-4); no retry | 500; empty corpus → 503 reported as absent (FR-22) | Ambiguous / not found → no guess (NFR-5, SCN-4). Empty `ref` → 400 (SCN-4, not a silent no-op). No session → 401. Unknown translation → 400 | Verse does not appear; Deck stays; Operator sees lookup failed | `console.error` on 500 (`internal/httpapi`) |
 | LC-10 channel | Delayed message; no spinner on the room screen | Projector `lost` (AD-29). `BroadcastChannel` missing → no sync | Another tab on the same name; plan identity mismatch refuses the index (AD-10) | Control: `lost` verdict. Congregation: room-facing refuse copy, not an offset slide | — |
 | LC-10 background override (UC-27) | Delayed message; projector keeps its last-known background until the message lands | No projector live yet: choice is held in LC-14 session state and applied on the projector's first sync (same shape as index/blank/transition) | Background Library empty → resolution falls through to AD-33's normal order, no error; plan identity mismatch refuses the override exactly as it refuses an index | Congregation: no visible change until a projector is live. Operator: no error — the choice is simply pending | — |
-| /services/[id]/slideshow | Slow first load. After load, in-memory show may continue (OQ-5) | Required: missing Service → Hub, slideshow does not open (UC-11). As-built: `notFound()` → projected "Slides unavailable" [PARTIAL] | Plan failed | Required: Hub; PPTX remains the guarantee (OQ-26). As-built: black failure copy on this URL with run-sheet links [PARTIAL] | `console.error` on plan fail (`spa/src/pages/SlideshowPage.tsx`) |
-| /services/[id]/present | Slow first load | Required: missing Service or plan → Hub as UC-11; presenter does not open (OQ-26). As-built: missing Service → `notFound()` [PARTIAL] | Plan failed | Required: Hub. As-built: error card on this URL (run-sheet / PPTX); `PresenterOperator` does not mount [PARTIAL] | `console.error` on plan fail (`spa/src/pages/PresentPage.tsx`) |
+| /services/[id]/slideshow | Slow first load. After load, in-memory show may continue (AD-1, OQ-5 closed) | Required: missing Service → Hub, slideshow does not open (UC-11). As-built: `notFound()` → projected "Slides unavailable" [PARTIAL] | Plan failed | Required: Hub; PPTX remains the guarantee. As-built: black failure copy on this URL with run-sheet links, no redirect [PARTIAL] (OQ-60) | `console.error` on plan fail (`spa/src/pages/SlideshowPage.tsx`) |
+| /services/[id]/present | Slow first load | Required: missing Service or plan → Hub as UC-11; presenter does not open. As-built: missing Service → `notFound()` [PARTIAL] | Plan failed | Required: Hub. As-built: error card on this URL (run-sheet / PPTX); `PresenterOperator` does not mount, no redirect [PARTIAL] (OQ-60) | `console.error` on plan fail (`spa/src/pages/PresentPage.tsx`) |
 | /services/[id]/present/projector | Slow first load | Window closed → `lost`. Presenter open with no projector yet → AD-29 `no evidence yet` (silent), not `lost`. Missing Service → projected not-found | Slideshow tab answering as projector; a second projector window | Forbidden by AD-29; only one projector window may ack. Plan fail: black "Slides unavailable", no Operator chrome | `console.error` on plan fail (`spa/src/pages/ProjectorPage.tsx`) |
 
 | POST `/api/present/[id]/remote/pair` | Presenting client waits; no code shown yet, and it keeps presenting throughout | 401 not signed in | A pairing already live → claiming replaces it: the existing presenter and remote streams are closed and a fresh code is issued, taking the role rather than being refused (AD-37; matches `.what/presenter/03-domain/state-machines.md` and `02-contracts/03-remote-control.md`) | A short-lived code on the laptop, or a failure message beside a service that never stopped | server-side on 500 |
@@ -125,11 +125,10 @@ Contracts: `02-contracts/` (`00-inventory`, `01-scripture`, `02-present-channel`
 | Claim | Label | Read to decide | Disposition |
 | --- | --- | --- | --- |
 | One GET scripture | verified | `internal/httpapi` scripture handler | empty `ref` → 400; 401 is the gate, not this file |
-| Plan identity on PresentMessage | [MISSING] | spine AD-10 *Not yet closed*; `src/lib/present-channel.ts` `PresentMessage` union has no identity field | planned: AD-10 / OQ-26 / deferred-work; not a BUG until a wave closes it |
 | Overlay resends on `sync` | verified | `src/lib/present-channel.ts` — `sync` carries `scripture?: {...} | null`; `PresenterOperator.tsx` `currentState()` includes the scripture overlay; `ProjectorClient.tsx` `setOverlay(msg.scripture ?? null)` on `sync` | OQ-25 closed |
 | Unblank reveals overlay if still open | verified | `ProjectorClient.tsx` blank is a covering `z-50` layer; overlay state is not cleared by blank | matches OQ-25 / BR-6 |
-| No projector → refuse verse lookup | [MISSING] | `PresenterOperator.pushScripture` fetches and broadcasts with no liveness check | planned: OQ-26 |
-| Missing Service/plan → Hub | [PARTIAL] | `spa/src/pages/PresentPage.tsx`, `spa/src/pages/SlideshowPage.tsx`: missing Service → `notFound()`; plan fail → error card / black copy, `PresenterOperator` does not mount | required UC-11/OQ-26 is Hub; as-built is not a redirect |
+| No projector → refuse verse lookup | [MISSING] | `PresenterOperator.pushScripture` fetches and broadcasts with no liveness check | planned: OQ-60 |
+| Missing Service/plan → Hub | [PARTIAL] | `spa/src/pages/PresentPage.tsx`, `spa/src/pages/SlideshowPage.tsx`: missing Service → `notFound()`; plan fail → error card / black copy, `PresenterOperator` does not mount | required UC-11/OQ-60 is Hub; as-built is not a redirect |
 | Presenter scripture fetch omits `translation` | [PARTIAL] | `PresenterOperator.pushScripture` query is `ref` only; route falls back to `DEFAULT_TRANSLATION` | AD-28 required param not yet on this caller |
 | Projected shell is literal black | verified | AD-24; `tests/theme-chrome.test.mjs` guards it | — |
 | LC-14 session in window memory | verified | `src/lib/present-channel.ts`; `PresenterOperator` refs; not a table | — |
@@ -149,7 +148,7 @@ Contracts: `02-contracts/` (`00-inventory`, `01-scripture`, `02-present-channel`
 
 ## Open Items
 
-OQ-5 · OQ-25 · OQ-26 · OQ-28 · OQ-29. Session display (showing / blanked / overlay) is ephemeral on the
+OQ-28 · OQ-29 · OQ-60. Session display (showing / blanked / overlay) is ephemeral on the
 channel, not a table.
 
 **New from this pass (DEC-006 / FR-35 / UC-29), and none of it is answered here:**
