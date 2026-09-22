@@ -460,6 +460,12 @@ dag:
     - SPEC-56-01
   - parallel:
     - SPEC-56-02
+- spec: SPEC-57
+  order:
+  - parallel:
+    - SPEC-57-01
+  - parallel:
+    - SPEC-57-02
 - spec: W1
   order:
   - parallel:

@@ -2306,6 +2306,20 @@ waves:
         tests:
           - tests/smoke-spec-47.test.mjs
 
+  # SPEC-48 through SPEC-52 (below) build the "Unified Schedule Workspace" — a client-side UI/UX
+  # prototype under spa/src/pages/WorkspaceMockupPage.tsx and src/operator/workspace/Mockup*.tsx.
+  # Confirmed 2026-09-22 (wdi-reconcile): zero `fetch()` calls anywhere in that subsystem — it reads
+  # and writes only in-memory synthetic data (`SYNTHETIC_MASTER_PRESETS` etc.), never the real API.
+  # Per this method's own routing (`prototype` skill; corpus-guide.md's placement test), UI-only
+  # exploration is not held to G2 promise-writing standards, so no FR/UC backfill was done for it —
+  # owner ruling, 2026-09-22.
+  # The `fr:` lists on these 5 specs (and the informal FR-titles in their autopilot smoke-test
+  # tables, e.g. "FR-21: Predefined Fields Registry", "FR-44: Desktop Offline Sync") were the
+  # autopilot's own loose labels for prototype concepts, not verified delivery of those FRs' real,
+  # registered promises — contrast SPEC-53/54 below, which touch real production files and whose
+  # citations of the same ids ARE the genuine promise. FR-44 itself was never registered anywhere
+  # (a dangling reference `refs-resolve` cannot see, because that validator never checks a spec's own
+  # `fr:` field — reported as a method-level gap, not fixed here) and is removed from SPEC-50/51.
   - id: SPEC-48
     status: closed
     release: unified-schedule-workspace-uiux-mockup
@@ -2396,7 +2410,7 @@ waves:
     status: closed
     release: unified-schedule-workspace-full-architecture
     prd: [operator-turn, offline-deck]
-    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32]
     size: M
     depends_on: [SPEC-49]
     spec_folder: .archive/specs/SPEC-50-unified-schedule-workspace-uiux-full-architecture/
@@ -2438,7 +2452,7 @@ waves:
     status: closed
     release: unified-schedule-workspace-1920-redesign
     prd: [operator-turn, offline-deck]
-    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32]
     size: M
     depends_on: [SPEC-50]
     spec_folder: .archive/specs/SPEC-51-unified-schedule-workspace-1920-fullhd-redesign/

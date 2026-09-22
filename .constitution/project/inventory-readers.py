@@ -534,8 +534,10 @@ DEFAULT_SCREEN_UC = {
     "/services/[id]/remote": "UC-29",
     # SPEC-26: canvas-vs-presenter visual parity diagnostic, Registry-owned like /admin/artifacts.
     "/services/diagnostic-parity": "UC-14",
-    # SPEC-48: unified schedule workspace visual prototype, built toward the Hub run sheet.
-    "/new": "UC-5",
+    # SPEC-48-52: Unified Schedule Workspace, a client-side UI prototype (zero fetch() calls,
+    # synthetic in-memory data) — confirmed 2026-09-22, owner ruled it is not held to G2 promise
+    # standards while it stays a prototype. No UC served; do not map it to UC-5 or any other real
+    # promise until it graduates to an actually-wired build.
     # SPEC-47-06: manual device sync has no use case of its own in the catalogue yet — see
     # the open question this inventory's Findings section files.
 }
