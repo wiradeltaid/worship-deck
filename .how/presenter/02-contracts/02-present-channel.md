@@ -34,7 +34,7 @@ UC-12, UC-13, UC-27, AD-10, AD-29. Session display: showing / blanked / overlay 
 | --- | --- |
 | Authentication | Same-origin BroadcastChannel; not a server session |
 | Validation | Only the shape in the shared module; a surface may not open another channel name (AD-10) |
-| Error handling | Plan identity: **shipped** — every shared-state variant carries `planIdentity` and a receiver whose own identity differs refuses the index (`src/lib/present-channel.ts`, 8 occurrences). `background` on `sync`: **shipped** — `sync` carries `background?` so a reload resends the current override. Overlay on `sync`: still **not** on the message, so a projector reload clears the overlay [MISSING] (OQ-25) — the one of the three that is still open. The first two read `[MISSING]` here until 2026-08-22 |
+| Error handling | Plan identity: **shipped** — every shared-state variant carries `planIdentity` and a receiver whose own identity differs refuses the index (`src/lib/present-channel.ts`, 8 occurrences). `background` on `sync`: **shipped** — `sync` carries `background?` so a reload resends the current override. Overlay on `sync`: **shipped** — `sync` carries `scripture?: {...} | null` and `ProjectorClient.tsx` resends it via `setOverlay(msg.scripture ?? null)` on `sync`. OQ-25 is closed. All three read `[MISSING]` here until they shipped |
 | Rate limiting | Heartbeat interval exported once from the liveness evaluator (`PROJECTOR_HEARTBEAT_INTERVAL_MS`); not unbounded and not silent. No HTTP quota — this is not an HTTP API. |
 | Idempotency | Intended values on the wire (`blank`, `index`, `transition`, overlay text). Ack idempotent by construction (AD-29). `request-sync` may be answered twice with the same triple. |
 

@@ -61,7 +61,7 @@ Projector shows only slides. Blank does not itself shift Deck position. Slidesho
 
 PPTX remains the offline guarantee; the browser slideshow is best-effort after one Service is loaded (OQ-5).
 
-Blank covers an open overlay; unblank reveals that overlay if it is still open. Reload of control or projector resends index, overlay, and blank (OQ-25).
+Blank covers an open overlay; unblank reveals that overlay if it is still open. Reload of control or projector resends index, overlay, and blank.
 
 Plan identity on the presenter channel stays deferred (AD-10). Empty verse reference and lookup timeout fail closed (SCN-4). No projector → refuse lookup. Missing Service or plan → return to Hub as UC-11; presenter does not open (OQ-26).
 
@@ -87,4 +87,4 @@ Slideshow is mistaken for the Sabbath guarantee.
 
 ## Open Items
 
-OQ-5 · OQ-25 · OQ-26
+OQ-5 · OQ-26

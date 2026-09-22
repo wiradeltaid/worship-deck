@@ -27,7 +27,7 @@ description, which cited an as-built shape the Supplement corrects): `src/lib/ly
 `internal/plan/lyrics.go` (hand-mirrored ports; DEC-004 S7 requires each to carry a header comment
 naming the other, so an edit to one is visibly incomplete until the other matches).
 
-- Refrain headers: `Reff` or `Chorus`, with or without a trailing number (`Reff 2`, `Chorus 3`) — both accepted (S7 L1).
+- Refrain headers: `Reff`, `Chorus`, or `Refrain`, with or without a trailing number (`Reff 2`, `Chorus 3`, `Refrain 2`) — all three accepted (S7 L1).
 - A refrain with its own body is used verbatim for the verse it follows; different refrains per verse are preserved, never collapsed to the first one (S7 L2).
 - A refrain header with no body inherits the nearest preceding non-empty refrain (S7 L3).
 - Slide order follows the lyric database's own order; the parser does not rebuild sequence (S7 L4).

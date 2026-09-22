@@ -20,7 +20,8 @@ address.
 ## Precondition
 
 Admin is signed in on the instance running the action. No presenter is actively projecting on the
-instance being pushed to or pulled from (the Presenter Liveness Guard, `TryAcquireSyncLock`).
+instance being pushed to (the Presenter Liveness Guard, `TryAcquireSyncLock`) — Pull carries no
+such guard.
 
 ## Main Flow
 

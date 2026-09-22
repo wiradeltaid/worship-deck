@@ -16,11 +16,11 @@ verified: '84db8e7'
 | No | Method | Path | Spec file | Status |
 | --- | --- | --- | --- | --- |
 | 29 | GET | `/api/scripture` | `01-scripture.md` | published |
-| pending | POST | `/api/present/[id]/remote/pair` | `03-remote-control.md` | designed (DEC-006, G4) |
-| pending | DELETE | `/api/present/[id]/remote/pair` | `03-remote-control.md` | designed (DEC-006, G4) |
-| pending | POST | `/api/present/[id]/remote/claim` | `03-remote-control.md` | designed (DEC-006, G4) |
-| pending | GET | `/api/present/[id]/remote/stream` | `03-remote-control.md` | designed (DEC-006, G4) |
-| pending | POST | `/api/present/[id]/remote/intent` | `03-remote-control.md` | designed (DEC-006, G4) |
+| pending | POST | `/api/present/[id]/remote/pair` | `03-remote-control.md` | shipped |
+| pending | DELETE | `/api/present/[id]/remote/pair` | `03-remote-control.md` | shipped |
+| pending | POST | `/api/present/[id]/remote/claim` | `03-remote-control.md` | shipped |
+| pending | GET | `/api/present/[id]/remote/stream` | `03-remote-control.md` | shipped |
+| pending | POST | `/api/present/[id]/remote/intent` | `03-remote-control.md` | shipped |
 
 The `BroadcastChannel` is not HTTP; spec in `02-present-channel.md`.
 

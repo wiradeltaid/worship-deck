@@ -11,9 +11,11 @@ updated: 2026-08-22
 
 ## Source of truth
 
-Nothing yet. **Every row below is `[MISSING]`** — FR-35 is promised and unbuilt, and this file is a
-design, not an as-built record. The transport is this document's choice to make (G4); DEC-006 left it
-open on purpose and `.what/_prd/operator-turn/addendum.md` § *FR-35* carries the candidate.
+`internal/httpapi/remote.go` — pair/claim/stream/intent/delete-pair, routed in
+`internal/httpapi/server.go` (~line 124-128) and gated (`internal/gate/gate_test.go`). Built and
+shipped; this file records the as-built shape. The transport was this document's choice to make (G4);
+DEC-006 left it open on purpose and `.what/_prd/operator-turn/addendum.md` § *FR-35* carried the
+candidate that shipped.
 
 ## Purpose
 
@@ -99,6 +101,6 @@ narrower question and is open: **OQ-55**.
 
 | Claim | Label | Read to decide | Disposition |
 | --- | --- | --- | --- |
-| Every path, handler, stream and pairing store above | `[MISSING]` | `internal/httpapi/server.go` — no `/api/present/*` route exists; no SSE anywhere in the tree | FR-35 is promised and unbuilt. Planned work, not a `BUG-` |
+| Every path, handler, stream and pairing store above | verified | `internal/httpapi/server.go` registers all five routes (~line 124-128); `internal/httpapi/remote.go` implements pair/claim/stream/intent/delete-pair; `internal/gate/gate_test.go` asserts all five are gated | FR-35 built and shipped |
 | The six intents already exist as `PresentMessage` variants | verified | `src/lib/present-channel.ts` | Nothing new is minted; the relay carries them |
-| No realtime transport exists in the repository today | verified | no match for `text/event-stream`, WebSocket, or `EventSource` under `internal/`, `src/`, `spa/` | DEC-006 admits the first one |
+| The relay is Server-Sent Events, per the shape chosen above | verified | `getRemoteStream` in `internal/httpapi/remote.go` sets `text/event-stream` and streams via `http.Flusher` | DEC-006's admitted transport shipped as designed |

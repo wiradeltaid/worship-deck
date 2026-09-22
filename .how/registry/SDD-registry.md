@@ -111,7 +111,7 @@ gateway" LC to widen the way Registry's LC-11 already is one.
 | AD-20 | Unchanged; the trio and Announcement Set slides are still registry-originated, just not on the spine's own `position` axis. |
 | AD-21 | `data_version` gates the predefined-field migration exactly once. |
 | AD-30 | LC-11 / LC-15 on `api`, unchanged; every new surface is more API surface, not a new process. |
-| AD-31 | `variable_name` uniqueness check lives in LC-15, run on create and rename; no `UNIQUE` column constraint. Marker→set reference checked the same way, in code. |
+| AD-31 | `variable_name` uniqueness is a real DB-level `UNIQUE NOT NULL` column on `song_set_entries` — the identity/title/position master; `artifact_templates` (`base_type='song-set-entry'`) mirrors it for spine placement and carries no constraint of its own. Marker→set reference checked in code (LC-15), no DB `FOREIGN KEY`. |
 | AD-32 | Validator (`src/lib/registry/validate.ts`) parses `{key}` inside text-element `content`, checks membership in the renamed catalog (S1), and returns a save-time warning list rather than a rejection for an unrecognised key. Hydrate substitution itself is Hub LC-16's job; Registry validates and stores. |
 | AD-33 | `song_set_layouts` table (3 rows: `title`/`verse`/`reff`), each validated and Reset exactly like a General (AD-15); no bounded-surface override record survives. Announcement Set slides live in `announcement_set_slides`, one row per slide, validated the same way. |
 | AD-34 | Registry owns and serves the Background Library table and its default flag (UC-25); the live switch itself (UC-27) is a Presenter-owned session action over AD-10's channel and never calls into this component's write path. |

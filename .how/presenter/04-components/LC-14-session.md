@@ -24,7 +24,7 @@ LC-10 (channel) · LC-9 (verse) · LC-16 (plan, owned by Hub)
 
 State in window memory + channel messages. Not a table.
 
-Blank covers overlay without clearing it. Required (OQ-25): `request-sync` answers with index, overlay, and blank. Required (OQ-26): verse lookup is refused while liveness is not `live`. As-built: overlay-on-sync and no-projector refuse are [MISSING] — see SDD Evidence. Plan identity is not on the message (AD-10, OQ-26).
+Blank covers overlay without clearing it. Required (OQ-25): `request-sync` answers with index, overlay, and blank — **shipped**, `sync` carries `scripture?: {...} | null` and resends it. OQ-25 is closed. Required (OQ-26): verse lookup is refused while liveness is not `live`. As-built: no-projector refuse is [MISSING] — see SDD Evidence. Plan identity is not on the message (AD-10, OQ-26).
 
 Required (UC-27, FR-33, AD-34): the session holds one live background override, applying to every Verse/Reff
 slide for the rest of the session; it is never written anywhere durable, and `request-sync` must resend it
@@ -33,5 +33,5 @@ exactly as it resends index/overlay/blank. As-built: no `background` variant exi
 
 ## Notes
 
-`src/lib/present-channel.ts`, AD-29 liveness evaluator. Overlay-on-sync, no-projector refuse, and the live
-background override are [MISSING] in code; see SDD Evidence.
+`src/lib/present-channel.ts`, AD-29 liveness evaluator. No-projector refuse and the live background
+override are [MISSING] in code; see SDD Evidence. Overlay-on-sync is shipped (OQ-25 closed).
