@@ -1094,6 +1094,20 @@ rtm:
   FR: FR-15
   DEC: []
   UC: UC-11
+  ticket: SPEC-67-01
+  spec: SPEC-67
+  release: presenter-raw-rundown-and-field-regex-consolidation
+  test:
+  - tests/presenter-raw-rundown.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-15
+  DEC: []
+  UC: UC-11
   ticket: W7-01
   spec: W7
   release: presenter-live
@@ -1350,6 +1364,20 @@ rtm:
   FR: FR-18
   DEC: []
   UC: UC-9
+  ticket: SPEC-66-01
+  spec: SPEC-66
+  release: exempt-branding-assets-session-gate
+  test:
+  - internal/gate/gate_test.go
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-8
+  FR: FR-18
+  DEC: []
+  UC: UC-9
   ticket: W9-01
   spec: W9
   release: hub-admin-mgmt
@@ -1582,6 +1610,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-67-02
+  spec: SPEC-67
+  release: presenter-raw-rundown-and-field-regex-consolidation
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3939,6 +3981,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-67-02
+  spec: SPEC-67
+  release: presenter-raw-rundown-and-field-regex-consolidation
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27

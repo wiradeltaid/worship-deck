@@ -2921,6 +2921,64 @@ waves:
         tests:
           - tests/remote-reconnect.test.mjs
 
+  # Opened 2026-09-23 from manual hand-testing on web dev target.
+  # /branding/worship-deck-icon-square.svg on LoginPage was intercepted by session gate and redirected.
+  - id: SPEC-66
+    status: closed
+    release: exempt-branding-assets-session-gate
+    prd: [operator-turn]
+    fr: [FR-18]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-66-exempt-branding-assets-session-gate/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: '4c2890ae15164e7daa132045dac20e3c0bc4177c'
+      lenses: [edge-case-hunter, auth-boundary, requirements-traceability]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Confirmed causal chain from LoginPage.tsx through gate.go to fallback(). Folded in redirect-safe HTTP test mechanics (disabling redirect follow via http.ErrUseLastResponse or ResponseRecorder to prove 200 vs 307) and refined prefix-collision lookalike testing (/brandingfoo)."
+    tickets:
+      - id: "SPEC-66-01"
+        component: hub
+        satisfies: [UC-9, FR-18]
+        blocked_by: []
+        touches: [auth]
+        tests:
+          - internal/gate/gate_test.go
+
+  # Opened 2026-09-23 from user design direction.
+  # Simplify rundown architecture: presenter displays raw rundown text directly,
+  # and form intake extraction consolidates onto Dynamic Predefined Field Regex.
+  - id: SPEC-67
+    status: open
+    release: presenter-raw-rundown-and-field-regex-consolidation
+    prd: [operator-turn]
+    fr: [FR-15, FR-36]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-67-presenter-raw-rundown-and-field-regex-consolidation/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: '4c2890ae15164e7daa132045dac20e3c0bc4177c'
+      lenses: [edge-case-hunter, scope-fidelity, data-flow-and-persistence, regression-testability]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Decoupled Presenter mode completely from parsed_data.items to render raw_payload directly in Run-Sheet sidebar. Folded in exact persistence contract (fieldSuggestions require operator review/submission before persisting to service_field_values; never overwrite silently), clarified macro parsing boundary (retained solely for background date/slide-plan support, not custom fields), removed obsolete runSheetItems prop cleanly, specified presenter.noRundownText localization key, and added strict textContent equality tests."
+    tickets:
+      - id: "SPEC-67-01"
+        component: presenter
+        satisfies: [UC-11, FR-15]
+        blocked_by: []
+        touches: [present-channel, services]
+        tests:
+          - tests/presenter-raw-rundown.test.mjs
+      - id: "SPEC-67-02"
+        component: hub
+        satisfies: [UC-2, FR-36]
+        blocked_by: ["SPEC-67-01"]
+        touches: [services]
+        tests:
+          - tests/dynamic-field-extraction.test.mjs
+
+
+
 
 
 

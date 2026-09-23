@@ -502,6 +502,16 @@ dag:
   order:
   - parallel:
     - SPEC-65-01
+- spec: SPEC-66
+  order:
+  - parallel:
+    - SPEC-66-01
+- spec: SPEC-67
+  order:
+  - parallel:
+    - SPEC-67-01
+  - parallel:
+    - SPEC-67-02
 - spec: W1
   order:
   - parallel:

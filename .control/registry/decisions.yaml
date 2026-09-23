@@ -1380,6 +1380,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-061
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-23)"
+    title: Daily Autopilot mandate for Exempt Branding Static Assets from Session Gate (SPEC-66)
+    file: .control/decisions/DEC-061-daily-autopilot-mandate-exempt-branding-assets-session-gate.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-30'
+    touches:
+      - .control/memlog/autopilot-DEC-061.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

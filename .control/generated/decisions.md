@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**60 decisions** — applied: 60.
+**61 decisions** — applied: 61.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -68,3 +68,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-058` | A Predefined Field key is Admin-authored data, not a code-plus-tests change | `applied` | — | `.how/_platform/ARCHITECTURE-SPINE.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-058-predefined-field-key-is-admin-authored.md` |
 | `DEC-059` | The Registry canvas's keyboard surface has grown past Delete/Backspace; DEC-012's "one exception" claim is su… | `applied` | — | `.control/decisions/DEC-012-canvas-keyboard-delete-exception.md` | `.control/decisions/DEC-059-canvas-keyboard-surface-widened-past-delete.md` |
 | `DEC-060` | Daily Autopilot mandate for Open Specs & Reconciliation Gaps (SPEC-56 through SPEC-65) | `applied` | mandate | `.control/memlog/autopilot-DEC-060.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reconciliation-gaps.md` |
+| `DEC-061` | Daily Autopilot mandate for Exempt Branding Static Assets from Session Gate (SPEC-66) | `applied` | mandate | `.control/memlog/autopilot-DEC-061.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-061-daily-autopilot-mandate-exempt-branding-assets-session-gate.md` |

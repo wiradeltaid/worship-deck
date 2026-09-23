@@ -8,6 +8,7 @@ var exemptPrefixes = []string{
 	"/api/auth/logout",
 	"/login",
 	"/assets",
+	"/branding",
 }
 
 // IsGated reports whether the request path must pass the session check.
