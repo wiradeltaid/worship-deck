@@ -342,6 +342,10 @@ export default function PresenterOperator({
     []
   );
   const remoteSessionRef = useRef<PresenterRemoteSession | null>(null);
+  const runSheet = formatPresenterRunSheet(
+    rundownText,
+    t('presenter.noRundownText')
+  );
   // The liveness verdict (`AD-29`): whether the projector is answering. Never
   // a second flag alongside it — the whole point of `nextLivenessState` is
   // that this is the only place the verdict is decided, so a boundary added
@@ -1271,10 +1275,9 @@ export default function PresenterOperator({
             <h2 className="border-b border-border px-3 py-2 text-sm font-semibold">
               Run-Sheet
             </h2>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
-              {(() => {
-                const runSheet = formatPresenterRunSheet(rundownText, t('presenter.noRundownText'));
-                return runSheet.isEmpty ? (
+            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
+              <li className="list-none">
+                {runSheet.isEmpty ? (
                   <p className="text-sm italic text-muted-foreground">
                     {runSheet.text}
                   </p>
@@ -1282,9 +1285,9 @@ export default function PresenterOperator({
                   <div className="whitespace-pre-wrap font-sans text-sm text-foreground/90">
                     {runSheet.text}
                   </div>
-                );
-              })()}
-            </div>
+                )}
+              </li>
+            </ul>
           </section>
         </aside>
       </main>
