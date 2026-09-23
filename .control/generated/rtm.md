@@ -1099,10 +1099,10 @@ rtm:
   release: presenter-raw-rundown-and-field-regex-consolidation
   test:
   - tests/presenter-raw-rundown.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-15
@@ -1620,10 +1620,10 @@ rtm:
   release: presenter-raw-rundown-and-field-regex-consolidation
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3991,10 +3991,10 @@ rtm:
   release: presenter-raw-rundown-and-field-regex-consolidation
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27

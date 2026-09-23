@@ -15,22 +15,22 @@ dropped lines.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Read `spa/src/pages/PresentPage.tsx` (~lines 20-33) and `src/operator/present/PresenterOperator.tsx`
+- [x] Read `spa/src/pages/PresentPage.tsx` (~lines 20-33) and `src/operator/present/PresenterOperator.tsx`
       (~lines 280-305 and 1270-1310) in full first.
-- [ ] Remove `runSheetItems` from `PresenterOperatorProps` in `src/operator/present/PresenterOperator.tsx`
+- [x] Remove `runSheetItems` from `PresenterOperatorProps` in `src/operator/present/PresenterOperator.tsx`
       and add `rundownText?: string`.
-- [ ] Update `spa/src/pages/PresentPage.tsx` to pass `rundownText={data.raw_payload || ''}` to `PresenterOperator`.
-- [ ] In `src/operator/present/PresenterOperator.tsx`, replace the `runSheetItems.map(...)` list with a
+- [x] Update `spa/src/pages/PresentPage.tsx` to pass `rundownText={data.raw_payload || ''}` to `PresenterOperator`.
+- [x] In `src/operator/present/PresenterOperator.tsx`, replace the `runSheetItems.map(...)` list with a
       dedicated text container rendering `rundownText` with `whitespace-pre-wrap font-sans text-sm text-foreground/90`.
-- [ ] Ensure the container preserves `overflow-y-auto` so long bulletin texts scroll smoothly without breaking
+- [x] Ensure the container preserves `overflow-y-auto` so long bulletin texts scroll smoothly without breaking
       the presenter viewport or slide preview layout.
-- [ ] Add translation key `presenter.noRundownText` to `src/lib/i18n/catalogue-en.ts` ("No rundown text provided")
+- [x] Add translation key `presenter.noRundownText` to `src/lib/i18n/catalogue-en.ts` ("No rundown text provided")
       and `src/lib/i18n/catalogue-id.ts` ("Tidak ada teks susunan acara").
-- [ ] When `rundownText` is empty, undefined, or contains only whitespace, render `t('presenter.noRundownText')`
+- [x] When `rundownText` is empty, undefined, or contains only whitespace, render `t('presenter.noRundownText')`
       as the empty state notice.
-- [ ] Add unit/component tests in `tests/presenter-raw-rundown.test.mjs` verifying:
+- [x] Add unit/component tests in `tests/presenter-raw-rundown.test.mjs` verifying:
       (1) Raw text with blank lines, indentation, punctuation, and emoji renders with exact `textContent` equality.
       (2) Empty or whitespace-only text renders the localized `t('presenter.noRundownText')` placeholder.
       (3) All callers compile cleanly with only `rundownText` (no obsolete `runSheetItems` prop).

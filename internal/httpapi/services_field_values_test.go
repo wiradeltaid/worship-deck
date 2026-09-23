@@ -332,3 +332,46 @@ func TestPhotoDeletionPersistenceAndPerKeyMergePrecedence(t *testing.T) {
 		t.Errorf("expected sermon_poster to be preserved via per-key merge, got %q", afterResp.FieldValues["sermon_poster"])
 	}
 }
+
+func TestGetServiceRawPayloadVerbatimViaHttp(t *testing.T) {
+	ts, _, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	verbatimText := "  SABBATH, OCTOBER 24, 2026\n  DIVINE SERVICE 🎉\n\n• Welcome All Visitors\n  - Indented bullet item\n• Scripture: John 3:16\n\nPastoral Notes:\n— Special prayer request for missions 🙏\n— Practice at 4:30 PM."
+
+	payload := map[string]any{
+		"date":        "2026-10-24",
+		"raw_payload": verbatimText,
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	res := songSetRequest(t, ts, "POST", "/api/services", string(bodyBytes), cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service status = %d, want 201", res.StatusCode)
+	}
+	var created struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&created)
+	res.Body.Close()
+
+	if created.ID == 0 {
+		t.Fatal("expected non-zero created service ID")
+	}
+
+	// GET /api/services/{id} through HTTP handler
+	res = songSetRequest(t, ts, "GET", fmt.Sprintf("/api/services/%d", created.ID), "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get service status = %d, want 200", res.StatusCode)
+	}
+	var svcResp struct {
+		ID         int    `json:"id"`
+		RawPayload string `json:"raw_payload"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&svcResp)
+	res.Body.Close()
+
+	if svcResp.RawPayload != verbatimText {
+		t.Fatalf("GET /api/services/{id} returned corrupted raw_payload:\ngot:\n%q\nwant:\n%q", svcResp.RawPayload, verbatimText)
+	}
+}

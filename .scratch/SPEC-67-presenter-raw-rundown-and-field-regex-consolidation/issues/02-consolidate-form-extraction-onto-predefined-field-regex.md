@@ -16,20 +16,20 @@ extraction and presenter schedule visibility.
 
 **Blocked by:** 01 (presenter-mode-renders-raw-rundown-text).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Read `internal/parse/parser.go`, `internal/httpapi/services.go`, and `src/operator/CreateForm.tsx`
+- [x] Read `internal/parse/parser.go`, `internal/httpapi/services.go`, and `src/operator/CreateForm.tsx`
       in full first.
-- [ ] Verify `extractDynamicFieldSuggestions` in `internal/parse/parser.go` reliably runs every active
+- [x] Verify `extractDynamicFieldSuggestions` in `internal/parse/parser.go` reliably runs every active
       predefined field regex against both individual lines and full text body, outputting to `fieldSuggestions`.
-- [ ] Verify `extractDynamicSongSetSuggestions` in `internal/parse/parser.go` reliably populates song set
+- [x] Verify `extractDynamicSongSetSuggestions` in `internal/parse/parser.go` reliably populates song set
       suggestions based on `song_set_entries.extraction_regex`.
-- [ ] In `CreateForm.tsx` and `EditForm.tsx`, ensure `fieldSuggestions` are surfaced as editable input
+- [x] In `CreateForm.tsx` and `EditForm.tsx`, ensure `fieldSuggestions` are surfaced as editable input
       suggestions that the operator can review and accept before saving. Existing saved field values on
       `EditForm` are never silently overwritten upon load or update.
-- [ ] Confirm that `GET /api/services/{id}` continues returning `raw_payload` with the verbatim rundown
+- [x] Confirm that `GET /api/services/{id}` continues returning `raw_payload` with the verbatim rundown
       text, ensuring the presenter view from ticket 01 always receives the original text.
-- [ ] Add regression tests in `tests/dynamic-field-extraction.test.mjs` verifying:
+- [x] Add regression tests in `tests/dynamic-field-extraction.test.mjs` verifying:
       (1) Raw bulletin text containing custom fields that macro parser rules do NOT recognize, but a
           Predefined Field regex matches, successfully produces the expected `fieldSuggestions`.
       (2) Submitting the service form persists the extracted field value into `service_field_values`.

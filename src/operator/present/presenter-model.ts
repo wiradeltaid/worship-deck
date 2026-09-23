@@ -249,3 +249,22 @@ export function computeNextLoopIndex(
   }
   return currentIndex + 1;
 }
+
+/**
+ * Model projection for the Presenter's Run-Sheet raw text sidebar (SPEC-67).
+ *
+ * Resolves raw rundown text into the exact string to render and whether
+ * it represents empty content. If empty/whitespace-only, returns the
+ * localized fallback key string so the UI can render the empty placeholder.
+ * If populated, preserves the raw payload verbatim (100% textContent equality).
+ */
+export function formatPresenterRunSheet(
+  rundownText: string | undefined | null,
+  emptyFallback: string
+): { text: string; isEmpty: boolean } {
+  if (!rundownText || !rundownText.trim()) {
+    return { text: emptyFallback, isEmpty: true };
+  }
+  return { text: rundownText, isEmpty: false };
+}
+

@@ -4,15 +4,15 @@
 
 Period: **the project's start → 2026-09-23**. This period has no left bound — there is no earlier report yet.
 
-Freshness: commit `ccc7ee785197`.
+Freshness: commit `7602eaa0c9cc`. **The registry has uncommitted changes — the numbers below may not reflect what is on `main`.**
 
 ## Promise progress — 100%
 
-This is the number that counts: green RTM rows divided by counted rows (578 out of 578; 1 excluded for having `no_uc`). It measures what is **proven**, not what has been worked on.
+This is the number that counts: green RTM rows divided by counted rows (582 out of 582; 1 excluded for having `no_uc`). It measures what is **proven**, not what has been worked on.
 
 | Other measure | Value | Answers |
 |---|---|---|
-| Work progress | SPEC-12 100%, SPEC-13 100%, SPEC-14 100%, SPEC-15 100%, SPEC-16 100%, SPEC-17 100%, SPEC-18 100%, SPEC-19 100%, SPEC-20 100%, SPEC-21 100%, SPEC-22 100%, SPEC-23 100%, SPEC-24 100%, SPEC-25 100%, SPEC-26 100%, SPEC-27 100%, SPEC-28 100%, SPEC-29 100%, SPEC-30 100%, SPEC-31 100%, SPEC-32 100%, SPEC-33 100%, SPEC-34 100%, SPEC-35 100%, SPEC-36 100%, SPEC-37 100%, SPEC-38 100%, SPEC-39 100%, SPEC-40 100%, SPEC-41 100%, SPEC-42 100%, SPEC-43 100%, SPEC-44 100%, SPEC-45 100%, SPEC-46 100%, SPEC-47 100%, SPEC-48 100%, SPEC-49 100%, SPEC-50 100%, SPEC-51 100%, SPEC-52 100%, SPEC-53 100%, SPEC-54 100%, SPEC-55 100%, SPEC-56 100%, SPEC-57 100%, SPEC-58 100%, SPEC-59 100%, SPEC-60 100%, SPEC-61 100%, SPEC-62 100%, SPEC-63 100%, SPEC-64 100%, SPEC-65 100%, W1 100%, W10 100%, W11 100%, W2 100%, W3 100%, W4 100%, W5 100%, W6 100%, W7 100%, W8 100%, W9 100% | how much has been worked on |
+| Work progress | SPEC-12 100%, SPEC-13 100%, SPEC-14 100%, SPEC-15 100%, SPEC-16 100%, SPEC-17 100%, SPEC-18 100%, SPEC-19 100%, SPEC-20 100%, SPEC-21 100%, SPEC-22 100%, SPEC-23 100%, SPEC-24 100%, SPEC-25 100%, SPEC-26 100%, SPEC-27 100%, SPEC-28 100%, SPEC-29 100%, SPEC-30 100%, SPEC-31 100%, SPEC-32 100%, SPEC-33 100%, SPEC-34 100%, SPEC-35 100%, SPEC-36 100%, SPEC-37 100%, SPEC-38 100%, SPEC-39 100%, SPEC-40 100%, SPEC-41 100%, SPEC-42 100%, SPEC-43 100%, SPEC-44 100%, SPEC-45 100%, SPEC-46 100%, SPEC-47 100%, SPEC-48 100%, SPEC-49 100%, SPEC-50 100%, SPEC-51 100%, SPEC-52 100%, SPEC-53 100%, SPEC-54 100%, SPEC-55 100%, SPEC-56 100%, SPEC-57 100%, SPEC-58 100%, SPEC-59 100%, SPEC-60 100%, SPEC-61 100%, SPEC-62 100%, SPEC-63 100%, SPEC-64 100%, SPEC-65 100%, SPEC-66 100%, SPEC-67 100%, W1 100%, W10 100%, W11 100%, W2 100%, W3 100%, W4 100%, W5 100%, W6 100%, W7 100%, W8 100%, W9 100% | how much has been worked on |
 | Gate readiness | 100% | whether the next gate can open |
 
 ## 1. Proven
@@ -158,7 +158,6 @@ RTM rows that turned green within this period.
 | CAP-6 | CAP | started | 2026-09-18 |
 | CAP-7 | CAP | closed | 2026-09-18 |
 | CAP-7 | CAP | started | 2026-09-18 |
-| CAP-8 | CAP | closed | 2026-09-18 |
 | CAP-8 | CAP | started | 2026-09-18 |
 | CAP-9 | CAP | started | 2026-09-18 |
 | FR-1 | FR | started | 2026-09-18 |
@@ -173,7 +172,6 @@ RTM rows that turned green within this period.
 | FR-16 | FR | started | 2026-09-18 |
 | FR-17 | FR | closed | 2026-09-18 |
 | FR-17 | FR | started | 2026-09-18 |
-| FR-18 | FR | closed | 2026-09-18 |
 | FR-18 | FR | started | 2026-09-18 |
 | FR-19 | FR | started | 2026-09-18 |
 | FR-2 | FR | started | 2026-09-18 |

@@ -213,6 +213,7 @@ export const I18N_KEYS = [
   'presenter.scripture.lookupFailed',
   'presenter.scripture.translation',
   'presenter.scripture.defaultMissing',
+  'presenter.noRundownText',
   'remote.title',
   'remote.codePrompt',
   'remote.codePlaceholder',

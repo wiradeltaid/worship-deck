@@ -19,13 +19,12 @@ export default function PresentPage() {
 
   if (data === 'missing') return <Navigate to="/" replace />;
   if (!data) return null;
-  const parsed = data.parsed_data || {};
   return (
     <PresenterOperator
       serviceId={data.id}
       serviceDate={data.date}
       slides={data.plan || []}
-      runSheetItems={parsed.items || []}
+      rundownText={data.raw_payload || ''}
       planIdentity={typeof data.plan_identity === 'string' ? data.plan_identity : ''}
       transition={data.transition || 'fade'}
     />
