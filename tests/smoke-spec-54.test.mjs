@@ -430,6 +430,277 @@ test('SPEC-68-01-Absence-Guard: Parser profile menu removal defect injection pro
   );
 });
 
+export function scanSpec69_01Features(createFormSource, editFormSource) {
+  const findings = [];
+
+  // CreateForm.tsx parser profile retirement
+  if (createFormSource.includes('selectedProfileId')) {
+    findings.push('CreateForm.tsx must NOT contain "selectedProfileId"');
+  }
+  if (createFormSource.includes("form.parser.profile") || createFormSource.includes("'form.parser.profile'")) {
+    findings.push('CreateForm.tsx must NOT contain "form.parser.profile"');
+  }
+  if (createFormSource.includes("parserProfiles") || createFormSource.includes("setParserProfiles")) {
+    findings.push('CreateForm.tsx must NOT maintain parserProfiles state');
+  }
+
+  // EditForm.tsx parser profile retirement
+  if (editFormSource.includes('selectedProfileId')) {
+    findings.push('EditForm.tsx must NOT contain "selectedProfileId"');
+  }
+  if (editFormSource.includes("form.parser.profile") || editFormSource.includes("'form.parser.profile'")) {
+    findings.push('EditForm.tsx must NOT contain "form.parser.profile"');
+  }
+  if (editFormSource.includes("parserProfiles") || editFormSource.includes("setParserProfiles")) {
+    findings.push('EditForm.tsx must NOT maintain parserProfiles state');
+  }
+
+  return findings;
+}
+
+test('SPEC-69-01: Service form parser profile dropdown retirement absence guard', () => {
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+
+  const createFormSource = fs.readFileSync(createFormPath, 'utf8');
+  const editFormSource = fs.readFileSync(editFormPath, 'utf8');
+
+  const findings = scanSpec69_01Features(createFormSource, editFormSource);
+  assert.deepEqual(findings, [], `SPEC-69-01 findings detected:\n${findings.join('\n')}`);
+});
+
+test('SPEC-69-01-Absence-Guard: Service form parser profile retirement defect injection proofs', () => {
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+
+  const baseCreateForm = fs.readFileSync(createFormPath, 'utf8');
+  const baseEditForm = fs.readFileSync(editFormPath, 'utf8');
+
+  // 1. Baseline: production CreateForm and EditForm must be completely clean
+  const baseline = scanSpec69_01Features(baseCreateForm, baseEditForm);
+  assert.deepEqual(baseline, [], 'Production CreateForm and EditForm baseline must be clean');
+
+  // 2. Defect Injections on CreateForm
+  const defectCreateProfileId = scanSpec69_01Features(
+    baseCreateForm + "\nconst [selectedProfileId, setSelectedProfileId] = useState('');",
+    baseEditForm
+  );
+  assert.ok(
+    defectCreateProfileId.some((f) => f.includes('CreateForm.tsx must NOT contain "selectedProfileId"')),
+    'Must detect selectedProfileId injected into real CreateForm'
+  );
+
+  const defectCreateI18n = scanSpec69_01Features(
+    baseCreateForm + "\nconst label = t('form.parser.profile');",
+    baseEditForm
+  );
+  assert.ok(
+    defectCreateI18n.some((f) => f.includes('CreateForm.tsx must NOT contain "form.parser.profile"')),
+    'Must detect form.parser.profile injected into real CreateForm'
+  );
+
+  const defectCreateState = scanSpec69_01Features(
+    baseCreateForm + "\nconst [parserProfiles, setParserProfiles] = useState([]);",
+    baseEditForm
+  );
+  assert.ok(
+    defectCreateState.some((f) => f.includes('CreateForm.tsx must NOT maintain parserProfiles state')),
+    'Must detect parserProfiles state injected into real CreateForm'
+  );
+
+  // 3. Defect Injections on EditForm
+  const defectEditProfileId = scanSpec69_01Features(
+    baseCreateForm,
+    baseEditForm + "\nconst [selectedProfileId, setSelectedProfileId] = useState('');"
+  );
+  assert.ok(
+    defectEditProfileId.some((f) => f.includes('EditForm.tsx must NOT contain "selectedProfileId"')),
+    'Must detect selectedProfileId injected into real EditForm'
+  );
+
+  const defectEditI18n = scanSpec69_01Features(
+    baseCreateForm,
+    baseEditForm + "\nconst label = t('form.parser.profile');"
+  );
+  assert.ok(
+    defectEditI18n.some((f) => f.includes('EditForm.tsx must NOT contain "form.parser.profile"')),
+    'Must detect form.parser.profile injected into real EditForm'
+  );
+
+  const defectEditState = scanSpec69_01Features(
+    baseCreateForm,
+    baseEditForm + "\nconst [parserProfiles, setParserProfiles] = useState([]);"
+  );
+  assert.ok(
+    defectEditState.some((f) => f.includes('EditForm.tsx must NOT maintain parserProfiles state')),
+    'Must detect parserProfiles state injected into real EditForm'
+  );
+
+  // 4. Physical Real-File Mutation & Restoration Proof (CreateForm)
+  try {
+    fs.writeFileSync(createFormPath, baseCreateForm + "\nconst [selectedProfileId] = useState('');\n", 'utf8');
+    const mutatedFindings = scanSpec69_01Features(fs.readFileSync(createFormPath, 'utf8'), baseEditForm);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('CreateForm.tsx must NOT contain "selectedProfileId"')),
+      'Physical file mutation on CreateForm.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(createFormPath, baseCreateForm, 'utf8');
+  }
+
+  // 5. Physical Real-File Mutation & Restoration Proof (EditForm)
+  try {
+    fs.writeFileSync(editFormPath, baseEditForm + "\nconst [selectedProfileId] = useState('');\n", 'utf8');
+    const mutatedFindings = scanSpec69_01Features(baseCreateForm, fs.readFileSync(editFormPath, 'utf8'));
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('EditForm.tsx must NOT contain "selectedProfileId"')),
+      'Physical file mutation on EditForm.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(editFormPath, baseEditForm, 'utf8');
+  }
+
+  // 6. Confirm clean restoration
+  const restored = scanSpec69_01Features(
+    fs.readFileSync(createFormPath, 'utf8'),
+    fs.readFileSync(editFormPath, 'utf8')
+  );
+  assert.deepEqual(restored, [], 'Real files must be cleanly restored to green');
+});
+
+export function scanSpec69_02Features(createFormSource, editFormSource) {
+  const findings = [];
+
+  // CreateForm.tsx song overflow retirement
+  if (createFormSource.includes('songOverflow') || createFormSource.includes('setSongOverflow')) {
+    findings.push('CreateForm.tsx must NOT maintain songOverflow state');
+  }
+  if (createFormSource.includes("form.parser.overflowWarning") || createFormSource.includes("'form.parser.overflowWarning'")) {
+    findings.push('CreateForm.tsx must NOT render "form.parser.overflowWarning" banner');
+  }
+
+  // EditForm.tsx song overflow retirement
+  if (editFormSource.includes('songOverflow') || editFormSource.includes('setSongOverflow')) {
+    findings.push('EditForm.tsx must NOT maintain songOverflow state');
+  }
+  if (editFormSource.includes("form.parser.overflowWarning") || editFormSource.includes("'form.parser.overflowWarning'")) {
+    findings.push('EditForm.tsx must NOT render "form.parser.overflowWarning" banner');
+  }
+
+  return findings;
+}
+
+test('SPEC-69-02: Service form song overflow diagnostics retirement absence guard', () => {
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+
+  const createFormSource = fs.readFileSync(createFormPath, 'utf8');
+  const editFormSource = fs.readFileSync(editFormPath, 'utf8');
+
+  const findings = scanSpec69_02Features(createFormSource, editFormSource);
+  assert.deepEqual(findings, [], `SPEC-69-02 findings detected:\n${findings.join('\n')}`);
+});
+
+test('SPEC-69-02-Absence-Guard: Service form song overflow retirement defect injection proofs', () => {
+  const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
+  const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
+
+  const baseCreateForm = fs.readFileSync(createFormPath, 'utf8');
+  const baseEditForm = fs.readFileSync(editFormPath, 'utf8');
+
+  // 1. Defect Injections on CreateForm
+  const defectCreateState = scanSpec69_02Features(
+    baseCreateForm + "\nconst [songOverflow, setSongOverflow] = useState([]);",
+    baseEditForm
+  );
+  assert.ok(
+    defectCreateState.some((f) => f.includes('CreateForm.tsx must NOT maintain songOverflow state')),
+    'Must detect songOverflow state injected into CreateForm'
+  );
+
+  const defectCreateI18n = scanSpec69_02Features(
+    baseCreateForm + "\nconst warning = t('form.parser.overflowWarning');",
+    baseEditForm
+  );
+  assert.ok(
+    defectCreateI18n.some((f) => f.includes('CreateForm.tsx must NOT render "form.parser.overflowWarning" banner')),
+    'Must detect overflowWarning banner injected into CreateForm'
+  );
+
+  // 2. Defect Injections on EditForm
+  const defectEditState = scanSpec69_02Features(
+    baseCreateForm,
+    baseEditForm + "\nconst [songOverflow, setSongOverflow] = useState([]);"
+  );
+  assert.ok(
+    defectEditState.some((f) => f.includes('EditForm.tsx must NOT maintain songOverflow state')),
+    'Must detect songOverflow state injected into EditForm'
+  );
+
+  const defectEditI18n = scanSpec69_02Features(
+    baseCreateForm,
+    baseEditForm + "\nconst warning = t('form.parser.overflowWarning');"
+  );
+  assert.ok(
+    defectEditI18n.some((f) => f.includes('EditForm.tsx must NOT render "form.parser.overflowWarning" banner')),
+    'Must detect overflowWarning banner injected into EditForm'
+  );
+
+  // 3. Physical Real-File Mutation & Restoration Proof (CreateForm: state & warning banner)
+  try {
+    fs.writeFileSync(createFormPath, baseCreateForm + "\nconst [songOverflow] = useState([]);\n", 'utf8');
+    const mutatedFindings = scanSpec69_02Features(fs.readFileSync(createFormPath, 'utf8'), baseEditForm);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('CreateForm.tsx must NOT maintain songOverflow state')),
+      'Physical file mutation on CreateForm.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(createFormPath, baseCreateForm, 'utf8');
+  }
+
+  try {
+    fs.writeFileSync(createFormPath, baseCreateForm + "\nconst w = t('form.parser.overflowWarning');\n", 'utf8');
+    const mutatedFindings = scanSpec69_02Features(fs.readFileSync(createFormPath, 'utf8'), baseEditForm);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('CreateForm.tsx must NOT render "form.parser.overflowWarning" banner')),
+      'Physical warning key mutation on CreateForm.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(createFormPath, baseCreateForm, 'utf8');
+  }
+
+  // 4. Physical Real-File Mutation & Restoration Proof (EditForm: state & warning banner)
+  try {
+    fs.writeFileSync(editFormPath, baseEditForm + "\nconst [songOverflow] = useState([]);\n", 'utf8');
+    const mutatedFindings = scanSpec69_02Features(baseCreateForm, fs.readFileSync(editFormPath, 'utf8'));
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('EditForm.tsx must NOT maintain songOverflow state')),
+      'Physical file mutation on EditForm.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(editFormPath, baseEditForm, 'utf8');
+  }
+
+  try {
+    fs.writeFileSync(editFormPath, baseEditForm + "\nconst w = t('form.parser.overflowWarning');\n", 'utf8');
+    const mutatedFindings = scanSpec69_02Features(baseCreateForm, fs.readFileSync(editFormPath, 'utf8'));
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('EditForm.tsx must NOT render "form.parser.overflowWarning" banner')),
+      'Physical warning key mutation on EditForm.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(editFormPath, baseEditForm, 'utf8');
+  }
+
+  // 5. Confirm clean restoration
+  const restored = scanSpec69_02Features(
+    fs.readFileSync(createFormPath, 'utf8'),
+    fs.readFileSync(editFormPath, 'utf8')
+  );
+  assert.deepEqual(restored, [], 'Real files must be cleanly restored to green');
+});
+
+
 
 
 

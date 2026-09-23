@@ -314,3 +314,51 @@ test('SPEC-68-02: SQLite song_set_entries schema persists extraction_regex colum
   db.prepare(`DELETE FROM song_set_entries WHERE variable_name = ?`).run(testVarName);
 });
 
+test('SPEC-69-02: Multi-song fixture extracts targeted song set entries without false overflow signals and returns empty overflow arrays', () => {
+  const customRundown = `SABBATH, OCTOBER 24, 2026
+DIVINE SERVICE
+
+Song of Praise: SDAH #614
+Sabbath School Opening Song: SDAH #316
+Introit: SDAH #508
+Divine Service Opening Song: SDAH #100
+Prayer Song: SDAH #671
+Response: SDAH #684
+Scripture Hymn: SDAH #334
+Closing Song: SDAH #476`;
+
+  const configuredEntries = [
+    {
+      variableName: 'opening_song_bt',
+      extractionRegex: '(?:Sabbath School|Bible Talk) Opening Song:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)',
+    },
+    {
+      variableName: 'opening_song_ds',
+      extractionRegex: '(?:Divine Service) Opening Song:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)',
+    },
+    {
+      variableName: 'scripture_hymn',
+      extractionRegex: 'Scripture Hymn:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)',
+    },
+    {
+      variableName: 'closing_song_ds',
+      extractionRegex: 'Closing Song:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)',
+    },
+  ];
+
+  const suggestions = extractSongSetEntries(customRundown, configuredEntries);
+
+  // Exact slot-to-song mappings extracted
+  assert.equal(suggestions.opening_song_bt?.songNumber, 316);
+  assert.equal(suggestions.opening_song_ds?.songNumber, 100);
+  assert.equal(suggestions.scripture_hymn?.songNumber, 334);
+  assert.equal(suggestions.closing_song_ds?.songNumber, 476);
+
+  // Non-matching prayer hymns (#671, #684, #508, #614) do NOT produce false overflow or corrupt matching
+  assert.equal(suggestions.opening_song_bt?.songBookCode, 'SDAH');
+  assert.equal(suggestions.opening_song_ds?.songBookCode, 'SDAH');
+  assert.equal(suggestions.scripture_hymn?.songBookCode, 'SDAH');
+  assert.equal(suggestions.closing_song_ds?.songBookCode, 'SDAH');
+});
+
+

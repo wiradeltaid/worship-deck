@@ -888,8 +888,8 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var profile *parse.ParserProfile
-	profileID := existing.profileID.String
-	profileVersion := int(existing.profileVersion.Int64)
+	var profileID string
+	var profileVersion int
 	if pid, ok := body["parserProfileId"].(string); ok && strings.TrimSpace(pid) != "" {
 		profileID = strings.TrimSpace(pid)
 	} else if pid, ok := body["parser_profile_id"].(string); ok && strings.TrimSpace(pid) != "" {
@@ -1288,20 +1288,9 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		preview = append(preview, entry)
 	}
 
-	var slots []parse.SongSetEntrySlot
-	sRows, sErr := s.DB.Query(`SELECT variable_name, title, position FROM song_set_entries ORDER BY position ASC`)
-	if sErr == nil {
-		defer sRows.Close()
-		for sRows.Next() {
-			var sl parse.SongSetEntrySlot
-			if err := sRows.Scan(&sl.VariableName, &sl.Title, &sl.Position); err == nil {
-				slots = append(slots, sl)
-			}
-		}
-	}
-	matchingResult := parse.MatchSongSets(parsed.SongCandidates, slots, profile.SongSetMatching)
-	for k, v := range parsed.SongSetSuggestions {
-		matchingResult.Suggestions[k] = v
+	songSetSuggestions := parsed.SongSetSuggestions
+	if songSetSuggestions == nil {
+		songSetSuggestions = map[string]parse.SongSetSuggestion{}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -1311,9 +1300,9 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		"failedHymnNumbers":   parsed.FailedHymnNumbers,
 		"fields":              fieldsFromParsed(parsed),
 		"fieldSuggestions":    parsed.FieldSuggestions,
-		"songSetSuggestions": matchingResult.Suggestions,
-		"songOverflow":        matchingResult.SongOverflow,
-		"songSlotsUnfilled":   matchingResult.SongSlotsUnfilled,
+		"songSetSuggestions": songSetSuggestions,
+		"songOverflow":        []any{},
+		"songSlotsUnfilled":   []any{},
 		"unmappedLines":       parsed.UnmappedLines,
 		"parserProfileId":     profile.ID,
 	})
