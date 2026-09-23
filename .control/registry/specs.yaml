@@ -2826,7 +2826,7 @@ waves:
           - tests/sync-client-chunking.test.mjs
 
   - id: SPEC-62
-    status: open
+    status: closed
     release: fonts-delete-endpoint
     prd: [offline-deck]
     fr: [FR-39]
@@ -2843,7 +2843,7 @@ waves:
         component: registry
         satisfies: [FR-39]
         blocked_by: []
-        touches: [fonts]
+        touches: [artifacts]
         tests:
           - internal/httpapi/fonts_delete_test.go
 

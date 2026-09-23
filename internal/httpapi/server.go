@@ -56,6 +56,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/admin/artifacts/import-pptx", s.importPptx)
 	mux.HandleFunc("POST /api/admin/fonts", s.uploadFont)
 	mux.HandleFunc("POST /api/admin/artifacts/fonts", s.uploadFont)
+	mux.HandleFunc("DELETE /api/admin/fonts/{id}", s.deleteFont)
+	mux.HandleFunc("DELETE /api/admin/artifacts/fonts/{id}", s.deleteFont)
 	mux.HandleFunc("GET /api/admin/artifacts/{id}", s.getArtifact)
 	mux.HandleFunc("PUT /api/admin/artifacts/{id}", s.putArtifact)
 	mux.HandleFunc("PATCH /api/admin/artifacts/{id}", s.patchArtifact)
