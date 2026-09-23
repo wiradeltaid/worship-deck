@@ -4,6 +4,8 @@ export interface SongSetEntrySlot {
   variableName: string;
   title: string;
   position: number;
+  extraction_regex?: string | null;
+  extractionRegex?: string | null;
 }
 
 export interface SongSetSuggestion {

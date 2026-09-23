@@ -526,3 +526,147 @@ func TestSongSetMasterDataDeckSequenceDecoupling(t *testing.T) {
 	}
 }
 
+func TestSongSetEntryExtractionRegexEndpoints(t *testing.T) {
+	ts, _, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. GET /api/admin/song-set-entries: check extraction_regex key presence on entries
+	res := songSetRequest(t, ts, "GET", "/api/admin/song-set-entries", "", cookie)
+	body := songSetJSON(t, res)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET /api/admin/song-set-entries status = %d, want 200", res.StatusCode)
+	}
+	entries, ok := body["entries"].([]any)
+	if !ok || len(entries) == 0 {
+		t.Fatalf("entries missing or empty: %v", body["entries"])
+	}
+	first := entries[0].(map[string]any)
+	if _, exists := first["extraction_regex"]; !exists {
+		t.Errorf("expected extraction_regex property in admin songSetEntry response: %v", first)
+	}
+
+	// 2. GET /api/song-set-entries (operator): check extraction_regex key presence
+	resOp := songSetRequest(t, ts, "GET", "/api/song-set-entries", "", cookie)
+	bodyOp := songSetJSON(t, resOp)
+	if resOp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /api/song-set-entries status = %d, want 200", resOp.StatusCode)
+	}
+	entriesOp, ok := bodyOp["entries"].([]any)
+	if !ok || len(entriesOp) == 0 {
+		t.Fatalf("operator entries missing or empty: %v", bodyOp["entries"])
+	}
+	firstOp := entriesOp[0].(map[string]any)
+	if _, exists := firstOp["extraction_regex"]; !exists {
+		t.Errorf("expected extraction_regex property in operator songSetEntry response: %v", firstOp)
+	}
+
+	// 3. POST /api/admin/song-set-entries: create with valid regex
+	validPattern := `(?i)^Opening Hymn\s*[:\-]\s*(?<number>\d+)`
+	createRes := songSetRequest(t, ts, "POST", "/api/admin/song-set-entries",
+		fmt.Sprintf(`{"variableName":"praise_opener","title":"Praise Opener","extraction_regex":%q}`, validPattern), cookie)
+	createBody := songSetJSON(t, createRes)
+	if createRes.StatusCode != http.StatusCreated {
+		t.Fatalf("POST with extraction_regex status = %d (%v), want 201", createRes.StatusCode, createBody)
+	}
+	if createBody["extraction_regex"] != validPattern {
+		t.Errorf("created extraction_regex = %v, want %q", createBody["extraction_regex"], validPattern)
+	}
+
+	// 4. POST /api/admin/song-set-entries: create with invalid regex -> 400
+	badPattern := `(?i)^Opening Hymn\s*[:\-]\s*(?<unclosed(`
+	badCreateRes := songSetRequest(t, ts, "POST", "/api/admin/song-set-entries",
+		fmt.Sprintf(`{"variableName":"praise_bad","title":"Praise Bad","extraction_regex":%q}`, badPattern), cookie)
+	if badCreateRes.StatusCode != http.StatusBadRequest {
+		t.Errorf("POST with bad regex status = %d, want 400", badCreateRes.StatusCode)
+	}
+	badCreateRes.Body.Close()
+
+	// 5. PUT /api/admin/song-set-entries/{variableName}/extraction-regex: update with valid pattern
+	newPattern := `(?i)^Praise\s*1\s*[:\-]\s*(?:#\s*)?(?<number>\d+)`
+	putRes := songSetRequest(t, ts, "PUT", "/api/admin/song-set-entries/praise_opener/extraction-regex",
+		fmt.Sprintf(`{"extraction_regex":%q}`, newPattern), cookie)
+	putBody := songSetJSON(t, putRes)
+	if putRes.StatusCode != http.StatusOK {
+		t.Fatalf("PUT extraction-regex status = %d (%v), want 200", putRes.StatusCode, putBody)
+	}
+	if putBody["extraction_regex"] != newPattern {
+		t.Errorf("updated extraction_regex = %v, want %q", putBody["extraction_regex"], newPattern)
+	}
+
+	// 6. PUT with malformed pattern -> 400
+	badPutRes := songSetRequest(t, ts, "PUT", "/api/admin/song-set-entries/praise_opener/extraction-regex",
+		`{"extraction_regex":"(?i)^Praise\\s*[:\\-]\\s*(?<unclosed("}`, cookie)
+	if badPutRes.StatusCode != http.StatusBadRequest {
+		t.Errorf("PUT with malformed regex status = %d, want 400", badPutRes.StatusCode)
+	}
+	badPutRes.Body.Close()
+
+	// 7. Verify GET /api/admin/song-set-entries returns the updated non-null extraction_regex
+	resVerify := songSetRequest(t, ts, "GET", "/api/admin/song-set-entries", "", cookie)
+	bodyVerify := songSetJSON(t, resVerify)
+	foundOpener := false
+	for _, raw := range bodyVerify["entries"].([]any) {
+		e := raw.(map[string]any)
+		if e["variableName"] == "praise_opener" {
+			foundOpener = true
+			if e["extraction_regex"] != newPattern {
+				t.Errorf("praise_opener extraction_regex = %v, want %q", e["extraction_regex"], newPattern)
+			}
+		}
+	}
+	if !foundOpener {
+		t.Errorf("praise_opener entry was not found in admin list")
+	}
+
+	// 8. Atomic PATCH of title, variableName, AND extraction_regex
+	atomicPatchRes := songSetRequest(t, ts, "PATCH", "/api/admin/song-set-entries/praise_opener",
+		fmt.Sprintf(`{"title":"Praise Opening Renamed","variableName":"praise_first","extraction_regex":%q,"updatedAt":%q}`,
+			`(?i)^Opening\s*Praise\s*[:\-]\s*(?<number>\d+)`, putBody["updatedAt"]), cookie)
+	atomicPatchBody := songSetJSON(t, atomicPatchRes)
+	if atomicPatchRes.StatusCode != http.StatusOK {
+		t.Fatalf("atomic PATCH status = %d (%v), want 200", atomicPatchRes.StatusCode, atomicPatchBody)
+	}
+	if atomicPatchBody["variableName"] != "praise_first" || atomicPatchBody["title"] != "Praise Opening Renamed" {
+		t.Errorf("atomic PATCH unexpected body: %v", atomicPatchBody)
+	}
+	if atomicPatchBody["extraction_regex"] != `(?i)^Opening\s*Praise\s*[:\-]\s*(?<number>\d+)` {
+		t.Errorf("atomic PATCH extraction_regex = %v", atomicPatchBody["extraction_regex"])
+	}
+
+	// 9. PUT clearing extraction_regex (empty string -> null)
+	clearPutRes := songSetRequest(t, ts, "PUT", "/api/admin/song-set-entries/praise_first/extraction-regex",
+		`{"extraction_regex":""}`, cookie)
+	clearPutBody := songSetJSON(t, clearPutRes)
+	if clearPutRes.StatusCode != http.StatusOK {
+		t.Fatalf("PUT clear regex status = %d (%v), want 200", clearPutRes.StatusCode, clearPutBody)
+	}
+	if clearPutBody["extraction_regex"] != nil {
+		t.Errorf("expected null extraction_regex after clear, got %v", clearPutBody["extraction_regex"])
+	}
+
+	// 10. PUT with camelCase extractionRegex
+	camelPutRes := songSetRequest(t, ts, "PUT", "/api/admin/song-set-entries/praise_first/extraction-regex",
+		`{"extractionRegex":"(?i)^Praise\\s*#?(?<number>\\d+)"}`, cookie)
+	camelPutBody := songSetJSON(t, camelPutRes)
+	if camelPutRes.StatusCode != http.StatusOK {
+		t.Fatalf("PUT camelCase regex status = %d (%v), want 200", camelPutRes.StatusCode, camelPutBody)
+	}
+	if camelPutBody["extraction_regex"] != `(?i)^Praise\s*#?(?<number>\d+)` {
+		t.Errorf("expected camelCase regex persisted: %v", camelPutBody["extraction_regex"])
+	}
+
+	// 11. Unauthenticated request to extraction-regex endpoint -> 401
+	unauthRes := songSetRequest(t, ts, "PUT", "/api/admin/song-set-entries/praise_first/extraction-regex", `{"extraction_regex":""}`, nil)
+	if unauthRes.StatusCode != http.StatusUnauthorized {
+		t.Errorf("unauthenticated PUT status = %d, want 401", unauthRes.StatusCode)
+	}
+	unauthRes.Body.Close()
+
+	// 12. Non-existent entry -> 404
+	notFoundRes := songSetRequest(t, ts, "PUT", "/api/admin/song-set-entries/non_existent_slot/extraction-regex", `{"extraction_regex":""}`, cookie)
+	if notFoundRes.StatusCode != http.StatusNotFound {
+		t.Errorf("not-found PUT status = %d, want 404", notFoundRes.StatusCode)
+	}
+	notFoundRes.Body.Close()
+}
+

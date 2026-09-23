@@ -185,3 +185,132 @@ test('SPEC-67-02: Non-destructive suggestion contract preserves existing operato
   // offertory_exhortation was empty, so suggestion fills it
   assert.equal(updatedFieldValues.offertory_exhortation, 'Elder James Doe');
 });
+
+test('SPEC-68-02: Song set entry regex extraction supports camelCase and snake_case properties', () => {
+  const customRundown = `SABBATH, OCTOBER 24, 2026
+DIVINE SERVICE
+
+Opening Song: SDAH #100
+Praise Song 1: #245
+Scripture Hymn: SDAH #334
+Closing Song: #159`;
+
+  const entriesWithCamelCase = [
+    {
+      variableName: 'opening_song_bt',
+      extractionRegex: 'Opening Song:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)',
+    },
+    {
+      variableName: 'scripture_hymn',
+      extractionRegex: 'Scripture Hymn:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)',
+    },
+  ];
+
+  const suggestions = extractSongSetEntries(customRundown, entriesWithCamelCase);
+
+  assert.ok(suggestions.opening_song_bt);
+  assert.equal(suggestions.opening_song_bt.songNumber, 100);
+  assert.ok(suggestions.scripture_hymn);
+  assert.equal(suggestions.scripture_hymn.songNumber, 334);
+});
+
+test('SPEC-68-02: Song set entry regex suggestions preserve non-destructive operator override discipline', () => {
+  // Simulate Song Set form suggestions in CreateForm / EditForm (handleAcceptAllSuggestions)
+  const existingSongSetValues = {
+    opening_song_bt: {
+      songNumber: '150',
+      songBookCode: 'SDAH',
+      songTitle: 'O Reverence and Awe (Manual Pick)',
+    },
+    closing_song_ds: {
+      songNumber: '',
+      songBookCode: '',
+      songTitle: '',
+    },
+    special_song: null,
+  };
+
+  const extractedSuggestions = {
+    opening_song_bt: {
+      songNumber: 100,
+      songBookCode: 'SDAH',
+      title: 'Great Is Thy Faithfulness',
+    },
+    closing_song_ds: {
+      songNumber: 159,
+      songBookCode: 'SDAH',
+      title: 'The Old Rugged Cross',
+    },
+    special_song: {
+      songNumber: 245,
+      songBookCode: 'SDAH',
+      title: 'More About Jesus',
+    },
+  };
+
+  const updatedSongSets = { ...existingSongSetValues };
+
+  // Production condition: if (!updated[vn]?.songNumber || updated[vn]?.songNumber.trim() === '')
+  for (const [vn, sug] of Object.entries(extractedSuggestions)) {
+    if (!updatedSongSets[vn]?.songNumber || String(updatedSongSets[vn]?.songNumber).trim() === '') {
+      updatedSongSets[vn] = {
+        ...(updatedSongSets[vn] || {}),
+        songNumber: String(sug.songNumber),
+        songBookCode: sug.songBookCode || updatedSongSets[vn]?.songBookCode || '',
+        songTitle: sug.title,
+      };
+    }
+  }
+
+  // opening_song_bt keeps manual selection (#150)
+  assert.equal(updatedSongSets.opening_song_bt.songNumber, '150');
+  assert.equal(updatedSongSets.opening_song_bt.songTitle, 'O Reverence and Awe (Manual Pick)');
+
+  // closing_song_ds had empty songNumber, so suggestion fills it (#159)
+  assert.equal(updatedSongSets.closing_song_ds.songNumber, '159');
+  assert.equal(updatedSongSets.closing_song_ds.songTitle, 'The Old Rugged Cross');
+
+  // special_song was null, so suggestion fills it (#245)
+  assert.equal(updatedSongSets.special_song.songNumber, '245');
+  assert.equal(updatedSongSets.special_song.songTitle, 'More About Jesus');
+});
+
+test('SPEC-68-01: Backend parser profile table and routes remain intact', () => {
+  const db = getDb();
+  const tableInfo = db.prepare(`PRAGMA table_info(rundown_parser_profiles)`).all();
+  assert.ok(tableInfo.length > 0, 'rundown_parser_profiles table must remain intact');
+  const hasSlug = tableInfo.some((col) => col.name === 'slug');
+  assert.ok(hasSlug, 'rundown_parser_profiles must have slug column');
+
+  // Shipped builtin default profile row exists
+  const defaultProfile = db.prepare(`SELECT slug, title, is_default FROM rundown_parser_profiles WHERE is_default = 1`).get();
+  assert.ok(defaultProfile, 'default parser profile must be seeded');
+  assert.equal(defaultProfile.is_default, 1);
+});
+
+test('SPEC-68-02: SQLite song_set_entries schema persists extraction_regex column', () => {
+  const db = getDb();
+
+  // 1. Verify extraction_regex column exists in song_set_entries table
+  const tableInfo = db.prepare(`PRAGMA table_info(song_set_entries)`).all();
+  const hasRegexCol = tableInfo.some((col) => col.name === 'extraction_regex');
+  assert.ok(hasRegexCol, 'song_set_entries must have extraction_regex column');
+
+  // 2. Insert test entry with extraction_regex and retrieve it
+  const testVarName = 'spec68_test_entry';
+  const testRegex = '(?i)^Special\\s*Song\\s*[:\\-]\\s*#?(?<number>\\d+)';
+
+  db.prepare(`DELETE FROM song_set_entries WHERE variable_name = ?`).run(testVarName);
+  db.prepare(
+    `INSERT INTO song_set_entries (global_id, variable_name, title, position, extraction_regex, updated_at)
+     VALUES (?, ?, ?, 999, ?, CURRENT_TIMESTAMP)`
+  ).run('019253c0-0000-7000-8000-000000000068', testVarName, 'Special Test Song', testRegex);
+
+  const row = db.prepare(`SELECT variable_name, extraction_regex FROM song_set_entries WHERE variable_name = ?`).get(testVarName);
+  assert.equal(row.variable_name, testVarName);
+  assert.equal(row.extraction_regex, testRegex);
+
+  // Clean up test entry
+  db.prepare(`DELETE FROM song_set_entries WHERE variable_name = ?`).run(testVarName);
+});
+

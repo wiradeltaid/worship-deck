@@ -1634,10 +1634,10 @@ rtm:
   release: song-set-regex-editing-and-parser-profile-menu-removal
   test:
   - tests/smoke-spec-54.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -1648,10 +1648,10 @@ rtm:
   release: song-set-regex-editing-and-parser-profile-menu-removal
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -4033,10 +4033,10 @@ rtm:
   release: song-set-regex-editing-and-parser-profile-menu-removal
   test:
   - tests/smoke-spec-54.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -4047,10 +4047,10 @@ rtm:
   release: song-set-regex-editing-and-parser-profile-menu-removal
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -4323,10 +4323,10 @@ rtm:
   release: song-set-regex-editing-and-parser-profile-menu-removal
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29

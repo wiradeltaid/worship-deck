@@ -107,10 +107,13 @@ export type HymnLookupFn = (
 export function compileProfileRegex(pattern: string, flagsArr?: string[]): RegExp {
   const flags = new Set<string>(flagsArr ?? []);
   let pat = pattern;
-  if (pat.includes('(?i)')) {
-    flags.add('i');
-    pat = pat.replace(/\(\?i\)/g, '');
-  }
+  // Translate inline flags like (?i), (?m), (?s) to JS RegExp flags
+  pat = pat.replace(/\(\?([ims]+)\)/g, (_, inlineFlags) => {
+    for (const f of inlineFlags) {
+      flags.add(f);
+    }
+    return '';
+  });
   return new RegExp(pat, Array.from(flags).join(''));
 }
 
@@ -694,7 +697,7 @@ export function extractPredefinedFields(
  */
 export function extractSongSetEntries(
   rawText: string,
-  entries: Array<{ variable_name: string; extraction_regex?: string | null }>,
+  entries: Array<{ variable_name?: string; variableName?: string; extraction_regex?: string | null; extractionRegex?: string | null }>,
   lookupHymnFn?: HymnLookupFn,
   defaultBook = 'SDAH'
 ): Record<string, any> {
@@ -708,9 +711,11 @@ export function extractSongSetEntries(
     .filter((l) => l.length > 0);
 
   for (const e of entries) {
-    if (!e.extraction_regex || !e.extraction_regex.trim()) continue;
+    const varName = e.variable_name || e.variableName;
+    const regexPattern = e.extraction_regex || e.extractionRegex;
+    if (!varName || !regexPattern || !regexPattern.trim()) continue;
     try {
-      const re = compileProfileRegex(e.extraction_regex.trim());
+      const re = compileProfileRegex(regexPattern.trim());
       for (const line of lines) {
         const m = line.match(re);
         if (m) {
@@ -728,7 +733,7 @@ export function extractSongSetEntries(
               if (lookupHymnFn) {
                 hymnInfo = lookupHymnFn(num, bookCode);
               }
-              suggestions[e.variable_name] = {
+              suggestions[varName] = {
                 songNumber: num,
                 songBookCode: bookCode,
                 songTitle: hymnInfo.title,

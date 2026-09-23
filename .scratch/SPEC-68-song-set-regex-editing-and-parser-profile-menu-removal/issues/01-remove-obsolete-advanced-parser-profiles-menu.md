@@ -4,15 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Read `src/components/admin/FormLayoutAdminPanel.tsx` in full first.
-- [ ] Remove the `'profiles'` tab identifier from `type AdminTab` state type definition.
-- [ ] Remove the Tab 4 "Advanced Parser Profiles" button from the sub-tabs header.
-- [ ] Remove the conditional view block rendering `<ParserProfilesPanel />` when `activeTab === 'profiles'`.
-- [ ] Clean up unused `Sliders` icon and `ParserProfilesPanel` import in `FormLayoutAdminPanel.tsx`.
-- [ ] Ensure backend endpoints (`/api/parser-profiles`) and database storage remain untouched for background date and legacy slide-plan generation.
-- [ ] Replace the outdated positive assertion in `tests/smoke-spec-54.test.mjs` with an executable absence guard:
+- [x] Read `src/components/admin/FormLayoutAdminPanel.tsx` in full first.
+- [x] Remove the `'profiles'` tab identifier from `type AdminTab` state type definition.
+- [x] Remove the Tab 4 "Advanced Parser Profiles" button from the sub-tabs header.
+- [x] Remove the conditional view block rendering `<ParserProfilesPanel />` when `activeTab === 'profiles'`.
+- [x] Clean up unused `Sliders` icon and `ParserProfilesPanel` import in `FormLayoutAdminPanel.tsx`.
+- [x] Ensure backend endpoints (`/api/parser-profiles`) and database storage remain untouched for background date and legacy slide-plan generation.
+- [x] Replace the outdated positive assertion in `tests/smoke-spec-54.test.mjs` with an executable absence guard:
       (1) Assert `FormLayoutAdminPanel.tsx` source does NOT include `activeTab === 'profiles'` or `<ParserProfilesPanel`.
       (2) Prove the absence guard by defect injection: temporarily restore the reference, verify the test goes RED, then revert to GREEN.
-- [ ] Verify the remaining three tabs (Card Groupings & Layout, Predefined Fields & Regex, Rundown Test Area & Sandbox) render and function smoothly.
+- [x] Verify the remaining three tabs (Card Groupings & Layout, Predefined Fields & Regex, Rundown Test Area & Sandbox) render and function smoothly.
