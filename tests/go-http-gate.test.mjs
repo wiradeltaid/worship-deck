@@ -128,6 +128,19 @@ test('a prefix lookalike of an exempt path stays gated', async () => {
   assert.equal(res.status, 401);
 });
 
+test('unauthenticated GET /branding asset returns 200 with SVG content (SPEC-66)', async () => {
+  const res = await fetchRaw(`${base}/branding/worship-deck-icon-square.svg`);
+  assert.equal(res.status, 200);
+  assert.match(String(res.headers['content-type'] || ''), /^image\/svg\+xml/);
+  assert.match(res.body, /<svg/);
+});
+
+test('prefix lookalike of /branding stays gated (SPEC-66)', async () => {
+  const res = await fetchRaw(`${base}/brandingfoo`);
+  assert.equal(res.status, 307);
+  assert.match(String(res.headers['location'] || ''), /^\/login\?next=/);
+});
+
 test('GET pptx is gated', async () => {
   const res = await fetchRaw(`${base}/api/services/1/pptx`);
   assert.equal(res.status, 401);

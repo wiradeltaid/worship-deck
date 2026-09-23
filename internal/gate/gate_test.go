@@ -40,6 +40,7 @@ func TestGatedPaths(t *testing.T) {
 		"/loginfoo",
 		"/logins",
 		"/assetsfoo",
+		"/brandingfoo",
 		"/api/webhookfoo",
 		"/api/auth/loginfoo",
 		"/api/auth/logoutfoo",
@@ -62,6 +63,10 @@ func TestExemptPaths(t *testing.T) {
 		"/login/",
 		"/favicon.ico",
 		"/assets/welcome-bg.jpg",
+		"/branding",
+		"/branding/",
+		"/branding/worship-deck-icon-square.svg",
+		"/branding/worship-deck-mark.svg",
 	}
 	for _, p := range exempt {
 		if IsGated(p) {

@@ -11,21 +11,30 @@ tests to `internal/gate/gate_test.go` and HTTP test suite.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Read `internal/gate/gate.go` and `internal/gate/gate_test.go` in full first.
-- [ ] Add `"/branding"` to `exemptPrefixes` in `internal/gate/gate.go`.
-- [ ] Verify that `gate.IsGated("/branding/worship-deck-icon-square.svg")` returns `false`.
-- [ ] Verify that `gate.IsGated("/branding/worship-deck-mark.svg")` returns `false`.
-- [ ] Verify that `gate.IsGated("/branding")` and `gate.IsGated("/branding/")` return `false`.
-- [ ] Verify that prefix-collision lookalike paths such as `gate.IsGated("/brandingfoo")` return `true`
+- [x] Read `internal/gate/gate.go` and `internal/gate/gate_test.go` in full first.
+- [x] Add `"/branding"` to `exemptPrefixes` in `internal/gate/gate.go`.
+- [x] Verify that `gate.IsGated("/branding/worship-deck-icon-square.svg")` returns `false`.
+- [x] Verify that `gate.IsGated("/branding/worship-deck-mark.svg")` returns `false`.
+- [x] Verify that `gate.IsGated("/branding")` and `gate.IsGated("/branding/")` return `false`.
+- [x] Verify that prefix-collision lookalike paths such as `gate.IsGated("/brandingfoo")` return `true`
       (remain strictly gated).
-- [ ] Add unit test cases to `internal/gate/gate_test.go` asserting `/branding/worship-deck-icon-square.svg`,
+- [x] Add unit test cases to `internal/gate/gate_test.go` asserting `/branding/worship-deck-icon-square.svg`,
       `/branding/worship-deck-mark.svg`, `/branding`, and `/branding/` in `TestExemptPaths`, and
       `/brandingfoo` in `TestGatedPaths`.
-- [ ] Add an HTTP test asserting that an unauthenticated `GET /branding/worship-deck-icon-square.svg`
+- [x] Add an HTTP test asserting that an unauthenticated `GET /branding/worship-deck-icon-square.svg`
       returns initial response `200 OK` (using `http.ErrUseLastResponse` on `http.Client.CheckRedirect` or
       `httptest.ResponseRecorder` so redirects are not followed), `Content-Type` starting with
       `image/svg+xml`, and the response body contains valid SVG content.
-- [ ] Ensure all existing exempt paths (`/login`, `/assets/...`, `/favicon.ico`, `/api/auth/login`, etc.)
+- [x] Ensure all existing exempt paths (`/login`, `/assets/...`, `/favicon.ico`, `/api/auth/login`, etc.)
       continue to behave exactly as before.
+
+## Comments
+
+### Verification 2026-09-23
+- Added `"/branding"` to `exemptPrefixes` in `internal/gate/gate.go`.
+- Added unit tests in `internal/gate/gate_test.go` proving `/branding/...` exempt and `/brandingfoo` gated.
+- Added HTTP tests in `internal/httpapi/branding_gate_test.go` and `tests/go-http-gate.test.mjs` verifying 200 OK with `image/svg+xml` content-type without redirect follow.
+- Peer reviewed by Terra (`kiro-agent chat --model gpt-5.6-terra --effort high --trust-tools=fs_read --no-interactive`).
+- Full Go test suite (`go test ./cmd/... ./internal/...`) and full npm test suite (`npm test`, 1210 tests) green.
