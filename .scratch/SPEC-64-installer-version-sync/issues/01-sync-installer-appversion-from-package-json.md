@@ -31,11 +31,12 @@ metadata, not a comparison failure.)
       line — so passing `/DMyAppVersion=...` while the `.iss` still unconditionally redefines it does
       nothing. Wrap it as `#ifndef MyAppVersion` / `#define MyAppVersion "0.1.0"` / `#endif` at minimum.
 - [ ] **Go further: make the define mandatory (fail-closed), not a silent fallback (peer review's
-      stronger recommendation, adopted here).** Change the guard to `#ifndef MyAppVersion` /
-      `#error "MyAppVersion must be supplied via /D from package.json"` / `#endif`, and have
-      `build-desktop.mjs` read and validate `package.json`'s `version` once before invoking `ISCC.exe`.
-      This keeps `package.json` as the single source of truth rather than leaving a second,
-      independently-driftable literal in the `.iss` file for any direct/manual `ISCC.exe` invocation.
+      stronger recommendation, adopted here).** Change the guard in `installer/worship-deck.iss` to
+      `#ifndef MyAppVersion` / `#error "MyAppVersion must be supplied via /D from package.json"` / `#endif`,
+      and have `build-desktop.mjs` read and validate `package.json`'s `version` (checking it against standard
+      semver format) once before invoking `ISCC.exe`. This keeps `package.json` as the single source of
+      truth rather than leaving a second, independently-driftable literal in the `.iss` file for any
+      direct/manual `ISCC.exe` invocation.
 - [ ] **Do not overclaim what Inno Setup does with the version (peer review found no evidence for
       this in the script).** `MyAppVersion` is used only as `[Setup] AppVersion` — there is no
       `[Code]` section or other logic in `worship-deck.iss` implementing an upgrade/downgrade
@@ -43,10 +44,11 @@ metadata, not a comparison failure.)
       metadata (the installed version string shown to the user), not a custom comparison failure —
       scope the ticket's own justification to that.
 - [ ] **Prove the fix at the artifact level, not just the command construction (peer review's
-      explicit ask).** After building, confirm the compiled `WorshipDeckSetup.exe`'s own file-properties
-      version (or `ISCC.exe`'s build log) actually reflects `package.json`'s value — a test that only
-      asserts the `spawnSync` argument array contains `/DMyAppVersion=...` would pass even if the
-      define were silently ignored by the unguarded redefinition above.
+      explicit ask).** After building in CI (`release.yml` on Windows runner), confirm the compiled
+      `WorshipDeckSetup.exe`'s own file-properties version matches `package.json`'s value via
+      `(Get-Item dist-installer\WorshipDeckSetup.exe).VersionInfo.FileVersion`. In unit tests, verify
+      that `build-desktop.mjs` fails if `package.json` version is missing/invalid, and passes
+      `/DMyAppVersion=<version>` in the `spawnSync` argument list.
 - [ ] Note only, no action required this ticket: `package-lock.json` also carries a duplicate `0.1.0`
       literal (npm maintains it automatically, so it is not a third independent source to guard) and
       `scripts/build-desktop.mjs` has an unrelated dead fallback path still naming the pre-rename

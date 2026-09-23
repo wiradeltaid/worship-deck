@@ -17,8 +17,8 @@ server side only — chunking the client's own payload is ticket 02.
 - [ ] **`json.NewDecoder(...).Decode(...)`'s error path currently maps every decode failure to a
       generic `"Invalid request body"` (`internal/httpapi/sync.go:121`) — a `MaxBytesReader` trip alone
       will land there too, not at a distinct message (confirmed by peer review).** Detect the
-      oversized-body case specifically (check the decode error against `*http.MaxBytesError`, or read
-      via `http.MaxBytesReader` into a buffer first rather than decoding directly from it) and return
+      oversized-body case specifically using the existing repo precedent (`errors.As(err, &maxErr)` against
+      `*http.MaxBytesError`, matching `internal/httpapi/pptx_import.go:44-48`) and return
       the same message `syncAssetUpload` already uses ("Failed to read upload body or file too large")
       only for that case; an unrelated malformed-JSON body keeps returning `"Invalid request body"`.
       State a test for each of the two distinct error paths.

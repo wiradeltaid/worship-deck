@@ -23,27 +23,34 @@ after the database delete commits.
       encodes the intended file-collection logic (which columns/tables hold upload refs, how "no
       longer referenced" is determined); port its logic rather than re-deriving it from scratch, and
       state explicitly if the TypeScript version's approach turns out to be wrong or incomplete.
-      **Known gap in the TS reference (confirmed by peer review, port the fix, not just the bug):**
-      it checks `services.images_payload`, `announcement_items.image_url`, `artifact_templates.payload`,
+      **Known gaps in the TS reference (confirmed by multi-model peer review, port the fix, not just the bug):**
+      (1) it checks `services.images_payload`, `announcement_items.image_url`, `artifact_templates.payload`,
       `announcement_set_slides.payload`, and `background_library_images.url` for "still referenced",
-      but never `service_field_values` — a table `internal/httpapi/services.go` (~line 344-373) writes
-      upload URLs into directly, under variable names like `sermon_poster`, `family_photo`,
-      `youth_photo`, independent of `images_payload`. A verbatim port would under-collect the deleted
-      Service's own uploads stored this way, and could wrongly delete a file another Service still
-      references only through its own `service_field_values` row. The collection and the
+      but never `service_field_values` — an EAV table (`service_id`, `variable_name`, `value_text` raw string)
+      `internal/httpapi/services.go` (~line 344-373) writes upload URLs into directly, under variable names like
+      `sermon_poster`, `family_photo`, `youth_photo`, independent of `images_payload`. A verbatim port would
+      under-collect the deleted Service's own uploads stored this way, and could wrongly delete a file another
+      Service still references only through its own `service_field_values` row. The collection and the
       still-referenced check must both cover `service_field_values` too.
+      (2) the TS reference also missed `song_set_layouts.payload` and `service_song_set_layouts.payload`
+      in the still-referenced check — both store `Layout` JSON whose `BackgroundImage` can contain upload URLs.
+      These two tables MUST be included in the still-referenced check to avoid deleting active/frozen canvas backgrounds.
+      (3) `raw_payload` / `parsed_data` are NOT sources of collection (confirmed out of scope).
+      (4) Use the focused image regex pattern (`plan.localUpload`) rather than the broader multi-extension `httpapi.uploadRef`.
 - [ ] Deleting a Service removes every local file under `UPLOADS_DIR` that was collected as **this
       Service's own upload** — meaning it came from that Service's own `images_payload` or
       `service_field_values` rows — and is not still referenced anywhere else. Confirmed by asserting
       the file no longer exists on disk after the DELETE request completes.
 - [ ] **The collection scope and the still-referenced check are two different things — do not conflate
-      them (confirmed by a second peer-review round).** Only `services.images_payload` and
+      them (confirmed by peer-review rounds).** Only `services.images_payload` and
       `service_field_values` name what belongs to *this* Service and is therefore a *candidate* for
-      deletion. `announcement_items.image_url`, `artifact_templates.payload`,
-      `announcement_set_slides.payload`, and `background_library_images.url` are read only to check
-      whether a candidate file is *still referenced elsewhere* before deleting it — they must never be
-      added to the collection step itself. This matters concretely for `announcement_items`: its
-      `service_id` column survives Service deletion on purpose (the FK to `services` was deliberately
+      deletion. Collection of candidates must occur inside the delete transaction BEFORE `DELETE FROM services`
+      runs (since `service_field_values` cascades on delete).
+      `announcement_items.image_url`, `artifact_templates.payload`, `announcement_set_slides.payload`,
+      `background_library_images.url`, `song_set_layouts.payload`, and `service_song_set_layouts.payload`
+      are read only to check whether a candidate file is *still referenced elsewhere* before deleting it —
+      they must never be added to the collection step itself. This matters concretely for `announcement_items`:
+      its `service_id` column survives Service deletion on purpose (the FK to `services` was deliberately
       dropped in `internal/db/migrate_announcement_items_cascade.go` specifically so this Registry-owned
       content keeps working after the Service that referenced it is gone) — an announcement flyer must
       never be deleted by this ticket's logic, regardless of what else does or doesn't reference it,

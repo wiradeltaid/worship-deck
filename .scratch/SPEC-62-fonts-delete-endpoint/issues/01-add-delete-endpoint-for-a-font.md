@@ -38,19 +38,16 @@ and its uploaded file (`asset_path`) from disk.
       orphaned file manually; do not leave a same-as-missing silent continue as the only path.
 - [ ] A missing/unknown font id returns `404`, matching every other admin-delete endpoint's
       not-found convention in this codebase.
-- [ ] **A live reference genuinely exists and must be resolved as a real policy decision, not left
-      open (confirmed by peer review, corrects this ticket's original framing as "confirm whether"):**
-      `font_faces` has no foreign key, and templates store `fontFamily`/`pptxTypeface` strings rather
-      than a font id, but the app actively fetches `/api/fonts` and registers the returned faces at
-      boot and in presenter/projector contexts (`src/lib/registry/font-catalog.ts`, `spa/src/App.tsx`,
-      `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`); PPTX import
-      also does a family/source-typeface lookup to reconcile a template's font status
-      (`internal/httpapi/pptx_import.go`). Deleting a font whose family/source-typeface a template
-      still references leaves that template's stored `fontStatus` claiming `"uploaded"` after the face
-      no longer hydrates on reload — a real behavior drift, not a hypothetical. Choose and implement
-      one: (a) reject the delete (409) when any template payload references the family/source
-      typeface, or (b) allow it and reconcile affected templates' `fontStatus` to reflect the fallback.
-      State the choice and its test explicitly.
+- [ ] **Live reference policy decision (adopted via maintainer review):**
+      Reject the delete with `409 Conflict` (naming the font family and listing the referencing templates)
+      when any live template payload references the font's `family` or `source_typeface`.
+      **Scope of reference scan:** Check ONLY live template/layout tables (`artifact_templates`,
+      `song_set_layouts`, `announcement_set_slides`). DO NOT scan historical service snapshots
+      (`service_registry_snapshots`, `service_song_set_layouts`) — otherwise a font once used in an old
+      historical service would become permanently undeletable. Automatic `fontStatus` reconciliation is
+      deferred to a separate follow-up. State the test: deleting an unreferenced font succeeds (200 + unlinked);
+      deleting a font referenced by a live template returns 409; deleting a font referenced only in an old
+      historical snapshot succeeds.
 - [ ] Register the new route in `internal/httpapi/server.go` and land it in
       `.how/_platform/inventory-api.md` (this inventory is owned by `wdi-blueprint`, not this ticket —
       report the new row rather than hand-editing that file).

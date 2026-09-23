@@ -12,9 +12,10 @@ proving the boundary.
 
 - [ ] Create a Service (freezing its `service_registry_snapshots` / `service_announcement_set_slides`
       snapshot). Edit the live Announcement Set's slides (content, order, or membership — cover at
-      least one of each) afterwards. Assert the frozen Service's rendered plan (or PPTX, whichever
+      least one of each), retarget or delete the live marker's `ann_set_id`, and edit the live
+      Announcement Set label afterwards. Assert the frozen Service's rendered plan (or PPTX, whichever
       seam `internal/plan` tests already use for this kind of assertion) still reflects the
-      **pre-edit** content.
+      **pre-edit** content and marker identity.
 - [ ] Run Sync Artifact on that same Service. Assert it now reflects the **post-edit** content —
       Sync remains the one action that pulls Registry changes into an already-frozen Service, for
       Announcement Sets exactly as it already does for Song Set entries and layout.

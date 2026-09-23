@@ -40,8 +40,9 @@ needed, sending each through the existing `pushSync` in sequence, each with its 
       Item naming a `service_global_id` that hasn't been applied yet fails with
       `unresolved_service_reference` (confirmed at `internal/httpapi/sync.go` ~line 309). The chunker
       must send chunks in an order that respects this dependency: every Service a chunk's Announcement
-      Items depend on must be in an earlier or the same chunk, and Tombstones must not be sent ahead of
-      the mutations they might reference. State a regression test: a Service and an Announcement Item
+      Items depend on must be in an earlier or the same chunk. In addition, a chunk containing a tombstone
+      for a Service MUST NOT precede any chunk in the same batch containing active (live) mutations that
+      reference that Service. State a regression test: a Service and an Announcement Item
       referencing it split across two chunks, sent in dependency order, both apply successfully.
 - [ ] Chunk boundaries never split a single record (one Service, one Hymn, one Song Set Entry, one
       Background Image, one Announcement Item) or a single tombstone entry across two requests.
@@ -53,13 +54,25 @@ needed, sending each through the existing `pushSync` in sequence, each with its 
       fails with an error naming which record and why, while every other record in the batch still
       applies successfully via the surrounding chunks — the whole sync must not fail opaquely because
       of one oversized record.
-- [ ] **Define a partial-success result contract for the chunking helper, not just a single pass/fail
+- [ ] **Define a standard partial-success result contract for the chunking helper, not just a single pass/fail
       (confirmed by peer review as currently missing).** `pushSync` today returns one response or
-      throws once; `AdminSyncPage.tsx` reports one total `applied_count`. The chunking helper must
-      return (or the caller must be able to observe) which chunks succeeded, which failed and why, and
-      an aggregate applied count across all chunks — so the oversized-single-record case above can be
-      surfaced to the Admin as "N of M records synced; this one was skipped: &lt;reason&gt;" rather than
-      either a bare success or an opaque total failure.
+      throws once; `AdminSyncPage.tsx` reports one total `applied_count`. Define the TypeScript interface:
+      ```ts
+      export interface SyncPushBatchResult {
+        ok: boolean;
+        appliedTotal: number;
+        chunks: Array<{
+          mutationId: string;
+          ok: boolean;
+          appliedCount: number;
+          error?: string;
+        }>;
+        skippedRecords?: Array<{ id: string; reason: string }>;
+      }
+      ```
+      The chunking helper returns this structured result so the oversized-single-record case above can be
+      surfaced to the Admin in `AdminSyncPage.tsx` as "N of M records synced; this one was skipped: <reason>"
+      rather than either an opaque success or total abort.
 - [ ] `AdminSyncPage.tsx`'s five `pushSync` call sites (push-all, apply-from-pull, and the three
       narrower re-push flows) are switched to the new chunking helper, removing any size-estimation
       logic that would otherwise need to be duplicated five times.

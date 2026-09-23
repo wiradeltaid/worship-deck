@@ -66,12 +66,13 @@ in preference to the live table whenever a frozen row exists for that Service â€
   after a second peer-review round found the naive version broken: an Announcement Set with zero
   slides at freeze time freezes with zero child rows, which is indistinguishable from "never frozen"
   if row-count is the test, and a live slide added afterward would then leak into that
-  already-frozen Service exactly the way this spec exists to prevent. Use the same freeze-state check
-  `LoadSnapshot` already uses for `service_registry_snapshots` (its own row count is a safe predicate
-  there only because a spine can't be genuinely empty; it is not safe to reuse for a set that can). If
-  a frozen row exists for this Service, read from `service_announcement_set_slides` (which may
-  legitimately be empty); otherwise (unfrozen Service, or the live preview at `serviceID 0`) read live
-  from `announcement_set_slides`, exactly as today.
+  already-frozen Service exactly the way this spec exists to prevent. The explicit canonical flag
+  is `services.registry_snapshot_at IS NOT NULL` (the exact boolean condition used by `migrateSnapshots`).
+  Provide a single shared helper `serviceIsRegistryFrozen(db, serviceID) bool` to ensure `LoadSnapshot`
+  and `loadAnnouncementSlidesIntoSnapshot` use the identical predicate. If a frozen snapshot exists
+  for this Service, read from `service_announcement_set_slides` (which may legitimately be empty);
+  otherwise (unfrozen Service, or the live preview at `serviceID 0`) read live from `announcement_set_slides`,
+  exactly as today.
 - Deleting a Service's frozen snapshot (`DELETE FROM service_registry_snapshots WHERE service_id = ?`,
   both existing call sites) must delete the paired `service_announcement_set_slides` rows in the same
   transaction â€” an orphaned frozen-announcement row with no matching `service_registry_snapshots` row
@@ -94,15 +95,12 @@ in preference to the live table whenever a frozen row exists for that Service â€
 - **The upgrade path for Services already frozen before this spec ships must be decided, not left
   implicit (found by the same review round).** `migrateSnapshots` (the AD-16 bulk migration) only
   processes Services where `registry_snapshot_at IS NULL` â€” a Service already frozen under the old
-  scheme will never have `cloneLiveToService` run against it again, so it will never get an initial
-  `service_announcement_set_slides` row from that path. Since no historical announcement-slide content
-  was ever recorded for these Services, their freeze boundary cannot be reconstructed â€” the choice is
-  between (a) a companion one-time migration that clones *today's* live announcement content into
-  `service_announcement_set_slides` for every Service that already has `registry_snapshot_at` set,
-  treating "now" as their initial freeze point (matches how AD-16's own original migration bootstrapped
-  pre-existing Services), or (b) leaving them unfrozen for announcements until their next explicit Sync,
-  which is more honest about not inventing history but means those specific Services keep the current
-  (already-known-wrong) live-read behavior a while longer. Ticket 01 decides and states which.
+  scheme will never have `cloneLiveToService` run against it again. Furthermore, `cloneLiveToService`
+  is inherently destructive (deleting and rewriting `service_registry_snapshots` and `service_song_set_layouts`),
+  so it MUST NOT be re-executed on already-frozen Services. Instead, add a companion one-time migration
+  function (tracked by bumping `data_version` in `settings` from 11 to 12 in `internal/db/migrate.go`) that
+  narrowly clones *today's* live announcement content into `service_announcement_set_slides` only for
+  Services with `registry_snapshot_at IS NOT NULL`, without altering their existing frozen snapshots.
 
 ## Testing Decisions
 
