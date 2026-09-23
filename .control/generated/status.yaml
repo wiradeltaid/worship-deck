@@ -1,7 +1,7 @@
 promise_progress: 97%
 rtm_rows:
   green: 561
-  counted: 576
+  counted: 577
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -249,6 +249,21 @@ work_progress:
   tickets_done: 0
   tickets_total: 1
   work_progress: 0%
+- spec: SPEC-61
+  status: open
+  tickets_done: 0
+  tickets_total: 2
+  work_progress: 0%
+- spec: SPEC-62
+  status: open
+  tickets_done: 0
+  tickets_total: 1
+  work_progress: 0%
+- spec: SPEC-63
+  status: open
+  tickets_done: 0
+  tickets_total: 1
+  work_progress: 0%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -306,7 +321,10 @@ work_progress:
   work_progress: 100%
 gate_readiness: 100%
 validators_red: []
-validators_skipped: {}
+validators_skipped:
+  review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/presenter/SDD-presenter.md
+    (changed at d2182f0, reviewed at bc6c694), .what/presenter/SRS-presenter.md (changed at d2182f0, reviewed
+    at bc6c694), .what/registry/SRS-registry.md (changed at d2182f0, reviewed at 840014f)'
 open_questions:
   blocking: 0
   assumptions: 37

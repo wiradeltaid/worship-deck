@@ -6297,6 +6297,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-37
+  DEC: []
+  UC: UC-31
+  ticket: SPEC-63-01
+  spec: SPEC-63
+  release: form-layout-fetch-error-surfaced
+  test:
+  - tests/form-layout-fetch-error.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38
