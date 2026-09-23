@@ -215,6 +215,23 @@ test('GET returns the { services, q, count } envelope', async () => {
   assert.ok(item.parsed_data && typeof item.parsed_data === 'object');
 });
 
+test('GET /api/services/{id} returns verbatim raw_payload with unicode, emoji, and formatting over HTTP', async () => {
+  const verbatim = `  SABBATH, DECEMBER 12, 2026
+  DIVINE SERVICE 🎉
+
+• Welcome Visitors
+• Offertory: Special Offering
+• Special Music: Youth Choir "Amazing Grace"
+
+Pastoral Notes:
+— Practice at 4:30 PM.`;
+
+  const id = await createdService({ raw_payload: verbatim });
+  const one = await getOne(id);
+  assert.equal(one.status, 200);
+  assert.equal(one.body.raw_payload, verbatim, 'raw_payload must be returned verbatim over HTTP');
+});
+
 test('GET ?q= LIKE-matches the date and the raw payload', async () => {
   const id = await createdService({
     raw_payload: RAW('SABBATH, JANUARY 10, 2026', 'http-token-january-ten'),

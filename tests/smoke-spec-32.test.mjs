@@ -367,13 +367,19 @@ test('T-32-06: Absence Guard 1 — serializeTextStyle invalidates pptxTypeface o
 // --------------------------------------------------------------------------
 
 test('T-32-07: Full Go test suites pass for pptximport, plan, and httpapi', () => {
-  const output = execSync('go test ./internal/pptximport ./internal/plan ./internal/httpapi', {
-    cwd: root,
-    encoding: 'utf8',
-  });
-  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/pptximport'));
-  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/plan'));
-  assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/httpapi'));
+  try {
+    const output = execSync('go test ./internal/pptximport ./internal/plan ./internal/httpapi', {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/pptximport'));
+    assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/plan'));
+    assert.ok(output.includes('ok  \tgithub.com/wiradeltaid/worship-deck/internal/httpapi'));
+  } catch (err) {
+    if (err.stdout) console.error('T-32-07 FAILED stdout:\n', err.stdout);
+    if (err.stderr) console.error('T-32-07 FAILED stderr:\n', err.stderr);
+    throw err;
+  }
 });
 
 // --------------------------------------------------------------------------

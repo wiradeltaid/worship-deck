@@ -337,10 +337,10 @@ func TestGetServiceRawPayloadVerbatimViaHttp(t *testing.T) {
 	ts, _, _ := newSongSetTestServer(t)
 	cookie := songSetLogin(t, ts)
 
-	verbatimText := "  SABBATH, OCTOBER 24, 2026\n  DIVINE SERVICE 🎉\n\n• Welcome All Visitors\n  - Indented bullet item\n• Scripture: John 3:16\n\nPastoral Notes:\n— Special prayer request for missions 🙏\n— Practice at 4:30 PM."
+	verbatimText := "  SABBATH, DECEMBER 26, 2026\n  DIVINE SERVICE 🎉\n\n• Welcome All Visitors\n  - Indented bullet item\n• Scripture: John 3:16\n\nPastoral Notes:\n— Special prayer request for missions 🙏\n— Practice at 4:30 PM."
 
 	payload := map[string]any{
-		"date":        "2026-10-24",
+		"date":        "2026-12-26",
 		"raw_payload": verbatimText,
 	}
 	bodyBytes, _ := json.Marshal(payload)
