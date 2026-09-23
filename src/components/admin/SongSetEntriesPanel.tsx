@@ -7,12 +7,15 @@ import { Label } from '@/components/ui/label';
 import { useT } from '@/lib/i18n/operator';
 import ArtifactEditor from '@/components/admin/ArtifactEditor';
 import { createSongSetTrioAdapter } from '@/lib/registry/canvas-adapters';
+import { compileProfileRegex } from '@/lib/parser-rules';
 
 export interface SongSetEntry {
   variableName: string;
   title: string;
   position: number;
   updatedAt: string;
+  extractionRegex?: string | null;
+  extraction_regex?: string | null;
 }
 
 type SongSetLayoutRole = 'title' | 'verse' | 'reff';
@@ -27,18 +30,33 @@ export function SongSetEntriesPanel() {
   // New Song Set creation inputs
   const [newTitle, setNewTitle] = useState('');
   const [newVarName, setNewVarName] = useState('');
+  const [newRegex, setNewRegex] = useState('');
+  const [newRegexError, setNewRegexError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  // Inline rename state in configured entries list (SPEC-14-06 / BUG-24)
+  // Inline rename and regex edit state in configured entries list (SPEC-14-06 / BUG-24 / SPEC-68)
   const [editingVarName, setEditingVarName] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftVarName, setDraftVarName] = useState('');
+  const [draftRegex, setDraftRegex] = useState('');
+  const [draftRegexError, setDraftRegexError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
 
   // Layout trio active role
   const [selectedRole, setSelectedRole] = useState<SongSetLayoutRole>('title');
 
   const songSetAdapter = useMemo(() => createSongSetTrioAdapter(), []);
+
+  const validateRegexSyntax = (pattern: string): string | null => {
+    const trimmed = pattern.trim();
+    if (!trimmed) return null;
+    try {
+      compileProfileRegex(trimmed);
+      return null;
+    } catch (err: unknown) {
+      return err instanceof Error ? err.message : 'Invalid regex syntax';
+    }
+  };
 
   const fetchEntries = async () => {
     try {
@@ -47,11 +65,15 @@ export function SongSetEntriesPanel() {
         throw new Error('Failed to load');
       }
       const data = (await res.json()) as { entries: SongSetEntry[] };
-      const list = data.entries ?? [];
+      const list = (data.entries ?? []).map((e) => ({
+        ...e,
+        extractionRegex: e.extraction_regex ?? e.extractionRegex ?? null,
+      }));
       setEntries(list);
       if (list.length > 0 && !selectedVarName) {
         setSelectedVarName(list[0].variableName);
         setDraftTitle(list[0].title);
+        setDraftRegex(list[0].extractionRegex ?? '');
       }
     } catch {
       toast.error(t('admin.songSets.loadFailed'));
@@ -71,6 +93,8 @@ export function SongSetEntriesPanel() {
     if (activeEntry && !editingVarName) {
       setDraftTitle(activeEntry.title);
       setDraftVarName(activeEntry.variableName);
+      setDraftRegex(activeEntry.extraction_regex ?? activeEntry.extractionRegex ?? '');
+      setDraftRegexError(null);
     }
   }, [activeEntry?.variableName, editingVarName]);
 
@@ -78,23 +102,37 @@ export function SongSetEntriesPanel() {
     setSelectedVarName(entry.variableName);
     setDraftTitle(entry.title);
     setDraftVarName(entry.variableName);
+    setDraftRegex(entry.extraction_regex ?? entry.extractionRegex ?? '');
+    setDraftRegexError(null);
     setEditingVarName(entry.variableName);
     setNewTitle('');
     setNewVarName('');
+    setNewRegex('');
+    setNewRegexError(null);
   };
 
   const handleCancelEdit = () => {
     setEditingVarName(null);
     setDraftTitle('');
     setDraftVarName('');
+    setDraftRegex('');
+    setDraftRegexError(null);
     setNewTitle('');
     setNewVarName('');
+    setNewRegex('');
+    setNewRegexError(null);
   };
 
   const handleCreate = async () => {
     const trimmedTitle = newTitle.trim();
     if (!trimmedTitle) {
       toast.error(t('admin.songSets.titleInvalid'));
+      return;
+    }
+    const regexErr = validateRegexSyntax(newRegex);
+    if (regexErr) {
+      setNewRegexError(regexErr);
+      toast.error(`Invalid regex syntax: ${regexErr}`);
       return;
     }
     let candidateVar = newVarName.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
@@ -115,6 +153,7 @@ export function SongSetEntriesPanel() {
         body: JSON.stringify({
           variableName: candidateVar,
           title: trimmedTitle,
+          extraction_regex: newRegex.trim() || null,
         }),
       });
 
@@ -128,12 +167,19 @@ export function SongSetEntriesPanel() {
         return;
       }
 
-      const created = (await res.json()) as SongSetEntry;
+      const rawCreated = (await res.json()) as SongSetEntry;
+      const created: SongSetEntry = {
+        ...rawCreated,
+        extractionRegex: rawCreated.extraction_regex ?? rawCreated.extractionRegex ?? (newRegex.trim() || null),
+      };
       setEntries((prev) => [...prev, created].sort((a, b) => a.position - b.position));
       setSelectedVarName(created.variableName);
       setDraftTitle(created.title);
+      setDraftRegex(created.extractionRegex ?? '');
       setNewTitle('');
       setNewVarName('');
+      setNewRegex('');
+      setNewRegexError(null);
       setEditingVarName(null);
       toast.success(t('admin.songSets.created').replace('{title}', created.title));
     } catch {
@@ -161,9 +207,16 @@ export function SongSetEntriesPanel() {
       toast.error(t('admin.songSets.variableNameInvalid'));
       return;
     }
+    const regexErr = validateRegexSyntax(draftRegex);
+    if (regexErr) {
+      setDraftRegexError(regexErr);
+      toast.error(`Invalid regex syntax: ${regexErr}`);
+      return;
+    }
 
     setRenaming(true);
     try {
+      // Atomic patch of title, variableName, and extraction_regex
       const res = await fetch(
         `/api/admin/song-set-entries/${encodeURIComponent(targetEntry.variableName)}`,
         {
@@ -173,6 +226,7 @@ export function SongSetEntriesPanel() {
           body: JSON.stringify({
             title: trimmedTitle,
             variableName: trimmedVar,
+            extraction_regex: draftRegex.trim() || null,
             updatedAt: targetEntry.updatedAt,
           }),
         }
@@ -195,7 +249,12 @@ export function SongSetEntriesPanel() {
         return;
       }
 
-      const updated = (await res.json()) as SongSetEntry;
+      const rawUpdated = (await res.json()) as SongSetEntry;
+      const updated: SongSetEntry = {
+        ...rawUpdated,
+        extractionRegex: rawUpdated.extraction_regex ?? rawUpdated.extractionRegex ?? (draftRegex.trim() || null),
+        extraction_regex: rawUpdated.extraction_regex ?? rawUpdated.extractionRegex ?? (draftRegex.trim() || null),
+      };
       setEntries((prev) =>
         prev.map((item) => (item.variableName === targetEntry.variableName ? updated : item))
       );
@@ -316,7 +375,7 @@ export function SongSetEntriesPanel() {
                   type="button"
                   size="sm"
                   onClick={() => void handleSaveRename()}
-                  disabled={renaming || !draftTitle.trim() || !draftVarName.trim()}
+                  disabled={renaming || !draftTitle.trim() || !draftVarName.trim() || !!draftRegexError}
                   className="shrink-0 h-8 font-semibold text-xs text-primary-foreground"
                 >
                   <Check className="w-3.5 h-3.5 mr-1" />
@@ -334,6 +393,25 @@ export function SongSetEntriesPanel() {
                   {t('admin.songSets.cancel')}
                 </Button>
               </div>
+              <Input
+                type="text"
+                placeholder="Extraction regex, e.g. (?i)^Opening Hymn\s*[:\-]\s*(?<number>\d+)"
+                value={draftRegex}
+                onChange={(e) => {
+                  setDraftRegex(e.target.value);
+                  const err = validateRegexSyntax(e.target.value);
+                  setDraftRegexError(err);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleSaveRename();
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                disabled={renaming}
+                className={`text-xs font-mono h-8 w-full ${draftRegexError ? 'border-destructive' : ''}`}
+              />
+              {draftRegexError && (
+                <p className="text-[10px] text-destructive font-mono">{draftRegexError}</p>
+              )}
             </div>
           ) : (
             <div className="space-y-2 pt-0.5">
@@ -358,13 +436,28 @@ export function SongSetEntriesPanel() {
                   type="button"
                   size="sm"
                   onClick={() => void handleCreate()}
-                  disabled={creating || loading || !newTitle.trim()}
+                  disabled={creating || loading || !newTitle.trim() || !!newRegexError}
                   className="shrink-0 h-8 font-semibold"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   New
                 </Button>
               </div>
+              <Input
+                type="text"
+                placeholder="Extraction regex (optional), e.g. (?i)^Opening Hymn\s*[:\-]\s*(?<number>\d+)"
+                value={newRegex}
+                onChange={(e) => {
+                  setNewRegex(e.target.value);
+                  const err = validateRegexSyntax(e.target.value);
+                  setNewRegexError(err);
+                }}
+                disabled={creating || loading}
+                className={`text-xs h-8 font-mono w-full ${newRegexError ? 'border-destructive' : ''}`}
+              />
+              {newRegexError && (
+                <p className="text-[10px] text-destructive font-mono">{newRegexError}</p>
+              )}
             </div>
           )}
         </div>
@@ -427,6 +520,14 @@ export function SongSetEntriesPanel() {
                             {t('admin.songSets.editingBadge')}
                           </span>
                         )}
+                        {entry.extractionRegex || entry.extraction_regex ? (
+                          <span
+                            className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 truncate max-w-[120px]"
+                            title={entry.extractionRegex || entry.extraction_regex || ''}
+                          >
+                            /{entry.extractionRegex || entry.extraction_regex}/
+                          </span>
+                        ) : null}
                       </div>
                       <span className="text-[10px] font-mono text-muted-foreground">[{entry.variableName}]</span>
                     </div>

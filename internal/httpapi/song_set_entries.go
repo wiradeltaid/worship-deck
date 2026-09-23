@@ -32,10 +32,11 @@ const maxSongSetTitleRunes = 120
 var songSetLayoutRoles = map[string]struct{}{"title": {}, "verse": {}, "reff": {}}
 
 type songSetEntry struct {
-	VariableName string `json:"variableName"`
-	Title        string `json:"title"`
-	Position     int    `json:"position"`
-	UpdatedAt    string `json:"updatedAt"`
+	VariableName    string  `json:"variableName"`
+	Title           string  `json:"title"`
+	Position        int     `json:"position"`
+	UpdatedAt       string  `json:"updatedAt"`
+	ExtractionRegex *string `json:"extraction_regex"`
 }
 
 func validSongSetTitle(title string) bool {
@@ -48,7 +49,7 @@ func (s *Server) listSongSetEntries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := s.DB.Query(
-		`SELECT variable_name, title, position, updated_at FROM song_set_entries
+		`SELECT variable_name, title, position, updated_at, extraction_regex FROM song_set_entries
 		  ORDER BY position ASC, id ASC`,
 	)
 	if err != nil {
@@ -59,9 +60,13 @@ func (s *Server) listSongSetEntries(w http.ResponseWriter, r *http.Request) {
 	entries := []songSetEntry{}
 	for rows.Next() {
 		var e songSetEntry
-		if err := rows.Scan(&e.VariableName, &e.Title, &e.Position, &e.UpdatedAt); err != nil {
+		var rawRegex sql.NullString
+		if err := rows.Scan(&e.VariableName, &e.Title, &e.Position, &e.UpdatedAt, &rawRegex); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
+		}
+		if rawRegex.Valid && rawRegex.String != "" {
+			e.ExtractionRegex = &rawRegex.String
 		}
 		entries = append(entries, e)
 	}
@@ -82,7 +87,7 @@ func (s *Server) listSongSetEntriesForOperator(w http.ResponseWriter, r *http.Re
 		return
 	}
 	rows, err := s.DB.Query(
-		`SELECT variable_name, title FROM song_set_entries
+		`SELECT variable_name, title, position, extraction_regex FROM song_set_entries
 		  ORDER BY position ASC, id ASC`,
 	)
 	if err != nil {
@@ -91,15 +96,21 @@ func (s *Server) listSongSetEntriesForOperator(w http.ResponseWriter, r *http.Re
 	}
 	defer rows.Close()
 	type entry struct {
-		VariableName string `json:"variableName"`
-		Title        string `json:"title"`
+		VariableName    string  `json:"variableName"`
+		Title           string  `json:"title"`
+		Position        int     `json:"position"`
+		ExtractionRegex *string `json:"extraction_regex"`
 	}
 	entries := []entry{}
 	for rows.Next() {
 		var e entry
-		if err := rows.Scan(&e.VariableName, &e.Title); err != nil {
+		var rawRegex sql.NullString
+		if err := rows.Scan(&e.VariableName, &e.Title, &e.Position, &rawRegex); err != nil {
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
+		}
+		if rawRegex.Valid && rawRegex.String != "" {
+			e.ExtractionRegex = &rawRegex.String
 		}
 		entries = append(entries, e)
 	}
@@ -130,6 +141,27 @@ func (s *Server) createSongSetEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var extractionRegex *string
+	if raw, ok := body["extraction_regex"]; ok && raw != nil {
+		s := strings.TrimSpace(asString(raw))
+		if s != "" {
+			if _, err := parse.ValidateAndTranslateRegex(s); err != nil {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid regex pattern: %v", err))
+				return
+			}
+			extractionRegex = &s
+		}
+	} else if raw, ok := body["extractionRegex"]; ok && raw != nil {
+		s := strings.TrimSpace(asString(raw))
+		if s != "" {
+			if _, err := parse.ValidateAndTranslateRegex(s); err != nil {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid regex pattern: %v", err))
+				return
+			}
+			extractionRegex = &s
+		}
+	}
+
 	var count int
 	if err := s.DB.QueryRow(
 		`SELECT COUNT(*) FROM song_set_entries WHERE variable_name = ?`,
@@ -155,9 +187,9 @@ func (s *Server) createSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	now := timeNowRFC3339Nano()
 	songSetGid := db.NewUUIDv7()
 	if _, err := s.DB.Exec(
-		`INSERT INTO song_set_entries (global_id, variable_name, title, position, updated_at)
-		 VALUES (?, ?, ?, ?, ?)`,
-		songSetGid, variableName, strings.TrimSpace(title), position, now,
+		`INSERT INTO song_set_entries (global_id, variable_name, title, position, updated_at, extraction_regex)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		songSetGid, variableName, strings.TrimSpace(title), position, now, extractionRegex,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
@@ -177,10 +209,11 @@ func (s *Server) createSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, songSetEntry{
-		VariableName: variableName,
-		Title:        strings.TrimSpace(title),
-		Position:     position,
-		UpdatedAt:    now,
+		VariableName:    variableName,
+		Title:           strings.TrimSpace(title),
+		Position:        position,
+		UpdatedAt:       now,
+		ExtractionRegex: extractionRegex,
 	})
 }
 
@@ -234,6 +267,34 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var extractionRegex *string
+	hasRegexUpdate := false
+	if raw, ok := body["extraction_regex"]; ok {
+		hasRegexUpdate = true
+		if raw != nil {
+			s := strings.TrimSpace(asString(raw))
+			if s != "" {
+				if _, err := parse.ValidateAndTranslateRegex(s); err != nil {
+					writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid regex pattern: %v", err))
+					return
+				}
+				extractionRegex = &s
+			}
+		}
+	} else if raw, ok := body["extractionRegex"]; ok {
+		hasRegexUpdate = true
+		if raw != nil {
+			s := strings.TrimSpace(asString(raw))
+			if s != "" {
+				if _, err := parse.ValidateAndTranslateRegex(s); err != nil {
+					writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid regex pattern: %v", err))
+					return
+				}
+				extractionRegex = &s
+			}
+		}
+	}
+
 	tx, err := s.DB.Begin()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -275,11 +336,20 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := timeNowRFC3339Nano()
-	res, err := tx.Exec(
-		`UPDATE song_set_entries SET title = ?, variable_name = ?, updated_at = ?
-		  WHERE variable_name = ? AND updated_at = ?`,
-		strings.TrimSpace(title), targetVariableName, now, variableName, updatedAt,
-	)
+	var res sql.Result
+	if hasRegexUpdate {
+		res, err = tx.Exec(
+			`UPDATE song_set_entries SET title = ?, variable_name = ?, extraction_regex = ?, updated_at = ?
+			  WHERE variable_name = ? AND updated_at = ?`,
+			strings.TrimSpace(title), targetVariableName, extractionRegex, now, variableName, updatedAt,
+		)
+	} else {
+		res, err = tx.Exec(
+			`UPDATE song_set_entries SET title = ?, variable_name = ?, updated_at = ?
+			  WHERE variable_name = ? AND updated_at = ?`,
+			strings.TrimSpace(title), targetVariableName, now, variableName, updatedAt,
+		)
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
@@ -323,15 +393,21 @@ func (s *Server) patchSongSetEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var position int
+	var rawRegex sql.NullString
 	_ = s.DB.QueryRow(
-		`SELECT position FROM song_set_entries WHERE variable_name = ?`,
+		`SELECT position, extraction_regex FROM song_set_entries WHERE variable_name = ?`,
 		targetVariableName,
-	).Scan(&position)
+	).Scan(&position, &rawRegex)
+	var outRegex *string
+	if rawRegex.Valid && rawRegex.String != "" {
+		outRegex = &rawRegex.String
+	}
 	writeJSON(w, http.StatusOK, songSetEntry{
-		VariableName: targetVariableName,
-		Title:        strings.TrimSpace(title),
-		Position:     position,
-		UpdatedAt:    now,
+		VariableName:    targetVariableName,
+		Title:           strings.TrimSpace(title),
+		Position:        position,
+		UpdatedAt:       now,
+		ExtractionRegex: outRegex,
 	})
 }
 
@@ -587,15 +663,20 @@ func (s *Server) updateSongSetEntryExtractionRegex(w http.ResponseWriter, r *htt
 		return
 	}
 
-	var req struct {
-		ExtractionRegex string `json:"extraction_regex"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
+	body, err, status, msg := readJSONObject(r, 1<<20)
+	if err != nil {
+		writeError(w, status, msg)
 		return
 	}
 
-	pattern := strings.TrimSpace(req.ExtractionRegex)
+	rawPattern := ""
+	if raw, ok := body["extraction_regex"]; ok && raw != nil {
+		rawPattern = asString(raw)
+	} else if raw, ok := body["extractionRegex"]; ok && raw != nil {
+		rawPattern = asString(raw)
+	}
+
+	pattern := strings.TrimSpace(rawPattern)
 	if pattern != "" {
 		if _, err := parse.ValidateAndTranslateRegex(pattern); err != nil {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid regex pattern: %v", err))
@@ -608,11 +689,12 @@ func (s *Server) updateSongSetEntryExtractionRegex(w http.ResponseWriter, r *htt
 		sqlVal = nil
 	}
 
+	now := timeNowRFC3339Nano()
 	res, err := s.DB.Exec(`
 		UPDATE song_set_entries
-		SET extraction_regex = ?, updated_at = CURRENT_TIMESTAMP
+		SET extraction_regex = ?, updated_at = ?
 		WHERE variable_name = ?
-	`, sqlVal, variableName)
+	`, sqlVal, now, variableName)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update song set entry regex: %v", err))
 		return
@@ -628,5 +710,6 @@ func (s *Server) updateSongSetEntryExtractionRegex(w http.ResponseWriter, r *htt
 		"ok":               true,
 		"variable_name":    variableName,
 		"extraction_regex": sqlVal,
+		"updatedAt":        now,
 	})
 }

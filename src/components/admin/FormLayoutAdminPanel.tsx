@@ -11,14 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, HelpCircle, Sliders } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { compileProfileRegex, extractPredefinedFields, parseRundownWithProfile } from '@/lib/parser-rules';
 import { matchSongSets, type SongSetEntrySlot } from '@/lib/song-set-matching';
-import { ParserProfilesPanel } from '@/components/admin/ParserProfilesPanel';
 import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/lib/form-layout';
 
-type AdminTab = 'layout' | 'fields' | 'sandbox' | 'profiles';
+type AdminTab = 'layout' | 'fields' | 'sandbox';
 
 const DEFAULT_RUNDOWN_SAMPLE = `SABBATH, OCTOBER 24, 2026
 DIVINE SERVICE
@@ -121,10 +120,19 @@ export function FormLayoutAdminPanel() {
 
   const fetchLayoutQuiet = async () => {
     try {
-      const res = await fetch('/api/worship-form-layout');
-      if (res.ok) {
-        const data = (await res.json()) as FormLayoutData;
+      const [resLayout, resEntries] = await Promise.all([
+        fetch('/api/worship-form-layout'),
+        fetch('/api/song-set-entries'),
+      ]);
+      if (resLayout.ok) {
+        const data = (await resLayout.json()) as FormLayoutData;
         setLayoutData(data);
+      }
+      if (resEntries.ok) {
+        const d = (await resEntries.json()) as { entries?: SongSetEntrySlot[] };
+        if (Array.isArray(d.entries)) {
+          setSongSetEntries(d.entries);
+        }
       }
     } catch {
       // ignore
@@ -413,7 +421,41 @@ export function FormLayoutAdminPanel() {
     }
   };
 
-  const handleSaveInlineSlotRegex = async (varName: string) => {
+  const handleSaveInlineSlotRegex = async (varName: string, widgetKind?: string) => {
+    const trimmed = slotInlineRegex.trim();
+    if (trimmed) {
+      try {
+        compileProfileRegex(trimmed);
+      } catch (err: unknown) {
+        toast.error(`Invalid regex syntax: ${err instanceof Error ? err.message : String(err)}`);
+        return;
+      }
+    }
+
+    if (widgetKind === 'song_set_entry') {
+      try {
+        const res = await fetch(`/api/admin/song-set-entries/${encodeURIComponent(varName)}/extraction-regex`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            extraction_regex: trimmed || '',
+          }),
+        });
+        if (res.ok) {
+          setEditingSlotRegexVar(null);
+          setSlotInlineRegex('');
+          await fetchLayoutQuiet();
+          toast.success('Song Set entry regex saved');
+        } else {
+          const errData = (await res.json().catch(() => ({}))) as { error?: string };
+          toast.error(errData.error || 'Failed to update song set regex');
+        }
+      } catch {
+        toast.error('Network error updating song set regex');
+      }
+      return;
+    }
+
     const field = layoutData?.predefined_fields.find((f) => f.variable_name === varName);
     if (!field) return;
 
@@ -428,7 +470,7 @@ export function FormLayoutAdminPanel() {
           field_type: field.field_type,
           input_length: field.input_length,
           initial_lines: field.initial_lines,
-          extraction_regex: slotInlineRegex.trim() || null,
+          extraction_regex: trimmed || null,
         }),
       });
       if (res.ok) {
@@ -580,15 +622,6 @@ export function FormLayoutAdminPanel() {
               onClick={() => setActiveTab('sandbox')}
             >
               Rundown Test Area & Sandbox
-            </Button>
-            <Button
-              type="button"
-              variant={activeTab === 'profiles' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="text-xs font-semibold flex items-center gap-1.5"
-              onClick={() => setActiveTab('profiles')}
-            >
-              <Sliders className="w-3.5 h-3.5" /> Advanced Parser Profiles
             </Button>
           </div>
 
@@ -781,8 +814,19 @@ export function FormLayoutAdminPanel() {
                   ) : (
                     <div className="divide-y divide-border/40">
                       {grouping.slots.map((s, sIdx) => {
-                        const fieldDef = layoutData.predefined_fields.find((f) => f.variable_name === s.ref_key);
-                        const hasRegex = !!fieldDef?.extraction_regex;
+                        const isPredefined = s.widget_kind === 'predefined_field';
+                        const isSongSet = s.widget_kind === 'song_set_entry';
+                        const fieldDef = isPredefined
+                          ? layoutData.predefined_fields.find((f) => f.variable_name === s.ref_key)
+                          : null;
+                        const songSetDef = isSongSet
+                          ? songSetEntries.find((se) => se.variableName === s.ref_key || (se as any).variable_name === s.ref_key)
+                          : null;
+                        const activeRegex = isSongSet
+                          ? (songSetDef?.extraction_regex ?? songSetDef?.extractionRegex)
+                          : fieldDef?.extraction_regex;
+                        const hasRegex = !!activeRegex;
+                        const canEditRegex = (isPredefined && fieldDef && fieldDef.field_type !== 'image') || isSongSet;
 
                         return (
                           <div key={s.id} className="py-2.5 space-y-1.5 text-xs">
@@ -798,7 +842,12 @@ export function FormLayoutAdminPanel() {
                                     ({fieldDef.shown_text})
                                   </span>
                                 )}
-                                {s.widget_kind === 'predefined_field' && (
+                                {songSetDef && (
+                                  <span className="text-[11px] text-muted-foreground font-sans">
+                                    ({songSetDef.title})
+                                  </span>
+                                )}
+                                {(isPredefined || isSongSet) && (
                                   hasRegex ? (
                                     <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 dark:text-emerald-400 text-[10px]">
                                       Regex Aktif
@@ -812,7 +861,7 @@ export function FormLayoutAdminPanel() {
                               </div>
 
                               <div className="flex items-center gap-1">
-                                {s.widget_kind === 'predefined_field' && fieldDef && fieldDef.field_type !== 'image' && (
+                                {canEditRegex && (
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -823,7 +872,7 @@ export function FormLayoutAdminPanel() {
                                         setEditingSlotRegexVar(null);
                                       } else {
                                         setEditingSlotRegexVar(s.ref_key);
-                                        setSlotInlineRegex(fieldDef.extraction_regex || '');
+                                        setSlotInlineRegex(activeRegex || '');
                                       }
                                     }}
                                   >
@@ -894,7 +943,7 @@ export function FormLayoutAdminPanel() {
                             {/* Active Regex display line */}
                             {hasRegex && editingSlotRegexVar !== s.ref_key && (
                               <p className="text-[11px] font-mono text-muted-foreground bg-muted/30 px-2 py-0.5 rounded truncate max-w-2xl">
-                                regex: {fieldDef?.extraction_regex}
+                                regex: {activeRegex}
                               </p>
                             )}
 
@@ -911,7 +960,7 @@ export function FormLayoutAdminPanel() {
                                   type="button"
                                   size="sm"
                                   className="text-xs h-7 px-2.5"
-                                  onClick={() => handleSaveInlineSlotRegex(s.ref_key)}
+                                  onClick={() => handleSaveInlineSlotRegex(s.ref_key, s.widget_kind)}
                                 >
                                   Simpan
                                 </Button>
@@ -1361,18 +1410,6 @@ export function FormLayoutAdminPanel() {
               )}
             </CardContent>
           </Card>
-        </div>
-      )}
-
-      {/* TAB 4: Advanced Parser Profiles Embedded Sub-View */}
-      {activeTab === 'profiles' && (
-        <div className="space-y-4">
-          <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg text-xs text-muted-foreground flex items-center justify-between">
-            <span>
-              Kelola profil parser warta jemaat (SDAH numbering, book aliases, dan section delimiters). Terintegrasi dengan Card Groupings & Predefined Fields di atas.
-            </span>
-          </div>
-          <ParserProfilesPanel />
         </div>
       )}
     </div>

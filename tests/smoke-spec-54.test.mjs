@@ -256,9 +256,12 @@ export function scanSpec54_03Features(registryAdminSource, formLayoutAdminSource
     findings.push('RegistryAdmin.tsx must not render standalone parsing tab view');
   }
 
-  // FormLayoutAdminPanel.tsx parser profile embedding
-  if (!formLayoutAdminSource.includes('ParserProfilesPanel')) {
-    findings.push('FormLayoutAdminPanel.tsx must embed ParserProfilesPanel for Advanced Parser Profiles');
+  // SPEC-68: FormLayoutAdminPanel.tsx parser profile menu retirement absence guard
+  if (formLayoutAdminSource.includes("activeTab === 'profiles'")) {
+    findings.push('FormLayoutAdminPanel.tsx must NOT contain "activeTab === \'profiles\'"');
+  }
+  if (formLayoutAdminSource.includes('<ParserProfilesPanel')) {
+    findings.push('FormLayoutAdminPanel.tsx must NOT contain "<ParserProfilesPanel"');
   }
 
   // FormLayoutAdminPanel.tsx live rundown test area & production parity
@@ -394,6 +397,39 @@ test('SPEC-54-04: Numerical Geometry Invariants across Cardinal Rotation Angles 
     assert.strictEqual(resultEl.rotation, angle, `Serialized rotation must equal ${angle}°`);
   }
 });
+
+test('SPEC-68-01-Absence-Guard: Parser profile menu removal defect injection proofs', () => {
+  const registryAdminPath = path.join(root, 'src', 'components', 'admin', 'RegistryAdmin.tsx');
+  const formLayoutAdminPath = path.join(root, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx');
+
+  const registryAdminSource = fs.readFileSync(registryAdminPath, 'utf8');
+  const formLayoutAdminSource = fs.readFileSync(formLayoutAdminPath, 'utf8');
+
+  // Verify baseline is green
+  const baselineFindings = scanSpec54_03Features(registryAdminSource, formLayoutAdminSource);
+  assert.deepEqual(baselineFindings, [], 'Baseline must have zero findings');
+
+  // Defect 1: inject activeTab === 'profiles'
+  const defectProfilesTab = scanSpec54_03Features(
+    registryAdminSource,
+    formLayoutAdminSource + "\nconst test = activeTab === 'profiles';"
+  );
+  assert.ok(
+    defectProfilesTab.some((f) => f.includes('activeTab === \'profiles\'')),
+    'Absence guard must detect injected activeTab === "profiles"'
+  );
+
+  // Defect 2: inject <ParserProfilesPanel
+  const defectProfilesComponent = scanSpec54_03Features(
+    registryAdminSource,
+    formLayoutAdminSource + '\nconst test = <ParserProfilesPanel />;'
+  );
+  assert.ok(
+    defectProfilesComponent.some((f) => f.includes('<ParserProfilesPanel')),
+    'Absence guard must detect injected <ParserProfilesPanel'
+  );
+});
+
 
 
 

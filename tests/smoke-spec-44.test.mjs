@@ -80,19 +80,18 @@ test('SPEC-44-04: Executable Absence Guard & defect injection for slot omission'
   );
 });
 
-test('SPEC-44-05: Admin UI includes ParserProfilesPanel in Layout & Fields and localization catalogues', async () => {
-  const registryAdminPath = path.join(root, 'src', 'components', 'admin', 'RegistryAdmin.tsx');
+test('SPEC-44-05: ParserProfilesPanel retired from layout UI per SPEC-68 while localization catalogues and backend remain', async () => {
   const formLayoutAdminPath = path.join(root, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx');
-  const registryAdminSource = fs.readFileSync(registryAdminPath, 'utf8');
   const formLayoutAdminSource = fs.readFileSync(formLayoutAdminPath, 'utf8');
 
+  // SPEC-68: Retired from daily operator/layout UI
   assert.ok(
-    registryAdminSource.includes('ParserProfilesPanel') || formLayoutAdminSource.includes('ParserProfilesPanel'),
-    'Admin must import and render ParserProfilesPanel'
+    !formLayoutAdminSource.includes("activeTab === 'profiles'"),
+    'FormLayoutAdminPanel must retire activeTab === "profiles" per SPEC-68'
   );
   assert.ok(
-    registryAdminSource.includes("id: 'parsing'") || formLayoutAdminSource.includes("activeTab === 'profiles'"),
-    "Admin must provide parser profiles access"
+    !formLayoutAdminSource.includes('<ParserProfilesPanel'),
+    'FormLayoutAdminPanel must retire <ParserProfilesPanel per SPEC-68'
   );
 
   const enCataloguePath = path.join(root, 'src', 'lib', 'i18n', 'catalogue-en.ts');
