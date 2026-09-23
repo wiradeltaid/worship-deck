@@ -2802,7 +2802,7 @@ waves:
     spec_folder: .scratch/SPEC-61-manual-sync-push-body-cap-and-chunking/
     spec_reviewed:
       date: '2026-09-23'
-      sha: 'HEAD'
+      sha: 'db18d4088864dd5173c378310598d2e629c5a13c'
       lenses: [edge-case-hunter, correctness, scope-boundary]
       note: "Terra (kiro-agent). Found and fixed: (1) MaxBytesReader alone can't produce the required distinct error message -- json.Decode maps every failure to a generic 'Invalid request body'; needs explicit *http.MaxBytesError detection. (2) chunk size must be measured from the actual serialized JSON body (envelope, escaping, UTF-8), not estimated from records. (3) chunk mutation_ids must be deterministic from the original push id, not fresh-random, for retry safety against the server's client_device_id+mutation_id idempotency key. (4) chunking must preserve syncPush's fixed cross-kind processing order (services before dependent announcement_items, confirmed via the real unresolved_service_reference check) -- not just avoid splitting individual records. (5) the oversized-single-record case needs a defined partial-success result contract (which chunks/records succeeded, aggregate count), not a bare pass/fail. base_rev confirmed genuinely unused by grep, as the spec claimed."
     tickets:
@@ -2831,7 +2831,7 @@ waves:
     spec_folder: .scratch/SPEC-62-fonts-delete-endpoint/
     spec_reviewed:
       date: '2026-09-23'
-      sha: 'HEAD'
+      sha: 'db18d4088864dd5173c378310598d2e629c5a13c'
       lenses: [edge-case-hunter, correctness, scope-boundary]
       note: "Terra (kiro-agent). Found and fixed: (1) the ticket's cited file-cleanup precedent (deleteBackgroundLibraryImage) was wrong -- it never unlinks a file, only tombstones + deletes the DB row; no such precedent exists in this codebase, the ticket now defines the sequence from scratch. (2) a live font reference is a real, confirmed consequence (font-catalog.ts, App.tsx, PresenterOperator.tsx, ProjectorClient.tsx, pptx_import.go all consume /api/fonts by family/source-typeface), not a hypothetical to merely 'confirm' -- the ticket now requires choosing and implementing either a 409-on-referenced refusal or a fontStatus reconciliation, not leaving it open. (3) the unlink-failure policy only covered the already-missing-file case; a permission/IO failure after the DB row is gone leaves an unrecoverable orphan (the API 404s on retry) -- now requires an explicit logged/recoverable path for that case too."
     tickets:
@@ -2853,7 +2853,7 @@ waves:
     spec_folder: .scratch/SPEC-63-form-layout-fetch-error-surfaced/
     spec_reviewed:
       date: '2026-09-23'
-      sha: 'HEAD'
+      sha: 'db18d4088864dd5173c378310598d2e629c5a13c'
       lenses: [edge-case-hunter, correctness, scope-boundary]
       note: "Terra (kiro-agent). Found and fixed: (1) the ticket overstated the failure as identical on both forms -- EditForm initializes layoutData from initialLayoutSnapshot, so dynamic fields keep rendering after a failed live fetch when a valid snapshot exists; only a snapshot-less EditForm or CreateForm falls back fully. (2) both forms only call fetchLayout() after an unrelated Promise.all (song-set entries/backgrounds/song books) succeeds -- if that Promise.all itself rejects, fetchLayout() is never called at all, so a fetchLayout-only fix would miss this path entirely. (3) the existing onRefreshLayout wiring only reaches DynamicFormBody, which isn't mounted in the fallback/failure state, so it cannot serve as the retry control the ticket assumed -- a real retry control in the error banner itself is now required."
     tickets:
