@@ -888,8 +888,8 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var profile *parse.ParserProfile
-	profileID := existing.profileID.String
-	profileVersion := int(existing.profileVersion.Int64)
+	var profileID string
+	var profileVersion int
 	if pid, ok := body["parserProfileId"].(string); ok && strings.TrimSpace(pid) != "" {
 		profileID = strings.TrimSpace(pid)
 	} else if pid, ok := body["parser_profile_id"].(string); ok && strings.TrimSpace(pid) != "" {

@@ -1662,7 +1662,7 @@ rtm:
   release: service-form-parser-profile-retirement-and-song-overflow-removal
   test:
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -4089,7 +4089,7 @@ rtm:
   release: service-form-parser-profile-retirement-and-song-overflow-removal
   test:
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

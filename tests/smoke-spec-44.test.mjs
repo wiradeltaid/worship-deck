@@ -105,11 +105,10 @@ test('SPEC-44-05: ParserProfilesPanel retired from layout UI per SPEC-68 while l
   assert.ok(idSource.includes('admin.parsing.title'), 'catalogue-id must include admin.parsing.title');
 });
 
-test('SPEC-44-06: CreateForm and EditForm render parser profile indicators and song set suggestion chips', async () => {
+test('SPEC-44-06: CreateForm and EditForm render song set suggestion chips (parser profiles retired per SPEC-69)', async () => {
   const createFormPath = path.join(root, 'src', 'operator', 'CreateForm.tsx');
   const createFormSource = fs.readFileSync(createFormPath, 'utf8');
 
-  assert.ok(createFormSource.includes('parserProfiles'), 'CreateForm must track parserProfiles');
   assert.ok(createFormSource.includes('songSetSuggestions'), 'CreateForm must track songSetSuggestions');
   assert.ok(createFormSource.includes('handleAcceptAllSuggestions'), 'CreateForm must provide handleAcceptAllSuggestions');
   assert.ok(createFormSource.includes('form.parser.suggested'), 'CreateForm must render suggested chip');
@@ -117,7 +116,6 @@ test('SPEC-44-06: CreateForm and EditForm render parser profile indicators and s
   const editFormPath = path.join(root, 'src', 'operator', 'EditForm.tsx');
   const editFormSource = fs.readFileSync(editFormPath, 'utf8');
 
-  assert.ok(editFormSource.includes('parserProfiles'), 'EditForm must track parserProfiles');
   assert.ok(editFormSource.includes('songSetSuggestions'), 'EditForm must track songSetSuggestions');
   assert.ok(editFormSource.includes('handleAcceptAllSuggestions'), 'EditForm must provide handleAcceptAllSuggestions');
   assert.ok(editFormSource.includes('form.parser.suggested'), 'EditForm must render suggested chip');

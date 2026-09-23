@@ -66,7 +66,6 @@ export default function EditForm({
   initialAnnouncementInserts = [],
   initialFieldValues,
   initialLayoutSnapshot,
-  initialParserProfileId = '',
   initialUpdatedAt,
   hymnIndex = EMPTY_HYMN_INDEX,
 }: {
@@ -81,7 +80,6 @@ export default function EditForm({
   initialAnnouncementInserts?: string[];
   initialFieldValues?: Record<string, string>;
   initialLayoutSnapshot?: unknown;
-  initialParserProfileId?: string;
   /** Accepted for page compat; edit no longer mutates participants_payload. */
   initialParticipantsRaw?: string;
   initialUpdatedAt: string;
@@ -279,23 +277,6 @@ export default function EditForm({
           }
         }
         try {
-          const profilesRes = await fetch('/api/parser-profiles', { credentials: 'same-origin' });
-          if (profilesRes.ok) {
-            const pData = (await profilesRes.json()) as {
-              profiles?: Array<{ id: string; slug: string; title: string; isDefault: boolean }>;
-            };
-            if (active && Array.isArray(pData.profiles)) {
-              setParserProfiles(pData.profiles);
-              if (!initialParserProfileId) {
-                const def = pData.profiles.find((p) => p.isDefault) || pData.profiles[0];
-                if (def) setSelectedProfileId(def.id);
-              }
-            }
-          }
-        } catch {
-          // ignore
-        }
-        try {
           const sessRes = await fetch('/api/session');
           if (sessRes.ok) {
             const s = (await sessRes.json()) as { role?: string };
@@ -311,10 +292,8 @@ export default function EditForm({
     return () => {
       active = false;
     };
-  }, [initialParserProfileId]);
+  }, []);
 
-  const [parserProfiles, setParserProfiles] = useState<Array<{ id: string; slug: string; title: string; isDefault: boolean }>>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>(initialParserProfileId);
   const [songSetSuggestions, setSongSetSuggestions] = useState<Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>>({});
   const [songOverflow, setSongOverflow] = useState<Array<{ line: string; number: number; bookCode: string }>>([]);
   const [unmappedLines, setUnmappedLines] = useState<string[]>([]);
@@ -560,7 +539,6 @@ export default function EditForm({
           familyPhotoUrl: familyPhotoUrl || null,
           youthPhotoUrl: youthPhotoUrl || null,
           announcementInserts: announcementInserts.map((s) => s.trim()),
-          parserProfileId: selectedProfileId || undefined,
         }),
       });
       const data = (await res.json()) as {
@@ -798,12 +776,8 @@ export default function EditForm({
       parsed_data?: ParsedRundown | null;
       songSets?: unknown;
       images_payload?: Record<string, unknown>;
-      parser_profile_id?: string;
       updated_at?: string;
     };
-    if (svc.parser_profile_id) {
-      setSelectedProfileId(svc.parser_profile_id);
-    }
     const snapshot = applyServerSnapshot(svc);
     await refreshSlidePreview(snapshot);
   };
@@ -826,7 +800,6 @@ export default function EditForm({
           familyPhotoUrl: familyPhotoUrl.trim() || null,
           youthPhotoUrl: youthPhotoUrl.trim() || null,
           announcementInserts: announcementInserts.map((s) => s.trim()),
-          parserProfileId: selectedProfileId || null,
           fields: buildFieldsPayload(fieldsRef.current),
           field_values: fieldValues,
         }),
@@ -939,33 +912,6 @@ export default function EditForm({
                   <label className="text-sm font-semibold text-muted-foreground">
                     {t('form.rundown.label')}
                   </label>
-                  {parserProfiles.length > 0 ? (
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-muted-foreground">{t('form.parser.profile')}:</span>
-                      {parserProfiles.length > 1 ? (
-                        <Select
-                          value={selectedProfileId}
-                          onValueChange={(val) => setSelectedProfileId(val ?? '')}
-                          disabled={isSaving}
-                        >
-                          <SelectTrigger className="h-7 text-xs px-2 min-w-[140px]">
-                            <SelectValue placeholder={t('form.parser.profile')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {parserProfiles.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.title} {p.isDefault ? `(${t('admin.parsing.defaultBadge')})` : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="outline" className="text-[11px] font-normal">
-                          {parserProfiles[0]?.title}
-                        </Badge>
-                      )}
-                    </div>
-                  ) : null}
                 </div>
                 <Textarea
                   className="h-72 font-mono text-xs"

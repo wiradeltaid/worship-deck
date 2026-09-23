@@ -375,3 +375,124 @@ func TestGetServiceRawPayloadVerbatimViaHttp(t *testing.T) {
 		t.Fatalf("GET /api/services/{id} returned corrupted raw_payload:\ngot:\n%q\nwant:\n%q", svcResp.RawPayload, verbatimText)
 	}
 }
+
+func TestServicesParserProfileIdOmittedAndNullHandling(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. POST /api/services/preview with omitted parserProfileId
+	parseOmitted := `{"raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nScripture: John 3:16"}`
+	res := songSetRequest(t, ts, "POST", "/api/services/preview", parseOmitted, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("parse omitted parserProfileId status = %d, want 200", res.StatusCode)
+	}
+	var parseResp struct {
+		Date *string `json:"date"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&parseResp)
+	res.Body.Close()
+	if parseResp.Date == nil || *parseResp.Date != "2026-10-17" {
+		t.Errorf("expected parsed date 2026-10-17, got %v", parseResp.Date)
+	}
+
+	// 2. POST /api/services/preview with explicit null parserProfileId
+	parseNull := `{"raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nScripture: John 3:16", "parserProfileId": null}`
+	res = songSetRequest(t, ts, "POST", "/api/services/preview", parseNull, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("parse null parserProfileId status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 3. POST /api/services with omitted parserProfileId
+	createOmitted := `{"date": "2026-10-17", "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE"}`
+	res = songSetRequest(t, ts, "POST", "/api/services", createOmitted, cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service omitted parserProfileId status = %d, want 201", res.StatusCode)
+	}
+	var created1 struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&created1)
+	res.Body.Close()
+
+	// 4. POST /api/services with explicit null parserProfileId (allowSecond for same date)
+	createNull := `{"date": "2026-10-17", "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE", "parserProfileId": null, "allowSecond": true}`
+	res = songSetRequest(t, ts, "POST", "/api/services", createNull, cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service null parserProfileId status = %d, want 201", res.StatusCode)
+	}
+	var created2 struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&created2)
+	res.Body.Close()
+
+	// Fetch created1 and get its updated_at
+	res = songSetRequest(t, ts, "GET", fmt.Sprintf("/api/services/%d", created1.ID), "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get service status = %d, want 200", res.StatusCode)
+	}
+	var svcResp struct {
+		UpdatedAt string `json:"updated_at"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&svcResp)
+	res.Body.Close()
+
+	// 5. PUT /api/services/{id} with omitted parserProfileId
+	updateOmitted := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdated"}`, svcResp.UpdatedAt)
+	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", created1.ID), updateOmitted, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("update service omitted parserProfileId status = %d, want 200", res.StatusCode)
+	}
+	var updateResp1 struct {
+		UpdatedAt string `json:"updated_at"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&updateResp1)
+	res.Body.Close()
+
+	// 6. PUT /api/services/{id} with explicit null parserProfileId
+	updateNull := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdated Null", "parserProfileId": null}`, updateResp1.UpdatedAt)
+	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", created1.ID), updateNull, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("update service null parserProfileId status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Assert created1 and created2 persisted default profile
+	var prof1, prof2 string
+	if err := handle.QueryRow(`SELECT parser_profile_id FROM services WHERE id = ?`, created1.ID).Scan(&prof1); err != nil {
+		t.Fatalf("query parser_profile_id for created1: %v", err)
+	}
+	if prof1 != "builtin-default" {
+		t.Errorf("expected parser_profile_id builtin-default for created1, got %q", prof1)
+	}
+	if err := handle.QueryRow(`SELECT parser_profile_id FROM services WHERE id = ?`, created2.ID).Scan(&prof2); err != nil {
+		t.Fatalf("query parser_profile_id for created2: %v", err)
+	}
+	if prof2 != "builtin-default" {
+		t.Errorf("expected parser_profile_id builtin-default for created2, got %q", prof2)
+	}
+
+	// 7. Verify service with existing non-default profile re-resolves to default profile on omitted/null update
+	_, err := handle.Exec(`UPDATE services SET parser_profile_id = 'custom-legacy' WHERE id = ?`, created1.ID)
+	if err != nil {
+		t.Fatalf("update legacy profile: %v", err)
+	}
+	var currentUpdated string
+	_ = handle.QueryRow(`SELECT updated_at FROM services WHERE id = ?`, created1.ID).Scan(&currentUpdated)
+
+	updateRevert := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nRevert to default"}`, currentUpdated)
+	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", created1.ID), updateRevert, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("update service revert status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	var profReverted string
+	if err := handle.QueryRow(`SELECT parser_profile_id FROM services WHERE id = ?`, created1.ID).Scan(&profReverted); err != nil {
+		t.Fatalf("query reverted parser_profile_id: %v", err)
+	}
+	if profReverted != "builtin-default" {
+		t.Errorf("expected reverted parser_profile_id builtin-default, got %q", profReverted)
+	}
+}

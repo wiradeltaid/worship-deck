@@ -127,7 +127,6 @@ export default function RunSheetPage() {
         }
         initialFieldValues={svc.field_values}
         initialLayoutSnapshot={svc.form_layout_snapshot}
-        initialParserProfileId={svc.parser_profile_id || ''}
         initialUpdatedAt={svc.updated_at}
       />
     </>
