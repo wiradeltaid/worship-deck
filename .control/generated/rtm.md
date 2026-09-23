@@ -1350,6 +1350,20 @@ rtm:
   FR: FR-18
   DEC: []
   UC: UC-9
+  ticket: SPEC-66-01
+  spec: SPEC-66
+  release: exempt-branding-assets-session-gate
+  test:
+  - internal/gate/gate_test.go
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-8
+  FR: FR-18
+  DEC: []
+  UC: UC-9
   ticket: W9-01
   spec: W9
   release: hub-admin-mgmt

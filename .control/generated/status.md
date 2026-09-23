@@ -6,7 +6,7 @@
 promise_progress: 100%
 rtm_rows:
   green: 578
-  counted: 578
+  counted: 579
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -279,6 +279,11 @@ work_progress:
   tickets_done: 1
   tickets_total: 1
   work_progress: 100%
+- spec: SPEC-66
+  status: open
+  tickets_done: 0
+  tickets_total: 1
+  work_progress: 0%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -337,9 +342,12 @@ work_progress:
 gate_readiness: 100%
 validators_red: []
 validators_skipped:
-  review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/presenter/SDD-presenter.md
-    (changed at d2182f0, reviewed at bc6c694), .what/presenter/SRS-presenter.md (changed at d2182f0, reviewed
-    at bc6c694), .what/registry/SRS-registry.md (changed at d2182f0, reviewed at 840014f)'
+  review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
+    (changed at cfcd78a, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at cfcd78a, reviewed at bc6c694),
+    .how/presenter/SDD-presenter.md (changed at cfcd78a, reviewed at bc6c694), .how/registry/SDD-registry.md
+    (changed at cfcd78a, reviewed at bc6c694), .what/hub/SRS-hub.md (changed at cfcd78a, reviewed at e1558cc),
+    .what/presenter/SRS-presenter.md (changed at cfcd78a, reviewed at bc6c694), .what/registry/SRS-registry.md
+    (changed at cfcd78a, reviewed at 840014f)'
 open_questions:
   blocking: 0
   assumptions: 37
@@ -354,7 +362,12 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: none
-  active_ids: []
-  active_mandate: null
+  resolution: one
+  active_ids:
+  - DEC-061
+  active_mandate:
+    id: DEC-061
+    status: accepted
+    expires: '2026-09-30'
+    scope: all
 ```
