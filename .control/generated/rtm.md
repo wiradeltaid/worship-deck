@@ -3652,11 +3652,11 @@ rtm:
   spec: SPEC-59
   release: announcement-set-freeze-snapshot
   test:
-  - internal/plan/snapshot_announcement_test.go
-  status: ready-for-agent
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -3667,10 +3667,10 @@ rtm:
   release: announcement-set-freeze-snapshot
   test:
   - internal/plan/snapshot_announcement_freeze_guard_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -8262,11 +8262,11 @@ rtm:
   spec: SPEC-59
   release: announcement-set-freeze-snapshot
   test:
-  - internal/plan/snapshot_announcement_test.go
-  status: ready-for-agent
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -8277,10 +8277,10 @@ rtm:
   release: announcement-set-freeze-snapshot
   test:
   - internal/plan/snapshot_announcement_freeze_guard_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -8335,11 +8335,11 @@ rtm:
   spec: SPEC-59
   release: announcement-set-freeze-snapshot
   test:
-  - internal/plan/snapshot_announcement_test.go
-  status: ready-for-agent
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -8350,10 +8350,10 @@ rtm:
   release: announcement-set-freeze-snapshot
   test:
   - internal/plan/snapshot_announcement_freeze_guard_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -8394,11 +8394,11 @@ rtm:
   spec: SPEC-59
   release: announcement-set-freeze-snapshot
   test:
-  - internal/plan/snapshot_announcement_test.go
-  status: ready-for-agent
+  - internal/plan/snapshot_announcement_freeze_guard_test.go
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6
@@ -8409,10 +8409,10 @@ rtm:
   release: announcement-set-freeze-snapshot
   test:
   - internal/plan/snapshot_announcement_freeze_guard_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6

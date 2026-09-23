@@ -184,6 +184,17 @@ func loadServiceFieldValuesIntoSnapshot(db *sql.DB, serviceID int, snap *Snapsho
 	}
 }
 
+// ServiceIsRegistryFrozen reports whether the given service has a frozen registry snapshot
+// (registry_snapshot_at IS NOT NULL), matching AD-16 / AD-35 freeze criteria.
+func ServiceIsRegistryFrozen(db *sql.DB, serviceID int) bool {
+	if db == nil || serviceID <= 0 {
+		return false
+	}
+	var snapAt sql.NullString
+	err := db.QueryRow(`SELECT registry_snapshot_at FROM services WHERE id = ?`, serviceID).Scan(&snapAt)
+	return err == nil && snapAt.Valid && strings.TrimSpace(snapAt.String) != ""
+}
+
 func loadAnnouncementSlidesIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {
 	if snap.AnnouncementSlides == nil {
 		snap.AnnouncementSlides = map[int][]AnnouncementSlide{}
@@ -191,17 +202,64 @@ func loadAnnouncementSlidesIntoSnapshot(db *sql.DB, serviceID int, snap *Snapsho
 	if snap.AnnouncementSetLabels == nil {
 		snap.AnnouncementSetLabels = map[int]string{}
 	}
-	setRows, err := db.Query(`SELECT id, COALESCE(name, ''), COALESCE(label, '') FROM announcement_sets`)
+
+	if ServiceIsRegistryFrozen(db, serviceID) {
+		// Read from frozen service_announcement_set_slides
+		rows, err := db.Query(
+			`SELECT slide_id, ann_set_id, ann_set_label, label, payload, position
+			   FROM service_announcement_set_slides
+			  WHERE service_id = ?
+			  ORDER BY position ASC, slide_id ASC`,
+			serviceID,
+		)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var slideID, annSetID, pos int
+				var annSetLabel, label, payloadStr string
+				if err := rows.Scan(&slideID, &annSetID, &annSetLabel, &label, &payloadStr, &pos); err != nil {
+					continue
+				}
+				if strings.TrimSpace(annSetLabel) != "" {
+					snap.AnnouncementSetLabels[annSetID] = strings.TrimSpace(annSetLabel)
+				}
+				var tmpl Template
+				if err := json.Unmarshal([]byte(payloadStr), &tmpl); err != nil {
+					continue
+				}
+				tmpl.ID = fmt.Sprintf("ann-slide-%d", slideID)
+				tmpl.Label = label
+				tmpl.BaseType = "general"
+				snap.AnnouncementSlides[annSetID] = append(snap.AnnouncementSlides[annSetID], AnnouncementSlide{
+					ID:       slideID,
+					AnnSetID: annSetID,
+					Label:    label,
+					Position: pos,
+					Template: tmpl,
+				})
+			}
+		}
+
+		// Also ensure any ann-set-marker on the spine has its label in AnnouncementSetLabels even if 0 slides
+		for _, tmpl := range snap.ByID {
+			if tmpl.BaseType == "ann-set-marker" && tmpl.AnnSetID != nil {
+				if _, exists := snap.AnnouncementSetLabels[*tmpl.AnnSetID]; !exists {
+					snap.AnnouncementSetLabels[*tmpl.AnnSetID] = tmpl.Label
+				}
+			}
+		}
+		return
+	}
+
+	// Unfrozen service, or live preview (serviceID == 0): read live tables
+	setRows, err := db.Query(`SELECT id, COALESCE(label, '') FROM announcement_sets`)
 	if err == nil {
 		defer setRows.Close()
 		for setRows.Next() {
 			var setID int
-			var sName, sLabel string
-			if err := setRows.Scan(&setID, &sName, &sLabel); err == nil {
+			var sLabel string
+			if err := setRows.Scan(&setID, &sLabel); err == nil {
 				lbl := strings.TrimSpace(sLabel)
-				if lbl == "" {
-					lbl = strings.TrimSpace(sName)
-				}
 				if lbl != "" {
 					snap.AnnouncementSetLabels[setID] = lbl
 				}

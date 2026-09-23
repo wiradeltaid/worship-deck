@@ -22,8 +22,8 @@ const (
 	artifactRegistryBootstrapKey = "artifact_registry_bootstrapped"
 	dataVersionKey               = "data_version"
 	bootstrapDataVersion         = "3"
-	currentDataVersionInt        = 11
-	currentDataVersion           = "11"
+	currentDataVersionInt        = 12
+	currentDataVersion           = "12"
 	// AD-26: the corpus code is the cross-boundary key. The shipped corpus is
 	// SDAH; a per-book settings marker (song_book_bootstrapped_<code>) gates
 	// its one-time bootstrap (DEC-005 / AD-36).
@@ -120,6 +120,9 @@ func seedHub(handle *sql.DB, root string) error {
 		return err
 	}
 	if err := migrateSnapshots(handle); err != nil {
+		return err
+	}
+	if err := migrateFrozenAnnouncementSlides(handle); err != nil {
 		return err
 	}
 	if err := ensureDataVersionCurrent(handle); err != nil {
@@ -673,12 +676,63 @@ func migrateSnapshots(db *sql.DB) error {
 	return nil
 }
 
+func migrateFrozenAnnouncementSlides(db *sql.DB) error {
+	var ver string
+	err := db.QueryRow(`SELECT value FROM settings WHERE key = ?`, dataVersionKey).Scan(&ver)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if dataVersionAtLeast(ver, currentDataVersionInt) {
+		return nil
+	}
+
+	rows, err := db.Query(`SELECT id FROM services WHERE registry_snapshot_at IS NOT NULL`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+
+	for _, sid := range ids {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		_, _ = tx.Exec(`DELETE FROM service_announcement_set_slides WHERE service_id = ?`, sid)
+		if err := CloneAnnouncementSlidesTx(tx, sid); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+	if len(ids) > 0 {
+		log.Printf("[registry] SPEC-59: cloned live announcement slides onto %d existing frozen service(s); data_version=%s", len(ids), currentDataVersion)
+	}
+	return nil
+}
+
 func cloneLiveToService(tx *sql.Tx, serviceID int, trio *plan.SongSetLayoutTrio) error {
 	if _, err := tx.Exec(`DELETE FROM service_registry_snapshots WHERE service_id = ?`, serviceID); err != nil {
 		return err
 	}
+	if _, err := tx.Exec(`DELETE FROM service_announcement_set_slides WHERE service_id = ?`, serviceID); err != nil {
+		return err
+	}
 	rows, err := tx.Query(
-		`SELECT id, label, base_type, payload, updated_at FROM artifact_templates ORDER BY position`,
+		`SELECT id, label, base_type, payload, updated_at, variable_name, ann_set_id FROM artifact_templates ORDER BY position`,
 	)
 	if err != nil {
 		return err
@@ -687,8 +741,10 @@ func cloneLiveToService(tx *sql.Tx, serviceID int, trio *plan.SongSetLayoutTrio)
 	pos := 0
 	for rows.Next() {
 		var id, label, baseType, updatedAt string
+		var varName sql.NullString
 		var payloadNull sql.NullString
-		if err := rows.Scan(&id, &label, &baseType, &payloadNull, &updatedAt); err != nil {
+		var annSetID sql.NullInt64
+		if err := rows.Scan(&id, &label, &baseType, &payloadNull, &updatedAt, &varName, &annSetID); err != nil {
 			return err
 		}
 		var payload string
@@ -713,9 +769,9 @@ func cloneLiveToService(tx *sql.Tx, serviceID int, trio *plan.SongSetLayoutTrio)
 		}
 		if _, err := tx.Exec(
 			`INSERT INTO service_registry_snapshots
-			   (service_id, template_id, position, label, base_type, payload, updated_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			serviceID, id, pos, label, baseType, payload, updatedAt,
+			   (service_id, template_id, position, label, base_type, payload, updated_at, variable_name, ann_set_id)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			serviceID, id, pos, label, baseType, payload, updatedAt, varName, annSetID,
 		); err != nil {
 			return err
 		}
@@ -739,8 +795,75 @@ func cloneLiveToService(tx *sql.Tx, serviceID int, trio *plan.SongSetLayoutTrio)
 	); err != nil {
 		return err
 	}
+
+	// SPEC-59: Clone live announcement set slides for every announcement set placed on the spine
+	if err := CloneAnnouncementSlidesTx(tx, serviceID); err != nil {
+		return err
+	}
+
 	_, err = tx.Exec(`UPDATE services SET registry_snapshot_at = `+StampNowSQL+` WHERE id = ?`, serviceID)
 	return err
+}
+
+// CloneAnnouncementSlidesTx clones live announcement slides into service_announcement_set_slides
+// for every announcement set currently placed on the spine.
+func CloneAnnouncementSlidesTx(tx *sql.Tx, serviceID int) error {
+	setRows, err := tx.Query(
+		`SELECT DISTINCT ann_set_id FROM artifact_templates WHERE base_type = 'ann-set-marker' AND ann_set_id IS NOT NULL`,
+	)
+	if err != nil {
+		return err
+	}
+	defer setRows.Close()
+
+	var setIDs []int
+	for setRows.Next() {
+		var sid int
+		if err := setRows.Scan(&sid); err == nil {
+			setIDs = append(setIDs, sid)
+		}
+	}
+	setRows.Close()
+
+	for _, setID := range setIDs {
+		var setLabel sql.NullString
+		err := tx.QueryRow(`SELECT label FROM announcement_sets WHERE id = ?`, setID).Scan(&setLabel)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		sLabel := ""
+		if setLabel.Valid {
+			sLabel = setLabel.String
+		}
+
+		slideRows, err := tx.Query(
+			`SELECT id, label, payload, position, updated_at FROM announcement_set_slides WHERE ann_set_id = ? ORDER BY position ASC, id ASC`,
+			setID,
+		)
+		if err != nil {
+			return err
+		}
+		for slideRows.Next() {
+			var slideID, pos int
+			var slideLabel, payload, updatedAt string
+			if err := slideRows.Scan(&slideID, &slideLabel, &payload, &pos, &updatedAt); err != nil {
+				slideRows.Close()
+				return err
+			}
+			if _, err := tx.Exec(
+				`INSERT INTO service_announcement_set_slides
+				   (service_id, slide_id, ann_set_id, ann_set_label, label, payload, position, updated_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				serviceID, slideID, setID, sLabel, slideLabel, payload, pos, updatedAt,
+			); err != nil {
+				slideRows.Close()
+				return err
+			}
+		}
+		slideRows.Close()
+	}
+
+	return nil
 }
 
 func CloneRegistryToNewService(db *sql.DB, serviceID int) error {

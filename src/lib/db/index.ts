@@ -695,6 +695,7 @@ export function bootstrap(database: Database.Database): void {
   migrateSongBookRow(database);
   migrateParserProfiles(database);
   migrateFormLayout(database);
+  migrateFrozenAnnouncementSlides(database);
 
   // --- corpus load ---
   // DEC-005/AD-36: upsertHymns is a bootstrap-once seed and MUST run after
@@ -1728,6 +1729,65 @@ export function migrateFormLayout(database: Database.Database): void {
       }
     }
     console.info(`[form-layout] seeded default-layout with groupings and predefined fields`);
+  }
+}
+
+/** SPEC-59: companion migration cloning announcement slides onto existing frozen services before data_version 12. */
+function migrateFrozenAnnouncementSlides(database: Database.Database): void {
+  const row = database
+    .prepare(`SELECT value FROM settings WHERE key = ?`)
+    .get(DATA_VERSION_KEY) as { value: string } | undefined;
+  const version = row ? Number(row.value) : 0;
+  if (!Number.isFinite(version) || version >= 12) return;
+
+  const services = database
+    .prepare(`SELECT id FROM services WHERE registry_snapshot_at IS NOT NULL`)
+    .all() as { id: number }[];
+
+  for (const s of services) {
+    const setIds = database
+      .prepare(
+        `SELECT DISTINCT ann_set_id FROM artifact_templates WHERE base_type = 'ann-set-marker' AND ann_set_id IS NOT NULL`
+      )
+      .all() as { ann_set_id: number }[];
+
+    for (const { ann_set_id } of setIds) {
+      const setRow = database
+        .prepare(`SELECT label FROM announcement_sets WHERE id = ?`)
+        .get(ann_set_id) as { label?: string } | undefined;
+      const setLabel = setRow?.label ?? '';
+
+      const slides = database
+        .prepare(
+          `SELECT id, label, payload, position, updated_at FROM announcement_set_slides WHERE ann_set_id = ? ORDER BY position ASC, id ASC`
+        )
+        .all(ann_set_id) as {
+        id: number;
+        label: string;
+        payload: string;
+        position: number;
+        updated_at: string;
+      }[];
+
+      for (const slide of slides) {
+        database
+          .prepare(
+            `INSERT INTO service_announcement_set_slides
+              (service_id, slide_id, ann_set_id, ann_set_label, label, payload, position, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .run(
+            s.id,
+            slide.id,
+            ann_set_id,
+            setLabel,
+            slide.label,
+            slide.payload,
+            slide.position,
+            slide.updated_at
+          );
+      }
+    }
   }
 }
 

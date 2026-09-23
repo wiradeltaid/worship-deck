@@ -797,6 +797,10 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	if _, err := tx.Exec(`DELETE FROM service_announcement_set_slides WHERE service_id = ?`, id); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
 	rows, err := tx.Query(`SELECT id, label, base_type, payload, updated_at, variable_name, ann_set_id FROM artifact_templates ORDER BY position`)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -858,6 +862,10 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		 SELECT ?, role, payload, updated_at FROM song_set_layouts`,
 		id,
 	); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	if err := db.CloneAnnouncementSlidesTx(tx, id); err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}

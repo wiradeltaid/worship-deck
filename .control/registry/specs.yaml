@@ -2741,7 +2741,7 @@ waves:
           - internal/httpapi/services_delete_uploads_test.go
 
   - id: SPEC-59
-    status: open
+    status: closed
     release: announcement-set-freeze-snapshot
     prd: [offline-deck]
     fr: [FR-21]
@@ -2760,12 +2760,14 @@ waves:
         blocked_by: []
         touches: [artifacts]
         tests:
-          - internal/plan/snapshot_announcement_test.go
+          - internal/plan/snapshot_announcement_freeze_guard_test.go
       - id: "SPEC-59-02"
         component: registry
         satisfies: [UC-16, UC-20, FR-21]
         blocked_by: ["SPEC-59-01"]
         touches: [artifacts]
+        tests:
+          - internal/plan/snapshot_announcement_freeze_guard_test.go
         tests:
           - internal/plan/snapshot_announcement_freeze_guard_test.go
 

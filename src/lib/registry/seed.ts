@@ -25,7 +25,7 @@ export const DATA_VERSION_KEY = 'data_version';
 export const BOOTSTRAP_DATA_VERSION = 3;
 
 /** The full target version after every migration has landed. */
-export const CURRENT_DATA_VERSION = 11;
+export const CURRENT_DATA_VERSION = 12;
 
 const SEED_PATH = path.join(process.cwd(), 'data', 'default-registry.json');
 
