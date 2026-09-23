@@ -1398,6 +1398,26 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-062
+    type: mandate
+    status: applied
+    applied_at: '2026-09-23'
+    accepted_by: "kodesh87 (2026-09-23)"
+    title: Daily Autopilot mandate for Presenter Raw Rundown Display & Dynamic Field Regex Consolidation (SPEC-67)
+    file: .control/decisions/DEC-062-daily-autopilot-mandate-presenter-raw-rundown-and-field-regex.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-09-30'
+    touches:
+      - .control/memlog/autopilot-DEC-062.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
 
 
 

@@ -26,6 +26,7 @@ capabilities:
     - SPEC-47-03
     - SPEC-54-01
     - SPEC-54-03
+    - SPEC-67-02
     - W10-01
     - W10-02
     actual_start: '2026-09-18'
@@ -41,6 +42,7 @@ capabilities:
     - SPEC-46-06
     - SPEC-54-01
     - SPEC-54-03
+    - SPEC-67-02
     - W10-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -422,6 +424,7 @@ capabilities:
     - SPEC-52-03
     - SPEC-52-04
     - SPEC-53-04
+    - SPEC-67-01
     - W7-01
     actual_start: '2026-09-18'
     actual_end: ''
@@ -508,17 +511,18 @@ capabilities:
   planned_end: ''
   estimate_mandays: 0
   actual_start: '2026-09-18'
-  actual_end: '2026-09-18'
+  actual_end: ''
   delta_days: null
-  state: done
+  state: in-progress
   children:
   - id: FR-18
     text: Per-person authentication with Admin and Operator Roles
     tickets:
+    - SPEC-66-01
     - W9-01
     actual_start: '2026-09-18'
-    actual_end: '2026-09-18'
-    state: done
+    actual_end: ''
+    state: in-progress
   waiting_on: []
 - id: CAP-9
   text: Artifact Registry — Deck layout and order

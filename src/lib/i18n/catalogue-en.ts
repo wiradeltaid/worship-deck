@@ -240,6 +240,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'presenter.scripture.translation': 'Translation',
   'presenter.scripture.defaultMissing':
     'The configured default is not installed; this session is using the shipped fallback.',
+  'presenter.noRundownText': 'No rundown text provided',
   'remote.title': 'Presenter Remote',
   'remote.codePrompt': 'Enter the 6-digit pairing code shown on the presenter laptop:',
   'remote.codePlaceholder': '123456',

@@ -13,7 +13,6 @@ gantt
     section as-built
     CAP-5 Download a PPTX that presents without a netw… actual :done, cap5a, 2026-09-18, 2026-09-18
     CAP-7 Run-Sheet of the full worship order actual :done, cap7a, 2026-09-18, 2026-09-18
-    CAP-8 Per-person accounts and two Roles actual :done, cap8a, 2026-09-18, 2026-09-18
 
 ```
 
@@ -31,5 +30,5 @@ gantt
 | CAP-5 | Download a PPTX that presents without a network | as-built | — | must | — | — → — | 2026-09-18 → 2026-09-18 | — | done |
 | CAP-6 | Present in the browser — slideshow, presenter, on-demand verse | as-built | — | must | — | — → — | 2026-09-18 → — | — | in-progress |
 | CAP-7 | Run-Sheet of the full worship order | as-built | — | must | — | — → — | 2026-09-18 → 2026-09-18 | — | done |
-| CAP-8 | Per-person accounts and two Roles | as-built | — | must | — | — → — | 2026-09-18 → 2026-09-18 | — | done |
+| CAP-8 | Per-person accounts and two Roles | as-built | — | must | — | — → — | 2026-09-18 → — | — | in-progress |
 | CAP-9 | Artifact Registry — Deck layout and order | as-built | — | must | — | — → — | 2026-09-18 → — | — | in-progress |

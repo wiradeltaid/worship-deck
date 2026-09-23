@@ -242,6 +242,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'presenter.scripture.translation': 'Terjemahan',
   'presenter.scripture.defaultMissing':
     'Default yang dikonfigurasi belum terpasang; sesi ini memakai cadangan yang dikirim.',
+  'presenter.noRundownText': 'Tidak ada teks susunan acara',
   'remote.title': 'Remote Presenter',
   'remote.codePrompt': 'Masukkan kode pairing 6 digit yang tampil di laptop presenter:',
   'remote.codePlaceholder': '123456',

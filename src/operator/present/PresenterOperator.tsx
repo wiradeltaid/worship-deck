@@ -32,7 +32,6 @@ import { toast } from 'sonner';
 import { Repeat } from 'lucide-react';
 import Link from '@/components/Link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
-import type { ParsedItem } from '@/lib/parser';
 import SlideView from '@/components/SlideView';
 import {
   isProjectorMessage,
@@ -87,6 +86,7 @@ import {
   clampSlideIndex,
   computeNextLoopIndex,
   findAnnouncementSectionBounds,
+  formatPresenterRunSheet,
   rowContainsIndex,
   type PresenterEntry,
 } from './presenter-model';
@@ -281,14 +281,14 @@ export default function PresenterOperator({
   serviceId,
   serviceDate,
   slides,
-  runSheetItems,
+  rundownText = '',
   planIdentity,
   transition: deckTransition,
 }: {
   serviceId: number;
   serviceDate: string;
   slides: SlidePlanItem[];
-  runSheetItems: ParsedItem[];
+  rundownText?: string;
   /** Fingerprint of the deck this console fetched (AD-10). */
   planIdentity: string;
   /**
@@ -1271,40 +1271,20 @@ export default function PresenterOperator({
             <h2 className="border-b border-border px-3 py-2 text-sm font-semibold">
               Run-Sheet
             </h2>
-            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
-              {runSheetItems.map((item, i) => (
-                <li key={i} className="border-b border-border/70 pb-2">
-                  {item.type === 'section' ? (
-                    <div className="text-xs font-semibold uppercase text-muted-foreground">
-                      {item.title}
-                      {item.timing ? (
-                        <span className="ml-2 font-normal normal-case">
-                          ({item.timing})
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : item.type === 'role' ? (
-                    <div className="flex justify-between gap-2">
-                      <span>{item.role}</span>
-                      <span className="text-muted-foreground">
-                        {item.name}
-                        {item.timing ? ` · ${item.timing}` : ''}
-                      </span>
-                    </div>
-                  ) : item.type === 'hymn' ? (
-                    <div>
-                      #{item.number} · {item.title}
-                      {item.timing ? (
-                        <span className="text-muted-foreground">
-                          {' '}
-                          ({item.timing})
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
+              {(() => {
+                const runSheet = formatPresenterRunSheet(rundownText, t('presenter.noRundownText'));
+                return runSheet.isEmpty ? (
+                  <p className="text-sm italic text-muted-foreground">
+                    {runSheet.text}
+                  </p>
+                ) : (
+                  <div className="whitespace-pre-wrap font-sans text-sm text-foreground/90">
+                    {runSheet.text}
+                  </div>
+                );
+              })()}
+            </div>
           </section>
         </aside>
       </main>

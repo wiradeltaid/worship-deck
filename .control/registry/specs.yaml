@@ -2949,7 +2949,7 @@ waves:
   # Simplify rundown architecture: presenter displays raw rundown text directly,
   # and form intake extraction consolidates onto Dynamic Predefined Field Regex.
   - id: SPEC-67
-    status: open
+    status: closed
     release: presenter-raw-rundown-and-field-regex-consolidation
     prd: [operator-turn]
     fr: [FR-15, FR-36]

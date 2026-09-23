@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**61 decisions** — applied: 61.
+**62 decisions** — applied: 62.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -69,3 +69,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-059` | The Registry canvas's keyboard surface has grown past Delete/Backspace; DEC-012's "one exception" claim is su… | `applied` | — | `.control/decisions/DEC-012-canvas-keyboard-delete-exception.md` | `.control/decisions/DEC-059-canvas-keyboard-surface-widened-past-delete.md` |
 | `DEC-060` | Daily Autopilot mandate for Open Specs & Reconciliation Gaps (SPEC-56 through SPEC-65) | `applied` | mandate | `.control/memlog/autopilot-DEC-060.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reconciliation-gaps.md` |
 | `DEC-061` | Daily Autopilot mandate for Exempt Branding Static Assets from Session Gate (SPEC-66) | `applied` | mandate | `.control/memlog/autopilot-DEC-061.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-061-daily-autopilot-mandate-exempt-branding-assets-session-gate.md` |
+| `DEC-062` | Daily Autopilot mandate for Presenter Raw Rundown Display & Dynamic Field Regex Consolidation (SPEC-67) | `applied` | mandate | `.control/memlog/autopilot-DEC-062.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-062-daily-autopilot-mandate-presenter-raw-rundown-and-field-regex.md` |
