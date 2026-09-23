@@ -2797,7 +2797,7 @@ waves:
   # re-verification of 4 previously-reported findings). All three are confirmed code-behavior gaps
   # whose docs already describe them accurately -- owner ruled spec+ticket only, no implementation.
   - id: SPEC-61
-    status: open
+    status: closed
     release: manual-sync-push-body-cap-and-chunking
     prd: [offline-deck]
     fr: [FR-40]
@@ -2816,14 +2816,14 @@ waves:
         blocked_by: []
         touches: [sync]
         tests:
-          - internal/httpapi/sync_push_body_cap_test.go
+          - internal/httpapi/sync_test.go
       - id: "SPEC-61-02"
         component: hub
         satisfies: [FR-40]
         blocked_by: ["SPEC-61-01"]
         touches: [sync]
         tests:
-          - src/lib/sync/client-chunking.test.mjs
+          - tests/sync-client-chunking.test.mjs
 
   - id: SPEC-62
     status: open

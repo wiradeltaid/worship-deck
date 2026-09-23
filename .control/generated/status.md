@@ -255,10 +255,10 @@ work_progress:
   tickets_total: 1
   work_progress: 100%
 - spec: SPEC-61
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 2
   tickets_total: 2
-  work_progress: 0%
+  work_progress: 100%
 - spec: SPEC-62
   status: open
   tickets_done: 0

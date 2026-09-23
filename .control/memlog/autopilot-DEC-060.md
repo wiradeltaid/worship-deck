@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reco
 
 ## Resume
 
-- Iteration: 5
+- Iteration: 6
 - Run branch: autopilot/DEC-060
-- Stopped at: Completed SPEC-60 (hymns-404-unregistered-book-code); next is SPEC-61
+- Stopped at: Completed SPEC-61 (manual-sync-push-body-cap-and-chunking); next is SPEC-62
 - Blocked: —
 - Parked: [ad-n]
-- Next: SPEC-61 (manual-sync-push-body-cap-and-chunking)
+- Next: SPEC-62 (fonts-delete-endpoint)
 
 ## Decisions
 
@@ -26,3 +26,5 @@ artifact: .control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reco
 | I-4 (SPEC-59-01) | internal/db/bootstrap.go & internal/plan/snapshot.go | Clone announcement slides into service_announcement_set_slides at freeze and read from it when ServiceIsRegistryFrozen is true | live announcement edits leaking into already-reviewed and frozen Services | high | internal/db/schema.sql, internal/db/bootstrap.go, internal/httpapi/registry.go, internal/plan/snapshot.go |
 | I-4 (SPEC-59-02) | internal/plan/snapshot_announcement_freeze_guard_test.go | Add guard test proving frozen Service preserves pre-edit slides and marker identity, Sync pulls changes, and zero-slide freeze holds | regressions leaking live announcement content into frozen services | high | internal/plan/snapshot_announcement_freeze_guard_test.go |
 | I-5 (SPEC-60-01) | internal/httpapi/hymns.go & internal/db/bootstrap.go | Return 404 "Song book not found" when book_code is explicitly provided but not found in song_books | returning 200 with empty array making typo or missing book indistinguishable from 0 hymns | low | internal/httpapi/hymns.go, internal/db/bootstrap.go, internal/httpapi/hymns_book_test.go, tests/hymns-api.test.mjs |
+| I-6 (SPEC-61-01) | internal/httpapi/sync.go | Wrap syncPush body in http.MaxBytesReader(w, r.Body, 50<<20) and distinguish *http.MaxBytesError with specific 400 error message | unbounded sync push request payload capacity on server | high | internal/httpapi/sync.go, internal/httpapi/sync_test.go |
+| I-6 (SPEC-61-02) | src/lib/sync/client.ts & spa/src/pages/AdminSyncPage.tsx | Add pushSyncChunked with deterministic chunk mutation_ids, dependency ordering, oversized-record isolation, and switch AdminSyncPage | client push failing outright on local datasets exceeding 50MB cap | high | src/lib/sync/client.ts, spa/src/pages/AdminSyncPage.tsx, tests/sync-client-chunking.test.mjs, package.json |

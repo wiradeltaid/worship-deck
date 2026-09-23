@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -579,5 +581,56 @@ func TestSync_AnnouncementServiceAssociationByGlobalID(t *testing.T) {
 	}
 	if !foundPull {
 		t.Fatalf("announcement %s not found in pull", annGid1)
+	}
+}
+
+type zeroSyncReader struct{}
+
+func (zeroSyncReader) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = 'a'
+	}
+	return len(p), nil
+}
+
+func TestSyncPush_BodyCapAndErrorFormatting(t *testing.T) {
+	ts, _, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. Invalid JSON under 50MB returns "Invalid request body"
+	res := songSetRequest(t, ts, "POST", "/api/sync/push", `{invalid json`, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("invalid json status = %d, want 400", res.StatusCode)
+	}
+	var errResp map[string]any
+	_ = json.NewDecoder(res.Body).Decode(&errResp)
+	res.Body.Close()
+	if errResp["error"] != "Invalid request body" {
+		t.Fatalf("expected error 'Invalid request body', got %v", errResp["error"])
+	}
+
+	// 2. Oversized payload (> 50MB) returns 400 with "Failed to read upload body or file too large"
+	largePrefix := `{"client_device_id":"d1","mutation_id":"m1","mutations":{"services":[]},"padding":"`
+	largeSuffix := `"}`
+	oversizedReader := io.MultiReader(
+		strings.NewReader(largePrefix),
+		io.LimitReader(zeroSyncReader{}, 51<<20),
+		strings.NewReader(largeSuffix),
+	)
+	req, _ := http.NewRequest("POST", ts.URL+"/api/sync/push", oversizedReader)
+	req.AddCookie(cookie)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatalf("post oversized: %v", err)
+	}
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("oversized status = %d, want 400", res.StatusCode)
+	}
+	errResp = nil
+	_ = json.NewDecoder(res.Body).Decode(&errResp)
+	res.Body.Close()
+	if errResp["error"] != "Failed to read upload body or file too large" {
+		t.Fatalf("expected error 'Failed to read upload body or file too large', got %v", errResp["error"])
 	}
 }

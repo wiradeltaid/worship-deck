@@ -3,6 +3,7 @@
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -116,8 +117,14 @@ func (s *Server) syncPush(w http.ResponseWriter, r *http.Request) {
 	}
 	defer releaseSync()
 
+	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
 	var payload SyncPushPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) || strings.Contains(strings.ToLower(err.Error()), "too large") {
+			writeError(w, http.StatusBadRequest, "Failed to read upload body or file too large")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}

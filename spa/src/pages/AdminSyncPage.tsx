@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSession } from '../lib/auth/SessionProvider';
 import {
-  pushSync,
+  pushSyncChunked,
   pullSync,
   getSyncStatus,
   checkSyncAssets,
@@ -168,11 +168,18 @@ export default function AdminSyncPage() {
         }
       }
 
-      const res = await pushSync(remoteUrl.trim() || window.location.origin, payload, headers);
-      setMessage({
-        type: 'success',
-        text: `Push completed successfully! ${res.applied_count ?? 0} entity changes synchronized.`,
-      });
+      const res = await pushSyncChunked(remoteUrl.trim() || window.location.origin, payload, headers);
+      if (res.skippedRecords && res.skippedRecords.length > 0) {
+        setMessage({
+          type: 'error',
+          text: `Push completed with warnings: ${res.appliedTotal} changes synchronized; skipped: ${res.skippedRecords.map((s) => `${s.id} (${s.reason})`).join(', ')}`,
+        });
+      } else {
+        setMessage({
+          type: 'success',
+          text: `Push completed successfully! ${res.appliedTotal} entity changes synchronized.`,
+        });
+      }
       await fetchStatus();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to push changes to cloud.' });
@@ -211,10 +218,10 @@ export default function AdminSyncPage() {
       };
 
       try {
-        const applyRes = await pushSync(window.location.origin, applyPayload);
+        const applyRes = await pushSyncChunked(window.location.origin, applyPayload);
         setMessage({
           type: 'success',
-          text: `Pull completed successfully! Applied ${applyRes.applied_count ?? 0} updates from cloud.`,
+          text: `Pull completed successfully! Applied ${applyRes.appliedTotal} updates from cloud.`,
         });
       } catch (applyErr: any) {
         if (applyErr.conflict || applyErr.message?.includes('newer remote edits') || applyErr.message?.includes('conflict')) {
@@ -275,7 +282,7 @@ export default function AdminSyncPage() {
       if (deviceToken.trim()) {
         headers['Authorization'] = `Bearer ${deviceToken.trim()}`;
       }
-      await pushSync(remoteUrl.trim() || window.location.origin, payload, headers);
+      await pushSyncChunked(remoteUrl.trim() || window.location.origin, payload, headers);
       setConflictModalOpen(false);
       setMessage({
         type: 'success',
@@ -307,7 +314,7 @@ export default function AdminSyncPage() {
           ],
         },
       };
-      await pushSync(window.location.origin, payload);
+      await pushSyncChunked(window.location.origin, payload);
       setConflictModalOpen(false);
       setMessage({
         type: 'success',
@@ -354,7 +361,7 @@ export default function AdminSyncPage() {
           ],
         },
       };
-      await pushSync(window.location.origin, payload);
+      await pushSyncChunked(window.location.origin, payload);
       setConflictModalOpen(false);
       setMessage({
         type: 'success',
