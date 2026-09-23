@@ -355,41 +355,22 @@ export function SongSetEntriesPanel() {
                 className="text-xs font-semibold h-8 w-full"
                 autoFocus
               />
-              <Input
-                type="text"
-                placeholder={t('admin.songSets.variableName')}
-                value={draftVarName}
-                onChange={(e) =>
-                  setDraftVarName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '_'))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleSaveRename();
-                  if (e.key === 'Escape') handleCancelEdit();
-                }}
-                disabled={renaming}
-                aria-label={t('admin.songSets.variableName')}
-                className="text-xs font-mono h-8 w-full"
-              />
-              <Input
-                type="text"
-                placeholder="Extraction regex, e.g. (?i)^Opening Hymn\s*[:\-]\s*(?<number>\d+)"
-                value={draftRegex}
-                onChange={(e) => {
-                  setDraftRegex(e.target.value);
-                  const err = validateRegexSyntax(e.target.value);
-                  setDraftRegexError(err);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleSaveRename();
-                  if (e.key === 'Escape') handleCancelEdit();
-                }}
-                disabled={renaming}
-                className={`text-xs font-mono h-8 w-full ${draftRegexError ? 'border-destructive' : ''}`}
-              />
-              {draftRegexError && (
-                <p className="text-[10px] text-destructive font-mono">{draftRegexError}</p>
-              )}
-              <div className="flex gap-1.5 justify-end pt-1">
+              <div className="flex gap-1.5">
+                <Input
+                  type="text"
+                  placeholder={t('admin.songSets.variableName')}
+                  value={draftVarName}
+                  onChange={(e) =>
+                    setDraftVarName(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '_'))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleSaveRename();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                  disabled={renaming}
+                  aria-label={t('admin.songSets.variableName')}
+                  className="text-xs font-mono h-8 flex-1 min-w-0"
+                />
                 <Button
                   type="button"
                   size="sm"
@@ -412,6 +393,25 @@ export function SongSetEntriesPanel() {
                   {t('admin.songSets.cancel')}
                 </Button>
               </div>
+              <Input
+                type="text"
+                placeholder="Extraction regex, e.g. (?i)^Opening Hymn\s*[:\-]\s*(?<number>\d+)"
+                value={draftRegex}
+                onChange={(e) => {
+                  setDraftRegex(e.target.value);
+                  const err = validateRegexSyntax(e.target.value);
+                  setDraftRegexError(err);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleSaveRename();
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                disabled={renaming}
+                className={`text-xs font-mono h-8 w-full ${draftRegexError ? 'border-destructive' : ''}`}
+              />
+              {draftRegexError && (
+                <p className="text-[10px] text-destructive font-mono">{draftRegexError}</p>
+              )}
             </div>
           ) : (
             <div className="space-y-2 pt-0.5">
@@ -504,7 +504,7 @@ export function SongSetEntriesPanel() {
                         }
                       }
                     }}
-                    className={`group flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all min-h-[52px] ${
+                    className={`group flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all h-[48px] min-h-[48px] ${
                       isItemEditing
                         ? 'border-amber-500/80 bg-amber-500/10 ring-1 ring-amber-500/30'
                         : isSelected
@@ -512,7 +512,7 @@ export function SongSetEntriesPanel() {
                         : 'border-border/60 bg-muted/30 hover:bg-muted/70 hover:border-border'
                     }`}
                   >
-                    <div className="min-w-0 pr-2 flex-1">
+                    <div className="min-w-0 pr-2">
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs font-semibold truncate text-foreground">{entry.title}</p>
                         {isItemEditing && (
@@ -520,22 +520,16 @@ export function SongSetEntriesPanel() {
                             {t('admin.songSets.editingBadge')}
                           </span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] font-mono text-muted-foreground shrink-0">[{entry.variableName}]</span>
                         {entry.extractionRegex || entry.extraction_regex ? (
                           <span
-                            className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 truncate max-w-[130px]"
+                            className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 truncate max-w-[120px]"
                             title={entry.extractionRegex || entry.extraction_regex || ''}
                           >
                             /{entry.extractionRegex || entry.extraction_regex}/
                           </span>
-                        ) : (
-                          <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 text-muted-foreground/60 border border-border/40">
-                            no regex
-                          </span>
-                        )}
+                        ) : null}
                       </div>
+                      <span className="text-[10px] font-mono text-muted-foreground">[{entry.variableName}]</span>
                     </div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
                       <Button

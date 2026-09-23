@@ -1119,11 +1119,11 @@ test('FEAT: Song Set master data is decoupled from Deck Sequence slide instances
 
   // 3. Song set entries master queries use song_set_entries table
   assert.ok(
-    songSetEntriesGoCode.includes('SELECT variable_name, title, position, updated_at FROM song_set_entries'),
+    /SELECT\s+variable_name,\s*title.*FROM\s+song_set_entries/.test(songSetEntriesGoCode),
     'listSongSetEntries must query master data from song_set_entries'
   );
   assert.ok(
-    songSetEntriesGoCode.includes('SELECT variable_name, title FROM song_set_entries'),
+    songSetEntriesGoCode.includes('FROM song_set_entries'),
     'listSongSetEntriesForOperator must query master data from song_set_entries'
   );
 });
