@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**56 decisions** — applied: 56.
+**60 decisions** — applied: 60.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -64,3 +64,7 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-054` | Daily Autopilot mandate for Form Card Slot Reorder and Presenter Transition Parity (SPEC-53) | `applied` | mandate | `.control/memlog/autopilot-DEC-054.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-53-form-card-slot-reorder-and-presenter-transition-parity/SPEC.md`, `src/operator/workspace/`, `spa/src/`, `tests/smoke-spec-53.test.mjs` | `.control/decisions/DEC-054-daily-autopilot-mandate-form-card-slot-reorder-and-presenter-parity.md` |
 | `DEC-055` | Daily Autopilot mandate for Layout SSOT, Rundown Regex Sandbox Integration, Photo Deletion Persistence, and C… | `applied` | mandate | `.control/memlog/autopilot-DEC-055.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-54-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity/SPEC.md`, `src/operator/`, `src/components/admin/`, `src/lib/registry/`, `internal/httpapi/`, `internal/db/`, `tests/smoke-spec-54.test.mjs` | `.control/decisions/DEC-055-daily-autopilot-mandate-layout-ssot-field-regex-sandbox-and-canvas-rotation-parity.md` |
 | `DEC-056` | Daily Autopilot mandate for Canvas Center-Origin Geometry Parity & Release Jump Elimination (SPEC-55) | `applied` | mandate | `.control/memlog/autopilot-DEC-056.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-55-canvas-center-origin-geometry-parity/SPEC.md`, `src/lib/registry/`, `src/components/admin/`, `tests/smoke-spec-55.test.mjs` | `.control/decisions/DEC-056-daily-autopilot-mandate-canvas-center-origin-geometry-parity.md` |
+| `DEC-057` | A Song Set entry, or an Announcement Set, may be placed more than once on the main spine | `applied` | — | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-057-song-set-entry-may-repeat-on-spine.md` |
+| `DEC-058` | A Predefined Field key is Admin-authored data, not a code-plus-tests change | `applied` | — | `.how/_platform/ARCHITECTURE-SPINE.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-058-predefined-field-key-is-admin-authored.md` |
+| `DEC-059` | The Registry canvas's keyboard surface has grown past Delete/Backspace; DEC-012's "one exception" claim is su… | `applied` | — | `.control/decisions/DEC-012-canvas-keyboard-delete-exception.md` | `.control/decisions/DEC-059-canvas-keyboard-surface-widened-past-delete.md` |
+| `DEC-060` | Daily Autopilot mandate for Open Specs & Reconciliation Gaps (SPEC-56 through SPEC-65) | `applied` | mandate | `.control/memlog/autopilot-DEC-060.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reconciliation-gaps.md` |

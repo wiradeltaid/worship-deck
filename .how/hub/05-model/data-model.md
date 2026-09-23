@@ -3,13 +3,12 @@ type: model
 component: hub
 layer: physical
 created: 2026-08-18
-updated: 2026-08-20
+updated: 2026-09-23
 ---
 
 # Model — Hub (physical)
 
-Source: `src/lib/db/index.ts` startup DDL. [verified] plus one planned table below (DEC-004, not yet
-in the DDL — [MISSING], see Invariants).
+Source: `src/lib/db/index.ts` startup DDL. [verified], including `song_set_inputs` (DEC-004).
 
 ```mermaid
 erDiagram
@@ -24,7 +23,7 @@ erDiagram
 | Entity | Table | Identified by |
 | --- | --- | --- |
 | Service | `services` | `id` |
-| Song Set Weekly Input / Lyric Override | `song_set_inputs` (planned, DEC-004) | `(service_id, variable_name)` |
+| Song Set Weekly Input / Lyric Override | `song_set_inputs` (DEC-004) | `(service_id, variable_name)` |
 | Account | `accounts` | `id` / `username` |
 | AppSetting | `settings` | `key` |
 | Hymn (corpus) | `hymns` | `(book_code, number)` |
@@ -59,13 +58,13 @@ to a Registry table, since the entry list is Registry-owned data in a different 
 | hymns | number | INTEGER | Number in that book |
 | hymns | title | TEXT | Hymn title in the Song Book |
 | hymns | lyrics | TEXT | Verse/refrain lyrics; the "Save to Song Book" action (UC-28) is the only planned write path here besides the bootstrap-once loader — see *Migration* below (AD-36) |
-| song_set_inputs (planned) | service_id | INTEGER, FK → services.id ON DELETE CASCADE | Owning Service |
-| song_set_inputs (planned) | variable_name | TEXT | Which Song Set entry this row is for (Registry-owned identity, DEC-004 Supplement S2); soft reference, not a DB foreign key |
-| song_set_inputs (planned) | song_number | INTEGER NULL | This week's hymn number for the entry (FR-32) |
-| song_set_inputs (planned) | song_book_code | TEXT NULL | This week's Song Book choice; null falls back to `settings.default_song_book` (Supplement S3) |
-| song_set_inputs (planned) | background_id | TEXT NULL | This week's Verse/Reff background choice from the Background Library; null falls back to the Admin global default (Supplement S4); never the **live** override, which AD-34 keeps unpersisted |
-| song_set_inputs (planned) | lyric_override | TEXT NULL | This Service's edited lyric text (FR-34); null = untouched, falls through to `hymns.lyrics` (BR-7) |
-| song_set_inputs (planned) | updated_at | TEXT | Optimistic concurrency token, same discipline as the rest of the Service row (AD-6) |
+| song_set_inputs | service_id | INTEGER, FK → services.id ON DELETE CASCADE | Owning Service |
+| song_set_inputs | variable_name | TEXT | Which Song Set entry this row is for (Registry-owned identity, DEC-004 Supplement S2); soft reference, not a DB foreign key |
+| song_set_inputs | song_number | INTEGER NULL | This week's hymn number for the entry (FR-32) |
+| song_set_inputs | song_book_code | TEXT NULL | This week's Song Book choice; null falls back to `settings.default_song_book` (Supplement S3) |
+| song_set_inputs | background_id | TEXT NULL | This week's Verse/Reff background choice from the Background Library; null falls back to the Admin global default (Supplement S4); never the **live** override, which AD-34 keeps unpersisted |
+| song_set_inputs | lyric_override | TEXT NULL | This Service's edited lyric text (FR-34); null = untouched, falls through to `hymns.lyrics` (BR-7) |
+| song_set_inputs | updated_at | TEXT | Optimistic concurrency token, same discipline as the rest of the Service row (AD-6) |
 | ~~announcement_items~~ | ~~id~~ | ~~INTEGER PK~~ | Retired from Hub's write paths (DEC-004); table's physical fate below |
 | accounts | id | INTEGER PK | Account identity |
 | accounts | username | TEXT UNIQUE | Sign-in name |
@@ -85,8 +84,8 @@ to a Registry table, since the entry list is Registry-owned data in a different 
 ## Invariants
 
 - `UNIQUE(book_code, number)`
-- `PRIMARY KEY (service_id, variable_name)` on `song_set_inputs` (planned) — one row per entry per Service, upsert not insert
-- Deleting a Service cascades `song_set_inputs` (planned) — same `ON DELETE CASCADE` shape as the retired `announcement_items.service_id`
+- `PRIMARY KEY (service_id, variable_name)` on `song_set_inputs` — one row per entry per Service, upsert not insert
+- Deleting a Service cascades `song_set_inputs` — same `ON DELETE CASCADE` shape as the retired `announcement_items.service_id`
 - Schema only through startup DDL (AD-9); `song_set_inputs` is a **numbered migration** (AD-21), never a reseed (AD-17) — existing Services get empty rows, not a synthetic backfill, except the one Family/Youth/song-number JSON-key migration named below, which is a normalize-on-read change to the *contents* of `parsed_data`, not a schema migration
 
 ## Migration — `song_set_inputs` (new table, DEC-004 / FR-32 / FR-34)
@@ -156,6 +155,75 @@ numbered `data_version` migration (AD-21) that ships the `save-to-book` route �
 `06-flows/lyric-save-to-book.md` § *Migration* for the exact step. Until that migration lands, the
 route MUST NOT ship: shipping the write path first, with the old unconditional reconcile still
 running, would silently discard the Operator's correction on the very next restart.
+
+## New tables (2026-09-22 backfill — FR-36, FR-37, FR-40)
+
+```mermaid
+erDiagram
+  form_layouts ||--o{ form_groupings : "layout_id"
+  form_groupings ||--o{ form_group_slots : "grouping_id"
+  services ||--o| service_form_layout_snapshots : "service_id"
+  services ||--o{ service_field_values : "service_id"
+  predefined_fields ||..o{ form_group_slots : "ref_key (soft, widget_kind-scoped)"
+```
+
+| Entity | Table | Identified by |
+| --- | --- | --- |
+| Rundown Parser Profile | `rundown_parser_profiles` | `id` / `slug` |
+| Form Layout | `form_layouts` | `id` |
+| Form Grouping | `form_groupings` | `id` |
+| Form Grouping Slot | `form_group_slots` | `id` |
+| Predefined Field | `predefined_fields` | `id` / `variable_name` |
+| Service Field Value | `service_field_values` | `(service_id, variable_name)` |
+| Service Form Layout Snapshot | `service_form_layout_snapshots` | `service_id` |
+
+**Relationships.** One Form Layout has zero or many Form Groupings, ordered by `sort_order`
+(`UNIQUE(layout_id, sort_order)`). One Form Grouping has zero or many Form Grouping Slots, ordered
+the same way. A Form Grouping Slot's `ref_key` is a soft reference (no `FOREIGN KEY`) scoped by its
+own `widget_kind` — `predefined_field` (this table), `song_set_entry` (Registry's
+`song_set_entries.variable_name`), or `announcement_slot` — the same one-table-two-owners shape
+`song_set_inputs.variable_name` already has for the Registry's Song Set entries.
+`UNIQUE(layout_id, widget_kind, ref_key)` prevents the same ref occupying two slots in one layout. A
+Service has zero or one Service Form Layout Snapshot, taken in the same transaction as Service
+creation (`internal/httpapi/services.go:202`), and zero or many Service Field Values, one per
+Predefined Field entered on it.
+
+| Table | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| rundown_parser_profiles | id | TEXT PK | Profile identity |
+| rundown_parser_profiles | slug | TEXT UNIQUE | URL/reference-safe name |
+| rundown_parser_profiles | title, description | TEXT | Admin-facing labels |
+| rundown_parser_profiles | rules_json | TEXT | The extraction rule set `internal/parse` applies |
+| rundown_parser_profiles | is_builtin | INTEGER | 1 for the shipped default; MUST NOT be deleted |
+| rundown_parser_profiles | is_default | INTEGER | Exactly one row may hold 1 at a time |
+| rundown_parser_profiles | version | INTEGER | Bumped on update |
+| form_layouts | id | TEXT PK | Layout identity |
+| form_layouts | is_active | INTEGER | The Service form renders whichever layout holds 1; falls back to `id = 'default-layout'` if none does |
+| form_groupings | id | TEXT PK | Grouping identity |
+| form_groupings | layout_id | TEXT, FK → form_layouts.id ON DELETE CASCADE | Owning layout |
+| form_groupings | sort_order | INTEGER | Position within the layout |
+| form_group_slots | id | TEXT PK | Slot identity |
+| form_group_slots | layout_id | TEXT, FK → form_layouts.id ON DELETE CASCADE | Denormalized for the `UNIQUE(layout_id, widget_kind, ref_key)` constraint |
+| form_group_slots | grouping_id | TEXT, FK → form_groupings.id ON DELETE CASCADE | Owning grouping |
+| form_group_slots | widget_kind | TEXT | `predefined_field` \| `song_set_entry` \| `announcement_slot` |
+| form_group_slots | ref_key | TEXT | The referenced entity's own key, meaning depends on `widget_kind` |
+| predefined_fields | id | TEXT PK | Field identity |
+| predefined_fields | variable_name | TEXT UNIQUE | `/^[a-z][a-z0-9_]{1,63}$/`, the cross-boundary key (DEC-058) |
+| predefined_fields | field_type | TEXT | `text` \| `text_area` \| `image` |
+| predefined_fields | is_system | INTEGER | Marks a shipped default field |
+| predefined_fields | is_active | INTEGER | 0 = soft-deleted; the row survives so no `service_field_values` row orphans |
+| service_field_values | service_id | TEXT, FK → services.id ON DELETE CASCADE | Owning Service |
+| service_field_values | variable_name | TEXT | Which Predefined Field, soft reference |
+| service_field_values | value_text | TEXT | The entered value |
+| service_form_layout_snapshots | service_id | TEXT PK, FK → services.id ON DELETE CASCADE | One per Service |
+| service_form_layout_snapshots | layout_version | INTEGER | Which Form Layout version was frozen |
+| service_form_layout_snapshots | snapshot_json | TEXT | The frozen layout structure |
+
+**Invariants.** `UNIQUE(layout_id, sort_order)` on `form_groupings`; `UNIQUE(grouping_id, sort_order)`
+and `UNIQUE(layout_id, widget_kind, ref_key)` on `form_group_slots`; `UNIQUE(variable_name)` on both
+`rundown_parser_profiles` (as `slug`) and `predefined_fields`. Deleting a Predefined Field is a soft
+delete (`is_active = 0`, `deletePredefinedField`) — no cascade to `service_field_values`, matching
+BR-15. Deleting a built-in or the active default parser profile is refused, not cascaded.
 
 ## Physical notes
 

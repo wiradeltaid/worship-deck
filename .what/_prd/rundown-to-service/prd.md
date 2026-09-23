@@ -24,6 +24,7 @@ updated: 2026-08-20
 | 2026-08-18 | This initiative was born. The `weekly-sabbath` folder was withdrawn: too global — one PRD for the whole product. This area only promises that a **Rundown becomes a Service**. FR-1, FR-2, FR-3, FR-12, FR-27. IDs were not restarted. | BIMA pattern: one PRD per functional area a reader would look for, not per product. | as-built |
 | 2026-08-19 | Current intake is the Operator in Hub (FR-27), not Events on Telegram. Hymn resolve and the announcement list stay. Telegram via picoclaw (FR-1, FR-12) remains in this PRD as the last-phase capability, not a second PRD. | Web is cheaper and easier to stabilize first; Events are skipped this phase; `FR-N` must not move between PRDs. | as-built · later |
 | 2026-08-20 | FR-3 is retired. Hub no longer manages an announcement list at all — composing, ordering, and deleting announcement content now happens only in the Artifact Registry (`offline-deck` FR-21), as N independent Announcement Sets Admin authors directly. The part of FR-3 that mattered to the Operator — that the same flyer image is not re-uploaded every week — is kept as a promise, just moved: FR-21 promises copied images share one file by reference, so an Announcement Set built once keeps working week after week without a fresh upload. | Owner ratified DEC-004: an Announcement row expanding "the whole live Hub list" was void; membership and order are Admin-authored structure, not a weekly Hub list the Operator maintains. | as-built · later |
+| 2026-09-22 | FR-36 added: Admin configures the Rundown parser through named profiles instead of a code change. SPEC-44 cited FR-1/FR-2/FR-27/FR-32 for traceability, but none of them states this specific promise; this row makes it explicit to match the built behaviour. | `wdi-reconcile` found the shipped feature had no `FR` stating its own promise, no `UC`, and no G4 depth anywhere in the corpus — the gate sequence was skipped under an autopilot mandate. This row closes the G2 half of that gap. | as-built |
 
 ## 1. Why This Initiative
 
@@ -59,7 +60,7 @@ The congregation. An Admin who edits the Registry. The Operator while *presentin
 
 **Description:** The Operator creates a Service in Hub. Lyric resolve is in the API (FR-2), not a web search. Realizes UJ-5.
 
-**Realizes:** FR-27, FR-2, FR-3
+**Realizes:** FR-27, FR-2, FR-36 (FR-3 retired 2026-08-20 — see Revision History; its Operator-facing promise moved to `offline-deck` FR-21)
 
 ### 3.2 Telegram intake — last phase
 

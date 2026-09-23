@@ -1,7 +1,7 @@
 promise_progress: 100%
 rtm_rows:
-  green: 428
-  counted: 428
+  green: 578
+  counted: 578
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -224,6 +224,56 @@ work_progress:
   tickets_done: 4
   tickets_total: 4
   work_progress: 100%
+- spec: SPEC-56
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-57
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-58
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-59
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-60
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-61
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-62
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-63
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-64
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-65
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -282,22 +332,19 @@ work_progress:
 gate_readiness: 100%
 validators_red: []
 validators_skipped:
-  review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
-    (changed at 0af4065, reviewed at bfb680a), .how/hub/SDD-hub.md (changed at 0af4065, reviewed at af3b6f3),
-    .how/presenter/SDD-presenter.md (changed at 56db449, reviewed at 411a59d), .how/registry/SDD-registry.md
-    (changed at e48efde, reviewed at 42c967c), .what/hub/SRS-hub.md (changed at 56db449, reviewed at af3b6f3),
-    .what/presenter/SRS-presenter.md (changed at 56db449, reviewed at 411a59d), .what/registry/SRS-registry.md
-    (changed at 56db449, reviewed at 42c967c)'
+  review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/presenter/SDD-presenter.md
+    (changed at d2182f0, reviewed at bc6c694), .what/presenter/SRS-presenter.md (changed at d2182f0, reviewed
+    at bc6c694), .what/registry/SRS-registry.md (changed at d2182f0, reviewed at 840014f)'
 open_questions:
   blocking: 0
-  assumptions: 49
+  assumptions: 37
   external: 1
-  answered: 10
+  answered: 23
   open_by_whose:
     owner: 0
     run: 0
     frozen: 0
-    unstated: 49
+    unstated: 37
   blocking_budget: 9
   blocking_over_budget: false
   assumptions_budget_per_gate: 15

@@ -50,9 +50,19 @@ deployment that skips those is insecure regardless of the code.
 
 ## Release integrity
 
-There is no downloadable binary and no update mechanism to verify. Worship Presenter Web is built
-from source — clone the repository at the commit or tag you choose, build it yourself, and you are
-running exactly what you can read. There is nothing else to check the integrity of.
+Building from source remains available: clone the repository at the commit or tag you choose, build
+it yourself, and you are running exactly what you can read.
+
+A packaged Windows installer is also published on tagged GitHub Releases, built by CI
+(`.github/workflows/release.yml`) directly from that tag's source — the workflow runs the Go and
+guard test suites before packaging, and refuses to release if the tag, `package.json` version, and
+the matching `CHANGELOG.md` entry disagree. The installer is **not code-signed**, so Windows
+SmartScreen will likely warn on first run; what you can verify instead is the SHA-256 checksum —
+every release publishes a `SHA256SUMS.txt` alongside the installer. Hash the file you downloaded and
+compare before running it.
+
+No tagged release has been cut yet as of this writing; the above describes what a release will
+contain once one is.
 
 ## Privacy
 

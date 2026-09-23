@@ -24,6 +24,7 @@ updated: 2026-08-20
 | 2026-08-18 | This initiative was born from the `weekly-sabbath` split. Area: logged-in Hub, Friday review, Run-Sheet, slideshow/presenter, on-demand verse, accounts, two language axes. FR-8…11, FR-13, FR-15…19, FR-22…25, FR-28. | A reader looking for “Friday review” or “projector screen” does not open the generate PRD. | as-built |
 | 2026-08-20 | The Hub form's weekly song fields now track whatever song-set list Admin has configured in the Registry, not a fixed four (FR-32). FR-23's promise is confirmed and sharpened: a song-set entry may pick its own Song Book, or fall back to the Admin-set global default, and more than one book may be in use in the same Service. Two new promises: the Operator may change the live Verse/Reff background during the service itself (FR-33), and the Operator may edit a song's lyrics for one Service only, with a separate explicit action to save the correction back to the Song Book (FR-34). | Owner ratified DEC-004: song-set count, song-book choice, live background, and lyric correction all became things the Operator or Admin does at the weekly/live layer, not fixed at the code layer. | as-built · later |
 | 2026-08-22 | One new promise: the Operator may control the presenting laptop from a second signed-in device — a phone — and see the same presenter view there (FR-35). The remote is additive: connecting is a deliberate step rather than a consequence of being signed in, and the laptop keeps driving the room screen when the phone is absent, asleep, or off the network. | Owner asked for the projection to be remotable from a phone, and chose the shape when offered two: the phone is a remote **for the laptop**, not a second thing the projector follows. The rejected alternative — a phone that drives the projector with the laptop off — would have made the room screen depend on connectivity, which the product's own offline guarantee is built to avoid. | later |
+| 2026-09-22 | FR-37 added: Admin configures the Hub form's fields and their grouping through named Predefined Fields and Form Layouts, not a code change. SPEC-46 cited FR-20/FR-21/FR-32 for traceability, but none of them states this specific promise; this row makes it explicit to match the built behaviour. A related architecture claim — that a new Predefined Field key is a code change (AD-19/AD-32) — no longer holds either; see DEC-058. | `wdi-reconcile` found the shipped feature had no `FR` stating its own promise, no `UC`, and no G4 depth anywhere in the corpus — the gate sequence was skipped under an autopilot mandate. This row closes the G2 half of that gap. | as-built |
 
 ## 1. Why This Initiative
 
@@ -65,7 +66,7 @@ Events while *sending* a Rundown. The congregation.
 
 **Capability:** CAP-4 — serves BG-2.
 
-**Realizes:** FR-11, FR-13, FR-28, FR-32, FR-34
+**Realizes:** FR-11, FR-13, FR-28, FR-32, FR-34, FR-37
 
 ### 3.3 Run-Sheet
 

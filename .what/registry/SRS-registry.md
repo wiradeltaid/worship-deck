@@ -6,9 +6,10 @@ created: 2026-08-18
 updated: 2026-08-20
 satisfies: [FR-4, FR-5, FR-6, FR-20, FR-21, FR-29, FR-30, FR-31]
 reviewed:
-  date: '2026-08-22'
-  sha: '42c967cbaf9c7b73adcb57b16c1bf35a4124c205'
+  date: '2026-09-23'
+  sha: '840014f763d92094bb911b3c09f9fc53e4ef2aa3'
   lenses: [structure, prose, edge-case-hunter]
+  note: 'Re-review of the delta since 840014f: a corpus-vs-code reconciliation pass closed all four Assumptions (OQ-24, OQ-15, OQ-14, OQ-32), each confirmed true against the actual code (see .control/questions/answered.md) — Assumptions and Open Items both cleared. No promise or FR changed.'
 ---
 
 # SRS — Registry
@@ -25,7 +26,7 @@ Changing the worship order must not wait for a deploy, and must not overwrite a 
 
 | Actor | Who they are | What they may do |
 | --- | --- | --- |
-| Admin | Structure editor | Layout, order, add, rename, delete, Sync Artifact |
+| Admin | Structure editor | Layout, order, add, rename, delete, Sync Artifact, Manual Device Sync to a second instance (UC-32, experimental) |
 | Operator | Sees the result | Sees the Deck matching the payload; does not edit Registry |
 
 ## UC Catalogue · [G3]
@@ -45,7 +46,7 @@ Two surfaces: the Artifact Registry owns order, labels, layout, and announcement
 
 ## Prerequisite · [G3]
 
-Predefined Field catalog is closed; expanding it = development. An unrecognised `{token}` never blocks generation (FR-30) — it renders empty and is flagged at save time, not at generate time.
+Predefined Field catalog is Admin-authored (DEC-058) — expanding it is an Admin action, not a code change, though the canvas validator's actual recognition of a newly Admin-created key is not yet wired to that table (SPEC-56). An unrecognised `{token}` never blocks generation (FR-30) — it renders empty and is flagged at save time, not at generate time.
 
 ## Success Signal · [G3]
 
@@ -55,10 +56,7 @@ A deleted entry stays deleted after restart. An old Service does not change unti
 
 ### Assumptions
 
-- OQ-24 — Registry `gone` is terminal. Reset is live→live only and does not undelete. Wrong: Admin ships undelete, or Reset on a gone id is undefined.
-- OQ-15 — Reset restores the shipped label (including a rename), and an authored row exposes no Reset (`seed_hash` NULL; Story 20.3). Wrong: two rows in one list keep offering Reset on an authored General.
-- OQ-14 — Until AD-16 ships, a stale snapshot has no extra operator affordance. Wrong: Story 20.8 must add a badge.
-- OQ-32 — A corrupt live Registry row is omitted and logged at Sync, the same as a plan read; it is not frozen into the snapshot. Wrong: Sync fails closed with no recovery, or freezes a corrupt row into the snapshot.
+— (OQ-24, OQ-15, OQ-14, OQ-32 all closed 2026-09-23, confirmed true against code; see `.control/questions/answered.md`.)
 
 ### Risks
 
@@ -70,7 +68,7 @@ A Registry edit that makes lyrics unreadable (NFR-3).
 
 ## Gate Checklist · [G3]
 
-★ UC titles are user sentences: yes. critical 1/6.
+★ UC titles are user sentences: yes. critical 2/7.
 
 ## Design Reference · [G3]
 
@@ -78,8 +76,8 @@ A Registry edit that makes lyrics unreadable (NFR-3).
 
 ## Slots
 
-`mode: deep`. Rules: `02-rules/rules-registry.md` (BR-8…BR-13; BR-11 retired, superseded by DEC-004). Domain: `03-domain/domain-model.md`, `state-machines.md`, `deck-frame.md`. Flows: `04-usecases/UC-14-edit-layout.md` (amended DEC-004), `UC-15-reorder-and-delete.md` (critical, amended DEC-004), `UC-16-sync-artifact.md` (amended DEC-004), `UC-20-deck-matches-payload.md`, `UC-24-song-set-entries.md`, `UC-25-background-library.md`. Branches: `05-scenarios/SCN-5-delete-survives-restart.md`.
+`mode: deep`. Rules: `02-rules/rules-registry.md` (BR-8…BR-13; BR-11 retired, superseded by DEC-004). Domain: `03-domain/domain-model.md`, `state-machines.md`, `deck-frame.md`. Flows: `04-usecases/UC-14-edit-layout.md` (amended DEC-004), `UC-15-reorder-and-delete.md` (critical, amended DEC-004), `UC-16-sync-artifact.md` (amended DEC-004), `UC-20-deck-matches-payload.md`, `UC-24-song-set-entries.md`, `UC-25-background-library.md`, `UC-32-manual-device-sync.md` (critical, experimental). Branches: `05-scenarios/SCN-5-delete-survives-restart.md`.
 
 ## Open Items
 
-OQ-24 · OQ-15 · OQ-14 · OQ-32.
+—

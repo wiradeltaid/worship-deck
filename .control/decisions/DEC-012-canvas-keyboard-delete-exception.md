@@ -5,11 +5,16 @@ accepted_by: 'kodesh87 (2026-09-08)'
 touches:
   - .scratch/SPEC-12-artifacts-qa-followup/issues/02-canvas-interaction-regressions.md
 supersedes: null
-superseded_by: null
+superseded_by: DEC-059
 created: '2026-09-08'
 ---
 
 # DEC-012 — The canvas admits one keyboard shortcut, Delete/Backspace on the selected element; OQ-13's pointer-first assumption narrows, it does not fall
+
+**Superseded in part by DEC-059 (2026-09-23):** the "one keyboard exception" claim in this decision's
+own text no longer holds — Undo/Redo/Copy/Paste have since shipped in the same handler (DEC-040,
+SPEC-38). This decision's Why/Cost below are otherwise unchanged and still describe what was true and
+decided on 2026-09-08.
 
 ## Decision
 

@@ -45,7 +45,29 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureGlobalEntityIdentity(handle); err != nil {
 		return err
 	}
+	if err := ensureServiceAnnouncementSetSlides(handle); err != nil {
+		return err
+	}
 	return nil
+}
+
+func ensureServiceAnnouncementSetSlides(handle *sql.DB) error {
+	_, err := handle.Exec(`
+		CREATE TABLE IF NOT EXISTS service_announcement_set_slides (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			service_id INTEGER NOT NULL,
+			slide_id INTEGER NOT NULL,
+			ann_set_id INTEGER NOT NULL,
+			ann_set_label TEXT NOT NULL DEFAULT '',
+			label TEXT,
+			payload TEXT,
+			position INTEGER NOT NULL DEFAULT 0,
+			updated_at TEXT,
+			FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+		);
+		CREATE INDEX IF NOT EXISTS idx_service_ann_slides_service ON service_announcement_set_slides(service_id);
+	`)
+	return err
 }
 
 func ensureServicesAfternoonProgram(handle *sql.DB) error {

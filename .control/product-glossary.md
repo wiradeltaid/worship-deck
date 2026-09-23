@@ -26,7 +26,7 @@ here. The split test: would this term still apply on a different product? Yes �
 
 **Artifact Template** — one Artifact Registry entry: the layout of one slide (elements, sizes, content bindings). The unit Admin edits.
 
-**Background Library** — Admin's set of images (no colours, no gradients) usable as a Song Set Verse/Reff background, plus one entry marked the global default. A Verse/Reff slide resolves its background: its own weekly choice → the global default → blank.
+**Background Library** — Admin's set of images (no colours, no gradients), one row of the same store the product also calls the **Media Library**. One `category` distinguishes a row meant as a Song Set Verse/Reff background from one meant for Announcement Sets; the background category alone carries the global-default flag. A Verse/Reff slide resolves its background: its own weekly choice → the global default → blank. "Media Library" is not a second table — it is this same store, addressed by every category at once (SPEC-39/40) rather than the background category alone.
 
 **Congregation** — the audience of the projection. Never opens the product.
 
@@ -36,9 +36,19 @@ here. The split test: would this term still apply on a different product? Yes �
 
 **Events** — a group separate from Operator. Later they hand over the Rundown via Telegram. Not Hub users this phase.
 
+**Font** — a TrueType file Admin uploads to the Artifact Registry for use in canvas templates and PPTX export. Selectable in the canvas editor's font list once installed; embedded into a generated PPTX so its typography survives on a machine that never had the font installed.
+
+**Form Grouping** — a named, ordered section of a Form Layout, holding an ordered list of Form Grouping Slots. Belongs to exactly one Form Layout.
+
+**Form Grouping Slot** — one position inside a Form Grouping, bound to exactly one Predefined Field, Song Set entry, or announcement slot. The unit that decides what the Service form actually renders at that position, and in what order.
+
+**Form Layout** — an Admin-authored, named arrangement of Form Groupings that decides which fields the Service form shows and in what order. The Service form renders whichever Form Layout Admin has marked active; if none is, it falls back to the shipped default layout. Supersedes a fixed, code-defined form shape.
+
 **Hub** — logged-in Service list where the Operator creates, reviews, edits, regenerates, and downloads PPTX. Not a public site.
 
 **Lyric Override** — a Service's own edited text for one Song Set entry's hymn, entered on the Hub form. Scoped to that Service only by default; a separate, explicit action saves the edit back to the Song Book so later Services start from the corrected text. An untouched entry falls through to the Song Book (DEC-004).
+
+**Manual Device Sync** — an explicit, Admin-triggered exchange of Services, Song Set entries, Background Library images, and Announcement Sets between two WorshipDeck instances over an address Admin supplies. Never automatic, never cloud-routed. Distinct from **Sync Artifact**, which replaces one Service's own Snapshot from this instance's own live Artifact Registry — Manual Device Sync moves data between two separate WorshipDeck installations; Sync Artifact never leaves one. Experimental: verified only as one instance exchanging data with itself (`docs/threat-model.md` §3.7).
 
 **Operator** — a multimedia-team member who logs in, enters this week's Rundown in Hub, reviews the Service, and presents it on Sabbath. The **primary** user.
 

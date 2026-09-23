@@ -16,6 +16,8 @@ Read [`.constitution/project/private-data.md`](.constitution/project/private-dat
 
 ## 4. Local Development Setup
 
+Requires Node.js and Go (`npm run dev` shells out to `go run ./cmd/api` for the API server).
+
 ```bash
 git clone https://github.com/wiradeltaid/worship-deck.git
 cd worship-deck
@@ -29,7 +31,8 @@ npm run dev
 Before opening a pull request, verify that all test suites pass cleanly:
 
 ```bash
-npm test          # includes the public-repo guard
+npm test                          # includes the public-repo guard
+go test ./cmd/... ./internal/...  # Go API test suite
 npx tsc --noEmit
 npm run lint
 npm run build

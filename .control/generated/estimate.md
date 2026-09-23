@@ -40,7 +40,12 @@
 | Operator changes the live Verse/Reff background during the service | `FR-33` | `—` | `catalog` | not set yet | — | must | `CAP-3` | as-built |
 | Operator edits a song's lyrics for this Service only, with an explicit action to save them back to the Song B… | `FR-34` | `—` | `catalog` | not set yet | — | must | `CAP-3` | as-built |
 | Operator controls the presenting laptop from a second signed-in device | `FR-35` | `—` | `catalog` | not set yet | — | must | `CAP-3` | as-built |
+| Admin configures the Rundown parser through named profiles, not a code change | `FR-36` | `—` | `catalog` | not set yet | — | must | — | as-built |
+| Admin configures the Hub form's fields and their grouping, not a code change | `FR-37` | `—` | `catalog` | not set yet | — | must | `CAP-3` | as-built |
+| Admin's image library serves Announcement Sets as well as Verse/Reff backgrounds, from one shared pool | `FR-38` | `—` | `catalog` | not set yet | — | must | `CAP-2` | as-built |
+| Admin installs custom fonts for canvas templates and PPTX export | `FR-39` | `—` | `catalog` | not set yet | — | must | `CAP-2` | as-built |
 | Assemble a Deck from the fixed frame plus the weekly payload | `FR-4` | `—` | `catalog` | not set yet | — | must | `CAP-1` | as-built |
+| Admin pushes and pulls Services, Song Set entries, backgrounds, and announcements between two WorshipDeck ins… | `FR-40` | `—` | `catalog` | not set yet | — | should | `CAP-9` | as-built |
 | Render a song block into readable lyric slides | `FR-5` | `—` | `catalog` | not set yet | — | must | `CAP-1` | as-built |
 | Render non-song variable content onto its slide kinds | `FR-6` | `—` | `catalog` | not set yet | — | must | `CAP-1` | as-built |
 | Apply one elegant transition chosen by Admin | `FR-7` | `—` | `catalog` | not set yet | — | must | `CAP-1` | as-built |

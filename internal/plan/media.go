@@ -11,13 +11,43 @@ import (
 )
 
 var (
-	localUpload = regexp.MustCompile(`(?i)^/api/uploads/([a-f0-9]{32}\.(?:jpe?g|png|gif|webp))$`)
-	videoExt    = regexp.MustCompile(`(?i)\.(mp4|webm|mov|m4v|avi|mkv)$`)
-	imageExt    = regexp.MustCompile(`(?i)\.(jpe?g|png|gif|webp)$`)
+	localUpload        = regexp.MustCompile(`(?i)^/api/uploads/([a-f0-9]{32}\.(?:jpe?g|png|gif|webp))$`)
+	localUploadPattern = regexp.MustCompile(`(?i)/api/uploads/([a-f0-9]{32}\.(?:jpe?g|png|gif|webp))`)
+	videoExt           = regexp.MustCompile(`(?i)\.(mp4|webm|mov|m4v|avi|mkv)$`)
+	imageExt           = regexp.MustCompile(`(?i)\.(jpe?g|png|gif|webp)$`)
 )
 
 func isLocalUploadRef(ref string) bool {
 	return localUpload.MatchString(strings.TrimSpace(ref))
+}
+
+// LocalUploadFilename returns the filename (hash.ext) if ref is a local upload reference ("/api/uploads/<hash>.<ext>"), or ("", false).
+func LocalUploadFilename(ref string) (string, bool) {
+	m := localUpload.FindStringSubmatch(strings.TrimSpace(ref))
+	if len(m) == 2 {
+		return m[1], true
+	}
+	return "", false
+}
+
+// ExtractLocalUploadFilenames searches raw text/JSON and returns all local upload filenames matching /api/uploads/<hash>.<ext>.
+func ExtractLocalUploadFilenames(raw string) []string {
+	matches := localUploadPattern.FindAllStringSubmatch(raw, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var out []string
+	for _, m := range matches {
+		if len(m) == 2 {
+			fn := m[1]
+			if _, ok := seen[fn]; !ok {
+				seen[fn] = struct{}{}
+				out = append(out, fn)
+			}
+		}
+	}
+	return out
 }
 
 func isPrivateHost(host string) bool {

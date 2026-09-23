@@ -29,7 +29,7 @@ Lirik lagu diambil dari korpus database lokal berdasarkan nomor lagu. Tata letak
 
 - **Penerimaan Susunan Acara (Rundown):** Tempel teks ke formulir web, atau kirimkan via `POST` dari bot chat ke endpoint webhook berotentikasi rahasia. Baris teks yang tidak dikenali akan ditampilkan secara transparan, tidak pernah dibuang diam-diam.
 - **Pencarian & Pemecahan Bait Lagu Otomatis:** Lagu yang dirujuk berdasarkan nomor otomatis dipecah menjadi slide judul, bait, dan refrein berulang yang nyaman dibaca jemaat.
-- **Editor Template Slide (Canvas WYSIWYG):** 28 template slide di registri SQLite dengan kontrol canvas interaktif: geser, ubah ukuran, atur gaya tipografi, tambah kotak teks/bentuk, dan reset template ke bentuk awal kapan pun.
+- **Editor Template Slide (Canvas WYSIWYG):** 38 template slide di registri SQLite dengan kontrol canvas interaktif: geser, ubah ukuran, atur gaya tipografi, tambah kotak teks/bentuk, dan reset template ke bentuk awal kapan pun.
 - **Satu Tata Letak untuk Semua Output (16:9 Widescreen):** Satu struktur slide terhidrasi menggerakkan file PowerPoint, tayangan slideshow web, jendela proyektor, dan pratinjau langsung secara presisi 1:1.
 - **Mode Presenter Dua Layar:** Layar kontrol operator dilengkapi pratinjau slide aktif dan berikutnya, filmstrip miniatur, lembar urutan acara, dan jendela kedua mandiri yang dapat ditarik ke layar proyektor.
 - **Tombol Layar Hitam (Blank Screen):** Gelapkan tampilan layar proyektor jemaat seketika dan pulihkan kembali tanpa kehilangan posisi slide (`B`).
@@ -38,6 +38,9 @@ Lirik lagu diambil dari korpus database lokal berdasarkan nomor lagu. Tata letak
 - **Warta & Flyer Pengumuman:** Daftar flyer terkelola dengan gambar yang diunggah langsung atau diambil dari URL yang diizinkan.
 - **Tipografi Kustom & Font Embedding:** Impor berkas font kustom dengan pengelompokan varian otomatis dan enkapsulasi ECMA-376 untuk rendering offline sempurna di Microsoft PowerPoint Desktop.
 - **Manajemen Akun & Sesi:** Akun admin dan operator terpisah, pembatasan laju login anti *brute-force*, serta token sesi kriptografis yang dapat dicabut seketika.
+- **Parser Rundown & Tata Letak Formulir Kustom:** Buat profil aturan parsing bernama dan susun field/pengelompokan formulir Layanan langsung dari panel admin, tanpa perlu ubah kode.
+- **Pustaka Media (Media Library):** Kumpulan gambar latar dan flyer yang dapat dipakai ulang lintas template, terpisah dari template mana pun.
+- **Sinkronisasi Manual Antar-Perangkat** *(eksperimental — belum teruji lintas dua mesin sungguhan)*: Kirim dan tarik data Layanan, entri Song Set, latar belakang, dan pengumuman antara dua instance WorshipDeck di jaringan lokal yang sama, atas permintaan operator. Tanpa cloud, tanpa sinkronisasi latar belakang otomatis.
 
 ## Persyaratan Sistem
 
@@ -136,6 +139,10 @@ Dua korpus teks terverifikasi disertakan secara bawaan:
 
 Jalankan `npm run corpus:verify` untuk memverifikasi keutuhan korpus. Baca [ATTRIBUTIONS.md](ATTRIBUTIONS.md) untuk rincian pemegang hak cipta dan kontak penghapusan materi.
 
+## Penerapan (Deployment)
+
+Build API Go dan SPA, lalu jalankan `./api` (atau `npm start`) di host dengan Node 22 di `PATH` untuk PPTX worker — lihat [`.constitution/project/deployment.md`](.constitution/project/deployment.md). SQLite, gambar yang diunggah, dan cache deck semuanya membutuhkan jalur host yang persisten; berkas tersebut menjelaskan jalur mana saja.
+
 ## Riwayat Proyek & Privasi
 
 Proyek ini bermula dari repositori privat satu jemaat lokal. Riwayat tersebut tidak dibawa ke repositori publik ini karena memuat nama asli jemaat, foto anak di bawah umur, tangkapan layar percakapan privat, dan QR code donasi rekening asli. Repositori publik ini dimulai dari komit awal yang bersih menggunakan data jemaat contoh sintetis (*Harborlight Adventist Fellowship*).
@@ -146,5 +153,5 @@ Kontributor diwajibkan membaca [`.constitution/project/private-data.md`](.consti
 
 - **Lisensi Kode:** Didistribusikan di bawah [Lisensi MIT](LICENSE).
 - **Atribusi & Korpus Himne:** Buku lagu gereja, terjemahan Alkitab, dan lisensi komponen pihak ketiga dicatat lengkap di [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Privasi & Keamanan:** 100% lokal (*local-first*). Data jemaat Anda tersimpan di mesin lokal; nol telemetri, nol analitik (lihat [PRIVACY.md](PRIVACY.md) dan [SECURITY.md](SECURITY.md)).
+- **Privasi & Keamanan:** Tidak ada backend cloud dan nol telemetri — setiap permintaan tetap di mesin Anda atau jaringan lokal gereja. Satu-satunya fitur yang berbicara ke host lain adalah Sinkronisasi Manual, dan host itu adalah instance WorshipDeck lain milik Anda sendiri, hanya berjalan saat operator memicunya (lihat [PRIVACY.md](PRIVACY.md) dan [SECURITY.md](SECURITY.md)).
 - **Nama dan Ikon:** Lisensi MIT memberikan hak atas kode sumber aplikasi. Lisensi ini tidak memberikan hak merek dagang atas nama atau logo — hak atas nama **WorshipDeck**, **Wira Delta Indonesia**, dan logo produk tetap merupakan hak milik eksklusif PT Wira Delta Indonesia.

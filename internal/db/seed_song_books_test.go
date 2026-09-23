@@ -118,8 +118,8 @@ func TestSeedSongBooks_ExistingDatabaseAtVersion10(t *testing.T) {
 	if err := handle.QueryRow(`SELECT value FROM settings WHERE key = ?`, dataVersionKey).Scan(&ver); err != nil {
 		t.Fatalf("read version: %v", err)
 	}
-	if ver != "11" {
-		t.Fatalf("expected data_version 11, got %q", ver)
+	if ver != currentDataVersion {
+		t.Fatalf("expected data_version %s, got %q", currentDataVersion, ver)
 	}
 }
 
@@ -140,8 +140,8 @@ func TestSeedSongBooks_AD17DeletedSDAHNotResurrectedAtVersion11(t *testing.T) {
 	if err := handle.QueryRow(`SELECT value FROM settings WHERE key = ?`, dataVersionKey).Scan(&ver); err != nil {
 		t.Fatalf("read version: %v", err)
 	}
-	if ver != "11" {
-		t.Fatalf("expected data_version 11, got %q", ver)
+	if ver != currentDataVersion {
+		t.Fatalf("expected data_version %s, got %q", currentDataVersion, ver)
 	}
 
 	// Administrator deliberately deletes SDAH song book row

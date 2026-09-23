@@ -3,13 +3,14 @@ type: sdd
 component: registry
 status: draft
 created: 2026-08-18
-updated: 2026-08-22
-realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25]
+updated: 2026-09-22
+realizes: [UC-14, UC-15, UC-16, UC-20, UC-24, UC-25, UC-32]
 binds: [AD-5, AD-6, AD-7, AD-8, AD-9, AD-11, AD-12, AD-13, AD-14, AD-15, AD-16, AD-17, AD-18, AD-19, AD-20, AD-21, AD-30, AD-31, AD-32, AD-33, AD-34, AD-35, AD-36, AD-38]
 reviewed:
-  date: '2026-08-22'
-  sha: '42c967cbaf9c7b73adcb57b16c1bf35a4124c205'
+  date: '2026-09-22'
+  sha: 'bc6c6949c0c1e63f5b57808653155579714999c2'
   lenses: [structure, prose, edge-case-hunter]
+  note: 'Re-review of the delta since 840014f: a corpus-vs-code reconciliation pass corrected the AD-31 row (Song Set Entry''s real identity now lives in a separate song_set_entries table with a genuine DB-level UNIQUE constraint, not solely in artifact_templates as previously stated) and BR-16/UC-32''s sync-lock claim (push-only in code; the SDD did not itself carry this claim, but the sibling BR/UC files did and are cross-referenced here). The Announcement Set freeze gap (BR-8/AD-35 promising a snapshot the code does not implement) was found in the same pass and left as-is here deliberately — it is a real code gap, not documentation staleness, tracked as SPEC-59. Zero findings remaining beyond SPEC-59 and what is already reported as findings in the contracts themselves.'
 ---
 
 # SDD — Registry
@@ -33,11 +34,12 @@ Like every other registry structure, the trio is **frozen into the per-service s
 creation** (AD-16, reversed 2026-08-20 from an earlier live-read design — see below); it is not
 read live at render time.
 Two more Admin-maintained collections join the component: a **Background Library** (images only,
-one global default) and a **Song Book** list (one global default), both referenced by weekly/live
-choices elsewhere but owned and CRUD'd here. A Predefined Field is now a `{key}` token mixed into
-a text element's own content — the closed catalog vocabulary is still a code list (AD-19), not a
-table, and an unrecognised token never blocks generation (BR-13); it is flagged only when the
-slide is saved.
+one global default, now also serving Announcement Sets under the "Media Library" name, FR-38) and a
+**Song Book** list (one global default), both referenced by weekly/live choices elsewhere but owned
+and CRUD'd here. A Predefined Field is now a `{key}` token mixed into a text element's own content —
+the catalog vocabulary is Hub-authored data (`predefined_fields`, DEC-058), not a code list, though
+this component's own validator has not been updated to read it yet (SPEC-56) — and an unrecognised
+token never blocks generation (BR-13); it is flagged only when the slide is saved.
 
 Two surfaces, unchanged: this component does not take weekly hymn numbers, Song Book choices,
 backgrounds, lyric corrections, or live background switches — those are Hub/Presenter (FR-32,
@@ -68,8 +70,8 @@ Screens (`inventory-screen` row 7) are not an `LC` `ui-screen`: that is a `wdi-u
 
 | LC | type | Responsibility |
 | --- | --- | --- |
-| LC-11 | gateway | GET/PUT/DELETE artifacts, POST reset, PUT order (as-built) **+** CRUD for Song Set entries, Announcement Sets and their slides, Background Library, Song Books (new — same gateway, wider surface, not a new `LC`) |
-| LC-15 | service | SQLite store + AD-15 validation + snapshot clone (as-built) **+** the five new tables' store logic, `variable_name`/referential checks, migration runner (new — same service, wider surface) |
+| LC-11 | gateway | GET/PUT/DELETE artifacts, POST reset, PUT order (as-built) **+** CRUD for Song Set entries, Announcement Sets and their slides, Background Library, Song Books (new — same gateway, wider surface, not a new `LC`) **+** Media Library, Fonts, and the asset half of Manual Device Sync (2026-09-22 backfill — same reasoning: same trust boundary, same Admin caller, one more resource family each, not a new `LC`) |
+| LC-15 | service | SQLite store + AD-15 validation + snapshot clone (as-built) **+** the five new tables' store logic, `variable_name`/referential checks, migration runner (new — same service, wider surface) **+** the media/font store and content-addressed asset store (2026-09-22 backfill) |
 
 Direction unchanged: Admin screen → LC-11 → LC-15 → SQLite. Hub/Presenter render through LC-16
 (Slide plan builder), not this API. No new `LC` is registered by this design: every new HTTP
@@ -80,6 +82,13 @@ same container (`api`), same caller. Registration of any new endpoint row belong
 does not write there. Those rows were landed by that skill on 2026-08-22 (commit `0b24d5e`);
 registry now owns platform rows 25–28, 31–32 and 37–69. This sentence previously pointed at a
 "Drift" section that does not exist in this document.
+
+**2026-09-22 backfill note:** Fonts (SPEC-32), Media Library (SPEC-39/40), and Manual Device Sync's
+asset half (SPEC-47) all shipped under this same "wider surface, not a new `LC`" reasoning without
+it ever being written down for them specifically — `wdi-reconcile` found the gap while backfilling
+FR-38/FR-39/FR-40 and their UCs. Manual Device Sync's **mutation** half (Services, Song Set entries,
+etc.) is Hub's own `LC-23`, a genuinely new gateway there — Hub has no equivalent "one wide admin
+gateway" LC to widen the way Registry's LC-11 already is one.
 
 ## Inherited Constraints · [guarded]
 
@@ -102,23 +111,25 @@ registry now owns platform rows 25–28, 31–32 and 37–69. This sentence prev
 | AD-20 | Unchanged; the trio and Announcement Set slides are still registry-originated, just not on the spine's own `position` axis. |
 | AD-21 | `data_version` gates the predefined-field migration exactly once. |
 | AD-30 | LC-11 / LC-15 on `api`, unchanged; every new surface is more API surface, not a new process. |
-| AD-31 | `variable_name` uniqueness check lives in LC-15, run on create and rename; no `UNIQUE` column constraint. Marker→set reference checked the same way, in code. |
+| AD-31 | `variable_name` uniqueness is a real DB-level `UNIQUE NOT NULL` column on `song_set_entries` — the identity/title/position master; `artifact_templates` (`base_type='song-set-entry'`) mirrors it for spine placement and carries no constraint of its own. Marker→set reference checked in code (LC-15), no DB `FOREIGN KEY`. |
 | AD-32 | Validator (`src/lib/registry/validate.ts`) parses `{key}` inside text-element `content`, checks membership in the renamed catalog (S1), and returns a save-time warning list rather than a rejection for an unrecognised key. Hydrate substitution itself is Hub LC-16's job; Registry validates and stores. |
 | AD-33 | `song_set_layouts` table (3 rows: `title`/`verse`/`reff`), each validated and Reset exactly like a General (AD-15); no bounded-surface override record survives. Announcement Set slides live in `announcement_set_slides`, one row per slide, validated the same way. |
 | AD-34 | Registry owns and serves the Background Library table and its default flag (UC-25); the live switch itself (UC-27) is a Presenter-owned session action over AD-10's channel and never calls into this component's write path. |
 | AD-35 | Service creation / Sync (Hub LC-2) calls into LC-15's clone routine, which now also walks every referenced `ann_set_id` and clones its `announcement_set_slides` rows into the snapshot tables (below), not just the spine. |
 | AD-36 | Registry owns the `SongBook` entity, so this AD binds here even though `hymns` is Hub's. The bootstrap-once write and the 10→11 repair migration are named under AD-17 above. Its *Extended* clause (OQ-38, OQ-39 closed) is what makes `POST /api/admin/song-books` (row 58) legitimate at all — an Admin may create a book with no corpus file, supplying all five AD-26 fields; `05-song-books.md` carries the collision and marker-granularity cases. Whether an Admin may **delete** a book is a promise nobody wrote: **OQ-48**. |
+| AD-38 | Main Spine composition, canvas authoring, and the Song Set / Announcement Set workspaces are this component's `ArtifactEditor.tsx` and canvas engine (LC-15). Fixed `spine_position` fields are retired: multiple insertions of the same Song Set or Announcement Set each generate their own spine node (`artifact_templates` row), reordered directly in place. |
 
 AD-1, AD-2, AD-4, AD-10, AD-24 are not listed here (OQ-30): they bind the container / chrome, not
 Registry rows.
 
 ## Failure Behaviour · [guarded]
 
-Boundaries = the 38 rows `.how/_platform/inventory-api.md` attributes to `registry`, numbers 25–28,
-31–32, 37–69. Every family below now carries a platform number: `wdi-blueprint` refreshed the three
-inventories from code on 2026-08-22 (commit `0b24d5e`), which retired this section's earlier claim
-that "none has a platform inventory row yet". Process timeout: Go API. Registry does not retry to
-the client; Admin presses again.
+Boundaries = the rows `.how/_platform/inventory-api.md` attributes to `registry` — originally 38
+(25–28, 31–32, 37–69), plus 16 more landed 2026-09-22 (75–78, 86–90, 101–104, 106–108: Fonts, Media
+Library, and Manual Device Sync's asset half). Every family below now carries a platform number:
+`wdi-blueprint` refreshed the three inventories from code on 2026-08-22 (commit `0b24d5e`) and again
+on 2026-09-22, which retired this section's earlier claim that "none has a platform inventory row
+yet". Process timeout: Go API. Registry does not retry to the client; Admin presses again.
 
 Three Operator-facing reads are **not** covered below — `GET /api/song-books` (68),
 `GET /api/background-library` (66) and `GET /api/song-set-entries` (69). They became registry-owned
@@ -163,6 +174,8 @@ New surfaces:
 | POST `/api/admin/song-books` | Add until browser timeout | 403; empty `book_code`/name → 400 | Duplicate `book_code` → 409 | New book appended | console.error on 500 |
 | PATCH `/api/admin/song-books/[book_code]` (rename / set default) | Save until browser timeout | 403; missing → 404 | Stale `updatedAt` → 409 | Name or default flag updates | console.error on 500 |
 | DELETE `/api/admin/song-books/[book_code]` | Delete until browser timeout | 403; missing → 404 | In use by a hymn row (`hymns.book_code`, S3) → 409, do not orphan hymn rows | Book removed only when no hymn references it | console.error on 500 |
+| `/api/admin/media-library*`, `/api/media-library`, `/api/admin/fonts`, `/api/admin/artifacts/fonts`, `/api/fonts*` (`06-media-library.md`) | Upload/list until browser timeout | 403 on admin routes; 404 unknown media/font id | Non-image body → 400; font extension other than `.ttf`/`.otf` → 400 with the exact message named in the contract | Media list or font list updates; a rejected upload leaves the prior list unchanged | console.error on 500 |
+| `/api/sync/assets/check`, `/api/sync/assets/upload`, `/api/sync/assets/[sha256]` (`07-manual-sync.md`) | Upload/download until browser timeout, or until the 50 MB body cap refuses it outright | 403 non-Admin; 404 unknown hash on download | A malformed hash in a `check` request is silently skipped, not reported — the caller cannot distinguish "not asked for" from "not found" from the response alone | Admin Sync screen's push/pull progress; a refused oversized upload | console.error on 500; the 50 MB cap refuses before any handler code runs |
 
 Plan read (Hub LC-16, `loadRegistrySnapshot` or the service freeze): a corrupt row in any of the
 new tables is omitted from the Deck and logged with id + reason, same as today (AD-17) — never

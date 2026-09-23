@@ -86,6 +86,17 @@ jobs:
       - name: Package Windows desktop installer
         run: npm run package:installer
 
+      - name: Verify compiled installer file version
+        shell: pwsh
+        run: |
+          $installer = "dist-installer\WorshipDeckSetup.exe"
+          if (-not (Test-Path $installer)) { throw "Installer not found at $installer" }
+          $fileVersion = (Get-Item $installer).VersionInfo.FileVersion
+          if ($fileVersion -ne $env:VERSION) {
+            throw "Installer FileVersion $fileVersion does not match package.json version $env:VERSION"
+          }
+          Write-Host "Verified installer FileVersion: $fileVersion matches $env:VERSION"
+
       - name: Compute SHA-256 checksums
         shell: pwsh
         run: |

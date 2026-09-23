@@ -548,7 +548,20 @@ func parsePlaceholder(raw any, label string) (Placeholder, error) {
 
 // ValidateArtifactTemplate enforces AD-15 on a live write. The error text names
 // the property so a rejected Save is about a field, not an unknown template.
-func ValidateArtifactTemplate(raw []byte, repoRoot string) ([]byte, error) {
+// Optional customCatalogs maps custom admin-authored predefined field keys to their
+// expected placeholder type ("image" or "text").
+func ValidateArtifactTemplate(raw []byte, repoRoot string, customCatalogs ...map[string]string) ([]byte, error) {
+	effectiveKeys := catalogKeys
+	if len(customCatalogs) > 0 && len(customCatalogs[0]) > 0 {
+		effectiveKeys = make(map[string]string, len(catalogKeys)+len(customCatalogs[0]))
+		for k, v := range catalogKeys {
+			effectiveKeys[k] = v
+		}
+		for k, v := range customCatalogs[0] {
+			effectiveKeys[k] = v
+		}
+	}
+
 	var v any
 	if err := json.Unmarshal(raw, &v); err != nil {
 		return nil, failf("Invalid JSON")
@@ -624,7 +637,7 @@ func ValidateArtifactTemplate(raw []byte, repoRoot string) ([]byte, error) {
 			return nil, err
 		}
 		for _, ph := range placeholders {
-			want, ok := catalogKeys[ph.Key]
+			want, ok := effectiveKeys[ph.Key]
 			if !ok {
 				return nil, failf("placeholder key is not in the catalog: %s", ph.Key)
 			}
@@ -731,24 +744,40 @@ func RegisterCatalogToken(variableName, fieldType string) {
 }
 
 // IsValidCatalogToken reports whether variableName is a recognized predefined field token
-func IsValidCatalogToken(variableName string) bool {
-	_, ok := catalogKeys[variableName]
-	return ok
+func IsValidCatalogToken(variableName string, customCatalogs ...map[string]string) bool {
+	if _, ok := catalogKeys[variableName]; ok {
+		return true
+	}
+	if len(customCatalogs) > 0 && customCatalogs[0] != nil {
+		_, ok := customCatalogs[0][variableName]
+		return ok
+	}
+	return false
 }
 
 // FindUnknownPredefinedFieldTokens returns a list of warning messages for unrecognized tokens.
-func FindUnknownPredefinedFieldTokens(t Template) []string {
+func FindUnknownPredefinedFieldTokens(t Template, customCatalogs ...map[string]string) []string {
+	effectiveKeys := catalogKeys
+	if len(customCatalogs) > 0 && len(customCatalogs[0]) > 0 {
+		effectiveKeys = make(map[string]string, len(catalogKeys)+len(customCatalogs[0]))
+		for k, v := range catalogKeys {
+			effectiveKeys[k] = v
+		}
+		for k, v := range customCatalogs[0] {
+			effectiveKeys[k] = v
+		}
+	}
 	var warnings []string
 	for layoutKey, layout := range t.Layouts {
 		for _, el := range layout.Elements {
 			if el.Type == "text" && el.Content != nil {
 				for _, token := range ExtractInlineTokens(*el.Content) {
-					if _, ok := catalogKeys[token]; !ok {
+					if _, ok := effectiveKeys[token]; !ok {
 						warnings = append(warnings, fmt.Sprintf("Unknown predefined field token {%s} in layout %q", token, layoutKey))
 					}
 				}
 			} else if (el.Type == "image" || el.Type == "image-placeholder") && el.PlaceholderKey != nil {
-				if _, ok := catalogKeys[*el.PlaceholderKey]; !ok {
+				if _, ok := effectiveKeys[*el.PlaceholderKey]; !ok {
 					warnings = append(warnings, fmt.Sprintf("Unknown predefined field image key %q in layout %q", *el.PlaceholderKey, layoutKey))
 				}
 			}

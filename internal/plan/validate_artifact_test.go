@@ -126,6 +126,94 @@ func TestValidateArtifactTemplateCatalogKey(t *testing.T) {
 	}
 }
 
+func TestValidateArtifactTemplate_DynamicCustomCatalog(t *testing.T) {
+	root := repoRoot(t)
+	payload := map[string]any{
+		"schemaVersion": 1,
+		"id":            "custom-dynamic-image",
+		"label":         "Dynamic Image Template",
+		"baseType":      "general",
+		"placeholders": []any{
+			map[string]any{"key": "event_poster", "type": "image", "required": false},
+		},
+		"layouts": map[string]any{
+			"default": map[string]any{
+				"aspectRatio":     "16:9",
+				"backgroundColor": "#000000",
+				"elements": []any{
+					map[string]any{
+						"id":             "img1",
+						"type":           "image",
+						"x":              10.0,
+						"y":              10.0,
+						"w":              80.0,
+						"h":              60.0,
+						"zIndex":         1,
+						"placeholderKey": "event_poster",
+					},
+				},
+			},
+		},
+	}
+
+	// 1. Without dynamic catalog, event_poster is rejected
+	_, err := ValidateArtifactTemplate(mustJSON(payload), root)
+	if err == nil || !strings.Contains(err.Error(), "placeholder key is not in the catalog: event_poster") {
+		t.Fatalf("expected rejection for unregistered event_poster, got: %v", err)
+	}
+
+	// 2. With dynamic catalog registering event_poster as image, it passes
+	customCat := map[string]string{
+		"event_poster": "image",
+	}
+	_, err = ValidateArtifactTemplate(mustJSON(payload), root, customCat)
+	if err != nil {
+		t.Fatalf("expected validation success with dynamic catalog, got: %v", err)
+	}
+
+	// 3. Type mismatch: if catalog expects text but placeholder declares image, it fails
+	textCat := map[string]string{
+		"event_poster": "text",
+	}
+	_, err = ValidateArtifactTemplate(mustJSON(payload), root, textCat)
+	if err == nil || !strings.Contains(err.Error(), "placeholder event_poster must be type text") {
+		t.Fatalf("expected type mismatch error, got: %v", err)
+	}
+
+	// 4. Built-in keys still work
+	builtinPayload := map[string]any{
+		"schemaVersion": 1,
+		"id":            "custom-builtin-image",
+		"label":         "Builtin Image Template",
+		"baseType":      "general",
+		"placeholders": []any{
+			map[string]any{"key": "sermon_poster", "type": "image", "required": false},
+		},
+		"layouts": map[string]any{
+			"default": map[string]any{
+				"aspectRatio":     "16:9",
+				"backgroundColor": "#000000",
+				"elements": []any{
+					map[string]any{
+						"id":             "img-builtin",
+						"type":           "image",
+						"x":              10.0,
+						"y":              10.0,
+						"w":              80.0,
+						"h":              60.0,
+						"zIndex":         1,
+						"placeholderKey": "sermon_poster",
+					},
+				},
+			},
+		},
+	}
+	_, err = ValidateArtifactTemplate(mustJSON(builtinPayload), root, customCat)
+	if err != nil {
+		t.Fatalf("expected built-in sermon_poster to succeed with custom catalog, got: %v", err)
+	}
+}
+
 func TestValidateArtifactTemplateRotation(t *testing.T) {
 	root := repoRoot(t)
 	payload := map[string]any{

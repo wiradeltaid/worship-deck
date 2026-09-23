@@ -520,7 +520,7 @@ func (s *Server) putAnnouncementSetSlide(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
-	cleaned, err := plan.ValidateArtifactTemplate(next, s.Root)
+	cleaned, err := plan.ValidateArtifactTemplate(next, s.Root, s.getActivePredefinedFieldCatalog())
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

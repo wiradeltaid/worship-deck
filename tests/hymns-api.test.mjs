@@ -239,3 +239,13 @@ test('GET /api/hymns returns bookCode and can filter by book_code', async () => 
   assert.equal(filtered[0].bookCode, 'SDAH');
   assert.equal(filtered[0].number, 1);
 });
+
+test('SPEC-60: GET /api/hymns 404s when book_code is not registered in song_books', async () => {
+  const res = await json(`${base}/api/hymns?book_code=UNREGISTERED_BOOK`, 'GET', undefined, { cookie });
+  assert.equal(res.status, 404);
+  assert.equal(res.body.error, 'Song book not found');
+
+  const resCamel = await json(`${base}/api/hymns?bookCode=UNREGISTERED_BOOK`, 'GET', undefined, { cookie });
+  assert.equal(resCamel.status, 404);
+  assert.equal(resCamel.body.error, 'Song book not found');
+});

@@ -26,6 +26,14 @@ erDiagram
     TEXT seed_hash
     INTEGER position
   }
+  song_set_entries {
+    INTEGER id PK
+    TEXT variable_name UK
+    TEXT title
+    INTEGER position
+    TEXT updated_at
+  }
+  artifact_templates }o--o| song_set_entries : "mirrors (by variable_name, no FK)"
   song_set_layouts {
     TEXT role PK
     TEXT payload
@@ -91,6 +99,7 @@ same discipline as AD-31's write-path uniqueness).
 | Entity | Table | Identified by |
 | --- | --- | --- |
 | ArtifactTemplate | `artifact_templates` | `id` TEXT |
+| SongSetEntry | `song_set_entries` | `variable_name` TEXT (`UNIQUE NOT NULL`, DB-enforced) — the identity/title/position master; the `artifact_templates` row with matching `variable_name` (`base_type='song-set-entry'`) is a derived mirror kept for spine placement, no FK |
 | ServiceRegistrySnapshot | `service_registry_snapshots` | `(service_id, template_id)` |
 | SongSetLayoutTrio (role) | `song_set_layouts` | `role` TEXT (`title`\|`verse`\|`reff`) — the **live** table Admin edits |
 | ServiceSongSetLayoutTrio (role) | `service_song_set_layouts` | `(service_id, role)` — the **frozen** per-service copy (AD-16, reversed 2026-08-20) |
@@ -106,8 +115,13 @@ same discipline as AD-31's write-path uniqueness).
 | artifact_templates | id | TEXT PK | Stable spine-row identity |
 | artifact_templates | label | TEXT | List label; for a Song Set entry this is its title (AD-18) |
 | artifact_templates | base_type | TEXT | `general` \| `song-set-entry` \| `ann-set-marker` (AD-31; was `general`\|`song-set`\|`announcement`) |
-| artifact_templates | variable_name | TEXT NULL | Set only when `base_type = 'song-set-entry'`; the entry's cross-boundary identity (AD-31). Uniqueness enforced among **live** rows only (LC-15, never a column constraint) — a `gone` row's `variable_name` MAY be reused by a later entry (owner ruling, 2026-08-20); no reservation, no tombstone |
+| artifact_templates | variable_name | TEXT NULL | Set only when `base_type = 'song-set-entry'`; mirrors the matching `song_set_entries.variable_name` row for spine placement (AD-31) — no FK, kept in sync in code on create/rename/delete; carries no uniqueness constraint of its own, the real `UNIQUE NOT NULL` lives on `song_set_entries` |
 | artifact_templates | ann_set_id | INTEGER NULL | Set only when `base_type = 'ann-set-marker'`; references `announcement_sets.id` in code (no DB `FOREIGN KEY`, same discipline) |
+| song_set_entries | id | INTEGER PK | Row identity |
+| song_set_entries | variable_name | TEXT `UNIQUE NOT NULL` | The entry's cross-boundary identity (AD-31); DB-level uniqueness, not code-checked — a deleted row's `variable_name` is hard-gone and MAY be reused by a later entry (owner ruling, 2026-08-20); no reservation, no tombstone |
+| song_set_entries | title | TEXT | Entry title; mirrored onto the matching `artifact_templates.label` |
+| song_set_entries | position | INTEGER | Spine order, independent counter from `artifact_templates.position` |
+| song_set_entries | updated_at | TEXT | Optimistic-concurrency token |
 | artifact_templates | payload | TEXT | Canvas layout JSON; NULL for `song-set-entry` and `ann-set-marker` rows — they carry no canvas of their own (AD-33) |
 | artifact_templates | updated_at | TEXT | Optimistic-concurrency token |
 | artifact_templates | seed_hash | TEXT | Whether Reset to shipped seed is available; NULL for `song-set-entry`/`ann-set-marker` rows (nothing to reset — a rename is the only mutable field) |
@@ -174,9 +188,10 @@ matches it.
 - Exactly 3 `service_song_set_layouts` rows exist per Service after its snapshot freezes (`title`,
   `verse`, `reff`); cloned at creation, replaced whole on Sync — same discipline as
   `service_registry_snapshots` (AD-16, reversed 2026-08-20)
-- At most one live `artifact_templates` row per `variable_name` (AD-31, code-enforced); a `gone`
-  row's `variable_name` does not count toward this and MAY be reused by a later live row (owner
-  ruling, 2026-08-20)
+- At most one `song_set_entries` row per `variable_name` (AD-31, DB-enforced via `UNIQUE NOT NULL`);
+  `artifact_templates` mirrors this identity for spine placement but carries no constraint of its
+  own. A deleted row's `variable_name` is hard-gone and MAY be reused by a later row (owner ruling,
+  2026-08-20)
 - At most one `background_library_images.is_default = 1` row at a time (code-enforced)
 - At most one `song_books.is_default = 1` row at a time (code-enforced)
 - `ann_set_id` on a live `ann-set-marker` row must reference a live `announcement_sets.id`, checked in code (no DB `FOREIGN KEY`); a live marker referencing it blocks that set's own delete

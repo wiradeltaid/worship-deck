@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -362,4 +363,142 @@ func (s *Server) uploadFont(w http.ResponseWriter, r *http.Request) {
 	} else {
 		writeJSON(w, http.StatusCreated, resp)
 	}
+}
+
+func (s *Server) deleteFont(w http.ResponseWriter, r *http.Request) {
+	if !requireAdmin(w, r) {
+		return
+	}
+
+	rawID := r.PathValue("id")
+	rawID = strings.TrimSpace(rawID)
+	if rawID == "" || !fontIDRegex.MatchString(rawID) || strings.Contains(rawID, "..") || strings.Contains(rawID, "/") {
+		writeError(w, http.StatusBadRequest, "Invalid font identifier")
+		return
+	}
+
+	lookupID := rawID
+	if idx := strings.Index(lookupID, "."); idx != -1 {
+		lookupID = lookupID[:idx]
+	}
+
+	var family, sourceTypeface, assetPath string
+	err := s.DB.QueryRowContext(r.Context(), `
+		SELECT family, source_typeface, asset_path
+		FROM font_faces
+		WHERE id = ?
+	`, lookupID).Scan(&family, &sourceTypeface, &assetPath)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(w, http.StatusNotFound, "Font not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	// Live reference policy check:
+	// Reject with 409 Conflict if referenced by live templates: artifact_templates, song_set_layouts, announcement_set_slides
+	// DO NOT check historical service snapshots (service_registry_snapshots, service_song_set_layouts)
+	var referencingTemplates []string
+
+	checkRef := func(query string, formatEntry func(rows *sql.Rows) (string, error), args ...any) {
+		rows, err := s.DB.QueryContext(r.Context(), query, args...)
+		if err != nil {
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			if entry, err := formatEntry(rows); err == nil && entry != "" {
+				referencingTemplates = append(referencingTemplates, entry)
+			}
+		}
+	}
+
+	likeFamily := "%" + family + "%"
+	likeTypeface := "%" + sourceTypeface + "%"
+
+	// 1. artifact_templates
+	checkRef(
+		`SELECT id, label FROM artifact_templates WHERE payload IS NOT NULL AND (payload LIKE ? OR (payload LIKE ? AND ? != ''))`,
+		func(rows *sql.Rows) (string, error) {
+			var id, label string
+			err := rows.Scan(&id, &label)
+			return fmt.Sprintf("%s (%s)", id, label), err
+		},
+		likeFamily, likeTypeface, sourceTypeface,
+	)
+
+	// 2. song_set_layouts
+	checkRef(
+		`SELECT role FROM song_set_layouts WHERE payload IS NOT NULL AND (payload LIKE ? OR (payload LIKE ? AND ? != ''))`,
+		func(rows *sql.Rows) (string, error) {
+			var role string
+			err := rows.Scan(&role)
+			return fmt.Sprintf("song_set_layout:%s", role), err
+		},
+		likeFamily, likeTypeface, sourceTypeface,
+	)
+
+	// 3. announcement_set_slides
+	checkRef(
+		`SELECT id, label FROM announcement_set_slides WHERE payload IS NOT NULL AND (payload LIKE ? OR (payload LIKE ? AND ? != ''))`,
+		func(rows *sql.Rows) (string, error) {
+			var sid int
+			var label string
+			err := rows.Scan(&sid, &label)
+			return fmt.Sprintf("announcement_slide:%d (%s)", sid, label), err
+		},
+		likeFamily, likeTypeface, sourceTypeface,
+	)
+
+	if len(referencingTemplates) > 0 {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"error":                "conflict",
+			"message":              fmt.Sprintf("Cannot delete font family %q: referenced by live templates: %s", family, strings.Join(referencingTemplates, ", ")),
+			"family":               family,
+			"referencingTemplates": referencingTemplates,
+		})
+		return
+	}
+
+	tx, err := s.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(r.Context(), `DELETE FROM font_faces WHERE id = ?`, lookupID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to delete font face")
+		return
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		writeError(w, http.StatusNotFound, "Font not found")
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		writeError(w, http.StatusInternalServerError, "Commit failed")
+		return
+	}
+
+	// Post-commit file unlink
+	fontsDir := filepath.Join(uploadsDir(), "fonts")
+	fullPath := filepath.Join(fontsDir, filepath.Base(assetPath))
+	if err := os.Remove(fullPath); err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Font file already missing on disk for %s: %s", lookupID, fullPath)
+		} else {
+			log.Printf("Warning: failed to unlink font file %s (%v); file may need manual removal", fullPath, err)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":      true,
+		"message": "Font deleted successfully",
+		"id":      lookupID,
+	})
 }

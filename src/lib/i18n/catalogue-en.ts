@@ -248,6 +248,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'remote.invalidCode': 'Invalid or expired pairing code. Check the laptop screen and try again.',
   'remote.conflict': 'Another remote is already paired to this presenter session.',
   'remote.disconnected': 'Remote connection lost. Reconnect or pair again from the laptop.',
+  'remote.reconnecting': 'Connection lost. Reconnecting...',
   'remote.prev': 'Prev',
   'remote.next': 'Next',
   'remote.blank': 'Blank',
@@ -673,4 +674,9 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'form.parser.acceptAll': 'Accept All Suggestions',
   'form.parser.unmappedWarning': 'Unmapped lines detected in rundown intake. Please review:',
   'form.parser.overflowWarning': 'Song overflow detected: the following songs exceed configured slots:',
+  'form.layout.errorTitle': 'Dynamic form layout unavailable',
+  'form.layout.errorFallback': 'Falling back to static fields.',
+  'form.layout.warnTitle': 'Live layout refresh failed',
+  'form.layout.warnSnapshotActive': 'Saved layout snapshot remains active.',
+  'common.retry': 'Retry',
 };

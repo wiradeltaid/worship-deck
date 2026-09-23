@@ -2,14 +2,14 @@
 type: cross-cutting
 status: draft
 created: 2026-08-18
-updated: 2026-08-18
+updated: 2026-09-22
 ---
 
 # Cross-cutting
 
 ## Error envelope
 
-There is no shared JSON schema beyond `{ error: string }` plus HTTP status. [PARTIAL] — read from several `route.ts` files, not a five-lane spec.
+There is no shared JSON schema beyond `{ error: string }` plus HTTP status. [PARTIAL] — read from several `internal/httpapi/*.go` handlers, not a five-lane spec.
 
 | Status | Meaning for the caller |
 | --- | --- |

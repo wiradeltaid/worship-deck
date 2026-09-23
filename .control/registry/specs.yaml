@@ -2130,7 +2130,7 @@ waves:
           - tests/smoke-spec-44.test.mjs
       - id: "SPEC-44-05"
         component: hub
-        satisfies: [UC-5]
+        satisfies: [UC-5, UC-30]
         blocked_by: ["SPEC-44-04"]
         touches: [services]
         tests:
@@ -2199,7 +2199,7 @@ waves:
     tickets:
       - id: "SPEC-46-01"
         component: hub
-        satisfies: [UC-5]
+        satisfies: [UC-5, UC-31]
         blocked_by: []
         touches: [services]
         tests:
@@ -2242,7 +2242,7 @@ waves:
           - tests/smoke-spec-46.test.mjs
       - id: "SPEC-46-06"
         component: hub
-        satisfies: [UC-2, UC-5]
+        satisfies: [UC-2, UC-5, UC-31]
         blocked_by: ["SPEC-46-05"]
         touches: [services, artifacts]
         tests:
@@ -2300,12 +2300,26 @@ waves:
           - tests/smoke-spec-47.test.mjs
       - id: "SPEC-47-06"
         component: registry
-        satisfies: [UC-5, UC-14]
+        satisfies: [UC-5, UC-14, UC-32]
         blocked_by: ["SPEC-47-03", "SPEC-47-05"]
         touches: [uploads, artifacts]
         tests:
           - tests/smoke-spec-47.test.mjs
 
+  # SPEC-48 through SPEC-52 (below) build the "Unified Schedule Workspace" — a client-side UI/UX
+  # prototype under spa/src/pages/WorkspaceMockupPage.tsx and src/operator/workspace/Mockup*.tsx.
+  # Confirmed 2026-09-22 (wdi-reconcile): zero `fetch()` calls anywhere in that subsystem — it reads
+  # and writes only in-memory synthetic data (`SYNTHETIC_MASTER_PRESETS` etc.), never the real API.
+  # Per this method's own routing (`prototype` skill; corpus-guide.md's placement test), UI-only
+  # exploration is not held to G2 promise-writing standards, so no FR/UC backfill was done for it —
+  # owner ruling, 2026-09-22.
+  # The `fr:` lists on these 5 specs (and the informal FR-titles in their autopilot smoke-test
+  # tables, e.g. "FR-21: Predefined Fields Registry", "FR-44: Desktop Offline Sync") were the
+  # autopilot's own loose labels for prototype concepts, not verified delivery of those FRs' real,
+  # registered promises — contrast SPEC-53/54 below, which touch real production files and whose
+  # citations of the same ids ARE the genuine promise. FR-44 itself was never registered anywhere
+  # (a dangling reference `refs-resolve` cannot see, because that validator never checks a spec's own
+  # `fr:` field — reported as a method-level gap, not fixed here) and is removed from SPEC-50/51.
   - id: SPEC-48
     status: closed
     release: unified-schedule-workspace-uiux-mockup
@@ -2396,7 +2410,7 @@ waves:
     status: closed
     release: unified-schedule-workspace-full-architecture
     prd: [operator-turn, offline-deck]
-    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32]
     size: M
     depends_on: [SPEC-49]
     spec_folder: .archive/specs/SPEC-50-unified-schedule-workspace-uiux-full-architecture/
@@ -2438,7 +2452,7 @@ waves:
     status: closed
     release: unified-schedule-workspace-1920-redesign
     prd: [operator-turn, offline-deck]
-    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32, FR-44]
+    fr: [FR-11, FR-20, FR-21, FR-29, FR-30, FR-32]
     size: M
     depends_on: [SPEC-50]
     spec_folder: .archive/specs/SPEC-51-unified-schedule-workspace-1920-fullhd-redesign/
@@ -2643,9 +2657,269 @@ waves:
         tests:
           - tests/smoke-spec-55.test.mjs
 
+  - id: SPEC-56
+    status: closed
+    release: wire-dynamic-predefined-field-catalog
+    prd: [operator-turn]
+    fr: [FR-37]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-56-wire-dynamic-predefined-field-catalog/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: '75d990b26447e6024df9d00bc432f193502030a3'
+      lenses: [edge-case-hunter, correctness, data-lifecycle, contract-consistency]
+    tickets:
+      - id: "SPEC-56-01"
+        component: registry
+        satisfies: [UC-14, FR-37]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - internal/plan/validate_artifact_test.go
+      - id: "SPEC-56-02"
+        component: registry
+        satisfies: [UC-14, FR-37]
+        blocked_by: ["SPEC-56-01"]
+        touches: [artifacts]
+        tests:
+          - tests/placeholder-catalog.test.mjs
 
+  - id: SPEC-57
+    status: closed
+    release: node-schema-mirror-parity
+    prd: [offline-deck]
+    fr: [FR-39, FR-40]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-57-node-schema-mirror-parity/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'e1558cc2a77eba95aa127700f639dc50a2c9fe15'
+      lenses: [edge-case-hunter, schema-migration, test-design, runtime-packaging]
+    tickets:
+      - id: "SPEC-57-01"
+        component: hub
+        satisfies: [FR-39, FR-40]
+        blocked_by: []
+        touches: [sync]
+        tests:
+          - tests/corpus-closure.test.mjs
+      - id: "SPEC-57-02"
+        component: hub
+        satisfies: [FR-39, FR-40]
+        blocked_by: ["SPEC-57-01"]
+        touches: [sync]
+        tests:
+          - tests/schema-parity.test.mjs
+        tests:
+          - tests/schema-parity.test.mjs
 
+  # Opened 2026-09-22 from wdi-reconcile findings (three parallel per-PC corpus-vs-code passes).
+  # All three are confirmed code-behavior gaps, not documentation staleness -- owner ruled spec+ticket
+  # only, no implementation, for each.
+  - id: SPEC-58
+    status: closed
+    release: delete-service-unlinks-uploads
+    prd: [operator-turn]
+    fr: [FR-10]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-58-delete-service-unlinks-uploads/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Round 1 (in-session, Terra was quota-exhausted across every account profile at the time): found the ticket's TS-port reference missed service_field_values as an upload-reference table (sermon_poster/family_photo/youth_photo) -- folded in. Round 2 (2026-09-23, Terra back online, second opinion on the revised ticket): found the collection scope (this Service's own uploads) and the still-referenced check (broader, includes announcement_items etc.) were conflated -- an announcement flyer must never be deleted regardless of reference count, since announcement_items.service_id deliberately survives Service deletion (the FK was dropped for exactly that reason) and a flyer is therefore never this Service's own upload to begin with. Corrected."
+    tickets:
+      - id: "SPEC-58-01"
+        component: hub
+        satisfies: [UC-7, FR-10]
+        blocked_by: []
+        touches: [services, uploads]
+        tests:
+          - internal/httpapi/services_delete_uploads_test.go
 
+  - id: SPEC-59
+    status: closed
+    release: announcement-set-freeze-snapshot
+    prd: [offline-deck]
+    fr: [FR-21]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-59-announcement-set-freeze-snapshot/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Round 1 (in-session, Terra was quota-exhausted across every account profile at the time): found and fixed (1) the freeze write site is one shared function, cloneLiveToService, covering two callers, not two separate sites as first framed; (2) missing ON DELETE CASCADE requirement -- Service deletion relies entirely on FK cascade, never an explicit snapshot delete; (3) the cited prior-art test file (snapshot_test.go) does not exist -- corrected to state the boundary test must be written from scratch. Round 2 (2026-09-23, Terra back online, second opinion on the revised ticket): found and fixed three more gaps -- (4) the freeze predicate must be the Service's own freeze state, not service_announcement_set_slides row existence, since an Announcement Set with zero slides at freeze time is indistinguishable from never-frozen under a row-count test; (5) cloneLiveToService also omits variable_name/ann_set_id on the service_registry_snapshots rows it writes, unlike Sync Artifact's own write -- LoadSnapshot's COALESCE fallback to the live marker masks this, so a Service frozen at creation (never Synced) can still have its Announcement Set association silently retargeted by a later live edit; (6) the upgrade path for Services already frozen before this ships was unspecified -- migrateSnapshots only processes registry_snapshot_at IS NULL rows, so a companion one-time migration cloning today's live content as the initial freeze is now required and stated explicitly."
+    tickets:
+      - id: "SPEC-59-01"
+        component: registry
+        satisfies: [UC-16, UC-20, FR-21]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - internal/plan/snapshot_announcement_freeze_guard_test.go
+      - id: "SPEC-59-02"
+        component: registry
+        satisfies: [UC-16, UC-20, FR-21]
+        blocked_by: ["SPEC-59-01"]
+        touches: [artifacts]
+        tests:
+          - internal/plan/snapshot_announcement_freeze_guard_test.go
+        tests:
+          - internal/plan/snapshot_announcement_freeze_guard_test.go
+
+  - id: SPEC-60
+    status: closed
+    release: hymns-404-unregistered-book-code
+    prd: [rundown-to-service]
+    fr: [FR-2]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-60-hymns-404-unregistered-book-code/
+    spec_reviewed:
+      date: '2026-09-22'
+      sha: 'fdd7e2802e5922c89d50f1490e6c0781b96992af'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Round 1 (in-session, Terra was quota-exhausted across every account profile at the time): found a fresh-database edge case -- no-book_code-given default resolution can fall through to a hardcoded SDAH constant that isn't yet a real song_books row before first hymn upsert -- folded in. Round 2 (2026-09-23, Terra back online, second opinion on the revised ticket): correct and complete as scoped, no further change."
+    tickets:
+      - id: "SPEC-60-01"
+        component: hub
+        satisfies: [FR-2]
+        blocked_by: []
+        touches: [hymns]
+        tests:
+          - internal/httpapi/hymns_book_test.go
+
+  # Opened 2026-09-23 from wdi-reconcile findings (open-questions/business-rules/PRD sweep plus
+  # re-verification of 4 previously-reported findings). All three are confirmed code-behavior gaps
+  # whose docs already describe them accurately -- owner ruled spec+ticket only, no implementation.
+  - id: SPEC-61
+    status: closed
+    release: manual-sync-push-body-cap-and-chunking
+    prd: [offline-deck]
+    fr: [FR-40]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-61-manual-sync-push-body-cap-and-chunking/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'db18d4088864dd5173c378310598d2e629c5a13c'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Found and fixed: (1) MaxBytesReader alone can't produce the required distinct error message -- json.Decode maps every failure to a generic 'Invalid request body'; needs explicit *http.MaxBytesError detection. (2) chunk size must be measured from the actual serialized JSON body (envelope, escaping, UTF-8), not estimated from records. (3) chunk mutation_ids must be deterministic from the original push id, not fresh-random, for retry safety against the server's client_device_id+mutation_id idempotency key. (4) chunking must preserve syncPush's fixed cross-kind processing order (services before dependent announcement_items, confirmed via the real unresolved_service_reference check) -- not just avoid splitting individual records. (5) the oversized-single-record case needs a defined partial-success result contract (which chunks/records succeeded, aggregate count), not a bare pass/fail. base_rev confirmed genuinely unused by grep, as the spec claimed."
+    tickets:
+      - id: "SPEC-61-01"
+        component: hub
+        satisfies: [FR-40]
+        blocked_by: []
+        touches: [sync]
+        tests:
+          - internal/httpapi/sync_test.go
+      - id: "SPEC-61-02"
+        component: hub
+        satisfies: [FR-40]
+        blocked_by: ["SPEC-61-01"]
+        touches: [sync]
+        tests:
+          - tests/sync-client-chunking.test.mjs
+
+  - id: SPEC-62
+    status: closed
+    release: fonts-delete-endpoint
+    prd: [offline-deck]
+    fr: [FR-39]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-62-fonts-delete-endpoint/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'db18d4088864dd5173c378310598d2e629c5a13c'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Found and fixed: (1) the ticket's cited file-cleanup precedent (deleteBackgroundLibraryImage) was wrong -- it never unlinks a file, only tombstones + deletes the DB row; no such precedent exists in this codebase, the ticket now defines the sequence from scratch. (2) a live font reference is a real, confirmed consequence (font-catalog.ts, App.tsx, PresenterOperator.tsx, ProjectorClient.tsx, pptx_import.go all consume /api/fonts by family/source-typeface), not a hypothetical to merely 'confirm' -- the ticket now requires choosing and implementing either a 409-on-referenced refusal or a fontStatus reconciliation, not leaving it open. (3) the unlink-failure policy only covered the already-missing-file case; a permission/IO failure after the DB row is gone leaves an unrecoverable orphan (the API 404s on retry) -- now requires an explicit logged/recoverable path for that case too."
+    tickets:
+      - id: "SPEC-62-01"
+        component: registry
+        satisfies: [FR-39]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - internal/httpapi/fonts_delete_test.go
+
+  - id: SPEC-63
+    status: closed
+    release: form-layout-fetch-error-surfaced
+    prd: [operator-turn]
+    fr: [FR-37]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-63-form-layout-fetch-error-surfaced/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'db18d4088864dd5173c378310598d2e629c5a13c'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Found and fixed: (1) the ticket overstated the failure as identical on both forms -- EditForm initializes layoutData from initialLayoutSnapshot, so dynamic fields keep rendering after a failed live fetch when a valid snapshot exists; only a snapshot-less EditForm or CreateForm falls back fully. (2) both forms only call fetchLayout() after an unrelated Promise.all (song-set entries/backgrounds/song books) succeeds -- if that Promise.all itself rejects, fetchLayout() is never called at all, so a fetchLayout-only fix would miss this path entirely. (3) the existing onRefreshLayout wiring only reaches DynamicFormBody, which isn't mounted in the fallback/failure state, so it cannot serve as the retry control the ticket assumed -- a real retry control in the error banner itself is now required."
+    tickets:
+      - id: "SPEC-63-01"
+        component: hub
+        satisfies: [UC-31, FR-37]
+        blocked_by: []
+        touches: [form-layout]
+        tests:
+          - tests/form-layout-fetch-error.test.mjs
+
+  # Opened 2026-09-23 from wdi-reconcile findings (README/translations, .constitution/project/,
+  # CI-workflow sweep). Real release-pipeline gap, not documentation staleness -- owner ruled spec+
+  # ticket only, no implementation. No FR owns the installer itself (build tooling, like SPEC-57);
+  # cites FR-40 for traceability since it ships alongside the same offline-desktop self-hosting
+  # workflow (per CHANGELOG.md's 0.1.0 entry), same reasoning SPEC-57 used for its own FR citation.
+  - id: SPEC-64
+    status: closed
+    release: installer-version-sync
+    prd: [offline-deck]
+    fr: [FR-40]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-64-installer-version-sync/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'db4abd5e479a13ad620d17d83fd11d5028541337'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Found and fixed: (1) high -- the naive /D define alone is silently lost, since worship-deck.iss's own unconditional #define redeclares MyAppVersion after the command-line override; needs an #ifndef guard at minimum. (2) adopted the stronger fail-closed recommendation -- #error on a missing define, rather than keeping the .iss literal as a second, independently-driftable source. (3) the ticket overclaimed a repo-specific Inno upgrade/downgrade comparison exists; corrected to the actual, verifiable consequence (stale Windows Apps & features metadata only). (4) added a requirement to prove the fix at the compiled-artifact level, not just the constructed command line. Also noted, non-blocking: package-lock.json duplicates the version literal (npm-maintained, not a new source to guard) and build-desktop.mjs has an unrelated dead WorshipPresenterSetup.exe fallback path."
+    tickets:
+      - id: "SPEC-64-01"
+        component: hub
+        satisfies: [FR-40]
+        blocked_by: []
+        touches: [sync]
+        tests:
+          - tests/installer-version-sync.test.mjs
+
+  # Opened 2026-09-23 from wdi-reconcile findings (05-scenarios/ sweep, at owner's request, DEC files
+  # and autopilot deferred to a later pass). Real code gap contradicting both SCN-6 and its own
+  # contract's stated design intent -- owner ruled spec+ticket only, no implementation.
+  - id: SPEC-65
+    status: closed
+    release: remote-reconnect-without-repairing
+    prd: [operator-turn]
+    fr: [FR-35]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-65-remote-reconnect-without-repairing/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'ca001fdd7721de2f8b75f9c3aa5b411887ca6885'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Confirmed the core claim (getRemoteStream accepts a direct role=remote reconnect on hasPairedRemote+pairedRemoteUID==sess.UID, postRemoteClaim not involved) and found 6 real gaps in the naive fix: (1) EventSource.onerror exposes no HTTP status, so the client cannot tell a terminal 409 apart from a transient blip -- needs a bounded-retry-or-status-check fallback policy, not a bare retry-once; (2) no stream-generation/stale-callback guard -- a delayed onerror from a superseded EventSource can corrupt state set by a newer stream; (3) a real (not just theoretical) unpair-vs-reconnect race, including already-queued messages draining from a channel the unpair is concurrently closing; (4) page reload (a brand-new session instance) isn't covered by a runtime-only retry -- ticket must explicitly decide if that's in scope; (5) different-UID rejection and expired-auth handling need their own explicit tests, not folded into the happy path; (6) deleteRemotePair has no caller-authorization check at all (any signed-in user can end any service's pairing) -- out of scope for this ticket's fix, but flagged since it undermines the ticket's own 'presenting client explicitly unpaired' premise."
+    tickets:
+      - id: "SPEC-65-01"
+        component: presenter
+        satisfies: [UC-29, FR-35]
+        blocked_by: []
+        touches: [remote-control]
+        tests:
+          - tests/remote-reconnect.test.mjs
 
 
 

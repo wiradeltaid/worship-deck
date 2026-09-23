@@ -66,7 +66,7 @@ asserted PPTX copy.
 
 Agents and humans must run the public-repo guard before every commit and every
 push. Cursor: `.cursor/rules/public-repo-commit-audit.mdc`. All hosts: the
-**Commit / push audit** section in root `AGENTS.md`.
+**Public repository** section in root `AGENTS.md`.
 
 ## Active vs frozen repository
 

@@ -27,7 +27,7 @@ Hymn lyrics come from a local corpus, looked up by number. Layouts come from a r
 
 - **Rundown intake** — paste into the web form, or `POST` from a chat bot to a secret-gated webhook. Unrecognised lines are surfaced, never silently dropped.
 - **Hymn resolution** — hymns referenced by number are expanded into title and lyric slides, split for readability, with the refrain repeated after each verse.
-- **Editable slide templates** — 28 templates in a SQLite registry with a canvas editor: move and resize elements, change text and styling, add your own text boxes and shapes, reset any template to its shipped state.
+- **Editable slide templates** — 38 templates in a SQLite registry with a canvas editor: move and resize elements, change text and styling, add your own text boxes and shapes, reset any template to its shipped state.
 - **One layout, four outputs** — the same hydrated slide drives the PowerPoint deck, the web slideshow, the projector and the live preview in native 16:9 widescreen. No per-format layout code.
 - **Presenter mode** — current and next slide, a thumbnail filmstrip, a slide list, a jump-to-any-slide grid, the run sheet, and a real second window you can drag onto the projector.
 - **Blank screen** — black the projector out and restore it without losing your place (`B`).
@@ -36,6 +36,9 @@ Hymn lyrics come from a local corpus, looked up by number. Layouts come from a r
 - **Announcement flyers** — a persistent list, with images uploaded to the hub or pulled from an allow-listed URL.
 - **Custom typography** — import custom font files with automated variant pairing and ECMA-376 PowerPoint embedding.
 - **Accounts and roles** — per-person admin and operator accounts, rate-limited sign-in, and sessions that can actually be revoked.
+- **Configurable rundown parsing and form layout** — author named parser profiles and arrange the Service form's fields and groupings from the admin panel, no code change needed.
+- **Media library** — a shared, reusable pool of background and flyer images, separate from any one template.
+- **Manual device sync** *(experimental — not yet verified end-to-end across two real machines)* — push and pull Services, Song Set entries, backgrounds, and announcements between two WorshipDeck instances on the same local network, on demand. No cloud, no background sync.
 
 ## Requirements
 

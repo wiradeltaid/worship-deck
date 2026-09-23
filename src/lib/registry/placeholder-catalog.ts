@@ -61,6 +61,25 @@ export function registerDynamicCatalogTokens(
   }
 }
 
+/**
+ * Resets the dynamic portion of the catalog to match exactly the provided list of fields (SPEC-56).
+ * Restores the built-in 17 catalog entries and adds the active dynamic fields.
+ */
+export function resetDynamicCatalogTokens(
+  fields?: Array<{ variable_name: string; field_type?: string }>
+): void {
+  CATALOG_BY_KEY.clear();
+  for (const entry of PLACEHOLDER_CATALOG) {
+    CATALOG_BY_KEY.set(entry.key, entry);
+  }
+  if (fields) {
+    for (const f of fields) {
+      const pType: PlaceholderType = f.field_type === 'image' ? 'image' : 'text';
+      CATALOG_BY_KEY.set(f.variable_name, { key: f.variable_name, type: pType });
+    }
+  }
+}
+
 /** Token matching regex for inline `{token_name}` in text element content. */
 export const INLINE_TOKEN_REGEX = /\{([a-zA-Z0-9_]+)\}/g;
 

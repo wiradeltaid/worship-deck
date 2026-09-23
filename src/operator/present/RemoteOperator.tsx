@@ -331,6 +331,14 @@ export default function RemoteOperator({
 
   return (
     <div className="dark flex min-h-dvh flex-col bg-background text-foreground select-none pb-24">
+      {connectionState === 'reconnecting' ? (
+        <div
+          role="status"
+          className="bg-amber-500/20 text-amber-200 dark:text-amber-200 border-b border-amber-500/30 px-4 py-1.5 text-center text-xs font-medium"
+        >
+          {t('remote.reconnecting')}
+        </div>
+      ) : null}
       <header className="flex items-center justify-between border-b border-border px-4 py-2">
         <div className="min-w-0">
           <h1 className="truncate text-sm font-semibold">{t('remote.title')}</h1>

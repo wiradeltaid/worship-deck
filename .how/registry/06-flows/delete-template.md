@@ -54,7 +54,7 @@ sequenceDiagram
 
 Delete + restart = still gone. Plan does not substitute seed for a missing id. Existing Services keep the frozen id until Sync Artifact.
 
-## Extended by DEC-004 (G4, not yet built)
+## Extended by DEC-004 (G4, built — waves W3/W4)
 
 The same delete discipline (gone is terminal, restart does not revive, Sync freezes the frozen
 copy) extends to every new table:

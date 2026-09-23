@@ -15,7 +15,10 @@ product_components:
   - LC-12
   - LC-13
   - LC-16
+  - LC-19
   - LC-2
+  - LC-20
+  - LC-23
   - LC-3
   - LC-4
   - LC-5
@@ -92,10 +95,25 @@ logical_components:
   component: presenter
   area: remote-control
   owner: null
+- id: LC-19
+  type: gateway
+  component: hub
+  area: parser-profiles
+  owner: null
 - id: LC-2
   type: gateway
   component: hub
   area: services
+  owner: null
+- id: LC-20
+  type: gateway
+  component: hub
+  area: form-layout
+  owner: null
+- id: LC-23
+  type: gateway
+  component: hub
+  area: sync
   owner: null
 - id: LC-3
   type: gateway

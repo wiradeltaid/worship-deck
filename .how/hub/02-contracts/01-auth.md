@@ -50,4 +50,4 @@ Changing the disguised 401 text, or adding a required login field, is breaking f
 
 ## Constraints
 
-Timeout = Node default. No special body-size limit on this route.
+Process timeout is the Go API default — [ASSUMED], never read as a number (DEC-003 retired the Next.js shape). No special body-size limit on this route.

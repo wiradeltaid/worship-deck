@@ -13,7 +13,8 @@ There are no extra `BR-N` rows. Rules that bind more than one PC are already `AD
 | AD-12 | Hub render (preview/PPTX) and Presenter |
 | AD-23 | Hub settings and all display surfaces |
 | AD-24 | Hub chrome vs Presenter screen |
-| AD-25 · AD-26 | Hub hymns and Presenter verses |
+| AD-26 | Presenter verses |
+| AD-36 | Hub hymns / song-book bootstrap-once seed (superseded AD-25's hymn half, DEC-005, 2026-08-20) |
 
 Rules that bind only one PC: `.what/<pc>/02-rules/`.
 

@@ -250,6 +250,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'remote.invalidCode': 'Kode pairing salah atau sudah kedaluwarsa. Periksa layar laptop dan coba lagi.',
   'remote.conflict': 'Remote lain sudah terhubung ke sesi presenter ini.',
   'remote.disconnected': 'Koneksi remote terputus. Hubungkan ulang atau pair kembali dari laptop.',
+  'remote.reconnecting': 'Koneksi terputus. Menghubungkan kembali...',
   'remote.prev': 'Sebelumnya',
   'remote.next': 'Berikutnya',
   'remote.blank': 'Blank',
@@ -675,4 +676,9 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'form.parser.acceptAll': 'Terapkan Semua Saran',
   'form.parser.unmappedWarning': 'Baris tak terpetakan terdeteksi dalam warta. Harap tinjau:',
   'form.parser.overflowWarning': 'Kelebihan lagu terdeteksi: lagu-lagu berikut melampaui slot yang tersedia:',
+  'form.layout.errorTitle': 'Tata letak formulir dinamis tidak tersedia',
+  'form.layout.errorFallback': 'Kembali ke bidang formulir standar.',
+  'form.layout.warnTitle': 'Penyegaran tata letak langsung gagal',
+  'form.layout.warnSnapshotActive': 'Snapshot tata letak tersimpan tetap aktif.',
+  'common.retry': 'Coba lagi',
 };

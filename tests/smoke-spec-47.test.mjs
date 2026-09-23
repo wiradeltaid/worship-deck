@@ -445,15 +445,15 @@ export function scanInnoSetupDataPreservation(issSource) {
 }
 
 test('SPEC-47-03: Inno Setup script and desktop packaging pipeline integration', () => {
-  const issPath = path.join(root, 'installer', 'worship-presenter.iss');
-  assert.ok(fs.existsSync(issPath), 'installer/worship-presenter.iss must exist');
+  const issPath = path.join(root, 'installer', 'worship-deck.iss');
+  assert.ok(fs.existsSync(issPath), 'installer/worship-deck.iss must exist');
   const issSource = fs.readFileSync(issPath, 'utf8');
 
   // Verify setup metadata
-  assert.match(issSource, /MyAppName "Worship Presenter Web"/);
+  assert.match(issSource, /MyAppName "WorshipDeck"/);
   assert.match(issSource, /AppName=\{#MyAppName\}/);
-  assert.match(issSource, /worship-presenter\.exe/);
-  assert.match(issSource, /AppMutex=Local\\WorshipPresenter\.SingleInstance/);
+  assert.match(issSource, /worship-deck\.exe/);
+  assert.match(issSource, /AppMutex=.*Local\\WorshipDeck\.SingleInstance/);
   assert.match(issSource, /CloseApplications=yes/);
 
   // Verify build script exists and is wired
@@ -467,7 +467,7 @@ test('SPEC-47-03: Inno Setup script and desktop packaging pipeline integration',
 });
 
 test('SPEC-47-03: Executable Absence Guard & Physical Real-File Defect Injection for Inno Setup Data Preservation', () => {
-  const issPath = path.join(root, 'installer', 'worship-presenter.iss');
+  const issPath = path.join(root, 'installer', 'worship-deck.iss');
   const originalBytes = fs.readFileSync(issPath);
   const originalSource = originalBytes.toString('utf8');
 
@@ -571,7 +571,7 @@ test('SPEC-47-03: Executable Absence Guard & Physical Real-File Defect Injection
 
   // Prove byte-for-byte restoration
   const restoredBytes = fs.readFileSync(issPath);
-  assert.deepEqual(restoredBytes, originalBytes, 'installer/worship-presenter.iss must be restored byte-for-byte');
+  assert.deepEqual(restoredBytes, originalBytes, 'installer/worship-deck.iss must be restored byte-for-byte');
   const restoredSource = restoredBytes.toString('utf8');
   assert.deepEqual(scanInnoSetupDataPreservation(restoredSource), [], 'Restored file must pass cleanly');
 });

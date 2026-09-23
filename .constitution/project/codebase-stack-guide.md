@@ -19,7 +19,7 @@ Every version below is `package.json` as read at distillation. **Read `package.j
 | React | `19.2.4` | `package.json` |
 | Language | Go for `api`; TypeScript `^5` for `spa` / worker | `go.mod` / `tsconfig.json` |
 | Import alias | `@/*` → `./src/*` | `tsconfig.json` `paths` |
-| Database | SQLite; as-built `better-sqlite3` `^12.11.1`; target Go driver on the API process | AD-9, AD-30 |
+| Database | SQLite; as-built `better-sqlite3` `^12.11.1` for the Node setup/seed/test path; as-built `modernc.org/sqlite` (`go.mod`) for the Go API process (`internal/db/db.go`) | AD-9, AD-30 |
 | Deck output | `pptxgenjs` `^4.0.1` in `pptx-worker` only | AD-30 |
 | Canvas editor | `fabric` `^6.6.1` | `AD-13` uncontrolled wrapper |
 | UI | Tailwind `^4`, `shadcn`, `@base-ui/react` on the SPA | `package.json` |
@@ -41,7 +41,7 @@ All of these run from the repository root.
 | Public-repo guard alone | `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs` |
 | Dev server | `npm run dev` |
 
-`npm test` does **not** glob `tests/`. It names every file explicitly in the `test` script, so **a new test file is not run until it is added to that list**. `.github/workflows/test.yml` runs `go test ./cmd/... ./internal/...`, `npm ci`, then `npm run spa:build`, then `npm test`, in that order.
+`npm test` does **not** glob `tests/`. It names every file explicitly in the `test` script, so **a new test file is not run until it is added to that list**. `.github/workflows/test.yml` runs `go test ./cmd/... ./internal/...`, `npm ci`, then `npm run spa:build`, `npm run typecheck`, a Playwright Chromium install (for the acceptance suites), then `npm test`, in that order.
 
 ## How a test is written here
 

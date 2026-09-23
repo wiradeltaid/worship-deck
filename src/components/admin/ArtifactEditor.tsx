@@ -44,6 +44,7 @@ import {
   PLACEHOLDER_CATALOG,
   catalogEntry,
   findUnknownPredefinedFieldTokens,
+  resetDynamicCatalogTokens,
 } from '@/lib/registry/placeholder-catalog';
 import {
   beforeUnloadGuard,
@@ -728,6 +729,20 @@ export default function ArtifactEditor({
     return summaries;
   }, [adapter]);
 
+  const loadPredefinedFields = useCallback(async () => {
+    try {
+      const res = await fetch('/api/worship-form-layout');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.predefined_fields)) {
+          resetDynamicCatalogTokens(data.predefined_fields);
+        }
+      }
+    } catch {
+      // Fallback silently if fetch fails
+    }
+  }, []);
+
   const loadTemplate = useCallback(async (id: string) => {
     setStatus('loading');
     setMessage(null);
@@ -759,6 +774,7 @@ export default function ArtifactEditor({
         setStatus('error');
         setMessage(err instanceof Error ? err.message : t('admin.artifacts.loadFailed'));
       });
+    void loadPredefinedFields();
     void fetchAvailableSongSets().then(setAvailableSongSets);
     void fetchAvailableAnnouncementSets().then(setAvailableAnnSets);
     void fetchBackgroundLibrary().then(setBgLibrary);
@@ -766,7 +782,7 @@ export default function ArtifactEditor({
     const handleWindowClick = () => setContextMenu(null);
     window.addEventListener('click', handleWindowClick);
     return () => window.removeEventListener('click', handleWindowClick);
-  }, [loadList, t]);
+  }, [loadList, loadPredefinedFields, t]);
 
   useEffect(() => {
     drawingToolRef.current = drawingTool;
@@ -4219,6 +4235,7 @@ export default function ArtifactEditor({
       if (typeof data.label === 'string') setDraftLabel(data.label);
       setIsDirty((current) => nextDirtyState(current, 'saved'));
       setStatus('success');
+      await loadPredefinedFields();
       const unknownWarnings = findUnknownPredefinedFieldTokens(payload);
       if (unknownWarnings.length > 0) {
         const warningMsg = `${t('admin.artifacts.saved')} (${unknownWarnings.join(', ')})`;

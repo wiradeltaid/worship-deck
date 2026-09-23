@@ -348,7 +348,7 @@ func (s *Server) putArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
-	cleaned, err := plan.ValidateArtifactTemplate(next, s.Root)
+	cleaned, err := plan.ValidateArtifactTemplate(next, s.Root, s.getActivePredefinedFieldCatalog())
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -797,6 +797,10 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	if _, err := tx.Exec(`DELETE FROM service_announcement_set_slides WHERE service_id = ?`, id); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
 	rows, err := tx.Query(`SELECT id, label, base_type, payload, updated_at, variable_name, ann_set_id FROM artifact_templates ORDER BY position`)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
@@ -861,6 +865,10 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	if err := db.CloneAnnouncementSlidesTx(tx, id); err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
 	res, err := tx.Exec(
 		`UPDATE services SET updated_at = `+db.StampNowSQL+`, registry_snapshot_at = `+db.StampNowSQL+`
 		  WHERE id = ? AND COALESCE(updated_at, created_at) = ?`,
@@ -889,4 +897,30 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		"updated_at":    after,
 		"templateCount": pos,
 	})
+}
+
+func (s *Server) getActivePredefinedFieldCatalog() map[string]string {
+	if s.DB == nil {
+		return nil
+	}
+	rows, err := s.DB.Query(`SELECT variable_name, field_type FROM predefined_fields WHERE is_active = 1`)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	catalog := make(map[string]string)
+	for rows.Next() {
+		var varName, fieldType string
+		if err := rows.Scan(&varName, &fieldType); err != nil {
+			continue
+		}
+		switch fieldType {
+		case "image":
+			catalog[varName] = "image"
+		default: // "text", "text_area"
+			catalog[varName] = "text"
+		}
+	}
+	return catalog
 }

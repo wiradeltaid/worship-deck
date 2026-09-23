@@ -26,6 +26,7 @@ deployment decisions, it is cataloged under [Residual risks](#residual-risks-ope
 | **Presenter & Projector SPA (`spa/`, `src/`)** | Client browser (operator console & second-screen window) | Displayed lyrics, names, images, slide canvases | Standard React JSX escaping; zero `dangerouslySetInnerHTML` |
 | **External Rundown Webhook Client** | External network (e.g., Telegram bot, automation script) | Service rundown text, song numbers, schedule | Gated by `WEBHOOK_SECRET` with constant-time comparison |
 | **External Image Host** | Public Internet (operator-specified URL) | Remote image payloads for flyers | SSRF filter, allowlist, redirect refusal, size & timeout caps |
+| **Peer WorshipDeck Instance (Manual Sync)** | Operator-supplied address, same local network by design | Services (incl. member names), photographs, Song Set entries, backgrounds, announcements | Admin session required on the receiving side; **experimental — see §3.7** |
 
 ---
 
@@ -136,7 +137,53 @@ deployment decisions, it is cataloged under [Residual risks](#residual-risks-ope
   - **Parameterized Queries:** All database interactions with SQLite use parameterized placeholders
     (`?`). No dynamic SQL string concatenation is performed with user input.
 
-### 3.7 Outbound Network & Telemetry Audit
+### 3.7 Manual Sync (`POST /api/sync/push`, `GET /api/sync/pull`, `GET /api/sync/status`, `POST /api/sync/assets/check`, `POST /api/sync/assets/upload`, `GET /api/sync/assets/{sha256}`)
+
+**Status: experimental, not yet verified between two separate machines.** SPEC-47 shipped this
+feature and its Go-level tests pass, but every test (`internal/httpapi/sync_test.go`,
+`tests/smoke-spec-47.test.mjs`) exercises one `httptest` server pushing to and pulling from
+**itself** — none stands up two independent instances and syncs across them. This section
+describes the code as it is, not a verified deployment shape.
+
+- **Threats:** Unbounded request bodies causing memory exhaustion, a stale in-flight sync
+  colliding with a live presentation, an unauthenticated peer accepting data from a host the
+  operator did not intend, and a UI control that looks like a security boundary but is not one.
+- **Code Reference:** `internal/httpapi/sync.go`, `internal/httpapi/sync_assets.go`,
+  `src/lib/sync/client.ts`, `spa/src/pages/AdminSyncPage.tsx`
+- **Mitigations:**
+  - **Presenter Liveness Guard:** `syncPush` calls `globalRemoteHub.TryAcquireSyncLock()` and
+    returns `409 presenter_active` while a service is being projected, so a sync cannot mutate data
+    a live presentation is reading (`sync.go:107`).
+  - **Session Gate:** Every sync handler calls `requireAdmin`, the same admin-role check every
+    other `/api/admin/*` route uses.
+  - **Content-Addressed Assets:** `syncAssetUpload`/`syncAssetDownload` key files by their SHA-256,
+    so a corrupted or mismatched upload is detectable by hash rather than trusted on filename alone.
+- **Gaps, named rather than silently carried:**
+  - **No payload size limit on `syncPush` or `syncAssetsCheck`.** Both decode `r.Body` directly
+    with `json.NewDecoder` and no `http.MaxBytesReader` (contrast §3.1's `WEBHOOK_SECRET` endpoint,
+    bounded to 4 MB, and `syncAssetUpload`, bounded to 50 MB at `sync_assets.go:132`). An
+    authenticated admin session — the same bar every other admin write clears — can send an
+    arbitrarily large `sync/push` or `sync/assets/check` body.
+  - **No CORS support anywhere in the Go API.** `requireAdmin` authenticates by reading the
+    `auth_session` cookie (`internal/httpapi/server.go:148`), and cookies are not sent
+    cross-origin by a browser's default `fetch()` (`src/lib/sync/client.ts` sets no `credentials`
+    option). A genuine two-machine sync — the UI's own stated use case, "one laptop running the
+    desktop app, one running the browser build" — means the browser tab is on one instance's
+    origin while `remoteUrl` names a different one; without an `Access-Control-Allow-Origin`
+    response and a `credentials: 'include'` request, the browser has no cookie to send and, for the
+    `POST` calls, no successful preflight to complete the request at all. The push/pull protocol
+    itself has not been shown to be reachable across two real origins.
+  - **The "Device Authorization Token" field is not read by the server.** `AdminSyncPage.tsx`
+    lets an operator save a token and sends it as `Authorization: Bearer <token>`
+    (`AdminSyncPage.tsx:137`), but no Go handler, and no code anywhere under `internal/`, reads an
+    `Authorization` header for a sync route (`webhook.go`'s Bearer handling is the unrelated
+    `WEBHOOK_SECRET` path). The field is presented as an authorization control and currently does
+    nothing.
+- **Until the two gaps above close:** treat Manual Sync as usable only where both instances already
+  share a session (practically, the same origin) — not as a mechanism for moving data between two
+  independently deployed church laptops. Do not point `IMAGE_URL_ALLOWLIST`-style trust at it.
+
+### 3.8 Outbound Network & Telemetry Audit
 
 - **Threats:** Silent data exfiltration or unintended IP disclosure of congregation servers.
 - **Mitigations:**
@@ -147,6 +194,9 @@ deployment decisions, it is cataloged under [Residual risks](#residual-risks-ope
     `data/song-book/sdah.json`) that seed directly into SQLite.
   - **Bundled Typography:** Web fonts are packaged locally via `@fontsource/geist-sans` and
     `@fontsource/geist-mono`, avoiding third-party font CDN requests.
+  - **Manual Sync is the one deliberate exception**, not telemetry: it is operator-triggered,
+    never automatic, and reaches only an address the operator supplies — never Wira Delta
+    Indonesia or a third party. See §3.7 for its own threat analysis.
 
 ---
 
@@ -166,3 +216,7 @@ Operators must address the following:
    data deletion is required.
 4. **Host Security & Backups:** Access control to the physical or virtual host, file permissions for
    `data.db`, and backup storage encryption remain the exclusive responsibility of the operator.
+5. **Manual Sync (§3.7) is experimental.** Do not depend on it as the only path keeping two
+   deployments consistent until cross-machine operation, CORS handling, and the "Device
+   Authorization Token" field are verified or fixed. Treat a second synced instance as a second,
+   independently governed copy of every record it receives.

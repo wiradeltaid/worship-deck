@@ -216,6 +216,32 @@ func (s *Server) postRemotePair(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// 1b. GET /api/present/{id}/remote/pair
+// Checks whether the caller holds an active pairing grant as the remote.
+func (s *Server) getRemotePairStatus(w http.ResponseWriter, r *http.Request) {
+	serviceID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || serviceID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid Service ID")
+		return
+	}
+
+	sess := sessionFrom(r)
+	if sess == nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	state := globalRemoteHub.getOrCreateSession(serviceID)
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	hasGrant := state.hasPairedRemote && state.pairedRemoteUID == sess.UID
+	writeJSON(w, http.StatusOK, map[string]any{
+		"paired":    state.hasPairedRemote,
+		"has_grant": hasGrant,
+	})
+}
+
 // 2. POST /api/present/{id}/remote/claim
 // With a valid code, binds caller as remote and returns current session state.
 // With wrong, expired, or already-used code -> 400 (opaque error).
