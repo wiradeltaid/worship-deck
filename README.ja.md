@@ -65,9 +65,91 @@ npm run setup
 npm run dev
 ```
 
-`npm run setup` は環境変数 `.env` の生成、SQLite の初期化、デフォルトテンプレートの登録、管理者初期パスワードの生成を自動で行います。`npm run dev` で Go API (<http://localhost:3000>) と React SPA (<http://localhost:5173>) が起動します。
+`npm run setup` は環境変数 `.env` の生成、SQLite の初期化、デフォルトテンプレートの登録、管理者初期パスワードの生成を自動で行います。`npm run dev` で Go API (<http://localhost:3000>) と React SPA (<http://localhost:5173>) が起動します（Vite が `/api` を Go へプロキシします）。SPA では `admin` としてログインしてください。単一オリジンで動かす場合は `npm run spa:build && npm start` を実行し、ポート 3000 を開いてください。`setup` の再実行は安全です — 既存の `.env` やデータベースを上書きすることはありません。
 
----
+自教会のデータを入力する前に [`.constitution/project/private-data.md`](.constitution/project/private-data.md) をお読みください。
+
+### 礼拝を作成する
+
+**Services → New** を開き、式順テキストをそのままテキストボックスに貼り付けます。想定される形式は次のとおりです（架空の名前を使用しています）：
+
+```text
+SABBATH, MARCH 14, 2026
+
+BIBLE TALK (09.30-10.50 /80 min)
+》welcome remarks: Mrs. Lestari
+Song Leader : Ms. Ayu
+[  ] Opening song : SDAH #159 The Old Rugged Cross
+Memory Verse & Opening Prayer : Mr. Bagas
+Closing Prayer : Mr. Damar (1m)
+
+DIVINE SERVICE (10.50- 12.05/ 75 min)
+Song Leader : Ms. Kirana
+[  ] Opening Song : SDAH #83 O Worship the King
+Intercessory Prayer: Mr. Farid (5m)
+Sermon : Pr. Andi Hartono "Working Out" (45m)
+[  ] Closing Song : SDAH #249 Praise Him! Praise Him!
+```
+
+**Parse** ボタンを押すと、役割・時間・賛美歌番号がフォームへ抽出され、賛美歌はローカルコーパスからタイトルへ解決されます。パーサーが処理できなかった行は破棄されず、一覧として表示されます。
+
+説教のフライヤーや家族・青年の写真があれば入力し、保存してください。
+
+### 投映する
+
+礼拝ページから：
+
+- **Download PPTX** — オフライン用パッケージ。ネットワーク・ノートPC・サーバーのいずれかに問題が生じても、礼拝を継続できるのはこれです。
+- **Present** — オペレーターコンソール。現在・次のスライドプレビュー、フィルムストリップ、スライド一覧、任意のスライドへ移動できる **All slides** を備えています。
+- **Open projector** — 第二画面へドラッグする独立ウィンドウ。矢印キーで両方の画面が同期して進みます。`B` でプロジェクターを暗転・復帰できます。
+
+### 追加機能
+
+**聖句検索。** プレゼンターモードから KJV の聖句をプロジェクターに表示できます。コーパスは `data/en/bible-translation/kjv.json` にあり、起動のたびにこのファイルから照合されます。
+
+**チャット連携。** `x-webhook-secret` ヘッダー付きの `POST /api/webhook` は式順を JSON として受け付け、ボットが礼拝を作成・修正できます。シークレットは `.env` に格納され、このエンドポイントはそれのみで保護され、セッションでは保護されません。
+
+### トラブルシューティング
+
+**`Missing song book corpus`** — `data/song-book/sdah.json` が見つかりません。このファイルはリポジトリに同梱されているため、バージョン管理から復元してください：`git checkout -- data/song-book/sdah.json`。その後 `npm run corpus:verify` を実行し、両方のコーパスが揃っていることを確認します。
+
+**ロックアウトされた場合** — `npm run auth:set-password -- admin` を実行すると、対話プロンプトから新しいパスワードを設定できます。`npm run auth:unlock -- --list` でログイン試行の制限状況を表示・解除できます。
+
+**プレゼンテーションに画像が表示されない** — 外部URLの画像はURL安全ルールを満たす必要があります。サーバーへ直接アップロードすれば常に成功します。
+
+## 自教会向けにカスタマイズする
+
+同梱のレジストリは実働例です — 実際の礼拝順序に、連絡先・支払い情報を仮のものへ差し替えた内容になっています。変更すべき点は2つです：
+
+1. **スライドテンプレート。** 管理者としてログインし、`/admin/artifacts` を開きます。すべてのテンプレートはキャンバス上で編集可能です。固定スライド（献金・水曜祈祷会・連絡先）には、自教会の情報を入力してください。
+2. **プライベートな上書き。** 教会のレジストリを git 管理から完全に外したい場合は、`data/local/default-registry.json` に配置してください。アプリはそこから読み込むようになります。このパスは git から無視されます。詳しくは [`.constitution/project/private-data.md`](.constitution/project/private-data.md) を参照してください。
+
+## 同梱コーパス
+
+2種類のデフォルトコーパスが同梱されており、クローン直後でも追加ファイルやネットワークなしに賛美歌番号・聖句参照を解決できます：
+
+| ファイル | 内容 | 起動時の動作 |
+| --- | --- | --- |
+| `data/song-book/sdah.json` | Seventh-day Adventist Hymnal の賛美歌 695曲 | タイトルと歌詞をファイルから再適用 |
+| `data/en/bible-translation/kjv.json` | 66巻、1,189章、31,102節の KJV聖書 | 起動のたびに同梱ファイルから照合（実測 約130〜150ms） |
+
+`npm run corpus:verify` で両コーパスの完全性を確認できます。どちらもジェネレーターを持ちません — 変換元のエクスポートはすでに存在しないため、これらのファイルが正本です。再生成ではなくバージョン管理からの復元を行ってください。
+
+[ATTRIBUTIONS.md](ATTRIBUTIONS.md) を必ずお読みください — 著作権者、非営利の教会目的、削除依頼の連絡先が記載されています。各コーパスはファイル内にも独自のライセンス文を含んでいます。
+
+別の賛美歌集に対応させる場合は、同じ形式で `data/song-book/<book-code>.json` にコーパスを追加してください。賛美歌は `(book_code, number)` でキー管理されるため、2冊目は同梱のものを置き換えるのではなく並存します。
+
+## デプロイ
+
+Go API と SPA をビルドし、PPTX ワーカー用に Node 22 が `PATH` にあるホストで `./api`（または `npm start`）を実行してください — 詳細は [`.constitution/project/deployment.md`](.constitution/project/deployment.md) を参照してください。SQLite、アップロード画像、デッキキャッシュにはいずれも永続的なホストパスが必要です。どのパスかはそのファイルに記載されています。
+
+## プロジェクトの経緯
+
+本プロジェクトはもともと、単一教会向けの非公開リポジトリとして始まりました。その履歴はここには引き継がれていません。実在する会員の氏名、未成年者を含む本人特定可能な写真、個人メッセージのスクリーンショット、有効な決済コードが含まれていたためです — いずれも公開リポジトリにあるべきものではなく、一度インデックスされれば取り消すこともできません。
+
+そのため本リポジトリは、架空のサンプル教会データによる単一の初期コミットから開始しています。システムがこのような設計になっている理由は `.what/` および `.how/`（DEC-001）に記載されています。
+
+コントリビューターの方は、最初のコミット前に [`.constitution/project/private-data.md`](.constitution/project/private-data.md) を必ずお読みください。教会データが追跡対象ファイルに混入すると失敗するテストが用意されており、それには理由があります。
 
 ## ライセンスと商標について
 

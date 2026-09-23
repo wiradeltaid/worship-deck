@@ -269,6 +269,11 @@ work_progress:
   tickets_done: 0
   tickets_total: 1
   work_progress: 0%
+- spec: SPEC-64
+  status: open
+  tickets_done: 0
+  tickets_total: 1
+  work_progress: 0%
 - spec: W1
   status: closed
   tickets_done: 2

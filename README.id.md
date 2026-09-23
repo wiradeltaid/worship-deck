@@ -139,6 +139,10 @@ Dua korpus teks terverifikasi disertakan secara bawaan:
 
 Jalankan `npm run corpus:verify` untuk memverifikasi keutuhan korpus. Baca [ATTRIBUTIONS.md](ATTRIBUTIONS.md) untuk rincian pemegang hak cipta dan kontak penghapusan materi.
 
+## Penerapan (Deployment)
+
+Build API Go dan SPA, lalu jalankan `./api` (atau `npm start`) di host dengan Node 22 di `PATH` untuk PPTX worker — lihat [`.constitution/project/deployment.md`](.constitution/project/deployment.md). SQLite, gambar yang diunggah, dan cache deck semuanya membutuhkan jalur host yang persisten; berkas tersebut menjelaskan jalur mana saja.
+
 ## Riwayat Proyek & Privasi
 
 Proyek ini bermula dari repositori privat satu jemaat lokal. Riwayat tersebut tidak dibawa ke repositori publik ini karena memuat nama asli jemaat, foto anak di bawah umur, tangkapan layar percakapan privat, dan QR code donasi rekening asli. Repositori publik ini dimulai dari komit awal yang bersih menggunakan data jemaat contoh sintetis (*Harborlight Adventist Fellowship*).

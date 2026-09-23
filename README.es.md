@@ -65,9 +65,91 @@ npm run setup
 npm run dev
 ```
 
-`npm run setup` genera el archivo `.env`, inicializa la base de datos SQLite, registra las plantillas por defecto e imprime la contraseña inicial del administrador.
+`npm run setup` genera el archivo `.env`, inicializa la base de datos SQLite, registra las plantillas por defecto e imprime la contraseña inicial del administrador. `npm run dev` inicia la API de Go en <http://localhost:3000> y el SPA de React en <http://localhost:5173> (Vite redirige `/api` a Go). Inicie sesión como `admin` en el SPA. Para un solo origen: `npm run spa:build && npm start` y abra el puerto 3000. Volver a ejecutar `setup` es seguro: nunca sobrescribe un `.env` o una base de datos existentes.
 
----
+Lea [`.constitution/project/private-data.md`](.constitution/project/private-data.md) antes de introducir los datos de su propia congregación.
+
+### Crear un servicio
+
+**Servicios → Nuevo.** Pegue un programa de culto en el cuadro de texto sin formato. La forma que se espera es la siguiente (nombres sintéticos):
+
+```text
+SABBATH, MARCH 14, 2026
+
+BIBLE TALK (09.30-10.50 /80 min)
+》welcome remarks: Mrs. Lestari
+Song Leader : Ms. Ayu
+[  ] Opening song : SDAH #159 The Old Rugged Cross
+Memory Verse & Opening Prayer : Mr. Bagas
+Closing Prayer : Mr. Damar (1m)
+
+DIVINE SERVICE (10.50- 12.05/ 75 min)
+Song Leader : Ms. Kirana
+[  ] Opening Song : SDAH #83 O Worship the King
+Intercessory Prayer: Mr. Farid (5m)
+Sermon : Pr. Andi Hartono "Working Out" (45m)
+[  ] Closing Song : SDAH #249 Praise Him! Praise Him!
+```
+
+Pulse **Analizar**. Los roles, los tiempos y los números de himno se extraen al formulario; los himnos se resuelven a títulos desde el corpus local. Todo lo que el analizador no pudo ubicar se muestra en una lista en lugar de descartarse.
+
+Complete el volante del sermón y las fotos familiares/juveniles si las tiene, y luego guarde.
+
+### Presentarlo
+
+Desde la página del servicio:
+
+- **Descargar PPTX** — el paquete offline. Este es el que mantiene el culto en marcha si la red, el portátil o el hub le fallan.
+- **Presentar** — la consola del operador. Diapositiva actual y siguiente, tira de fotogramas, lista de diapositivas y **Todas las diapositivas** para saltar a cualquier parte.
+- **Abrir proyector** — una ventana separada para arrastrar a la segunda pantalla. Las teclas de flecha avanzan ambas. `B` oculta el proyector y lo restaura.
+
+### Extras opcionales
+
+**Consulta de las Escrituras.** El modo presentador puede colocar un pasaje KJV en el proyector. El corpus se distribuye en `data/en/bible-translation/kjv.json` y se concilia a partir de ese archivo en cada arranque.
+
+**Ingesta por chat.** `POST /api/webhook` con un encabezado `x-webhook-secret` acepta un programa de culto como JSON, para que un bot pueda crear o corregir un servicio. El secreto vive en `.env`; el endpoint está protegido solo por él, nunca por una sesión.
+
+### Solución de problemas
+
+**`Missing song book corpus`** — falta `data/song-book/sdah.json`. Se distribuye con el repositorio, así que restáurelo desde el control de versiones: `git checkout -- data/song-book/sdah.json`. Luego ejecute `npm run corpus:verify` para confirmar que ambos corpus están completos.
+
+**Bloqueado** — `npm run auth:set-password -- admin` establece una nueva contraseña desde un prompt interactivo. `npm run auth:unlock -- --list` muestra y borra la limitación de intentos de acceso.
+
+**Faltan imágenes en el paquete** — las imágenes remotas deben pasar las reglas de seguridad de URL. Subir la imagen al hub siempre funciona.
+
+## Cómo personalizarlo
+
+El registro distribuido es un ejemplo de trabajo — un orden de culto real con datos de contacto y pago ficticios. Dos cosas para cambiar:
+
+1. **Plantillas de diapositivas.** Inicie sesión como administrador y abra `/admin/artifacts`. Cada plantilla es editable en un lienzo; las diapositivas fijas (ofrenda, oración de miércoles, contacto) son donde van sus propios datos.
+2. **Anulaciones privadas.** Si prefiere mantener el registro de su congregación completamente fuera de git, colóquelo en `data/local/default-registry.json` y la aplicación sembrará desde ahí en su lugar. Esa ruta está ignorada por git. Vea [`.constitution/project/private-data.md`](.constitution/project/private-data.md).
+
+## Corpus incluidos
+
+Se distribuyen dos corpus predeterminados, de modo que un clon resuelve un número de himno y una referencia bíblica sin ningún archivo entregado y sin red al arrancar:
+
+| Archivo | Contiene | Al arrancar |
+| --- | --- | --- |
+| `data/song-book/sdah.json` | 695 himnos del Himnario Adventista del Séptimo Día | título y letra reaplicados desde el archivo |
+| `data/en/bible-translation/kjv.json` | 66 libros, 1189 capítulos, 31102 versículos KJV | conciliado desde el archivo confirmado en cada arranque (~130–150 ms medidos) |
+
+`npm run corpus:verify` confirma que ambos están completos. Ninguno tiene generador: los volcados de los que se convirtieron ya no existen, así que estos archivos son la fuente de registro — restaure desde el control de versiones en lugar de reconstruir.
+
+Lea [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — nombra a los titulares de derechos de autor, indica el propósito congregacional sin fines de lucro y da un contacto para solicitudes de eliminación. Cada corpus también lleva su propio texto de licencia dentro del archivo.
+
+Si está adaptando esto para un himnario diferente, agregue su corpus en `data/song-book/<book-code>.json` con la misma forma. Los himnos se indexan por `(book_code, number)`, así que un segundo libro se coloca junto al distribuido en lugar de reemplazarlo.
+
+## Despliegue
+
+Compile la API de Go y el SPA, ejecute `./api` (o `npm start`) en un host con Node 22 en `PATH` para el worker de PPTX — vea [`.constitution/project/deployment.md`](.constitution/project/deployment.md). SQLite, las imágenes subidas y la caché del paquete necesitan rutas de host duraderas; ese archivo cubre cuáles.
+
+## Historia del proyecto
+
+Este proyecto comenzó como un repositorio privado para una sola congregación. Esa historia no se traslada aquí, porque contenía nombres reales de miembros, fotografías de personas identificables incluyendo menores, capturas de pantalla de mensajes privados y un código de pago en vivo — nada de lo cual pertenecía a un repositorio público, y nada de lo cual puede des-publicarse una vez indexado.
+
+Este repositorio, por lo tanto, comienza desde un único commit inicial con una congregación de ejemplo sintética. Por qué el sistema tiene la forma que tiene vive en `.what/` y `.how/` (DEC-001).
+
+Colaboradores: lean [`.constitution/project/private-data.md`](.constitution/project/private-data.md) antes de su primer commit. Hay una prueba que falla si datos de congregación llegan a un archivo rastreado, y está ahí por una razón.
 
 ## Licencia y Marca Registrada
 

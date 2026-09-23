@@ -65,9 +65,91 @@ npm run setup
 npm run dev
 ```
 
-`npm run setup` génère le fichier `.env`, initialise la base de données SQLite et crée le mot de passe administrateur par défaut.
+`npm run setup` génère le fichier `.env`, initialise la base de données SQLite, enregistre les modèles par défaut et affiche le mot de passe administrateur généré. `npm run dev` démarre l'API Go sur <http://localhost:3000> et le SPA React sur <http://localhost:5173> (Vite redirige `/api` vers Go). Connectez-vous en tant que `admin` sur le SPA. Pour une seule origine : `npm run spa:build && npm start` puis ouvrez le port 3000. Relancer `setup` est sans risque : il n'écrase jamais un `.env` ou une base de données existants.
 
----
+Lisez [`.constitution/project/private-data.md`](.constitution/project/private-data.md) avant d'y saisir les données de votre propre paroisse.
+
+### Créer un service
+
+**Services → Nouveau.** Collez un déroulement de culte dans la zone de texte brut. La forme attendue ressemble à ceci (noms fictifs) :
+
+```text
+SABBATH, MARCH 14, 2026
+
+BIBLE TALK (09.30-10.50 /80 min)
+》welcome remarks: Mrs. Lestari
+Song Leader : Ms. Ayu
+[  ] Opening song : SDAH #159 The Old Rugged Cross
+Memory Verse & Opening Prayer : Mr. Bagas
+Closing Prayer : Mr. Damar (1m)
+
+DIVINE SERVICE (10.50- 12.05/ 75 min)
+Song Leader : Ms. Kirana
+[  ] Opening Song : SDAH #83 O Worship the King
+Intercessory Prayer: Mr. Farid (5m)
+Sermon : Pr. Andi Hartono "Working Out" (45m)
+[  ] Closing Song : SDAH #249 Praise Him! Praise Him!
+```
+
+Cliquez sur **Analyser**. Les rôles, horaires et numéros de cantiques sont extraits dans le formulaire ; les cantiques sont résolus en titres depuis le corpus local. Tout ce que l'analyseur n'a pas su placer est listé plutôt qu'ignoré.
+
+Complétez l'affiche de la prédication et les photos famille/jeunesse si vous en avez, puis enregistrez.
+
+### Diffuser le culte
+
+Depuis la page du service :
+
+- **Télécharger le PPTX** — le diaporama hors ligne. C'est celui qui maintient le culte si le réseau, l'ordinateur portable ou le serveur vous fait défaut.
+- **Piloter** — la console pupitre. Diapositive actuelle et suivante, pellicule miniature, liste des diapositives et **Toutes les diapositives** pour sauter n'importe où.
+- **Ouvrir le projecteur** — une fenêtre séparée à glisser vers le second écran. Les flèches font avancer les deux. `B` masque le projecteur et le restaure.
+
+### Fonctionnalités complémentaires
+
+**Consultation biblique.** Le mode pupitre peut afficher un passage KJV sur le projecteur. Le corpus est fourni dans `data/en/bible-translation/kjv.json` et réconcilié depuis ce fichier à chaque démarrage.
+
+**Import par chat.** `POST /api/webhook` avec un en-tête `x-webhook-secret` accepte un déroulement en JSON, permettant à un bot de créer ou corriger un service. Le secret vit dans `.env` ; le point d'entrée n'est protégé que par lui, jamais par une session.
+
+### Dépannage
+
+**`Missing song book corpus`** — `data/song-book/sdah.json` est absent. Il est fourni avec le dépôt, donc restaurez-le depuis le contrôle de version : `git checkout -- data/song-book/sdah.json`. Puis lancez `npm run corpus:verify` pour confirmer que les deux corpus sont complets.
+
+**Verrouillé** — `npm run auth:set-password -- admin` définit un nouveau mot de passe via une invite interactive. `npm run auth:unlock -- --list` affiche et réinitialise la limitation des tentatives de connexion.
+
+**Images manquantes dans le diaporama** — les images distantes doivent respecter les règles de sécurité d'URL. Le téléversement direct vers le serveur fonctionne toujours.
+
+## Se l'approprier
+
+Le registre fourni est un exemple fonctionnel — un déroulement de culte réel avec des coordonnées et informations de paiement fictives. Deux choses à modifier :
+
+1. **Modèles de diapositives.** Connectez-vous en tant qu'administrateur et ouvrez `/admin/artifacts`. Chaque modèle est modifiable sur un canevas ; les diapositives fixes (offrande, prière du milieu de semaine, contact) sont l'endroit où placer vos propres informations.
+2. **Substitutions privées.** Si vous préférez garder le registre de votre paroisse entièrement hors de git, placez-le dans `data/local/default-registry.json` et l'application s'initialisera à partir de ce fichier à la place. Ce chemin est ignoré par git. Voir [`.constitution/project/private-data.md`](.constitution/project/private-data.md).
+
+## Corpus fournis
+
+Deux corpus par défaut sont inclus, de sorte qu'un clone résout un numéro de cantique et une référence biblique sans aucun fichier fourni séparément et sans réseau au démarrage :
+
+| Fichier | Contenu | Au démarrage |
+| --- | --- | --- |
+| `data/song-book/sdah.json` | 695 cantiques du recueil Adventiste du Septième Jour | titre et paroles réappliqués depuis le fichier |
+| `data/en/bible-translation/kjv.json` | 66 livres, 1189 chapitres, 31102 versets KJV | réconcilié depuis le fichier fourni à chaque démarrage (~130–150 ms mesurés) |
+
+`npm run corpus:verify` vérifie que les deux sont intacts. Aucun des deux n'a de générateur : les exports dont ils proviennent n'existent plus, ces fichiers constituent donc la source de référence — restaurez-les depuis le contrôle de version plutôt que de les reconstruire.
+
+Lisez [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — il nomme les détenteurs des droits d'auteur, précise l'usage paroissial non commercial et fournit un contact pour les demandes de retrait. Chaque corpus porte également son propre texte de licence dans le fichier.
+
+Si vous adaptez ceci pour un autre recueil, ajoutez votre corpus dans `data/song-book/<book-code>.json` selon la même forme. Les cantiques sont indexés par `(book_code, number)`, donc un second recueil se place à côté de celui fourni au lieu de le remplacer.
+
+## Déploiement
+
+Compilez l'API Go et le SPA, exécutez `./api` (ou `npm start`) sur un hôte avec Node 22 dans `PATH` pour le worker PPTX — voir [`.constitution/project/deployment.md`](.constitution/project/deployment.md). SQLite, les images téléversées et le cache des diaporamas nécessitent tous des chemins d'hôte durables ; ce fichier précise lesquels.
+
+## Historique du projet
+
+Ce projet a débuté comme un dépôt privé pour une seule paroisse. Cet historique n'a pas été repris ici, car il contenait de vrais noms de membres, des photographies de personnes identifiables y compris des mineurs, des captures d'écran de messages privés et un code de paiement actif — rien de tout cela n'avait sa place dans un dépôt public, et rien de tout cela ne peut être dépublié une fois indexé.
+
+Ce dépôt démarre donc à partir d'un commit initial unique avec une paroisse d'exemple fictive. La raison pour laquelle le système est conçu ainsi se trouve dans `.what/` et `.how/` (DEC-001).
+
+Contributeurs : merci de lire [`.constitution/project/private-data.md`](.constitution/project/private-data.md) avant votre premier commit. Un test échoue si des données de paroisse atteignent un fichier suivi par git, et il est là pour une bonne raison.
 
 ## Licence et Droit des Marques
 

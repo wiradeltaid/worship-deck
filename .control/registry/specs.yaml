@@ -2865,6 +2865,33 @@ waves:
         tests:
           - tests/form-layout-fetch-error.test.mjs
 
+  # Opened 2026-09-23 from wdi-reconcile findings (README/translations, .constitution/project/,
+  # CI-workflow sweep). Real release-pipeline gap, not documentation staleness -- owner ruled spec+
+  # ticket only, no implementation. No FR owns the installer itself (build tooling, like SPEC-57);
+  # cites FR-40 for traceability since it ships alongside the same offline-desktop self-hosting
+  # workflow (per CHANGELOG.md's 0.1.0 entry), same reasoning SPEC-57 used for its own FR citation.
+  - id: SPEC-64
+    status: open
+    release: installer-version-sync
+    prd: [offline-deck]
+    fr: [FR-40]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-64-installer-version-sync/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'HEAD'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Found and fixed: (1) high -- the naive /D define alone is silently lost, since worship-deck.iss's own unconditional #define redeclares MyAppVersion after the command-line override; needs an #ifndef guard at minimum. (2) adopted the stronger fail-closed recommendation -- #error on a missing define, rather than keeping the .iss literal as a second, independently-driftable source. (3) the ticket overclaimed a repo-specific Inno upgrade/downgrade comparison exists; corrected to the actual, verifiable consequence (stale Windows Apps & features metadata only). (4) added a requirement to prove the fix at the compiled-artifact level, not just the constructed command line. Also noted, non-blocking: package-lock.json duplicates the version literal (npm-maintained, not a new source to guard) and build-desktop.mjs has an unrelated dead WorshipPresenterSetup.exe fallback path."
+    tickets:
+      - id: "SPEC-64-01"
+        component: hub
+        satisfies: [FR-40]
+        blocked_by: []
+        touches: [installer]
+        tests:
+          - scripts/build-desktop-version-sync.test.mjs
+
 
 
 
