@@ -4,7 +4,7 @@
 
 Period: **the project's start → 2026-09-23**. This period has no left bound — there is no earlier report yet.
 
-Freshness: commit `7602eaa0c9cc`. **The registry has uncommitted changes — the numbers below may not reflect what is on `main`.**
+Freshness: commit `4f5da241a688`.
 
 ## Promise progress — 100%
 
@@ -142,6 +142,9 @@ RTM rows that turned green within this period.
 | FR-2 | UC-2 | SPEC-46-06 | src/components/admin, tests/smoke-spec-46.test.mjs | 2026-09-21 |
 | FR-27 | UC-2 | SPEC-46-06 | src/components/admin, tests/smoke-spec-46.test.mjs | 2026-09-21 |
 | FR-37 | UC-31 | SPEC-46-06 | src/components/admin, tests/smoke-spec-46.test.mjs | 2026-09-21 |
+| FR-15 | UC-11 | SPEC-67-01 | tests/presenter-raw-rundown.test.mjs | 2026-09-23 |
+| FR-2 | UC-2 | SPEC-67-02 | tests/dynamic-field-extraction.test.mjs | 2026-09-23 |
+| FR-27 | UC-2 | SPEC-67-02 | tests/dynamic-field-extraction.test.mjs | 2026-09-23 |
 
 ## 2. Moved
 

@@ -1,8 +1,8 @@
 asof: '2026-09-23'
 since: ''
 since_report: ''
-sha: 7602eaa0c9cc5b77dffa15ccf03aa491646086b7
-registry_dirty: true
+sha: 4f5da241a6883227c13c1009d6a37eed2aa6b0a0
+registry_dirty: false
 uncommitted_tickets: []
 promise_progress: 100%
 rtm_rows:
@@ -1184,6 +1184,24 @@ proven:
   - src/components/admin
   - tests/smoke-spec-46.test.mjs
   closed: '2026-09-21'
+- FR: FR-15
+  UC: UC-11
+  ticket: SPEC-67-01
+  test:
+  - tests/presenter-raw-rundown.test.mjs
+  closed: '2026-09-23'
+- FR: FR-2
+  UC: UC-2
+  ticket: SPEC-67-02
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  closed: '2026-09-23'
+- FR: FR-27
+  UC: UC-2
+  ticket: SPEC-67-02
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  closed: '2026-09-23'
 moved:
 - id: CAP-1
   kind: CAP
