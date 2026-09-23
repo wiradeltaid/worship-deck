@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/wiradeltaid/worship-deck/internal/db"
@@ -677,6 +679,9 @@ func (s *Server) deleteService(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// SPEC-58: Collect candidate upload files belonging only to this service before deleting
+	candidateUploads := collectServiceLocalUploads(tx, id)
+
 	res, err := tx.Exec(
 		`DELETE FROM services WHERE id = ? AND (COALESCE(updated_at, created_at) = ? OR COALESCE(updated_at, created_at) = ?)`,
 		id, snap.UpdatedAt, snap.RawStoredToken,
@@ -706,7 +711,94 @@ func (s *Server) deleteService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+
+	// Unlink now-unreferenced local uploads from disk after commit succeeds (FR-10)
+	unlinkUnreferencedLocalUploads(s.DB, candidateUploads)
+
 	writeJSON(w, http.StatusOK, map[string]any{"message": "Service deleted successfully"})
+}
+
+func collectServiceLocalUploads(tx *sql.Tx, serviceID int) []string {
+	seen := make(map[string]struct{})
+	var candidates []string
+
+	// 1. services.images_payload
+	var imagesPayload sql.NullString
+	if err := tx.QueryRow(`SELECT images_payload FROM services WHERE id = ?`, serviceID).Scan(&imagesPayload); err == nil && imagesPayload.Valid && imagesPayload.String != "" {
+		for _, fn := range plan.ExtractLocalUploadFilenames(imagesPayload.String) {
+			if _, ok := seen[fn]; !ok {
+				seen[fn] = struct{}{}
+				candidates = append(candidates, fn)
+			}
+		}
+	}
+
+	// 2. service_field_values
+	rows, err := tx.Query(`SELECT value_text FROM service_field_values WHERE service_id = ?`, serviceID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var val string
+			if err := rows.Scan(&val); err == nil && val != "" {
+				if fn, ok := plan.LocalUploadFilename(val); ok {
+					if _, exists := seen[fn]; !exists {
+						seen[fn] = struct{}{}
+						candidates = append(candidates, fn)
+					}
+				} else {
+					for _, fn := range plan.ExtractLocalUploadFilenames(val) {
+						if _, exists := seen[fn]; !exists {
+							seen[fn] = struct{}{}
+							candidates = append(candidates, fn)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return candidates
+}
+
+func isLocalUploadStillReferenced(db *sql.DB, filename string) bool {
+	likePattern := "%" + filename + "%"
+
+	queries := []string{
+		`SELECT 1 FROM services WHERE images_payload LIKE ? LIMIT 1`,
+		`SELECT 1 FROM service_field_values WHERE value_text LIKE ? LIMIT 1`,
+		`SELECT 1 FROM announcement_items WHERE image_url LIKE ? LIMIT 1`,
+		`SELECT 1 FROM artifact_templates WHERE payload IS NOT NULL AND payload LIKE ? LIMIT 1`,
+		`SELECT 1 FROM announcement_set_slides WHERE payload IS NOT NULL AND payload LIKE ? LIMIT 1`,
+		`SELECT 1 FROM background_library_images WHERE url IS NOT NULL AND url LIKE ? LIMIT 1`,
+		`SELECT 1 FROM song_set_layouts WHERE payload IS NOT NULL AND payload LIKE ? LIMIT 1`,
+		`SELECT 1 FROM service_song_set_layouts WHERE payload IS NOT NULL AND payload LIKE ? LIMIT 1`,
+	}
+
+	for _, q := range queries {
+		var dummy int
+		err := db.QueryRow(q, likePattern).Scan(&dummy)
+		if err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+func unlinkUnreferencedLocalUploads(db *sql.DB, filenames []string) {
+	if len(filenames) == 0 {
+		return
+	}
+	dir := uploadsDir()
+	for _, fn := range filenames {
+		if isLocalUploadStillReferenced(db, fn) {
+			continue
+		}
+		path := filepath.Join(dir, filepath.Base(fn))
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			log.Printf("Error unlinking service upload %s: %v", fn, err)
+		}
+	}
 }
 
 func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {

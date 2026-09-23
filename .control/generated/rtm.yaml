@@ -52,10 +52,10 @@ rtm:
   release: delete-service-unlinks-uploads
   test:
   - internal/httpapi/services_delete_uploads_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-3
   FR: FR-10

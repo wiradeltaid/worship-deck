@@ -2719,7 +2719,7 @@ waves:
   # All three are confirmed code-behavior gaps, not documentation staleness -- owner ruled spec+ticket
   # only, no implementation, for each.
   - id: SPEC-58
-    status: open
+    status: closed
     release: delete-service-unlinks-uploads
     prd: [operator-turn]
     fr: [FR-10]
