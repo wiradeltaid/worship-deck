@@ -496,3 +496,75 @@ func TestServicesParserProfileIdOmittedAndNullHandling(t *testing.T) {
 		t.Errorf("expected reverted parser_profile_id builtin-default, got %q", profReverted)
 	}
 }
+
+func TestServicesPreviewSongOverflowAndSlotsUnfilledEmptyArrayContract(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Configure targeted song set extraction regexes in DB
+	_, _ = handle.Exec(`DELETE FROM song_set_entries`)
+	_, err := handle.Exec(`
+		INSERT INTO song_set_entries (global_id, variable_name, title, position, extraction_regex, updated_at)
+		VALUES
+			('019253c0-0000-7000-8000-000000000001', 'opening_song_bt', 'Opening Song BT', 1, '(?i)(?:Sabbath School|Bible Talk)\s*Opening\s*Song:\s*(?:SDAH\s*)?#?(?<number>\d+)', CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000002', 'opening_song_ds', 'Opening Song DS', 2, '(?i)(?:Divine Service)\s*Opening\s*Song:\s*(?:SDAH\s*)?#?(?<number>\d+)', CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000003', 'scripture_hymn', 'Scripture Hymn', 3, '(?i)Scripture\s*Hymn:\s*(?:SDAH\s*)?#?(?<number>\d+)', CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000004', 'closing_song_ds', 'Closing Song DS', 4, '(?i)Closing\s*Song:\s*(?:SDAH\s*)?#?(?<number>\d+)', CURRENT_TIMESTAMP)
+	`)
+	if err != nil {
+		t.Fatalf("insert song_set_entries: %v", err)
+	}
+
+	multiSongRundown := "SABBATH, OCTOBER 24, 2026\nDIVINE SERVICE\n\nSong of Praise: SDAH #614\nSabbath School Opening Song: SDAH #316\nIntroit: SDAH #508\nDivine Service Opening Song: SDAH #100\nPrayer Song: SDAH #671\nResponse: SDAH #684\nScripture Hymn: SDAH #334\nClosing Song: SDAH #476"
+
+	payload := map[string]any{
+		"raw_payload": multiSongRundown,
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	res := songSetRequest(t, ts, "POST", "/api/services/preview", string(bodyBytes), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("preview status = %d, want 200", res.StatusCode)
+	}
+	var previewResp struct {
+		Date               string          `json:"date"`
+		SongOverflow       json.RawMessage `json:"songOverflow"`
+		SongSlotsUnfilled  json.RawMessage `json:"songSlotsUnfilled"`
+		SongSetSuggestions map[string]struct {
+			SongNumber int    `json:"songNumber"`
+			MatchKind  string `json:"matchKind"`
+		} `json:"songSetSuggestions"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&previewResp); err != nil {
+		t.Fatalf("decode preview response: %v", err)
+	}
+	res.Body.Close()
+
+	if previewResp.Date != "2026-10-24" {
+		t.Errorf("expected date 2026-10-24, got %q", previewResp.Date)
+	}
+
+	// Verify exact slot-to-song mappings extracted via dynamic regex
+	if previewResp.SongSetSuggestions["opening_song_bt"].SongNumber != 316 {
+		t.Errorf("expected opening_song_bt 316, got %d", previewResp.SongSetSuggestions["opening_song_bt"].SongNumber)
+	}
+	if previewResp.SongSetSuggestions["opening_song_ds"].SongNumber != 100 {
+		t.Errorf("expected opening_song_ds 100, got %d", previewResp.SongSetSuggestions["opening_song_ds"].SongNumber)
+	}
+	if previewResp.SongSetSuggestions["scripture_hymn"].SongNumber != 334 {
+		t.Errorf("expected scripture_hymn 334, got %d", previewResp.SongSetSuggestions["scripture_hymn"].SongNumber)
+	}
+	if previewResp.SongSetSuggestions["closing_song_ds"].SongNumber != 476 {
+		t.Errorf("expected closing_song_ds 476, got %d", previewResp.SongSetSuggestions["closing_song_ds"].SongNumber)
+	}
+
+	// Strictly assert songOverflow is JSON array [] (not null, not populated with hymns)
+	if string(previewResp.SongOverflow) != "[]" {
+		t.Errorf("expected songOverflow to be strictly empty JSON array '[]', got %s", string(previewResp.SongOverflow))
+	}
+
+	// Strictly assert songSlotsUnfilled is JSON array [] (not null)
+	if string(previewResp.SongSlotsUnfilled) != "[]" {
+		t.Errorf("expected songSlotsUnfilled to be strictly empty JSON array '[]', got %s", string(previewResp.SongSlotsUnfilled))
+	}
+}

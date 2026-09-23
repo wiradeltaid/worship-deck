@@ -29,6 +29,8 @@ capabilities:
     - SPEC-67-02
     - SPEC-68-01
     - SPEC-68-02
+    - SPEC-69-01
+    - SPEC-69-02
     - W10-01
     - W10-02
     actual_start: '2026-09-18'
@@ -47,6 +49,8 @@ capabilities:
     - SPEC-67-02
     - SPEC-68-01
     - SPEC-68-02
+    - SPEC-69-01
+    - SPEC-69-02
     - W10-02
     actual_start: '2026-09-18'
     actual_end: ''

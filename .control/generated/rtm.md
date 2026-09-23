@@ -1662,10 +1662,10 @@ rtm:
   release: service-form-parser-profile-retirement-and-song-overflow-removal
   test:
   - tests/smoke-spec-54.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -1676,10 +1676,10 @@ rtm:
   release: service-form-parser-profile-retirement-and-song-overflow-removal
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -4089,10 +4089,10 @@ rtm:
   release: service-form-parser-profile-retirement-and-song-overflow-removal
   test:
   - tests/smoke-spec-54.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -4103,10 +4103,10 @@ rtm:
   release: service-form-parser-profile-retirement-and-song-overflow-removal
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27

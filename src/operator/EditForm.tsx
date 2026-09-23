@@ -295,7 +295,6 @@ export default function EditForm({
   }, []);
 
   const [songSetSuggestions, setSongSetSuggestions] = useState<Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>>({});
-  const [songOverflow, setSongOverflow] = useState<Array<{ line: string; number: number; bookCode: string }>>([]);
   const [unmappedLines, setUnmappedLines] = useState<string[]>([]);
 
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
@@ -550,7 +549,6 @@ export default function EditForm({
         fields?: unknown;
         fieldSuggestions?: Record<string, string>;
         songSetSuggestions?: Record<string, { songNumber: number; songBookCode: string; title: string; matchKind: string }>;
-        songOverflow?: Array<{ line: string; number: number; bookCode: string }>;
         unmappedLines?: string[];
       };
       if (!res.ok) {
@@ -560,7 +558,6 @@ export default function EditForm({
       if (data.fieldSuggestions) {
         setFieldSuggestions(data.fieldSuggestions);
       }
-      setSongOverflow(data.songOverflow || []);
       setUnmappedLines(data.unmappedLines || []);
       const hydrated = coerceHydrateFields(data.fields);
       if (hydrated) {
@@ -964,22 +961,6 @@ export default function EditForm({
                         </li>
                       ))}
                     </ul>
-                  </div>
-                ) : null}
-
-                {/* Diagnostics: Song overflow warning */}
-                {songOverflow.length > 0 ? (
-                  <div className="mt-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-700 dark:text-amber-300">
-                    <p className="font-semibold">
-                      ⚠️ {t('form.parser.overflowWarning')}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5 font-mono text-[11px]">
-                      {songOverflow.map((s, idx) => (
-                        <Badge key={idx} variant="outline" className="border-amber-500/50">
-                          {s.bookCode} #{s.number}
-                        </Badge>
-                      ))}
-                    </div>
                   </div>
                 ) : null}
               </div>
