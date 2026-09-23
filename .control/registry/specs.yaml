@@ -2686,7 +2686,7 @@ waves:
           - tests/placeholder-catalog.test.mjs
 
   - id: SPEC-57
-    status: open
+    status: closed
     release: node-schema-mirror-parity
     prd: [offline-deck]
     fr: [FR-39, FR-40]
@@ -2702,14 +2702,16 @@ waves:
         component: hub
         satisfies: [FR-39, FR-40]
         blocked_by: []
-        touches: [db-schema]
+        touches: [sync]
         tests:
           - tests/corpus-closure.test.mjs
       - id: "SPEC-57-02"
         component: hub
         satisfies: [FR-39, FR-40]
         blocked_by: ["SPEC-57-01"]
-        touches: [db-schema]
+        touches: [sync]
+        tests:
+          - tests/schema-parity.test.mjs
         tests:
           - tests/schema-parity.test.mjs
 
