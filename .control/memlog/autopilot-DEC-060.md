@@ -7,11 +7,11 @@ artifact: .control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reco
 ## Resume
 
 - Iteration: 10
-- Run branch: autopilot/DEC-060
-- Stopped at: Completed all mandate specs (SPEC-56 through SPEC-65) through G5 Release
+- Run branch: autopilot/DEC-060 (PR #101)
+- Stopped at: Mandate DEC-060 completed — all 10 specs (SPEC-56 through SPEC-65) delivered through G5 Release
 - Blocked: —
-- Parked: [ad-n]
-- Next: Mandate conclusion, smoke tests, and final delivery report
+- Parked: —
+- Next: Maintainer review and merge of PR #101
 
 ## Decisions
 

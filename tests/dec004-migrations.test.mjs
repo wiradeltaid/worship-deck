@@ -47,7 +47,7 @@ test('fresh boot reaches data_version 11', () => {
     .prepare(`SELECT value FROM settings WHERE key = ?`)
     .get(DATA_VERSION_KEY);
   assert.equal(row?.value, String(CURRENT_DATA_VERSION));
-  assert.equal(CURRENT_DATA_VERSION, 11);
+  assert.equal(CURRENT_DATA_VERSION, 12);
 });
 
 test('fresh boot leaves no song_set_inputs rows (nothing to backfill)', () => {

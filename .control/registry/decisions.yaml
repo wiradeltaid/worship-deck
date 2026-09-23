@@ -1364,7 +1364,7 @@ decisions:
       - .control/decisions/DEC-012-canvas-keyboard-delete-exception.md
   - id: DEC-060
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-23)"
     title: Daily Autopilot mandate for Open Specs & Reconciliation Gaps (SPEC-56 through SPEC-65)
     file: .control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reconciliation-gaps.md

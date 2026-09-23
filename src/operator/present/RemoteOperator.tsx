@@ -334,7 +334,7 @@ export default function RemoteOperator({
       {connectionState === 'reconnecting' ? (
         <div
           role="status"
-          className="bg-amber-500/20 text-amber-200 border-b border-amber-500/30 px-4 py-1.5 text-center text-xs font-medium"
+          className="bg-amber-500/20 text-amber-200 dark:text-amber-200 border-b border-amber-500/30 px-4 py-1.5 text-center text-xs font-medium"
         >
           {t('remote.reconnecting')}
         </div>

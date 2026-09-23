@@ -156,7 +156,10 @@ test('the shipped seed uses only the three kinds in the expected counts', () => 
 });
 
 test('artifact_templates DDL carries the DEC-004 columns on top of Story 20.1', () => {
-  const ddl = fs.readFileSync(path.join(root, 'src', 'lib', 'db', 'index.ts'), 'utf8');
+  const schemaPath = fs.existsSync(path.join(root, 'internal', 'db', 'schema.sql'))
+    ? path.join(root, 'internal', 'db', 'schema.sql')
+    : path.join(root, 'src', 'lib', 'db', 'index.ts');
+  const ddl = fs.readFileSync(schemaPath, 'utf8');
   const match = ddl.match(
     /CREATE TABLE IF NOT EXISTS artifact_templates \(([\s\S]*?)\);/
   );

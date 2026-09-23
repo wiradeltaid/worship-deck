@@ -41,7 +41,7 @@ test('fresh boot reaches data_version 11 with the SDAH book bootstrapped', () =>
     .prepare(`SELECT value FROM settings WHERE key = ?`)
     .get(DATA_VERSION_KEY);
   assert.equal(row?.value, String(CURRENT_DATA_VERSION));
-  assert.equal(CURRENT_DATA_VERSION, 11);
+  assert.equal(CURRENT_DATA_VERSION, 12);
   const marker = db
     .prepare(`SELECT 1 AS ok FROM settings WHERE key = ?`)
     .get(songBookBootstrapKey('SDAH'));

@@ -95,7 +95,7 @@ test('first boot inserts every shipped template once, positioned 0..N-1, and sta
 
   assert.equal(settingsValue(db, ARTIFACT_REGISTRY_BOOTSTRAP_KEY), '1');
   assert.equal(settingsValue(db, DATA_VERSION_KEY), String(CURRENT_DATA_VERSION));
-  assert.equal(CURRENT_DATA_VERSION, 11);
+  assert.equal(CURRENT_DATA_VERSION, 12);
 });
 
 /**

@@ -310,7 +310,7 @@ export class RemoteControlSession {
   private eventSource: EventSource | null = null;
   private stopped = false;
   private generation = 0;
-  private retryCount = 0;
+  private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: RemoteControlSessionOptions) {
@@ -341,7 +341,7 @@ export class RemoteControlSession {
 
   public async claim(code: string): Promise<{ ok: boolean; error?: string }> {
     this.stopped = false;
-    this.retryCount = 0;
+    this.reconnectAttempts = 0;
     this.clearReconnectTimer();
     this.onConnectionChange?.('claiming');
     try {
@@ -401,7 +401,7 @@ export class RemoteControlSession {
         es.close();
         return;
       }
-      this.retryCount = 0;
+      this.reconnectAttempts = 0;
       this.clearReconnectTimer();
       this.onConnectionChange?.('connected');
     };
@@ -446,17 +446,17 @@ export class RemoteControlSession {
 
       if (this.stopped || currentGen !== this.generation) return;
 
-      if (!hasGrant || this.retryCount >= this.maxRetries) {
-        this.retryCount = 0;
+      if (!hasGrant || this.reconnectAttempts >= this.maxRetries) {
+        this.reconnectAttempts = 0;
         this.onConnectionChange?.('disconnected');
         return;
       }
 
-      this.retryCount++;
+      this.reconnectAttempts++;
       this.onConnectionChange?.('reconnecting');
 
       const delay = Math.min(
-        this.retryDelayBaseMs * Math.pow(1.5, this.retryCount - 1),
+        this.retryDelayBaseMs * Math.pow(1.5, this.reconnectAttempts - 1),
         5000
       );
       this.clearReconnectTimer();
@@ -486,7 +486,7 @@ export class RemoteControlSession {
   public stop(): void {
     this.stopped = true;
     this.generation++;
-    this.retryCount = 0;
+    this.reconnectAttempts = 0;
     this.clearReconnectTimer();
     if (this.eventSource) {
       this.eventSource.close();

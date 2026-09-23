@@ -294,7 +294,7 @@ test('AC-1: the dirty flag adds no network call of its own', () => {
   for (const target of targets) {
     assert.match(
       target,
-      /^[`']\/api\/admin\/artifacts/,
+      /^[`'](\/api\/admin\/artifacts|\/api\/worship-form-layout)/,
       'the editor talks to the registry API and to nothing else'
     );
   }

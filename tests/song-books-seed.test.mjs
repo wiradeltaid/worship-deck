@@ -58,7 +58,7 @@ test('fresh boot creates SDAH song_books row and hymns with corpus metadata and 
   assert.ok(hymnCount.count > 0, 'hymns must be seeded in same bootstrap transaction');
 
   const ver = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(DATA_VERSION_KEY);
-  assert.equal(ver?.value, '11');
+  assert.equal(ver?.value, String(CURRENT_DATA_VERSION));
 });
 
 test('existing database at data_version 10 with marker stamped heals missing row via migration 10->11', () => {
@@ -111,7 +111,7 @@ test('AD-17: deleted SDAH row stays absent on subsequent boot at data_version 11
     const ver = ad17Db
       .prepare(`SELECT value FROM settings WHERE key = ?`)
       .get(DATA_VERSION_KEY);
-    assert.equal(ver?.value, '11', 'expected data_version 11 after first boot');
+    assert.equal(ver?.value, String(CURRENT_DATA_VERSION), 'expected data_version after first boot');
 
     // 2. Administrator deliberately deletes SDAH row
     ad17Db.prepare(`DELETE FROM song_books WHERE book_code = 'SDAH'`).run();

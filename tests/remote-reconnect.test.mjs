@@ -331,7 +331,7 @@ test('SPEC-65: transitions to disconnected after reaching maxRetries', async () 
     await session.claim('123456');
     const es1 = MockEventSource.instances[0];
 
-    // Error 1: retries (retryCount becomes 1)
+    // Error 1: retries (reconnectAttempts becomes 1)
     es1.simulateError();
     await new Promise((resolve) => setTimeout(resolve, 10));
     assert.equal(states[states.length - 1], 'reconnecting');
@@ -341,7 +341,7 @@ test('SPEC-65: transitions to disconnected after reaching maxRetries', async () 
     assert.equal(MockEventSource.instances.length, 2);
     const es2 = MockEventSource.instances[1];
 
-    // Error 2: retries (retryCount becomes 2)
+    // Error 2: retries (reconnectAttempts becomes 2)
     es2.simulateError();
     await new Promise((resolve) => setTimeout(resolve, 10));
     assert.equal(states[states.length - 1], 'reconnecting');
