@@ -20,6 +20,7 @@ const {
   catalogValuesFromWeekly,
   extractInlineTokens,
   findUnknownPredefinedFieldTokens,
+  resetDynamicCatalogTokens,
 } = await import(catalogUrl);
 
 test('extractInlineTokens extracts tokens correctly from text', () => {
@@ -62,6 +63,63 @@ test('findUnknownPredefinedFieldTokens detects unknown tokens and valid tokens',
   assert.ok(warnings.some((w) => w.includes('{invented_token}')));
   assert.ok(warnings.some((w) => w.includes('{bad_key}')));
   assert.ok(warnings.some((w) => w.includes('bad_image_key')));
+});
+
+test('SPEC-56: resetDynamicCatalogTokens registers admin-created fields and clears deleted fields', () => {
+  // Reset initially to clean state
+  resetDynamicCatalogTokens();
+
+  const customTemplate = {
+    layouts: {
+      default: {
+        elements: [
+          { type: 'text', content: 'Speaker: {mission_speaker}' },
+          { type: 'image-placeholder', placeholderKey: 'event_poster' },
+        ],
+      },
+    },
+  };
+
+  // 1. Before registering, both tokens produce warnings
+  const warningsBefore = findUnknownPredefinedFieldTokens(customTemplate);
+  assert.equal(warningsBefore.length, 2);
+  assert.ok(warningsBefore.some((w) => w.includes('{mission_speaker}')));
+  assert.ok(warningsBefore.some((w) => w.includes('event_poster')));
+
+  // 2. Register dynamic fields via resetDynamicCatalogTokens
+  resetDynamicCatalogTokens([
+    { variable_name: 'mission_speaker', field_type: 'text' },
+    { variable_name: 'event_poster', field_type: 'image' },
+  ]);
+
+  // Now neither produces a warning
+  const warningsAfter = findUnknownPredefinedFieldTokens(customTemplate);
+  assert.deepEqual(warningsAfter, []);
+  assert.ok(isCatalogPlaceholderKey('mission_speaker'));
+  assert.ok(isCatalogPlaceholderKey('event_poster'));
+
+  // Built-in keys still work
+  assert.ok(isCatalogPlaceholderKey('service_date'));
+  assert.ok(isCatalogPlaceholderKey('sermon_poster'));
+
+  // 3. Deleting a field (calling reset with only remaining fields) un-registers deleted field
+  resetDynamicCatalogTokens([
+    { variable_name: 'mission_speaker', field_type: 'text' },
+    // event_poster deleted
+  ]);
+  assert.ok(isCatalogPlaceholderKey('mission_speaker'));
+  assert.equal(isCatalogPlaceholderKey('event_poster'), false);
+
+  const warningsAfterDelete = findUnknownPredefinedFieldTokens(customTemplate);
+  assert.equal(warningsAfterDelete.length, 1);
+  assert.ok(warningsAfterDelete[0].includes('event_poster'));
+
+  // 4. Calling reset with no args restores the exact 17 built-ins
+  resetDynamicCatalogTokens();
+  assert.equal(isCatalogPlaceholderKey('mission_speaker'), false);
+  assert.equal(isCatalogPlaceholderKey('event_poster'), false);
+  assert.ok(isCatalogPlaceholderKey('service_date'));
+  assert.ok(isCatalogPlaceholderKey('sermon_poster'));
 });
 
 test('validateArtifactTemplate accepts youth_name and scripture_bible_version placeholders in slide payload', async () => {

@@ -19,16 +19,15 @@ from the current fetched list each time it's refreshed, not only append to it on
 **Blocked by:** 01 (the field has to be acceptable to the server before it's worth telling the editor
 about it).
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Opening the canvas editor loads the current list of Admin-created Predefined Fields, and every
-      one of them is treated as a known catalog key.
-- [ ] Placing `{<admin-created-key>}` inside a text element, or binding an image element's
+- [x] Opening the canvas editor loads the current list of Admin-created Predefined Fields, and every
+      one of them is treated as a known catalog key via `resetDynamicCatalogTokens`.
+- [x] Placing `{<admin-created-key>}` inside a text element, or binding an image element's
       placeholder key to an admin-created field, shows no "unknown" warning.
-- [ ] Placing `{<a key nobody created>}` still shows the warning exactly as before.
-- [ ] Deleting a Predefined Field and then re-fetching/refreshing the editor's known-fields list
-      (whatever the natural refresh point is — reopening the editor, at minimum) makes its key show
-      the "unknown" warning again if still referenced on a template — the dynamic portion is rebuilt
-      from the current list, not just added to.
-- [ ] The 17 built-in catalog keys are still recognised exactly as before; this ticket only adds
+- [x] Placing `{<a key nobody created>}` still shows the warning exactly as before.
+- [x] Deleting a Predefined Field and then re-fetching/refreshing the editor's known-fields list
+      (reopening the editor or on save) makes its key show the "unknown" warning again if still
+      referenced on a template — tested in `tests/placeholder-catalog.test.mjs`.
+- [x] The 17 built-in catalog keys are still recognised exactly as before; this ticket only adds
       admin-created keys to what the editor already treats as known.

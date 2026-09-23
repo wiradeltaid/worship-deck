@@ -348,7 +348,7 @@ func (s *Server) putArtifact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
-	cleaned, err := plan.ValidateArtifactTemplate(next, s.Root)
+	cleaned, err := plan.ValidateArtifactTemplate(next, s.Root, s.getActivePredefinedFieldCatalog())
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -889,4 +889,30 @@ func (s *Server) syncArtifact(w http.ResponseWriter, r *http.Request) {
 		"updated_at":    after,
 		"templateCount": pos,
 	})
+}
+
+func (s *Server) getActivePredefinedFieldCatalog() map[string]string {
+	if s.DB == nil {
+		return nil
+	}
+	rows, err := s.DB.Query(`SELECT variable_name, field_type FROM predefined_fields WHERE is_active = 1`)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	catalog := make(map[string]string)
+	for rows.Next() {
+		var varName, fieldType string
+		if err := rows.Scan(&varName, &fieldType); err != nil {
+			continue
+		}
+		switch fieldType {
+		case "image":
+			catalog[varName] = "image"
+		default: // "text", "text_area"
+			catalog[varName] = "text"
+		}
+	}
+	return catalog
 }

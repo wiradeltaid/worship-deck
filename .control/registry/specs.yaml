@@ -2658,7 +2658,7 @@ waves:
           - tests/smoke-spec-55.test.mjs
 
   - id: SPEC-56
-    status: open
+    status: closed
     release: wire-dynamic-predefined-field-catalog
     prd: [operator-turn]
     fr: [FR-37]

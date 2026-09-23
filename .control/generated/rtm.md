@@ -3379,10 +3379,10 @@ rtm:
   release: wire-dynamic-predefined-field-catalog
   test:
   - internal/plan/validate_artifact_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3393,10 +3393,10 @@ rtm:
   release: wire-dynamic-predefined-field-catalog
   test:
   - tests/placeholder-catalog.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6028,10 +6028,10 @@ rtm:
   release: wire-dynamic-predefined-field-catalog
   test:
   - internal/plan/validate_artifact_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6042,10 +6042,10 @@ rtm:
   release: wire-dynamic-predefined-field-catalog
   test:
   - tests/placeholder-catalog.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -8172,10 +8172,10 @@ rtm:
   release: wire-dynamic-predefined-field-catalog
   test:
   - internal/plan/validate_artifact_test.go
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -8186,10 +8186,10 @@ rtm:
   release: wire-dynamic-predefined-field-catalog
   test:
   - tests/placeholder-catalog.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

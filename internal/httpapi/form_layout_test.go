@@ -476,3 +476,172 @@ func TestFormLayout_SPEC53_ReorderAndTransfer(t *testing.T) {
 	}
 	rows.Close()
 }
+
+func TestPutArtifact_DynamicPredefinedFieldImageValidation(t *testing.T) {
+	ts, _, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. Create a custom image predefined field via POST /api/admin/predefined-fields
+	fieldPayload := `{"variable_name":"event_poster","shown_text":"Event Poster","field_type":"image"}`
+	res := songSetRequest(t, ts, "POST", "/api/admin/predefined-fields", fieldPayload, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("create predefined field = %d, want 200", res.StatusCode)
+	}
+	var createdField struct {
+		ID           string `json:"id"`
+		VariableName string `json:"variable_name"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&createdField); err != nil {
+		t.Fatalf("decode created field: %v", err)
+	}
+	res.Body.Close()
+
+	// 2. Create a general authored template via POST /api/admin/artifacts
+	createTplPayload := `{"id":"test-event-poster-slide","label":"Event Poster Slide","baseType":"general"}`
+	res = songSetRequest(t, ts, "POST", "/api/admin/artifacts", createTplPayload, cookie)
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
+		t.Fatalf("create artifact = %d, want 200/201", res.StatusCode)
+	}
+	var createdTpl struct {
+		ID        string `json:"id"`
+		UpdatedAt string `json:"updatedAt"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&createdTpl)
+	res.Body.Close()
+
+	// 3. PUT /api/admin/artifacts/{id} with placeholderKey = "event_poster" (type image) -> 200
+	validUpdatePayload := fmt.Sprintf(`{
+		"schemaVersion": 1,
+		"id": "test-event-poster-slide",
+		"label": "Event Poster Slide",
+		"baseType": "general",
+		"updatedAt": %q,
+		"placeholders": [
+			{"key": "event_poster", "type": "image", "required": false}
+		],
+		"layouts": {
+			"default": {
+				"aspectRatio": "16:9",
+				"backgroundColor": "#000000",
+				"elements": [
+					{
+						"id": "img-event",
+						"type": "image",
+						"x": 10.0,
+						"y": 10.0,
+						"w": 80.0,
+						"h": 60.0,
+						"zIndex": 1,
+						"placeholderKey": "event_poster"
+					}
+				]
+			}
+		}
+	}`, createdTpl.UpdatedAt)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/artifacts/test-event-poster-slide", validUpdatePayload, cookie)
+	if res.StatusCode != http.StatusOK {
+		var errResp map[string]any
+		_ = json.NewDecoder(res.Body).Decode(&errResp)
+		t.Fatalf("PUT artifact with dynamic image key = %d, want 200; err = %v", res.StatusCode, errResp)
+	}
+	var updatedTpl struct {
+		UpdatedAt string `json:"updatedAt"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&updatedTpl)
+	res.Body.Close()
+
+	// 4. PUT /api/admin/artifacts/{id} with an unknown placeholder key -> 400
+	badUpdatePayload := fmt.Sprintf(`{
+		"schemaVersion": 1,
+		"id": "test-event-poster-slide",
+		"label": "Event Poster Slide",
+		"baseType": "general",
+		"updatedAt": %q,
+		"placeholders": [
+			{"key": "unknown_invented_key", "type": "image", "required": false}
+		],
+		"layouts": {
+			"default": {
+				"aspectRatio": "16:9",
+				"backgroundColor": "#000000",
+				"elements": [
+					{
+						"id": "img-bad",
+						"type": "image",
+						"x": 10.0,
+						"y": 10.0,
+						"w": 80.0,
+						"h": 60.0,
+						"zIndex": 1,
+						"placeholderKey": "unknown_invented_key"
+					}
+				]
+			}
+		}
+	}`, updatedTpl.UpdatedAt)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/artifacts/test-event-poster-slide", badUpdatePayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("PUT artifact with unknown key = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 5. Delete the predefined field via DELETE /api/admin/predefined-fields/{id}
+	res = songSetRequest(t, ts, "DELETE", "/api/admin/predefined-fields/"+createdField.ID, "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("DELETE predefined field = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 6. Verify previously-saved template in DB is still accessible and not retroactively broken
+	res = songSetRequest(t, ts, "GET", "/api/admin/artifacts/test-event-poster-slide", "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET previously saved template = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 7. A new save referencing the deleted key is rejected (400)
+	createTpl2 := `{"id":"test-event-poster-slide-2","label":"Event Poster Slide 2","baseType":"general"}`
+	res = songSetRequest(t, ts, "POST", "/api/admin/artifacts", createTpl2, cookie)
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
+		t.Fatalf("create artifact 2 = %d, want 200/201", res.StatusCode)
+	}
+	var createdTpl2 struct {
+		UpdatedAt string `json:"updatedAt"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&createdTpl2)
+	res.Body.Close()
+
+	saveDeletedKeyPayload := fmt.Sprintf(`{
+		"schemaVersion": 1,
+		"id": "test-event-poster-slide-2",
+		"label": "Event Poster Slide 2",
+		"baseType": "general",
+		"updatedAt": %q,
+		"placeholders": [
+			{"key": "event_poster", "type": "image", "required": false}
+		],
+		"layouts": {
+			"default": {
+				"aspectRatio": "16:9",
+				"backgroundColor": "#000000",
+				"elements": [
+					{
+						"id": "img-event-2",
+						"type": "image",
+						"x": 10.0,
+						"y": 10.0,
+						"w": 80.0,
+						"h": 60.0,
+						"zIndex": 1,
+						"placeholderKey": "event_poster"
+					}
+				]
+			}
+		}
+	}`, createdTpl2.UpdatedAt)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/artifacts/test-event-poster-slide-2", saveDeletedKeyPayload, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("saving deleted key on new template = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+}
