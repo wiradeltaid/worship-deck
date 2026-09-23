@@ -1,13 +1,13 @@
-asof: '2026-09-17'
+asof: '2026-09-23'
 since: ''
 since_report: ''
-sha: 065a1d7b1c5bbf2e2098d781cdf487d5e8ad6e30
-registry_dirty: true
+sha: ccc7ee7851970ba9714b2cacac622bb7f1927253
+registry_dirty: false
 uncommitted_tickets: []
 promise_progress: 100%
 rtm_rows:
-  green: 283
-  counted: 283
+  green: 578
+  counted: 578
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -145,6 +145,141 @@ work_progress:
   tickets_done: 3
   tickets_total: 3
   work_progress: 100%
+- spec: SPEC-39
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-40
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-41
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-42
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-43
+  status: closed
+  tickets_done: 6
+  tickets_total: 6
+  work_progress: 100%
+- spec: SPEC-44
+  status: closed
+  tickets_done: 6
+  tickets_total: 6
+  work_progress: 100%
+- spec: SPEC-45
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-46
+  status: closed
+  tickets_done: 6
+  tickets_total: 6
+  work_progress: 100%
+- spec: SPEC-47
+  status: closed
+  tickets_done: 6
+  tickets_total: 6
+  work_progress: 100%
+- spec: SPEC-48
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-49
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-50
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-51
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-52
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-53
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-54
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-55
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-56
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-57
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-58
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-59
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-60
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-61
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-62
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-63
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-64
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-65
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -202,36 +337,492 @@ work_progress:
   work_progress: 100%
 gate_readiness: 100%
 proven:
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/registry.test.mjs
+  - tests/registry-go-http.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/registry.test.mjs
+  - tests/registry-go-http.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/registry.test.mjs
+  - tests/registry-go-http.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-21
+  UC: UC-15
+  ticket: SPEC-12-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-03
+  test:
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-03
+  test:
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-03
+  test:
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-04
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-04
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-04
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-05
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-05
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-05
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-06
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-06
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-06
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-29
+  UC: UC-24
+  ticket: SPEC-12-07
+  test:
+  - tests/song-books-seed.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-12-08
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-21
+  UC: UC-15
+  ticket: SPEC-12-08
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-12-08
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-12-08
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-21
+  UC: UC-15
+  ticket: SPEC-13-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-13-02
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-13-02
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-13-02
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-13-03
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-13-03
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-13-03
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-13-04
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-13-04
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-13-04
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-29
+  UC: UC-24
+  ticket: SPEC-13-05
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-29
+  UC: UC-24
+  ticket: SPEC-13-06
+  test:
+  - tests/registry-kind-rename.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-13-07
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-29
+  UC: UC-24
+  ticket: SPEC-13-07
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-13-07
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-13-07
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-15-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-15-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-15-01
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-15-02
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-15-02
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-15-02
+  test:
+  - tests/artifact-editor-layout.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: SPEC-15-03
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: SPEC-15-03
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: SPEC-15-03
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  closed: '2026-09-18'
+- FR: FR-29
+  UC: UC-24
+  ticket: SPEC-15-04
+  test:
+  - tests/operator-shadcn-guard.test.mjs
+  closed: '2026-09-18'
 - FR: FR-21
   UC: UC-15
   ticket: W1-1-1
   test:
   - tests/registry-reorder-delete-http.test.mjs
-  closed: '2026-08-19'
+  closed: '2026-09-18'
 - FR: FR-21
   UC: UC-16
   ticket: W1-1-2
   test:
   - tests/registry-sync-artifact.test.mjs
-  closed: '2026-08-19'
+  closed: '2026-09-18'
+- FR: FR-1
+  UC: UC-1
+  ticket: W10-01
+  test:
+  - tests/hub-go-http.test.mjs
+  - tests/parser.test.mjs
+  closed: '2026-09-18'
+- FR: FR-2
+  UC: UC-1
+  ticket: W10-01
+  test:
+  - tests/hub-go-http.test.mjs
+  - tests/parser.test.mjs
+  closed: '2026-09-18'
+- FR: FR-2
+  UC: UC-2
+  ticket: W10-02
+  test:
+  - tests/services-create.test.mjs
+  - tests/services-lib.test.mjs
+  closed: '2026-09-18'
+- FR: FR-27
+  UC: UC-2
+  ticket: W10-02
+  test:
+  - tests/services-create.test.mjs
+  - tests/services-lib.test.mjs
+  closed: '2026-09-18'
+- FR: FR-12
+  UC: UC-17
+  ticket: W10-03
+  test:
+  - tests/hub-go-http.test.mjs
+  - tests/parser.test.mjs
+  closed: '2026-09-18'
+- FR: FR-34
+  UC: UC-28
+  ticket: W10-04
+  test:
+  - tests/lyric-editor-ui.test.mjs
+  - tests/save-to-book-go-http.test.mjs
+  closed: '2026-09-18'
+- FR: FR-21
+  UC: UC-15
+  ticket: W11-01
+  test:
+  - tests/registry.test.mjs
+  - tests/registry-go-http.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: W11-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: W11-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: W11-02
+  test:
+  - tests/canvas-dirty-guard.test.mjs
+  - tests/artifact-preview.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: W11-03
+  test:
+  - tests/artifact-preview.test.mjs
+  - tests/canvas-dirty-guard.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: W11-03
+  test:
+  - tests/artifact-preview.test.mjs
+  - tests/canvas-dirty-guard.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: W11-03
+  test:
+  - tests/artifact-preview.test.mjs
+  - tests/canvas-dirty-guard.test.mjs
+  closed: '2026-09-18'
+- FR: FR-21
+  UC: UC-15
+  ticket: W11-04
+  test:
+  - tests/registry.test.mjs
+  - tests/sync-artifact-button.test.mjs
+  closed: '2026-09-18'
+- FR: FR-29
+  UC: UC-24
+  ticket: W11-05
+  test:
+  - tests/song-books-seed.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-20
+  UC: UC-14
+  ticket: W11-06
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-30
+  UC: UC-14
+  ticket: W11-06
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: W11-06
+  test:
+  - tests/announcement-sets.test.mjs
+  - tests/registry.test.mjs
+  closed: '2026-09-18'
 - FR: FR-14
   UC: UC-18
   ticket: W2-2-1
   test:
   - tests/go-http-gate.test.mjs
-  closed: '2026-08-19'
+  closed: '2026-09-18'
 - FR: FR-14
   UC: UC-18
   ticket: W2-2-2
   test:
   - tests/pptx-worker.test.mjs
-  closed: '2026-08-19'
+  closed: '2026-09-18'
 - FR: FR-14
   UC: UC-18
   ticket: W2-2-3
   test:
   - tests/pptx-go-http.test.mjs
-  closed: '2026-08-19'
+  closed: '2026-09-18'
 - FR: FR-20
   UC: UC-14
   ticket: W3-1
@@ -241,7 +832,7 @@ proven:
   - tests/registry.test.mjs
   - tests/copy-paste-share-by-reference.test.mjs
   - tests/canvas-dirty-guard.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-30
   UC: UC-14
   ticket: W3-1
@@ -251,28 +842,38 @@ proven:
   - tests/registry.test.mjs
   - tests/copy-paste-share-by-reference.test.mjs
   - tests/canvas-dirty-guard.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
+- FR: FR-39
+  UC: UC-14
+  ticket: W3-1
+  test:
+  - tests/artifact-editor-controls.test.mjs
+  - tests/artifacts-api.test.mjs
+  - tests/registry.test.mjs
+  - tests/copy-paste-share-by-reference.test.mjs
+  - tests/canvas-dirty-guard.test.mjs
+  closed: '2026-09-18'
 - FR: FR-4
   UC: UC-20
   ticket: W3-2
   test:
   - tests/artifact-preview.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-5
   UC: UC-20
   ticket: W3-2
   test:
   - tests/artifact-preview.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-6
   UC: UC-20
   ticket: W3-2
   test:
   - tests/artifact-preview.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-21
   UC: UC-16
   ticket: W3-3
@@ -281,7 +882,7 @@ proven:
   - tests/registry-sync-artifact.test.mjs
   - tests/no-router-refresh-guard.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-4
   UC: UC-20
   ticket: W4-1
@@ -289,7 +890,7 @@ proven:
   - tests/worship-form-fields.test.mjs
   - tests/services-create.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-5
   UC: UC-20
   ticket: W4-1
@@ -297,7 +898,7 @@ proven:
   - tests/worship-form-fields.test.mjs
   - tests/services-create.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-6
   UC: UC-20
   ticket: W4-1
@@ -305,835 +906,547 @@ proven:
   - tests/worship-form-fields.test.mjs
   - tests/services-create.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-08-21'
+  closed: '2026-09-18'
 - FR: FR-35
   UC: UC-29
   ticket: W5-5-1
   test:
   - tests/remote-control-go-http.test.mjs
   - tests/go-http-gate.test.mjs
-  closed: '2026-08-22'
+  closed: '2026-09-18'
 - FR: FR-35
   UC: UC-29
   ticket: W5-5-2
   test:
   - tests/remote-presenting-client.test.mjs
-  closed: '2026-08-22'
+  closed: '2026-09-18'
 - FR: FR-35
   UC: UC-29
   ticket: W5-5-3
   test:
   - tests/remote-screen.test.mjs
-  closed: '2026-08-22'
-- FR: FR-1
-  UC: UC-1
-  ticket: W10-01
-  test:
-  - tests/hub-go-http.test.mjs
-  - tests/parser.test.mjs
-  closed: '2026-09-07'
-- FR: FR-2
-  UC: UC-1
-  ticket: W10-01
-  test:
-  - tests/hub-go-http.test.mjs
-  - tests/parser.test.mjs
-  closed: '2026-09-07'
-- FR: FR-2
-  UC: UC-2
-  ticket: W10-02
-  test:
-  - tests/services-create.test.mjs
-  - tests/services-lib.test.mjs
-  closed: '2026-09-07'
-- FR: FR-27
-  UC: UC-2
-  ticket: W10-02
-  test:
-  - tests/services-create.test.mjs
-  - tests/services-lib.test.mjs
-  closed: '2026-09-07'
-- FR: FR-12
-  UC: UC-17
-  ticket: W10-03
-  test:
-  - tests/hub-go-http.test.mjs
-  - tests/parser.test.mjs
-  closed: '2026-09-07'
-- FR: FR-34
-  UC: UC-28
-  ticket: W10-04
-  test:
-  - tests/lyric-editor-ui.test.mjs
-  - tests/save-to-book-go-http.test.mjs
-  closed: '2026-09-07'
-- FR: FR-21
-  UC: UC-15
-  ticket: W11-01
-  test:
-  - tests/registry.test.mjs
-  - tests/registry-go-http.test.mjs
-  closed: '2026-09-07'
-- FR: FR-20
-  UC: UC-14
-  ticket: W11-02
-  test:
-  - tests/canvas-dirty-guard.test.mjs
-  - tests/artifact-preview.test.mjs
-  closed: '2026-09-07'
-- FR: FR-30
-  UC: UC-14
-  ticket: W11-02
-  test:
-  - tests/canvas-dirty-guard.test.mjs
-  - tests/artifact-preview.test.mjs
-  closed: '2026-09-07'
-- FR: FR-20
-  UC: UC-14
-  ticket: W11-03
-  test:
-  - tests/artifact-preview.test.mjs
-  - tests/canvas-dirty-guard.test.mjs
-  closed: '2026-09-07'
-- FR: FR-30
-  UC: UC-14
-  ticket: W11-03
-  test:
-  - tests/artifact-preview.test.mjs
-  - tests/canvas-dirty-guard.test.mjs
-  closed: '2026-09-07'
-- FR: FR-21
-  UC: UC-15
-  ticket: W11-04
-  test:
-  - tests/registry.test.mjs
-  - tests/sync-artifact-button.test.mjs
-  closed: '2026-09-07'
-- FR: FR-29
-  UC: UC-24
-  ticket: W11-05
-  test:
-  - tests/song-books-seed.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-07'
-- FR: FR-20
-  UC: UC-14
-  ticket: W11-06
-  test:
-  - tests/announcement-sets.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-07'
-- FR: FR-30
-  UC: UC-14
-  ticket: W11-06
-  test:
-  - tests/announcement-sets.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-29
   UC: UC-24
   ticket: W6-01
   test:
   - tests/registry.test.mjs
   - tests/registry-go-http.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-31
   UC: UC-25
   ticket: W6-02
   test:
   - tests/background-library.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
+- FR: FR-38
+  UC: UC-25
+  ticket: W6-02
+  test:
+  - tests/background-library.test.mjs
+  closed: '2026-09-18'
 - FR: FR-15
   UC: UC-11
   ticket: W7-01
   test:
   - tests/present-channel.test.mjs
   - tests/presenter-model.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-16
   UC: UC-12
   ticket: W7-02
   test:
   - tests/acceptance-fr16-fr19-fr28.test.mjs
   - tests/projected-shell.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-19
   UC: UC-13
   ticket: W7-03
   test:
   - tests/acceptance-fr16-fr19-fr28.test.mjs
   - tests/scripture.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-22
   UC: UC-13
   ticket: W7-03
   test:
   - tests/acceptance-fr16-fr19-fr28.test.mjs
   - tests/scripture.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-33
   UC: UC-27
   ticket: W7-04
   test:
   - tests/background-library.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-8
   UC: UC-3
   ticket: W8-01
   test:
   - tests/services-go-http.test.mjs
   - tests/services-api.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-17
   UC: UC-4
   ticket: W8-02
   test:
   - tests/acceptance-fr09-slide-preview.test.mjs
   - tests/services-go-http.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-11
   UC: UC-5
   ticket: W8-03
   test:
   - tests/services-lib.test.mjs
   - tests/worship-form-fields.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-13
   UC: UC-6
   ticket: W8-04
   test:
   - tests/pptx-go-http.test.mjs
   - tests/slide-plan.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-10
   UC: UC-7
   ticket: W8-05
   test:
   - tests/services-api.test.mjs
   - tests/services-go-http.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-9
   UC: UC-8
   ticket: W8-06
   test:
   - tests/acceptance-fr09-slide-preview.test.mjs
   - tests/slide-plan.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-28
   UC: UC-23
   ticket: W8-07
   test:
   - tests/acceptance-fr16-fr19-fr28.test.mjs
   - tests/services-lib.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-32
   UC: UC-26
   ticket: W8-08
   test:
   - tests/worship-form-fields.test.mjs
   - tests/worship-form-ui.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-18
   UC: UC-9
   ticket: W9-01
   test:
   - tests/auth-go-http.test.mjs
   - tests/auth-http.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-25
   UC: UC-10
   ticket: W9-02
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-7
   UC: UC-19
   ticket: W9-03
   test:
   - tests/transitions.test.mjs
   - tests/hub-go-http.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-3
   UC: UC-21
   ticket: W9-04
   test:
   - tests/announcement-sets.test.mjs
   - tests/announcements-url.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-23
   UC: UC-22
   ticket: W9-05
   test:
   - tests/song-books-seed.test.mjs
   - tests/hymns-api.test.mjs
-  closed: '2026-09-07'
+  closed: '2026-09-18'
 - FR: FR-24
   UC: UC-22
   ticket: W9-05
   test:
   - tests/song-books-seed.test.mjs
   - tests/hymns-api.test.mjs
-  closed: '2026-09-07'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-01
+  closed: '2026-09-18'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-46-01
   test:
-  - tests/artifact-editor-controls.test.mjs
-  - tests/registry.test.mjs
-  - tests/registry-go-http.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-01
+  - internal/db
+  - internal/httpapi
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-37
+  UC: UC-31
+  ticket: SPEC-46-01
   test:
-  - tests/artifact-editor-controls.test.mjs
-  - tests/registry.test.mjs
-  - tests/registry-go-http.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-02
+  - internal/db
+  - internal/httpapi
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-46-02
   test:
-  - tests/canvas-dirty-guard.test.mjs
-  - tests/artifact-preview.test.mjs
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-21
-  UC: UC-15
-  ticket: SPEC-12-02
+  - internal/httpapi
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-46-03
   test:
-  - tests/canvas-dirty-guard.test.mjs
-  - tests/artifact-preview.test.mjs
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-02
-  test:
-  - tests/canvas-dirty-guard.test.mjs
-  - tests/artifact-preview.test.mjs
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-03
-  test:
-  - tests/artifact-preview.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-03
-  test:
-  - tests/artifact-preview.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-04
-  test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-04
-  test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-05
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-05
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-06
-  test:
-  - tests/operator-shadcn-guard.test.mjs
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-06
-  test:
-  - tests/operator-shadcn-guard.test.mjs
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
+  - internal/plan
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
 - FR: FR-29
   UC: UC-24
-  ticket: SPEC-12-07
+  ticket: SPEC-46-03
   test:
-  - tests/song-books-seed.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-12-08
+  - internal/plan
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-46-04
   test:
-  - tests/announcement-sets.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-08'
-- FR: FR-21
-  UC: UC-15
-  ticket: SPEC-12-08
+  - internal/parse
+  - src/lib/parser.ts
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-46-05
   test:
-  - tests/announcement-sets.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-12-08
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-2
+  UC: UC-2
+  ticket: SPEC-46-05
   test:
-  - tests/announcement-sets.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-08'
-- FR: FR-21
-  UC: UC-15
-  ticket: SPEC-13-01
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-27
+  UC: UC-2
+  ticket: SPEC-46-05
   test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-13-02
+  - src/operator/CreateForm.tsx
+  - src/operator/EditForm.tsx
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-46-06
   test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-13-02
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-2
+  UC: UC-2
+  ticket: SPEC-46-06
   test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-13-03
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-27
+  UC: UC-2
+  ticket: SPEC-46-06
   test:
-  - tests/artifact-editor-controls.test.mjs
-  - tests/artifact-preview.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-13-03
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
+- FR: FR-37
+  UC: UC-31
+  ticket: SPEC-46-06
   test:
-  - tests/artifact-editor-controls.test.mjs
-  - tests/artifact-preview.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-13-04
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-13-04
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-29
-  UC: UC-24
-  ticket: SPEC-13-05
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-29
-  UC: UC-24
-  ticket: SPEC-13-06
-  test:
-  - tests/registry-kind-rename.test.mjs
-  - tests/registry.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-13-07
-  test:
-  - tests/operator-shadcn-guard.test.mjs
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-29
-  UC: UC-24
-  ticket: SPEC-13-07
-  test:
-  - tests/operator-shadcn-guard.test.mjs
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-13-07
-  test:
-  - tests/operator-shadcn-guard.test.mjs
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-08'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-15-01
-  test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-09'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-15-01
-  test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-09'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-15-02
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-09'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-15-02
-  test:
-  - tests/artifact-editor-layout.test.mjs
-  closed: '2026-09-09'
-- FR: FR-20
-  UC: UC-14
-  ticket: SPEC-15-03
-  test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-09'
-- FR: FR-30
-  UC: UC-14
-  ticket: SPEC-15-03
-  test:
-  - tests/artifact-editor-controls.test.mjs
-  closed: '2026-09-09'
-- FR: FR-29
-  UC: UC-24
-  ticket: SPEC-15-04
-  test:
-  - tests/operator-shadcn-guard.test.mjs
-  closed: '2026-09-09'
+  - src/components/admin
+  - tests/smoke-spec-46.test.mjs
+  closed: '2026-09-21'
 moved:
-- id: CAP-5
-  kind: CAP
-  event: closed
-  date: '2026-08-19'
-- id: CAP-5
-  kind: CAP
-  event: started
-  date: '2026-08-19'
-- id: CAP-9
-  kind: CAP
-  event: started
-  date: '2026-08-19'
-- id: FR-14
-  kind: FR
-  event: closed
-  date: '2026-08-19'
-- id: FR-14
-  kind: FR
-  event: started
-  date: '2026-08-19'
-- id: FR-21
-  kind: FR
-  event: started
-  date: '2026-08-19'
-- id: CAP-2
-  kind: CAP
-  event: started
-  date: '2026-08-21'
-- id: FR-20
-  kind: FR
-  event: started
-  date: '2026-08-21'
-- id: FR-30
-  kind: FR
-  event: started
-  date: '2026-08-21'
-- id: FR-4
-  kind: FR
-  event: closed
-  date: '2026-08-21'
-- id: FR-4
-  kind: FR
-  event: started
-  date: '2026-08-21'
-- id: FR-5
-  kind: FR
-  event: closed
-  date: '2026-08-21'
-- id: FR-5
-  kind: FR
-  event: started
-  date: '2026-08-21'
-- id: FR-6
-  kind: FR
-  event: closed
-  date: '2026-08-21'
-- id: FR-6
-  kind: FR
-  event: started
-  date: '2026-08-21'
-- id: CAP-6
-  kind: CAP
-  event: started
-  date: '2026-08-22'
-- id: FR-35
-  kind: FR
-  event: closed
-  date: '2026-08-22'
-- id: FR-35
-  kind: FR
-  event: started
-  date: '2026-08-22'
-- id: CAP-1
-  kind: CAP
-  event: closed
-  date: '2026-09-07'
 - id: CAP-1
   kind: CAP
   event: started
-  date: '2026-09-07'
-- id: CAP-10
-  kind: CAP
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-10
   kind: CAP
   event: started
-  date: '2026-09-07'
-- id: CAP-11
-  kind: CAP
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-11
   kind: CAP
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-2
   kind: CAP
-  event: closed
-  date: '2026-09-07'
-- id: CAP-3
-  kind: CAP
-  event: closed
-  date: '2026-09-07'
+  event: started
+  date: '2026-09-18'
 - id: CAP-3
   kind: CAP
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-4
   kind: CAP
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
+- id: CAP-5
+  kind: CAP
+  event: closed
+  date: '2026-09-18'
+- id: CAP-5
+  kind: CAP
+  event: started
+  date: '2026-09-18'
+- id: CAP-6
+  kind: CAP
+  event: started
+  date: '2026-09-18'
 - id: CAP-7
   kind: CAP
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-7
   kind: CAP
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-8
   kind: CAP
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: CAP-8
   kind: CAP
   event: started
-  date: '2026-09-07'
-- id: FR-1
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
+- id: CAP-9
+  kind: CAP
+  event: started
+  date: '2026-09-18'
 - id: FR-1
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-10
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-10
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-11
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-11
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-12
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-12
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-13
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
+- id: FR-14
+  kind: FR
+  event: closed
+  date: '2026-09-18'
+- id: FR-14
+  kind: FR
+  event: started
+  date: '2026-09-18'
 - id: FR-15
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-16
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-17
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-17
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-18
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-18
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-19
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-19
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-2
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-2
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-22
+  date: '2026-09-18'
+- id: FR-20
   kind: FR
-  event: closed
-  date: '2026-09-07'
+  event: started
+  date: '2026-09-18'
+- id: FR-21
+  kind: FR
+  event: started
+  date: '2026-09-18'
 - id: FR-22
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-23
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-23
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-24
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-24
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-25
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-25
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-27
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-27
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-28
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-28
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-29
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-3
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-3
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-31
+  date: '2026-09-18'
+- id: FR-30
   kind: FR
-  event: closed
-  date: '2026-09-07'
+  event: started
+  date: '2026-09-18'
 - id: FR-31
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-32
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-32
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-33
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-33
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-34
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-34
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
+- id: FR-35
+  kind: FR
+  event: started
+  date: '2026-09-18'
+- id: FR-38
+  kind: FR
+  event: started
+  date: '2026-09-18'
+- id: FR-39
+  kind: FR
+  event: started
+  date: '2026-09-18'
+- id: FR-4
+  kind: FR
+  event: started
+  date: '2026-09-18'
+- id: FR-5
+  kind: FR
+  event: started
+  date: '2026-09-18'
+- id: FR-6
+  kind: FR
+  event: started
+  date: '2026-09-18'
 - id: FR-7
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-7
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-8
   kind: FR
   event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-8
   kind: FR
   event: started
-  date: '2026-09-07'
-- id: FR-9
-  kind: FR
-  event: closed
-  date: '2026-09-07'
+  date: '2026-09-18'
 - id: FR-9
   kind: FR
   event: started
-  date: '2026-09-07'
+  date: '2026-09-18'
+- id: CAP-12
+  kind: CAP
+  event: started
+  date: '2026-09-21'
+- id: FR-36
+  kind: FR
+  event: started
+  date: '2026-09-21'
+- id: FR-37
+  kind: FR
+  event: started
+  date: '2026-09-21'
+- id: FR-40
+  kind: FR
+  event: started
+  date: '2026-09-21'
 late: []
 defects:
   opened: []
@@ -1315,6 +1628,13 @@ defects:
     - FR-21
     - UC-15
     closed: '2026-09-17'
+  - id: BUG-38
+    title: Custom song-set entries missing from worship slide preview and service plan
+    root_cause: code
+    violates:
+    - FR-32
+    - UC-28
+    closed: '2026-09-17'
   - id: BUG-4
     title: Font size field does not update the selected text element in realtime
     root_cause: ''
@@ -1383,6 +1703,7 @@ defects:
     - BUG-35
     - BUG-36
     - BUG-37
+    - BUG-38
   undiagnosed: []
 gates:
 - gate: G1
