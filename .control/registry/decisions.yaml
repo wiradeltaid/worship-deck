@@ -1355,6 +1355,13 @@ decisions:
     touches:
       - .how/_platform/ARCHITECTURE-SPINE.md
       - .control/registry/decisions.yaml
+  - id: DEC-059
+    status: applied
+    accepted_by: "kodesh87 (2026-09-23)"
+    title: The Registry canvas's keyboard surface has grown past Delete/Backspace; DEC-012's "one exception" claim is superseded in part
+    file: .control/decisions/DEC-059-canvas-keyboard-surface-widened-past-delete.md
+    touches:
+      - .control/decisions/DEC-012-canvas-keyboard-delete-exception.md
 
 
 
