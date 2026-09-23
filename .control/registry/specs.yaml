@@ -2875,7 +2875,7 @@ waves:
   # cites FR-40 for traceability since it ships alongside the same offline-desktop self-hosting
   # workflow (per CHANGELOG.md's 0.1.0 entry), same reasoning SPEC-57 used for its own FR citation.
   - id: SPEC-64
-    status: open
+    status: closed
     release: installer-version-sync
     prd: [offline-deck]
     fr: [FR-40]
@@ -2892,9 +2892,9 @@ waves:
         component: hub
         satisfies: [FR-40]
         blocked_by: []
-        touches: [installer]
+        touches: [sync]
         tests:
-          - scripts/build-desktop-version-sync.test.mjs
+          - tests/installer-version-sync.test.mjs
 
   # Opened 2026-09-23 from wdi-reconcile findings (05-scenarios/ sweep, at owner's request, DEC files
   # and autopilot deferred to a later pass). Real code gap contradicting both SCN-6 and its own

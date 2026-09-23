@@ -4,9 +4,9 @@
  *
  * Orchestrates:
  * 1. Vite SPA production build (spa/dist)
- * 2. Go desktop binary compilation (dist-desktop/worship-presenter.exe)
+ * 2. Go desktop binary compilation (dist-desktop/worship-deck.exe)
  * 3. Portable Node.js & worker closure staging (dist-desktop/runtime, workers, src, node_modules)
- * 4. Inno Setup installer compilation (dist-installer/WorshipPresenterSetup.exe) if ISCC is installed
+ * 4. Inno Setup installer compilation (dist-installer/WorshipDeckSetup.exe) if ISCC is installed
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,8 +18,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const distDesktop = path.join(repoRoot, 'dist-desktop');
 
+export function resolvePackageVersion(root = repoRoot) {
+  const pkgPath = path.join(root, 'package.json');
+  if (!fs.existsSync(pkgPath)) {
+    throw new Error(`package.json not found at ${pkgPath}`);
+  }
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  const version = String(pkg.version || '').trim();
+  const semverRegex = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$/;
+  if (!version || !semverRegex.test(version)) {
+    throw new Error(`Invalid or missing semver version in package.json: "${version}"`);
+  }
+  return version;
+}
+
 export async function buildDesktopPackage(options = {}) {
-  console.log('[build-desktop] Starting desktop packaging pipeline...');
+  const appVersion = resolvePackageVersion(repoRoot);
+  console.log(`[build-desktop] Starting desktop packaging pipeline (version: ${appVersion})...`);
   fs.mkdirSync(distDesktop, { recursive: true });
 
   // 1. Build Vite React SPA
@@ -88,8 +103,8 @@ export async function buildDesktopPackage(options = {}) {
   });
 
   if (isccBin) {
-    console.log(`[build-desktop] Found Inno Setup compiler at ${isccBin}, compiling setup...`);
-    const innoRes = spawnSync(isccBin, [issFile], {
+    console.log(`[build-desktop] Found Inno Setup compiler at ${isccBin}, compiling setup with MyAppVersion=${appVersion}...`);
+    const innoRes = spawnSync(isccBin, ['/DMyAppVersion=' + appVersion, issFile], {
       cwd: repoRoot,
       stdio: 'inherit',
       shell: false,
@@ -97,9 +112,7 @@ export async function buildDesktopPackage(options = {}) {
     if (innoRes.status !== 0) {
       throw new Error(`Inno Setup compilation failed with exit code ${innoRes.status}`);
     }
-    const outputSetup = fs.existsSync(path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe'))
-      ? path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe')
-      : path.join(repoRoot, 'dist-installer', 'WorshipPresenterSetup.exe');
+    const outputSetup = path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe');
     if (!fs.existsSync(outputSetup)) {
       throw new Error(`Expected installer output not found at ${outputSetup}`);
     }

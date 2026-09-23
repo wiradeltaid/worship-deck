@@ -2,7 +2,9 @@
 ; Production Standalone Desktop Packaging Pipeline for WorshipDeck
 
 #define MyAppName "WorshipDeck"
-#define MyAppVersion "0.1.0"
+#ifndef MyAppVersion
+  #error "MyAppVersion must be supplied via /D from package.json"
+#endif
 #define MyAppPublisher "Wira Delta Indonesia"
 #define MyAppURL "https://github.com/wiradeltaid/worship-deck"
 #define MyAppExeName "worship-deck.exe"
