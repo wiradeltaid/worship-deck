@@ -7,11 +7,11 @@ artifact: .control/decisions/DEC-061-daily-autopilot-mandate-exempt-branding-ass
 ## Resume
 
 - Iteration: 1
-- Run branch: autopilot/DEC-061
-- Stopped at: Mandate DEC-061 completed — SPEC-66 closed through G5 Release
+- Run branch: autopilot/DEC-061 (PR #103)
+- Stopped at: Mandate DEC-061 completed — SPEC-66 delivered through G5 Release
 - Blocked: —
 - Parked: —
-- Next: § Finish — reconcile, validate, smoke test, and PR
+- Next: Maintainer review and merge of PR #103
 
 ## Decisions
 
