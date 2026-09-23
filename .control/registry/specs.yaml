@@ -2977,6 +2977,38 @@ waves:
         tests:
           - tests/dynamic-field-extraction.test.mjs
 
+  # Opened 2026-09-23 from user triage notes.
+  # Song set regex editing and Advanced Parser Profile menu removal.
+  - id: SPEC-68
+    status: open
+    release: song-set-regex-editing-and-parser-profile-menu-removal
+    prd: [operator-turn]
+    fr: [FR-32, FR-36]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-68-song-set-regex-editing-and-parser-profile-menu-removal/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'd3d50c99f909c2a49f0ceeef36d7fb7d03a28caf'
+      lenses: [edge-case-hunter, api-contract, regression-proof, scope-boundary]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in client-side regex syntax validation with inline error messaging, explicit API serialization & creation contract, single canonical regex persistence per variable_name, narrowed scope to UI menu removal (retaining backend profiles and date/slide-plan fallbacks intact), and strict test boundaries including an executable absence guard proven by defect injection."
+    tickets:
+      - id: "SPEC-68-01"
+        component: hub
+        satisfies: [UC-2, FR-36]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/smoke-spec-54.test.mjs
+      - id: "SPEC-68-02"
+        component: hub
+        satisfies: [UC-2, UC-24, FR-32, FR-36]
+        blocked_by: ["SPEC-68-01"]
+        touches: [services]
+        tests:
+          - tests/dynamic-field-extraction.test.mjs
+
+
 
 
 

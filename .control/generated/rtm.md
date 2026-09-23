@@ -1629,6 +1629,34 @@ rtm:
   FR: FR-2
   DEC: []
   UC: UC-2
+  ticket: SPEC-68-01
+  spec: SPEC-68
+  release: song-set-regex-editing-and-parser-profile-menu-removal
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-68-02
+  spec: SPEC-68
+  release: song-set-regex-editing-and-parser-profile-menu-removal
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -4000,6 +4028,34 @@ rtm:
   FR: FR-27
   DEC: []
   UC: UC-2
+  ticket: SPEC-68-01
+  spec: SPEC-68
+  release: song-set-regex-editing-and-parser-profile-menu-removal
+  test:
+  - tests/smoke-spec-54.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
+  ticket: SPEC-68-02
+  spec: SPEC-68
+  release: song-set-regex-editing-and-parser-profile-menu-removal
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -4257,6 +4313,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-68-02
+  spec: SPEC-68
+  release: song-set-regex-editing-and-parser-profile-menu-removal
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
