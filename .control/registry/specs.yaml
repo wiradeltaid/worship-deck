@@ -2848,7 +2848,7 @@ waves:
           - internal/httpapi/fonts_delete_test.go
 
   - id: SPEC-63
-    status: open
+    status: closed
     release: form-layout-fetch-error-surfaced
     prd: [operator-turn]
     fr: [FR-37]

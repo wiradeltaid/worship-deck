@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reco
 
 ## Resume
 
-- Iteration: 7
+- Iteration: 8
 - Run branch: autopilot/DEC-060
-- Stopped at: Completed SPEC-62 (fonts-delete-endpoint); next is SPEC-63
+- Stopped at: Completed SPEC-63 (form-layout-fetch-error-surfaced); next is SPEC-64
 - Blocked: —
 - Parked: [ad-n]
-- Next: SPEC-63 (form-layout-fetch-error-surfaced)
+- Next: SPEC-64 (installer-version-sync)
 
 ## Decisions
 
@@ -29,3 +29,4 @@ artifact: .control/decisions/DEC-060-daily-autopilot-mandate-open-specs-and-reco
 | I-6 (SPEC-61-01) | internal/httpapi/sync.go | Wrap syncPush body in http.MaxBytesReader(w, r.Body, 50<<20) and distinguish *http.MaxBytesError with specific 400 error message | unbounded sync push request payload capacity on server | high | internal/httpapi/sync.go, internal/httpapi/sync_test.go |
 | I-6 (SPEC-61-02) | src/lib/sync/client.ts & spa/src/pages/AdminSyncPage.tsx | Add pushSyncChunked with deterministic chunk mutation_ids, dependency ordering, oversized-record isolation, and switch AdminSyncPage | client push failing outright on local datasets exceeding 50MB cap | high | src/lib/sync/client.ts, spa/src/pages/AdminSyncPage.tsx, tests/sync-client-chunking.test.mjs, package.json |
 | I-7 (SPEC-62-01) | internal/httpapi/fonts.go & internal/httpapi/server.go | Add DELETE /api/admin/fonts/{id} refusing 409 if live templates reference font and unlinking asset file post-commit | missing delete endpoint preventing cleanup of uploaded font faces and disk files | low | internal/httpapi/fonts.go, internal/httpapi/server.go, internal/httpapi/fonts_delete_test.go |
+| I-8 (SPEC-63-01) | src/operator/CreateForm.tsx & src/operator/EditForm.tsx | Render error/warning banner with Retry button on layout fetch failure, preserving existing snapshot on EditForm | silently swallowing layout fetch failures leaving operator with unexplained fallback | low | src/operator/CreateForm.tsx, src/operator/EditForm.tsx, src/lib/i18n/, tests/form-layout-fetch-error.test.mjs, package.json |

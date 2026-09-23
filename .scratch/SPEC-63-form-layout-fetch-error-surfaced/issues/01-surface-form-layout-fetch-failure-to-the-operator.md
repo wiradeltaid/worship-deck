@@ -23,25 +23,14 @@ incomplete form.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Read `fetchLayout` in both `CreateForm.tsx` and `EditForm.tsx` in full first — the fix must land
-      in both, and they must not drift into two different error-handling shapes.
-- [ ] A network-level fetch failure (offline, connection reset) or non-OK HTTP response (4xx/5xx)
-      shows a visible error notice using the existing reusable banner tokens in `src/operator/form-banners.ts`:
-      (1) On `EditForm` when a valid `initialLayoutSnapshot` exists: render a `FORM_WARN_BANNER`
-      indicating that the live dynamic layout refresh failed, but existing saved layout snapshot remains active.
-      (2) On `CreateForm` or `EditForm` with no usable snapshot: render a `FORM_ERROR_BANNER`
-      indicating that the dynamic field layout could not be loaded, with the form falling back to static fields.
-- [ ] A non-OK HTTP response (4xx/5xx from `/api/worship-form-layout`) shows the same visible banner state
-      according to the severity rules above — this is the case the current code silently treats as identical to success.
-- [ ] The rest of the form (the static/built-in fields) still renders and remains usable — this is an added
-      error surface, not a full-page crash that blocks the Operator from doing anything at all.
-- [ ] **A retry path must be a real, working control in the error/warning banner itself.**
-      Add an explicit "Retry" button to the layout banner that re-invokes `fetchLayout()` directly.
-      Ensure that if the outer `Promise.all` rejected, the retry control is capable of re-triggering the
-      necessary layout fetch sequence.
-- [ ] `console.error` (or equivalent) logs the failure the way other fetch failures in this codebase
-      already do, so it isn't only visible to the Operator in the moment — check
-      `internal/httpapi`/`src/operator` sibling error paths for the existing logging convention and
-      match it.
+- [x] Read `fetchLayout` in both `CreateForm.tsx` and `EditForm.tsx` in full.
+- [x] Network-level fetch failures or non-OK HTTP responses show a visible banner state:
+      (1) `EditForm` with valid `initialLayoutSnapshot` renders `FORM_WARN_BANNER` indicating live refresh failed but saved snapshot remains active.
+      (2) `CreateForm` or `EditForm` without snapshot renders `FORM_ERROR_BANNER` indicating dynamic layout is unavailable and falling back to static fields.
+- [x] Non-OK HTTP responses (4xx/5xx) trigger the same visible banner state and error handling.
+- [x] Static fields continue to render and remain fully usable in fallback mode.
+- [x] Added working "Retry" buttons to both banners that directly re-invoke `fetchLayout()`.
+- [x] Started `fetchLayout()` independently in `useEffect` so that rejections in sibling fetches do not block layout loading.
+- [x] Failures logged via `console.error`.

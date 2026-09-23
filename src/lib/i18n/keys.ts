@@ -605,6 +605,11 @@ export const I18N_KEYS = [
   'form.parser.acceptAll',
   'form.parser.unmappedWarning',
   'form.parser.overflowWarning',
+  'form.layout.errorTitle',
+  'form.layout.errorFallback',
+  'form.layout.warnTitle',
+  'form.layout.warnSnapshotActive',
+  'common.retry',
 ] as const;
 
 export type I18nKey = (typeof I18N_KEYS)[number];

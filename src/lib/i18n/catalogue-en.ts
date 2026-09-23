@@ -673,4 +673,9 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'form.parser.acceptAll': 'Accept All Suggestions',
   'form.parser.unmappedWarning': 'Unmapped lines detected in rundown intake. Please review:',
   'form.parser.overflowWarning': 'Song overflow detected: the following songs exceed configured slots:',
+  'form.layout.errorTitle': 'Dynamic form layout unavailable',
+  'form.layout.errorFallback': 'Falling back to static fields.',
+  'form.layout.warnTitle': 'Live layout refresh failed',
+  'form.layout.warnSnapshotActive': 'Saved layout snapshot remains active.',
+  'common.retry': 'Retry',
 };

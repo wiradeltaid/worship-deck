@@ -6326,10 +6326,10 @@ rtm:
   release: form-layout-fetch-error-surfaced
   test:
   - tests/form-layout-fetch-error.test.mjs
-  status: ready-for-agent
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38

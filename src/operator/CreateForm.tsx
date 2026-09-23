@@ -88,6 +88,7 @@ export default function CreateForm({
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [fieldSuggestions, setFieldSuggestions] = useState<Record<string, string>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [layoutError, setLayoutError] = useState<string | null>(null);
 
   const fetchLayout = async () => {
     try {
@@ -95,9 +96,16 @@ export default function CreateForm({
       if (res.ok) {
         const data = (await res.json()) as FormLayoutData;
         setLayoutData(data);
+        setLayoutError(null);
+      } else {
+        const errMsg = `Failed to load form layout (${res.status} ${res.statusText || 'Error'})`;
+        console.error(errMsg);
+        setLayoutError(errMsg);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Network error loading form layout';
+      console.error('Failed to fetch worship form layout:', err);
+      setLayoutError(errMsg);
     }
   };
 
@@ -129,6 +137,7 @@ export default function CreateForm({
 
   useEffect(() => {
     let active = true;
+    void fetchLayout();
     void (async () => {
       try {
         const [entriesRes, bgRes, booksRes] = await Promise.all([
@@ -184,7 +193,6 @@ export default function CreateForm({
         } catch {
           // ignore
         }
-        void fetchLayout();
       } catch {
         // Non-blocking: fallback to whatever entries form has
       }
@@ -652,6 +660,24 @@ export default function CreateForm({
               failedHymnNumbers.map((n) => `#${n}`).join(', ')
             )}
           </p>
+        </div>
+      )}
+
+      {layoutError && (
+        <div className={`${FORM_ERROR_BANNER} flex items-center justify-between gap-3`} role="alert">
+          <div>
+            <p className="font-semibold">{t('form.layout.errorTitle') || 'Dynamic form layout unavailable'}</p>
+            <p className="text-xs opacity-90">{layoutError}. {t('form.layout.errorFallback') || 'Falling back to static fields.'}</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void fetchLayout()}
+            className="shrink-0 h-8 px-3 text-xs bg-background/50 hover:bg-background"
+          >
+            {t('common.retry') || 'Retry'}
+          </Button>
         </div>
       )}
 
