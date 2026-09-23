@@ -513,6 +513,12 @@ dag:
     - SPEC-68-01
   - parallel:
     - SPEC-68-02
+- spec: SPEC-69
+  order:
+  - parallel:
+    - SPEC-69-01
+  - parallel:
+    - SPEC-69-02
 - spec: W1
   order:
   - parallel:
