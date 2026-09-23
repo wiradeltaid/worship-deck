@@ -2772,7 +2772,7 @@ waves:
           - internal/plan/snapshot_announcement_freeze_guard_test.go
 
   - id: SPEC-60
-    status: open
+    status: closed
     release: hymns-404-unregistered-book-code
     prd: [rundown-to-service]
     fr: [FR-2]
@@ -2791,7 +2791,7 @@ waves:
         blocked_by: []
         touches: [hymns]
         tests:
-          - internal/httpapi/hymns_book_code_test.go
+          - internal/httpapi/hymns_book_test.go
 
   # Opened 2026-09-23 from wdi-reconcile findings (open-questions/business-rules/PRD sweep plus
   # re-verification of 4 previously-reported findings). All three are confirmed code-behavior gaps

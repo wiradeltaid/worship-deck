@@ -49,6 +49,17 @@ func ResolveSongBook(db *sql.DB, explicitBook string) string {
 	return DefaultSongBook
 }
 
+// SongBookExists reports whether code matches a registered song book in song_books (case-insensitive).
+func SongBookExists(db *sql.DB, code string) bool {
+	clean := strings.ToUpper(strings.TrimSpace(code))
+	if db == nil || clean == "" {
+		return false
+	}
+	var dummy int
+	err := db.QueryRow(`SELECT 1 FROM song_books WHERE UPPER(book_code) = ? LIMIT 1`, clean).Scan(&dummy)
+	return err == nil
+}
+
 // SongBookBootstrapKey is the per-book-code settings marker parallel to
 // artifactRegistryBootstrapKey (AD-17), extended to hymns by DEC-005/AD-36.
 func SongBookBootstrapKey(bookCode string) string {

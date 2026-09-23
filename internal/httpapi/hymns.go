@@ -21,6 +21,10 @@ func (s *Server) getHymns(w http.ResponseWriter, r *http.Request) {
 	if reqBook == "" {
 		reqBook = strings.TrimSpace(q.Get("bookCode"))
 	}
+	if reqBook != "" && !db.SongBookExists(s.DB, reqBook) {
+		writeError(w, http.StatusNotFound, "Song book not found")
+		return
+	}
 	resolvedBook := db.ResolveSongBook(s.DB, reqBook)
 
 	type row struct {
