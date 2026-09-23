@@ -290,29 +290,59 @@ export type RemoteControlConnectionState =
   | 'claiming'
   | 'connected'
   | 'disconnected'
+  | 'reconnecting'
   | 'error';
 
 export interface RemoteControlSessionOptions {
   serviceId: number;
   onState: (state: RemoteControlSessionState) => void;
   onConnectionChange?: (state: RemoteControlConnectionState) => void;
+  maxRetries?: number;
+  retryDelayBaseMs?: number;
 }
 
 export class RemoteControlSession {
   private serviceId: number;
   private onState: (state: RemoteControlSessionState) => void;
   private onConnectionChange?: (state: RemoteControlConnectionState) => void;
+  private maxRetries: number;
+  private retryDelayBaseMs: number;
   private eventSource: EventSource | null = null;
   private stopped = false;
+  private generation = 0;
+  private retryCount = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: RemoteControlSessionOptions) {
     this.serviceId = options.serviceId;
     this.onState = options.onState;
     this.onConnectionChange = options.onConnectionChange;
+    this.maxRetries = options.maxRetries ?? 5;
+    this.retryDelayBaseMs = options.retryDelayBaseMs ?? 1000;
+  }
+
+  public async checkPairStatus(): Promise<{ paired: boolean; hasGrant: boolean }> {
+    try {
+      const res = await fetch(`/api/present/${this.serviceId}/remote/pair`, {
+        credentials: 'same-origin',
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { paired?: boolean; has_grant?: boolean };
+        return {
+          paired: Boolean(body?.paired),
+          hasGrant: Boolean(body?.has_grant),
+        };
+      }
+      return { paired: false, hasGrant: false };
+    } catch {
+      return { paired: false, hasGrant: false };
+    }
   }
 
   public async claim(code: string): Promise<{ ok: boolean; error?: string }> {
     this.stopped = false;
+    this.retryCount = 0;
+    this.clearReconnectTimer();
     this.onConnectionChange?.('claiming');
     try {
       const res = await fetch(`/api/present/${this.serviceId}/remote/claim`, {
@@ -337,22 +367,47 @@ export class RemoteControlSession {
     }
   }
 
+  public reconnect(): void {
+    if (this.stopped) return;
+    this.clearReconnectTimer();
+    this.openStream();
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
   private openStream(): void {
     if (this.stopped) return;
     if (typeof EventSource === 'undefined') return;
+
+    this.generation++;
+    const currentGen = this.generation;
+
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
 
     const url = `/api/present/${this.serviceId}/remote/stream?role=remote`;
     const es = new EventSource(url, { withCredentials: true });
     this.eventSource = es;
 
     es.onopen = () => {
-      if (!this.stopped) {
-        this.onConnectionChange?.('connected');
+      if (this.stopped || currentGen !== this.generation) {
+        es.close();
+        return;
       }
+      this.retryCount = 0;
+      this.clearReconnectTimer();
+      this.onConnectionChange?.('connected');
     };
 
     es.onmessage = (event) => {
-      if (this.stopped) return;
+      if (this.stopped || currentGen !== this.generation) return;
       try {
         const data = JSON.parse(event.data) as RemoteControlSessionState;
         this.onState(data);
@@ -361,12 +416,55 @@ export class RemoteControlSession {
       }
     };
 
-    es.onerror = () => {
-      if (!this.stopped) {
-        this.onConnectionChange?.('disconnected');
+    es.onerror = async () => {
+      if (this.stopped || currentGen !== this.generation) {
+        es.close();
+        return;
       }
       es.close();
-      this.eventSource = null;
+      if (this.eventSource === es) {
+        this.eventSource = null;
+      }
+
+      // Check pairing status to decide whether to reconnect directly without re-pairing
+      let hasGrant = true;
+      try {
+        const res = await fetch(`/api/present/${this.serviceId}/remote/pair`, {
+          credentials: 'same-origin',
+        });
+        if (res.ok) {
+          const body = (await res.json()) as { paired?: boolean; has_grant?: boolean };
+          if (body && body.has_grant === false) {
+            hasGrant = false;
+          }
+        } else if (res.status === 401 || res.status === 403 || res.status === 404) {
+          hasGrant = false;
+        }
+      } catch {
+        // Network error — transient network blip; keep hasGrant true to attempt retry
+      }
+
+      if (this.stopped || currentGen !== this.generation) return;
+
+      if (!hasGrant || this.retryCount >= this.maxRetries) {
+        this.retryCount = 0;
+        this.onConnectionChange?.('disconnected');
+        return;
+      }
+
+      this.retryCount++;
+      this.onConnectionChange?.('reconnecting');
+
+      const delay = Math.min(
+        this.retryDelayBaseMs * Math.pow(1.5, this.retryCount - 1),
+        5000
+      );
+      this.clearReconnectTimer();
+      this.reconnectTimer = setTimeout(() => {
+        if (!this.stopped && currentGen === this.generation) {
+          this.openStream();
+        }
+      }, delay);
     };
   }
 
@@ -387,6 +485,9 @@ export class RemoteControlSession {
 
   public stop(): void {
     this.stopped = true;
+    this.generation++;
+    this.retryCount = 0;
+    this.clearReconnectTimer();
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;

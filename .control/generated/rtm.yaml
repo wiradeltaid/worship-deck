@@ -6217,11 +6217,11 @@ rtm:
   spec: SPEC-65
   release: remote-reconnect-without-repairing
   test:
-  - src/lib/presenter-remote-client-reconnect.test.mjs
-  status: ready-for-agent
+  - tests/remote-reconnect.test.mjs
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35

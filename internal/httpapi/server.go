@@ -124,6 +124,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/scripture", s.getScripture)
 	mux.HandleFunc("GET /api/bible-translations", s.getBibleTranslations)
 	mux.HandleFunc("POST /api/present/{id}/remote/pair", s.postRemotePair)
+	mux.HandleFunc("GET /api/present/{id}/remote/pair", s.getRemotePairStatus)
 	mux.HandleFunc("POST /api/present/{id}/remote/claim", s.postRemoteClaim)
 	mux.HandleFunc("GET /api/present/{id}/remote/stream", s.getRemoteStream)
 	mux.HandleFunc("POST /api/present/{id}/remote/intent", s.postRemoteIntent)

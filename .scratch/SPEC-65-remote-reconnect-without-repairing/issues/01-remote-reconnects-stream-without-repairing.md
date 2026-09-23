@@ -23,57 +23,57 @@ explicitly ends the pairing (`DELETE /remote/pair`) and a fresh code is issued.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** closed
 
-- [ ] Read `src/lib/presenter-remote-client.ts`'s `RemoteControlSession` (`claim`, `openStream`,
+- [x] Read `src/lib/presenter-remote-client.ts`'s `RemoteControlSession` (`claim`, `openStream`,
       `es.onerror`) and `internal/httpapi/remote.go`'s `getRemoteStream` and `postRemoteClaim` in full
       first. **Confirmed by peer review:** the direct-reconnect path is real (`getRemoteStream`
       accepts `role=remote` whenever `hasPairedRemote && pairedRemoteUID == sess.UID`, with no code
       involved, and `postRemoteClaim` is not on this path at all) — this part of the fix is
       client-only. But the fix is not *purely* client-only end to end: see the status-blindness point
       below, which may need a small server-side addition.
-- [ ] `RemoteControlSession` gains a reconnect path that calls `openStream()` directly (not `claim()`)
+- [x] `RemoteControlSession` gains a reconnect path that calls `openStream()` directly (not `claim()`)
       after `es.onerror`, using the same authenticated session — no pairing code involved.
-- [ ] **Browser `EventSource.onerror` exposes no HTTP status — the client cannot tell a terminal 409
+- [x] **Browser `EventSource.onerror` exposes no HTTP status — the client cannot tell a terminal 409
       (grant ended) apart from a transient network blip from this event alone.**
       **Policy decision (adopted via maintainer review):** Adopt option (b): perform a lightweight
       `fetch` status check to determine whether the pairing grant is still active before deciding whether
       to attempt stream reconnection or immediately transition to the pairing-code entry screen.
       This prevents wasting blind retries on terminal 409s.
-- [ ] **Stale-callback / stream-generation guard (mirroring `PresenterRemoteSession` in the same file).**
+- [x] **Stale-callback / stream-generation guard (mirroring `PresenterRemoteSession` in the same file).**
       Give each `openStream()` call an incremental `generation` identifier (or epoch token) so a delayed
       `onerror`/`onmessage` from a superseded `EventSource` cannot overwrite state set by a stream that has
       already reconnected — and so a delayed retry cannot reopen a stream after `stop()`, a service change, or
       component unmount. State the test: start a reconnect, let a second one supersede it, then let the
       first's stale callback fire — the second stream's state must win.
-- [ ] **The unpair/reconnect race is real (inter-handler critical section window between `deleteRemotePair`
+- [x] **The unpair/reconnect race is real (inter-handler critical section window between `deleteRemotePair`
       and `getRemoteStream`) — cover it explicitly, do not assume it away.** If a reconnect attempt and a
       `DELETE /remote/pair` call race, confirm the UI ends up in a consistent state either way (not stuck
       showing "connected" after the grant is actually gone).
-- [ ] If the direct reconnect exhausts or the grant is confirmed dead, the UI falls back to the
+- [x] If the direct reconnect exhausts or the grant is confirmed dead, the UI falls back to the
       pairing-code entry screen.
-- [ ] State an explicit test for the exact bug found: two reconnect attempts in a row (simulating a
+- [x] State an explicit test for the exact bug found: two reconnect attempts in a row (simulating a
       drop-and-return) from the *same* remote must not hit `postRemoteClaim`'s 409 "A remote is
       already paired" — because the fix means `claim` is never called for this case at all. Also test:
       a *different* remote UID attempting the direct-reconnect path is correctly refused (matches
       today's `pairedRemoteUID` check), and expired/invalid authentication on the reconnect attempt is
       handled as its own case — a reconnect cannot fix an expired login session, and the fallback there
       is signing in again, not re-entering a pairing code.
-- [ ] **Scope decision (adopted via maintainer review): Full page reload is OUT OF SCOPE for v1.**
+- [x] **Scope decision (adopted via maintainer review): Full page reload is OUT OF SCOPE for v1.**
       SCN-6's "no re-pairing needed" promise is defined strictly for in-session stream drops (Wi-Fi blips,
       tab sleep). Reloading the page initializes a brand new session instance without stored pairing credentials,
       which would require persistent device pairing storage and state rehydration out of scope for this ticket.
-- [ ] `RemoteOperator.tsx`'s UI states (connected / disconnected / reconnecting / needs pairing) are
+- [x] `RemoteOperator.tsx`'s UI states (connected / disconnected / reconnecting / needs pairing) are
       updated to reflect a distinct "reconnecting" visual banner inside the paired view itself, separate
       from the "needs pairing" screen — currently `RemoteOperator.tsx` only renders connection warnings in the
       unpaired view.
-- [ ] **Out of scope for this ticket, but flag it rather than silently building around it (found by
+- [x] **Out of scope for this ticket, but flag it rather than silently building around it (found by
       peer review while tracing the unpair path):** `deleteRemotePair` requires only an authenticated
       session — it does not verify the caller is the presenter or the paired remote for that service.
       Any signed-in user who knows a service id can end that service's pairing. This materially affects
       this ticket's own "the presenting client explicitly unpaired" premise (anyone could trigger that
       branch), but fixing that authorization gap is a separate concern — report it, do not fix it here.
-- [ ] `RemoteControlSession` currently has zero test coverage in this repo (confirmed by peer review
+- [x] `RemoteControlSession` currently has zero test coverage in this repo (confirmed by peer review
       during the reconciliation pass) — this ticket's own tests are this class's first, so verify the
       existing `openStream`/`claim`/`sendIntent` behavior is not accidentally changed while adding the
       reconnect path.

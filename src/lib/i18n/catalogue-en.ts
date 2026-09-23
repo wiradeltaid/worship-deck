@@ -248,6 +248,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'remote.invalidCode': 'Invalid or expired pairing code. Check the laptop screen and try again.',
   'remote.conflict': 'Another remote is already paired to this presenter session.',
   'remote.disconnected': 'Remote connection lost. Reconnect or pair again from the laptop.',
+  'remote.reconnecting': 'Connection lost. Reconnecting...',
   'remote.prev': 'Prev',
   'remote.next': 'Next',
   'remote.blank': 'Blank',

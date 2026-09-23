@@ -221,6 +221,7 @@ export const I18N_KEYS = [
   'remote.invalidCode',
   'remote.conflict',
   'remote.disconnected',
+  'remote.reconnecting',
   'remote.prev',
   'remote.next',
   'remote.blank',

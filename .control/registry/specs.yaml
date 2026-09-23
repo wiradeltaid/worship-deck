@@ -2900,7 +2900,7 @@ waves:
   # and autopilot deferred to a later pass). Real code gap contradicting both SCN-6 and its own
   # contract's stated design intent -- owner ruled spec+ticket only, no implementation.
   - id: SPEC-65
-    status: open
+    status: closed
     release: remote-reconnect-without-repairing
     prd: [operator-turn]
     fr: [FR-35]
@@ -2919,7 +2919,7 @@ waves:
         blocked_by: []
         touches: [remote-control]
         tests:
-          - src/lib/presenter-remote-client-reconnect.test.mjs
+          - tests/remote-reconnect.test.mjs
 
 
 
