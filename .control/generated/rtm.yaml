@@ -6213,6 +6213,20 @@ rtm:
   FR: FR-35
   DEC: []
   UC: UC-29
+  ticket: SPEC-65-01
+  spec: SPEC-65
+  release: remote-reconnect-without-repairing
+  test:
+  - src/lib/presenter-remote-client-reconnect.test.mjs
+  status: ready-for-agent
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
   ticket: W5-5-1
   spec: W5
   release: presenter-remote

@@ -498,6 +498,10 @@ dag:
   order:
   - parallel:
     - SPEC-64-01
+- spec: SPEC-65
+  order:
+  - parallel:
+    - SPEC-65-01
 - spec: W1
   order:
   - parallel:

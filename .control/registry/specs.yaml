@@ -2892,6 +2892,31 @@ waves:
         tests:
           - scripts/build-desktop-version-sync.test.mjs
 
+  # Opened 2026-09-23 from wdi-reconcile findings (05-scenarios/ sweep, at owner's request, DEC files
+  # and autopilot deferred to a later pass). Real code gap contradicting both SCN-6 and its own
+  # contract's stated design intent -- owner ruled spec+ticket only, no implementation.
+  - id: SPEC-65
+    status: open
+    release: remote-reconnect-without-repairing
+    prd: [operator-turn]
+    fr: [FR-35]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-65-remote-reconnect-without-repairing/
+    spec_reviewed:
+      date: '2026-09-23'
+      sha: 'HEAD'
+      lenses: [edge-case-hunter, correctness, scope-boundary]
+      note: "Terra (kiro-agent). Confirmed the core claim (getRemoteStream accepts a direct role=remote reconnect on hasPairedRemote+pairedRemoteUID==sess.UID, postRemoteClaim not involved) and found 6 real gaps in the naive fix: (1) EventSource.onerror exposes no HTTP status, so the client cannot tell a terminal 409 apart from a transient blip -- needs a bounded-retry-or-status-check fallback policy, not a bare retry-once; (2) no stream-generation/stale-callback guard -- a delayed onerror from a superseded EventSource can corrupt state set by a newer stream; (3) a real (not just theoretical) unpair-vs-reconnect race, including already-queued messages draining from a channel the unpair is concurrently closing; (4) page reload (a brand-new session instance) isn't covered by a runtime-only retry -- ticket must explicitly decide if that's in scope; (5) different-UID rejection and expired-auth handling need their own explicit tests, not folded into the happy path; (6) deleteRemotePair has no caller-authorization check at all (any signed-in user can end any service's pairing) -- out of scope for this ticket's fix, but flagged since it undermines the ticket's own 'presenting client explicitly unpaired' premise."
+    tickets:
+      - id: "SPEC-65-01"
+        component: presenter
+        satisfies: [UC-29, FR-35]
+        blocked_by: []
+        touches: [remote-control]
+        tests:
+          - src/lib/presenter-remote-client-reconnect.test.mjs
+
 
 
 
