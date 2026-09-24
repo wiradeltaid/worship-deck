@@ -1713,6 +1713,22 @@ rtm:
   FR: FR-2
   DEC: []
   UC: UC-2
+  ticket: SPEC-71-01
+  spec: SPEC-71
+  release: section-scoped-multiline-song-set-regex-extraction
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - internal/parse/dynamic_extraction_test.go
+  - internal/httpapi/services_field_values_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -4168,6 +4184,22 @@ rtm:
   FR: FR-27
   DEC: []
   UC: UC-2
+  ticket: SPEC-71-01
+  spec: SPEC-71
+  release: section-scoped-multiline-song-set-regex-extraction
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - internal/parse/dynamic_extraction_test.go
+  - internal/httpapi/services_field_values_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -6407,6 +6439,22 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-32
+  DEC: []
+  UC: UC-26
+  ticket: SPEC-71-01
+  spec: SPEC-71
+  release: section-scoped-multiline-song-set-regex-extraction
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - internal/parse/dynamic_extraction_test.go
+  - internal/httpapi/services_field_values_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-4
   FR: FR-32

@@ -530,6 +530,10 @@ dag:
     - SPEC-70-01
   - parallel:
     - SPEC-70-02
+- spec: SPEC-71
+  order:
+  - parallel:
+    - SPEC-71-01
 - spec: W1
   order:
   - parallel:

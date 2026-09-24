@@ -3070,6 +3070,32 @@ waves:
         tests:
           - tests/dynamic-field-extraction.test.mjs
 
+  # Opened 2026-09-24 from user triage notes.
+  # Section-scoped multiline song set regex extraction.
+  - id: SPEC-71
+    status: open
+    release: section-scoped-multiline-song-set-regex-extraction
+    prd: [operator-turn]
+    fr: [FR-32, FR-36]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-71-section-scoped-multiline-song-set-regex-extraction/
+    spec_reviewed:
+      date: '2026-09-24'
+      sha: '98ad0b967bfdbbd71f2d65717b4c7b302821e8db'
+      lenses: [edge-case-hunter, traceability, public-repository, parser-parity]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in corrected use-case traceability (UC-2, UC-26, FR-32, FR-36 with UC-24 as configuration dependency), restored HTTP POST /api/services/parse integration test obligation, explicit public repository synthetic data mandate for test fixtures, rigorous 'found' definition as positive hymn suggestion, and clarified original regex limitations."
+    tickets:
+      - id: "SPEC-71-01"
+        component: hub
+        satisfies: [UC-2, UC-26, FR-32, FR-36]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/dynamic-field-extraction.test.mjs
+          - internal/parse/dynamic_extraction_test.go
+          - internal/httpapi/services_field_values_test.go
+
 
 
 
