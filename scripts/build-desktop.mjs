@@ -32,6 +32,40 @@ export function resolvePackageVersion(root = repoRoot) {
   return version;
 }
 
+export function stageCorporaAndNotices(targetDir) {
+  console.log('[build-desktop] Staging corpora, fonts, licenses, and notices...');
+
+  // 1. Songbook corpus
+  const songBookSrc = path.join(repoRoot, 'data', 'song-book');
+  const songBookDest = path.join(targetDir, 'data', 'song-book');
+  fs.mkdirSync(songBookDest, { recursive: true });
+  fs.copyFileSync(path.join(songBookSrc, 'sdah.json'), path.join(songBookDest, 'sdah.json'));
+
+  // 2. Bible translation corpus
+  const bibleSrc = path.join(repoRoot, 'data', 'en', 'bible-translation');
+  const bibleDest = path.join(targetDir, 'data', 'en', 'bible-translation');
+  fs.mkdirSync(bibleDest, { recursive: true });
+  fs.copyFileSync(path.join(bibleSrc, 'kjv.json'), path.join(bibleDest, 'kjv.json'));
+
+  // 3. Bundled fonts
+  const fontsSrc = path.join(repoRoot, 'data', 'fonts');
+  const fontsDest = path.join(targetDir, 'data', 'fonts');
+  fs.mkdirSync(fontsDest, { recursive: true });
+  for (const f of fs.readdirSync(fontsSrc)) {
+    if (f.endsWith('.ttf')) {
+      fs.copyFileSync(path.join(fontsSrc, f), path.join(fontsDest, f));
+    }
+  }
+
+  // 4. Legal licenses & third-party notices
+  for (const f of ['LICENSE', 'ATTRIBUTIONS.md', 'THIRD-PARTY-NOTICES']) {
+    const src = path.join(repoRoot, f);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(targetDir, f));
+    }
+  }
+}
+
 export async function buildDesktopPackage(options = {}) {
   const appVersion = resolvePackageVersion(repoRoot);
   console.log(`[build-desktop] Starting desktop packaging pipeline (version: ${appVersion})...`);
@@ -77,6 +111,9 @@ export async function buildDesktopPackage(options = {}) {
   if (!fs.existsSync(path.join(distDesktop, 'runtime', 'node.exe'))) {
     throw new Error('Desktop packaging requires runtime/node.exe to be present');
   }
+
+  // WSD-H-09: Stage corpora, fonts, licenses, and notices
+  stageCorporaAndNotices(distDesktop);
 
   // 4. Compile Inno Setup installer
   const requireInstaller = options.requireInstaller ?? (process.argv.includes('--installer') || process.env.REQUIRE_INSTALLER === '1');

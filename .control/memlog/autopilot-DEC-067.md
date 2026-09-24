@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 8
+- Iteration: 9
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-08 completed and verified — branding SVGs without Google Fonts and font notices
+- Stopped at: Ticket WSD-H-09 completed and verified — installer ships corpora, licenses, and notices with empty initial registry
 - Blocked: —
 - Parked: —
-- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-09
+- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-10
 
 ## Decisions
 
@@ -26,6 +26,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-6 (WSD-H-06) | spa/index.html, spa/projected.html, fonts.css, font-catalog.ts, package.json | Bundle all 35 typography font families locally via @fontsource packages under SIL OFL-1.1 and Apache-2.0 licenses in spa/src/fonts.css, eliminate Google Fonts CDN links from HTML templates, remove getGoogleFontsStylesheetUrl and googleFont properties from font-catalog.ts, and enforce absence guards with real-file defect injection | depending on external Google Fonts CDN for presentation slides | medium | package.json, package-lock.json, spa/index.html, spa/projected.html, spa/src/fonts.css, spa/src/styles.css, src/lib/fonts/embed-fonts.ts, src/lib/registry/font-catalog.ts, tests/artifact-font-catalog.test.mjs, tests/smoke-spec-17.test.mjs, tests/bundled-fonts-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/06-wsd-h-06-bundled-fonts-console-congregation-screen.md |
 | I-7 (WSD-H-07) | data/fonts/*.ttf, src/lib/fonts/embed-fonts.ts, package.json | Bundle all 35 typography TTF font files locally in data/fonts/, eliminate network fetch calls completely from PPTX font embedding in embed-fonts.ts, implement local fallback strictly to bundled Inter, and enforce absence guards with network traps and defect injection | runtime network dependency and potential offline PPTX export failures | medium | data/fonts/*.ttf, src/lib/fonts/embed-fonts.ts, package.json, tests/pptx-bundled-fonts.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/07-wsd-h-07-pptx-embedding-bundled-font-files.md |
 | I-8 (WSD-H-08) | public/branding/*.svg, THIRD-PARTY-NOTICES, package.json | Remove external Google Fonts @import rules from branding SVGs, create standalone THIRD-PARTY-NOTICES at repo root detailing all 35 font families, copyright notices, and full OFL 1.1 / Apache 2.0 license texts, and add absence guards with real-file defect injection | external font network calls during branding SVG rendering or incomplete third-party font legal attribution | medium | public/branding/*.svg, THIRD-PARTY-NOTICES, package.json, tests/branding-svg-guard.test.mjs, tests/third-party-notices.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/08-wsd-h-08-branding-svgs-font-notices.md |
+| I-9 (WSD-H-09) | internal/db/bootstrap.go, scripts/build-desktop.mjs, installer/worship-deck.iss | Disable default seeding of 38 demo templates on clean installation (leaving slide registry empty while seeding SDAH and KJV), stage corpora, fonts, LICENSE, ATTRIBUTIONS.md, and THIRD-PARTY-NOTICES into desktop distribution, package into Inno Setup {app}, and verify with unit/staging guards | missing corpora in standalone installation or unexpected demo slides on production boot | medium | internal/db/bootstrap.go, internal/db/bootstrap_test.go, scripts/build-desktop.mjs, installer/worship-deck.iss, package.json, tests/installer-corpora-staging.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/09-wsd-h-09-installer-ships-corpora-licenses-notices.md |
 
 ## Smoke Test Results
 
@@ -38,3 +39,4 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 - WSD-H-06 verification: PASS — `node --test tests/bundled-fonts-guard.test.mjs` (5/5 passed), `node --test tests/artifact-font-catalog.test.mjs` (9/9 passed), `node --test tests/smoke-spec-17.test.mjs` (4/4 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.
 - WSD-H-07 verification: PASS — `node --test tests/pptx-bundled-fonts.test.mjs` (4/4 passed), PowerPoint COM export conformance verified, `validate.py` green.
 - WSD-H-08 verification: PASS — `node --test tests/branding-svg-guard.test.mjs` (2/2 passed), `node --test tests/third-party-notices.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-09 verification: PASS — `go test -v ./internal/db -run TestCleanBootstrap` (passed, 0 templates, SDAH & KJV seeded), `node --test tests/installer-corpora-staging.test.mjs` (3/3 passed), `validate.py` green.

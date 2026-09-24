@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/wiradeltaid/worship-deck/internal/auth"
 	"github.com/wiradeltaid/worship-deck/internal/plan"
@@ -526,15 +525,7 @@ func resolveSeedPath(root string) string {
 	return shipped
 }
 
-func bootstrapRegistry(db *sql.DB, root string) error {
-	var n int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM settings WHERE key = ?`, artifactRegistryBootstrapKey).Scan(&n); err != nil {
-		return err
-	}
-	if n > 0 {
-		return nil
-	}
-	path := resolveSeedPath(root)
+func seedTemplatesFromPath(db *sql.DB, path string) error {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -551,7 +542,7 @@ func bootstrapRegistry(db *sql.DB, root string) error {
 		return err
 	}
 	defer tx.Rollback()
-	now := time.Now().UTC().Format(time.RFC3339Nano)
+	now := nowUTCString()
 	inserted := 0
 	for i, t := range templates {
 		id, _ := t["id"].(string)
@@ -568,9 +559,6 @@ func bootstrapRegistry(db *sql.DB, root string) error {
 			continue
 		}
 		if baseType == "song-set-entry" {
-			// DEC-004: entries carry no payload of their own — the shared
-			// trio in song_set_layouts is their body. variable_name is the
-			// spine key (AD-31).
 			variableName, _ := t["variableName"].(string)
 			if variableName == "" {
 				continue
@@ -607,7 +595,7 @@ func bootstrapRegistry(db *sql.DB, root string) error {
 		return err
 	}
 	if _, err := tx.Exec(
-		`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`,
+		`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`,
 		dataVersionKey, bootstrapDataVersion,
 	); err != nil {
 		return err
@@ -616,6 +604,47 @@ func bootstrapRegistry(db *sql.DB, root string) error {
 		return err
 	}
 	log.Printf("[registry] bootstrap: inserted %d template(s), stamped data version %s", inserted, bootstrapDataVersion)
+	return nil
+}
+
+func bootstrapRegistry(db *sql.DB, root string) error {
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM settings WHERE key = ?`, artifactRegistryBootstrapKey).Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+
+	// Legacy migration tests explicitly opt in to seeding via WPW_USE_SHIPPED_REGISTRY=1.
+	if os.Getenv("WPW_USE_SHIPPED_REGISTRY") == "1" {
+		return seedTemplatesFromPath(db, resolveSeedPath(root))
+	}
+
+	// WSD-H-09 (Owner Decision Q2): Fresh installations start with an empty slide registry.
+	// Automatic seeding of demo templates is disabled.
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(
+		`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`,
+		artifactRegistryBootstrapKey, "1",
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`,
+		dataVersionKey, currentDataVersion,
+	); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	log.Printf("[registry] bootstrap: initialized empty slide registry (data version %s)", currentDataVersion)
 	return nil
 }
 

@@ -4621,7 +4621,7 @@ rtm:
   test:
   - tests/installer-corpora-staging.test.mjs
   - internal/db/bootstrap_test.go
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
