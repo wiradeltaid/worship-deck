@@ -16,11 +16,11 @@
 
 **Blocked by:** 06-wsd-h-06-bundled-fonts-console-congregation-screen.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/fonts/embed-fonts.ts` and `workers/generate-pptx.js`.
-- [ ] Bundle required TTF files for the 35 font families under `data/fonts/`.
-- [ ] In `src/lib/fonts/embed-fonts.ts`: eliminate network `fetch` logic for Google Fonts completely and implement local fallback strictly to bundled Inter.
-- [ ] Add `tests/pptx-bundled-fonts.test.mjs` asserting offline PPTX font embedding without network requests and verifying fallback to bundled Inter for missing families. Verify red first, then green.
-- [ ] Add `tests/pptx-bundled-fonts.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Read `src/lib/fonts/embed-fonts.ts` and `workers/generate-pptx.js`.
+- [x] Bundle required TTF files for the 35 font families under `data/fonts/`.
+- [x] In `src/lib/fonts/embed-fonts.ts`: eliminate network `fetch` logic for Google Fonts completely and implement local fallback strictly to bundled Inter.
+- [x] Add `tests/pptx-bundled-fonts.test.mjs` asserting offline PPTX font embedding without network requests and verifying fallback to bundled Inter for missing families. Verify red first, then green.
+- [x] Add `tests/pptx-bundled-fonts.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.
