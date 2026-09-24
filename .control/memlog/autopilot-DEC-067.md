@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 15
+- Iteration: 16
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-14 completed and verified — legal copies synchronized from ops SSOT and threat model aligned
+- Stopped at: Done — SPEC-74 completed and verified; SPEC-73 Ticket 16 parked on external milestone
 - Blocked: —
-- Parked: —
-- Next: Final release verification and gate checks for SPEC-73
+- Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
+- Next: § Finish — open draft PR from autopilot/DEC-067 and execute final gate checks
 
 ## Decisions
 
@@ -33,6 +33,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-13 (WSD-H-13) | README*.md (all 10), docs/*.md, tests/readme-claims-guard.test.mjs, tests/doc-citations.test.mjs, package.json | Align root README and 9 translations to release build reality (self-hosted server recommended, Windows installer experimental, no portable zip, optional 38 demo layouts, dynamic form regexes, congregation screen nomenclature, zero em/en dashes), clean docs/*.md, update doc citations ratchet for resolvedHymns, and enforce with tests/readme-claims-guard.test.mjs | inaccurate public feature claims, broken links, and terminology drift | medium | README.md, README.*.md, docs/*.md, tests/readme-claims-guard.test.mjs, tests/doc-citations.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/13-wsd-h-13-readme-translations-docs-match-build.md |
 | I-14 (WSD-H-10) | CHANGELOG.md, tests/changelog-guard.test.mjs, package.json | Rewrite CHANGELOG [0.1.0] section grounded strictly in release build reality without internal IDs (DEC-, SPEC-, FR-), dashes, or prohibited terms (template, parser profile, webhook, projector, updater), plainly state system boundaries and limitations, and add tests/changelog-guard.test.mjs | inaccurate changelog claims, broken release notes parser, or internal ID leak | medium | CHANGELOG.md, tests/changelog-guard.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/10-wsd-h-10-changelog-rewrite.md |
 | I-15 (WSD-H-14) | PRIVACY.md, PRIVACY.id.md, SECURITY.md, SECURITY.id.md, docs/threat-model.md, tests/legal-copy-guard.test.mjs, package.json | Synchronize legal documents verbatim from ops SSOT with English copy stamps on line 2, cross-language links, finalized go-live effective date (2026-09-24), align threat model data deletion semantics and WorshipDeck naming, and enforce absence guards with tests/legal-copy-guard.test.mjs | legal text drift, unaligned threat model, or broken legal citations | high | PRIVACY.md, PRIVACY.id.md, SECURITY.md, SECURITY.id.md, docs/threat-model.md, tests/legal-copy-guard.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/14-wsd-h-14-legal-copies-ops-threat-model-aligned.md |
+| I-16 (SPEC-74-01) | CONTRIBUTING.md, .github/ISSUE_TEMPLATE/bug_report.md, tests/vulnerability-reporting-channel-guard.test.mjs, package.json | Align vulnerability reporting channel strictly to GitHub Security Advisories, update bug_report template to WorshipDeck, establish automated absence guard test with dynamic token assembly and 4-surface real-file defect injection proofs, additively wire into package.json, and align presenter acceptance test button locator with congregation screen nomenclature, verified by Terra peer review | keeping residual security email mailbox in public docs | medium | CONTRIBUTING.md, .github/ISSUE_TEMPLATE/bug_report.md, package.json, tests/acceptance-fr16-fr19-fr28.test.mjs, tests/vulnerability-reporting-channel-guard.test.mjs, .scratch/SPEC-74-align-security-vulnerability-reporting-to-github-advisories/issues/01-wsd-w1-align-vulnerability-reporting-channel-to-github-advisories.md |
 
 ## Smoke Test Results
 
@@ -52,3 +53,4 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 - WSD-H-13 verification: PASS — `node --test tests/readme-claims-guard.test.mjs` (6/6 passed), `node --test tests/doc-citations.test.mjs` (2/2 passed), `validate.py` green.
 - WSD-H-10 verification: PASS — `node --test tests/changelog-guard.test.mjs` (6/6 passed), PowerShell changelog extraction verified (3389 chars), `validate.py` green.
 - WSD-H-14 verification: PASS — `node --test tests/legal-copy-guard.test.mjs` (7/7 passed), local ops diff verified (0 diff), `validate.py` green.
+- SPEC-74 verification: PASS — `node --test tests/vulnerability-reporting-channel-guard.test.mjs` (7/7 passed), `node --test tests/acceptance-fr16-fr19-fr28.test.mjs` (3/3 passed), public-repo-guard passed (5/5 passed), Go test suite passed (exit 0), `validate.py` green, Terra peer review accept.

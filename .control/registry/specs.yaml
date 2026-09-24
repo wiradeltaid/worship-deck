@@ -3274,7 +3274,7 @@ waves:
   # Opened 2026-09-24 from user triage notes (spec-alamat-email-produk.md W1).
   # Align security vulnerability reporting channel strictly to GitHub Security Advisories.
   - id: SPEC-74
-    status: open
+    status: closed
     release: align-vulnerability-reporting-channel-to-github-advisories
     prd: [operator-turn]
     fr: [FR-40]
