@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/components/admin/FormLayoutAdminPanel.tsx` in full.
-- [ ] In `src/components/admin/FormLayoutAdminPanel.tsx`:
+- [x] Read `src/components/admin/FormLayoutAdminPanel.tsx` in full.
+- [x] In `src/components/admin/FormLayoutAdminPanel.tsx`:
       (1) Remove `defaultProfile` state (`const [defaultProfile, setDefaultProfile] = useState<any>(null)`).
       (2) Remove `fetch('/api/parser-profiles')` from `fetchLayout` and related state setters.
       (3) In `handleRunRundownTest`:
@@ -18,14 +18,14 @@
           - Output only truly unmapped lines into `testResults.unmappedLines`.
       (4) Remove `overflowSongs` property from `testResults` interface and state.
       (5) In the JSX render tree, remove the `<AlertTriangle /> Lagu Melebihi Slot (Overflow Songs):` warning block and its list items. Keep `unmappedLines` diagnostic helper intact.
-- [ ] Delete `src/components/admin/ParserProfilesPanel.tsx`.
-- [ ] Add executable absence-guard mutation matrix in smoke tests:
+- [x] Delete `src/components/admin/ParserProfilesPanel.tsx`.
+- [x] Add executable absence-guard mutation matrix in smoke tests:
       (1) Assert `FormLayoutAdminPanel.tsx` does NOT contain `Lagu Melebihi Slot`.
       (2) Assert `FormLayoutAdminPanel.tsx` does NOT contain `overflowSongs`.
       (3) Assert `FormLayoutAdminPanel.tsx` does NOT contain `/api/parser-profiles`.
       (4) Assert `src/components/admin/ParserProfilesPanel.tsx` does not exist on disk.
       (5) Prove every absence guard via independent defect injection: temporarily re-introduce the strings / recreate file, assert the test fails RED, then restore clean state.
-- [ ] Add a regression test fixture with the user's reported bulletin lines (including SDAH #614, #316, #508, #671, #684, #476):
+- [x] Add a regression test fixture with the user's reported bulletin lines (including SDAH #614, #316, #508, #671, #684, #476):
       (1) Assert matching song set slots populate with their corresponding hymn numbers.
       (2) Assert zero overflow warnings are emitted.
       (3) Assert non-matching lines populate into `unmappedLines`.

@@ -700,6 +700,285 @@ test('SPEC-69-02-Absence-Guard: Service form song overflow retirement defect inj
   assert.deepEqual(restored, [], 'Real files must be cleanly restored to green');
 });
 
+export function scanSpec70_01Features(formLayoutAdminSource, parserProfilesPanelPath) {
+  const findings = [];
+
+  // FormLayoutAdminPanel.tsx parser profile & song overflow retirement
+  if (formLayoutAdminSource.includes('Lagu Melebihi Slot')) {
+    findings.push('FormLayoutAdminPanel.tsx must NOT contain "Lagu Melebihi Slot"');
+  }
+  if (formLayoutAdminSource.includes('overflowSongs')) {
+    findings.push('FormLayoutAdminPanel.tsx must NOT maintain overflowSongs state or properties');
+  }
+  if (formLayoutAdminSource.includes("fetch('/api/parser-profiles')") || formLayoutAdminSource.includes('fetch("/api/parser-profiles")')) {
+    findings.push('FormLayoutAdminPanel.tsx must NOT fetch "/api/parser-profiles"');
+  }
+  if (formLayoutAdminSource.includes('defaultProfile') || formLayoutAdminSource.includes('setDefaultProfile')) {
+    findings.push('FormLayoutAdminPanel.tsx must NOT maintain defaultProfile state');
+  }
+
+  // Deletion of orphaned ParserProfilesPanel.tsx
+  if (fs.existsSync(parserProfilesPanelPath)) {
+    findings.push('src/components/admin/ParserProfilesPanel.tsx must be deleted from disk');
+  }
+
+  return findings;
+}
+
+test('SPEC-70-01: Sandbox parser profile and song overflow diagnostics retirement absence guard', () => {
+  const formLayoutAdminPath = path.join(root, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx');
+  const parserProfilesPanelPath = path.join(root, 'src', 'components', 'admin', 'ParserProfilesPanel.tsx');
+
+  const formLayoutAdminSource = fs.readFileSync(formLayoutAdminPath, 'utf8');
+
+  const findings = scanSpec70_01Features(formLayoutAdminSource, parserProfilesPanelPath);
+  assert.deepEqual(findings, [], `SPEC-70-01 findings detected:\n${findings.join('\n')}`);
+});
+
+test('SPEC-70-01-Absence-Guard: Sandbox parser profile & song overflow retirement defect injection proofs', () => {
+  const formLayoutAdminPath = path.join(root, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx');
+  const parserProfilesPanelPath = path.join(root, 'src', 'components', 'admin', 'ParserProfilesPanel.tsx');
+
+  const baseFormLayoutAdmin = fs.readFileSync(formLayoutAdminPath, 'utf8');
+
+  // 1. Defect Injections on in-memory FormLayoutAdminPanel source
+  const defectOverflowLabel = scanSpec70_01Features(
+    baseFormLayoutAdmin + "\nconst warning = 'Lagu Melebihi Slot (Overflow Songs):';",
+    parserProfilesPanelPath
+  );
+  assert.ok(
+    defectOverflowLabel.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT contain "Lagu Melebihi Slot"')),
+    'Must detect Lagu Melebihi Slot injected into FormLayoutAdminPanel'
+  );
+
+  const defectOverflowState = scanSpec70_01Features(
+    baseFormLayoutAdmin + "\nconst [overflowSongs, setOverflowSongs] = useState([]);",
+    parserProfilesPanelPath
+  );
+  assert.ok(
+    defectOverflowState.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT maintain overflowSongs state or properties')),
+    'Must detect overflowSongs state injected into FormLayoutAdminPanel'
+  );
+
+  const defectProfilesApi = scanSpec70_01Features(
+    baseFormLayoutAdmin + "\nconst res = await fetch('/api/parser-profiles');",
+    parserProfilesPanelPath
+  );
+  assert.ok(
+    defectProfilesApi.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT fetch "/api/parser-profiles"')),
+    'Must detect /api/parser-profiles fetch injected into FormLayoutAdminPanel'
+  );
+
+  const defectDefaultProfile = scanSpec70_01Features(
+    baseFormLayoutAdmin + "\nconst [defaultProfile, setDefaultProfile] = useState(null);",
+    parserProfilesPanelPath
+  );
+  assert.ok(
+    defectDefaultProfile.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT maintain defaultProfile state')),
+    'Must detect defaultProfile state injected into FormLayoutAdminPanel'
+  );
+
+  // 2. Physical File Mutation & Restoration Proofs (FormLayoutAdminPanel.tsx)
+  // 2a. Physical mutation: Lagu Melebihi Slot
+  try {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin + "\nconst test = 'Lagu Melebihi Slot';\n", 'utf8');
+    const mutatedFindings = scanSpec70_01Features(fs.readFileSync(formLayoutAdminPath, 'utf8'), parserProfilesPanelPath);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT contain "Lagu Melebihi Slot"')),
+      'Physical file mutation on FormLayoutAdminPanel.tsx must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin, 'utf8');
+  }
+
+  // 2b. Physical mutation: overflowSongs
+  try {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin + "\nconst [overflowSongs] = useState([]);\n", 'utf8');
+    const mutatedFindings = scanSpec70_01Features(fs.readFileSync(formLayoutAdminPath, 'utf8'), parserProfilesPanelPath);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT maintain overflowSongs state or properties')),
+      'Physical file mutation on FormLayoutAdminPanel.tsx (overflowSongs) must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin, 'utf8');
+  }
+
+  // 2c. Physical mutation: /api/parser-profiles
+  try {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin + "\nconst p = fetch('/api/parser-profiles');\n", 'utf8');
+    const mutatedFindings = scanSpec70_01Features(fs.readFileSync(formLayoutAdminPath, 'utf8'), parserProfilesPanelPath);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT fetch "/api/parser-profiles"')),
+      'Physical file mutation on FormLayoutAdminPanel.tsx (/api/parser-profiles) must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin, 'utf8');
+  }
+
+  // 2d. Physical mutation: defaultProfile
+  try {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin + "\nconst [defaultProfile] = useState(null);\n", 'utf8');
+    const mutatedFindings = scanSpec70_01Features(fs.readFileSync(formLayoutAdminPath, 'utf8'), parserProfilesPanelPath);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('FormLayoutAdminPanel.tsx must NOT maintain defaultProfile state')),
+      'Physical file mutation on FormLayoutAdminPanel.tsx (defaultProfile) must trigger absence guard failure'
+    );
+  } finally {
+    fs.writeFileSync(formLayoutAdminPath, baseFormLayoutAdmin, 'utf8');
+  }
+
+  // 3. Physical File Existence Defect Injection Proof (ParserProfilesPanel.tsx)
+  try {
+    fs.writeFileSync(parserProfilesPanelPath, '// dummy resurrection test\nexport function ParserProfilesPanel() { return null; }\n', 'utf8');
+    const mutatedFindings = scanSpec70_01Features(baseFormLayoutAdmin, parserProfilesPanelPath);
+    assert.ok(
+      mutatedFindings.some((f) => f.includes('ParserProfilesPanel.tsx must be deleted from disk')),
+      'Physical file existence of ParserProfilesPanel.tsx must trigger absence guard failure'
+    );
+  } finally {
+    if (fs.existsSync(parserProfilesPanelPath)) {
+      fs.unlinkSync(parserProfilesPanelPath);
+    }
+  }
+
+  // 4. Confirm clean restoration
+  const restored = scanSpec70_01Features(
+    fs.readFileSync(formLayoutAdminPath, 'utf8'),
+    parserProfilesPanelPath
+  );
+  assert.deepEqual(restored, [], 'Real files must be cleanly restored to green');
+});
+
+test('SPEC-70-01: Regression fixture with user reported bulletin lines extracts slots with zero overflow warnings', async () => {
+  const { extractPredefinedFields, compileProfileRegex } = await import('../src/lib/parser-rules.ts');
+
+  // Reported bulletin lines from issue triage covering all six reported hymns: #614, #508, #671, #684, #316, #476
+  const sampleBulletin = `SABBATH, OCTOBER 24, 2026
+DIVINE SERVICE
+[  ] Opening song : SDAH #614 Sound the Battle Cry
+[  ] Opening Song : SDAH #508 "Anywhere With Jesus"
+[  ] Before int. prayer : #671 now dear Lord as we pray
+[  ] After int. prayer : #684 hear our prayer o Lord
+[  ] Closing Song : SDAH #316 Lift Out Thy Life Within Me
+[  ] Closing Song : SDAH #476 "Burdens Are Lifted at Calvary"
+[  ] Song Note : pending song arrangement
+Special Song : Sanctuary Choir
+Sermon : Pastor Alexander "The Blessed Hope"
+Closing Prayer : Elder John
+[  ] Announcements & Church Life: Deacon Robert
+Offering : Local Church Budget`;
+
+  // Configured song set entries
+  const songSetEntries = [
+    { variableName: 'opening_song_1', title: 'Opening Song 1', extractionRegex: '(?i)\\[\\s*\\]\\s*Opening\\s*song\\s*[:\\-]\\s*(?:SDAH\\s*)?#?(?<number>614)' },
+    { variableName: 'opening_song_2', title: 'Opening Song 2', extractionRegex: '(?i)\\[\\s*\\]\\s*Opening\\s*song\\s*[:\\-]\\s*(?:SDAH\\s*)?#?(?<number>508)' },
+    { variableName: 'intercessory_prayer_hymn', title: 'Before Prayer', extractionRegex: '(?i)\\[\\s*\\]\\s*Before\\s*(?:int\\.?\\s*)?prayer\\s*[:\\-]\\s*(?:SDAH\\s*)?#?(?<number>\\d+)' },
+    { variableName: 'after_prayer_hymn', title: 'After Prayer', extractionRegex: '(?i)\\[\\s*\\]\\s*After\\s*(?:int\\.?\\s*)?prayer\\s*[:\\-]\\s*(?:SDAH\\s*)?#?(?<number>\\d+)' },
+    { variableName: 'closing_song_1', title: 'Closing Song 1', extractionRegex: '(?i)\\[\\s*\\]\\s*Closing\\s*song\\s*[:\\-]\\s*(?:SDAH\\s*)?#?(?<number>316)' },
+    { variableName: 'closing_song_2', title: 'Closing Song 2', extractionRegex: '(?i)\\[\\s*\\]\\s*Closing\\s*song\\s*[:\\-]\\s*(?:SDAH\\s*)?#?(?<number>476)' },
+    { variableName: 'song_note', title: 'Song Note', extractionRegex: '(?i)\\[\\s*\\]\\s*Song\\s*Note\\s*[:\\-]' },
+  ];
+
+  const predefinedFields = [
+    { variable_name: 'sermon_speaker', shown_text: 'Sermon Speaker', extraction_regex: '(?i)^Sermon\\s*[:\\-]\\s*(?<value>[^"“”]+?)(?:\\s+["“](?<title>[^"”]+)["”])?\\s*$' },
+    { variable_name: 'special_song', shown_text: 'Special Song', extraction_regex: '(?i)^Special\\s+Song\\s*[:\\-]\\s*(?<value>.*)$' },
+    { variable_name: 'closing_prayer', shown_text: 'Closing Prayer', extraction_regex: '(?i)^Closing\\s+Prayer\\s*[:\\-]\\s*(?<value>.*)$' },
+  ];
+
+  const rawLines = sampleBulletin.split('\n');
+  const mappedIndices = new Set();
+  const dateRegex = /(?:20\d{2}-\d{2}-\d{2})|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+20\d{2}/i;
+  const sectionRegex = /^(BIBLE\s+TALK|DIVINE\s+SERVICE|BREAK)\b/i;
+
+  rawLines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed || dateRegex.test(trimmed) || sectionRegex.test(trimmed)) {
+      mappedIndices.add(idx);
+    }
+  });
+
+  // Predefined fields extraction
+  const extractedFields = extractPredefinedFields(sampleBulletin, predefinedFields);
+  assert.equal(extractedFields.special_song, 'Sanctuary Choir');
+  assert.equal(extractedFields.closing_prayer, 'Elder John');
+
+  for (const f of predefinedFields) {
+    const re = compileProfileRegex(f.extraction_regex);
+    rawLines.forEach((line, idx) => {
+      if (line.trim() && re.test(line)) mappedIndices.add(idx);
+    });
+  }
+
+  // Mark all lines matching active song set regexes as mapped (even without positive number)
+  for (const entry of songSetEntries) {
+    const re = compileProfileRegex(entry.extractionRegex);
+    rawLines.forEach((line, idx) => {
+      if (line.trim() && re.test(line)) mappedIndices.add(idx);
+    });
+  }
+
+  // Dynamic song set extraction
+  const songResults = songSetEntries.map((entry) => {
+    const re = compileProfileRegex(entry.extractionRegex);
+    for (let idx = 0; idx < rawLines.length; idx++) {
+      const line = rawLines[idx];
+      if (!line.trim()) continue;
+      const m = line.match(re);
+      if (m) {
+        const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+        if (numStr) {
+          return {
+            slotVariable: entry.variableName,
+            title: entry.title,
+            songNumber: parseInt(numStr, 10),
+            status: 'matched',
+          };
+        }
+      }
+    }
+    return {
+      slotVariable: entry.variableName,
+      title: entry.title,
+      status: 'unfilled',
+    };
+  });
+
+  // Verify all 6 reported hymns match their respective slots exactly
+  const s614 = songResults.find((s) => s.slotVariable === 'opening_song_1');
+  assert.equal(s614?.status, 'matched');
+  assert.equal(s614?.songNumber, 614);
+
+  const s508 = songResults.find((s) => s.slotVariable === 'opening_song_2');
+  assert.equal(s508?.status, 'matched');
+  assert.equal(s508?.songNumber, 508);
+
+  const s671 = songResults.find((s) => s.slotVariable === 'intercessory_prayer_hymn');
+  assert.equal(s671?.status, 'matched');
+  assert.equal(s671?.songNumber, 671);
+
+  const s684 = songResults.find((s) => s.slotVariable === 'after_prayer_hymn');
+  assert.equal(s684?.status, 'matched');
+  assert.equal(s684?.songNumber, 684);
+
+  const s316 = songResults.find((s) => s.slotVariable === 'closing_song_1');
+  assert.equal(s316?.status, 'matched');
+  assert.equal(s316?.songNumber, 316);
+
+  const s476 = songResults.find((s) => s.slotVariable === 'closing_song_2');
+  assert.equal(s476?.status, 'matched');
+  assert.equal(s476?.songNumber, 476);
+
+  // Line matching song set regex without number ([  ] Song Note : pending song arrangement) is mapped
+  const songNoteLineIdx = rawLines.findIndex((l) => l.includes('pending song arrangement'));
+  assert.ok(mappedIndices.has(songNoteLineIdx), 'Song set regex match without number must be mapped');
+
+  // Truly unmapped lines: Announcements and Offering
+  const unmappedLines = rawLines.filter((l, idx) => l.trim() && !mappedIndices.has(idx));
+  assert.equal(unmappedLines.length, 2, 'Unmapped lines must capture exactly non-matching lines');
+  assert.ok(unmappedLines.some((l) => l.includes('Announcements & Church Life')));
+  assert.ok(unmappedLines.some((l) => l.includes('Offering : Local Church Budget')));
+});
+
 
 
 

@@ -11,10 +11,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw, CheckCircle2, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { compileProfileRegex, extractPredefinedFields, parseRundownWithProfile } from '@/lib/parser-rules';
-import { matchSongSets, type SongSetEntrySlot } from '@/lib/song-set-matching';
+import { compileProfileRegex, extractPredefinedFields } from '@/lib/parser-rules';
+import type { SongSetEntrySlot } from '@/lib/song-set-matching';
 import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/lib/form-layout';
 
 type AdminTab = 'layout' | 'fields' | 'sandbox';
@@ -64,7 +64,6 @@ export function FormLayoutAdminPanel() {
 
   // Master data for testing sandbox
   const [songSetEntries, setSongSetEntries] = useState<SongSetEntrySlot[]>([]);
-  const [defaultProfile, setDefaultProfile] = useState<any>(null);
 
   // Sandbox & Test Area state
   const [testRundownText, setTestRundownText] = useState(DEFAULT_RUNDOWN_SAMPLE);
@@ -74,17 +73,15 @@ export function FormLayoutAdminPanel() {
     fields: Array<{ label: string; variableName: string; value: string; status: 'matched' | 'empty regex' | 'unmatched' }>;
     songs: Array<{ slotVariable: string; title: string; songNumber?: number; songBookCode?: string; matchKind?: string; status: 'matched' | 'unfilled' }>;
     unmappedLines: string[];
-    overflowSongs: Array<{ line: string; number: number; bookCode: string }>;
   } | null>(null);
 
   const fetchLayout = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [resLayout, resEntries, resProfiles] = await Promise.all([
+      const [resLayout, resEntries] = await Promise.all([
         fetch('/api/worship-form-layout'),
         fetch('/api/song-set-entries'),
-        fetch('/api/parser-profiles'),
       ]);
 
       if (resLayout.ok) {
@@ -101,14 +98,6 @@ export function FormLayoutAdminPanel() {
         const d = (await resEntries.json()) as { entries?: SongSetEntrySlot[] };
         if (Array.isArray(d.entries)) {
           setSongSetEntries(d.entries);
-        }
-      }
-
-      if (resProfiles.ok) {
-        const pData = (await resProfiles.json()) as { profiles?: any[] };
-        if (Array.isArray(pData.profiles)) {
-          const def = pData.profiles.find((p) => p.isDefault) || pData.profiles[0];
-          setDefaultProfile(def);
         }
       }
     } catch (err: unknown) {
@@ -511,6 +500,28 @@ export function FormLayoutAdminPanel() {
   const handleRunRundownTest = () => {
     if (!testRundownText.trim() || !layoutData) return;
 
+    const rawLines = testRundownText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .split('\n');
+
+    const mappedIndices = new Set<number>();
+
+    // Standard date pattern & section delimiters (production parity)
+    const dateRegex = /(?:20\d{2}-\d{2}-\d{2})|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+20\d{2}/i;
+    const sectionRegex = /^(BIBLE\s+TALK|DIVINE\s+SERVICE|BREAK)\b/i;
+
+    rawLines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        mappedIndices.add(idx);
+        return;
+      }
+      if (dateRegex.test(trimmed) || sectionRegex.test(trimmed)) {
+        mappedIndices.add(idx);
+      }
+    });
+
     // 1. Predefined Fields extraction
     const extractedFieldsMap = extractPredefinedFields(testRundownText, layoutData.predefined_fields || []);
     const fieldResults = (layoutData.predefined_fields || []).map((f) => {
@@ -529,38 +540,98 @@ export function FormLayoutAdminPanel() {
       };
     });
 
-    // 2. Parser rules & song sets matching
-    const parsed = parseRundownWithProfile(testRundownText, defaultProfile?.rules || null);
-    const songMatching = matchSongSets(
-      parsed.songCandidates || [],
-      songSetEntries || [],
-      defaultProfile?.rules?.song_set_matching
-    );
+    // Mark lines matching active predefined field regexes as mapped
+    for (const f of layoutData.predefined_fields || []) {
+      if (!f.extraction_regex || !f.extraction_regex.trim()) continue;
+      try {
+        const re = compileProfileRegex(f.extraction_regex.trim());
+        rawLines.forEach((line, idx) => {
+          if (line.trim() && re.test(line)) {
+            mappedIndices.add(idx);
+          }
+        });
+      } catch {
+        // ignore invalid regex
+      }
+    }
 
+    // Mark lines matching active song set entry regexes as mapped
+    for (const entry of songSetEntries || []) {
+      const regexPattern = entry.extractionRegex || (entry as any).extraction_regex;
+      if (!regexPattern || !regexPattern.trim()) continue;
+      try {
+        const re = compileProfileRegex(regexPattern.trim());
+        rawLines.forEach((line, idx) => {
+          if (line.trim() && re.test(line)) {
+            mappedIndices.add(idx);
+          }
+        });
+      } catch {
+        // ignore invalid regex
+      }
+    }
+
+    // 2. Dynamic Song Set entries extraction (direct regex evaluation)
     const songResults = (songSetEntries || []).map((entry) => {
-      const sug = songMatching.suggestions[entry.variableName];
-      if (sug) {
+      const varName = entry.variableName || (entry as any).variable_name;
+      const regexPattern = entry.extractionRegex || (entry as any).extraction_regex;
+      if (!regexPattern || !regexPattern.trim()) {
         return {
-          slotVariable: entry.variableName,
+          slotVariable: varName,
           title: entry.title,
-          songNumber: sug.songNumber,
-          songBookCode: sug.songBookCode,
-          matchKind: sug.matchKind,
-          status: 'matched' as const,
+          status: 'unfilled' as const,
         };
       }
+
+      try {
+        const re = compileProfileRegex(regexPattern.trim());
+        for (let idx = 0; idx < rawLines.length; idx++) {
+          const line = rawLines[idx];
+          if (!line.trim()) continue;
+          const m = line.match(re);
+          if (m) {
+            const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+            const bookStr = m.groups?.book || 'SDAH';
+            if (numStr) {
+              const num = parseInt(numStr, 10);
+              if (num > 0) {
+                mappedIndices.add(idx);
+                return {
+                  slotVariable: varName,
+                  title: entry.title,
+                  songNumber: num,
+                  songBookCode: bookStr.trim().toUpperCase(),
+                  matchKind: 'dynamic_regex',
+                  status: 'matched' as const,
+                };
+              }
+            }
+          }
+        }
+      } catch {
+        // ignore invalid regex
+      }
+
       return {
-        slotVariable: entry.variableName,
+        slotVariable: varName,
         title: entry.title,
         status: 'unfilled' as const,
       };
     });
 
+    // 3. Collect truly unmapped lines
+    const unmappedLines: string[] = [];
+    rawLines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (trimmed && !mappedIndices.has(idx)) {
+        unmappedLines.push(line);
+      }
+    });
+
     setTestResults({
       fields: fieldResults,
       songs: songResults,
-      unmappedLines: parsed.unmappedLines || [],
-      overflowSongs: songMatching.songOverflow || [],
+      unmappedLines,
     });
   };
 
@@ -1341,38 +1412,21 @@ export function FormLayoutAdminPanel() {
                     )}
                   </div>
 
-                  {/* Overflow Songs & Unmapped Lines */}
-                  {(testResults.overflowSongs.length > 0 || testResults.unmappedLines.length > 0) && (
-                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2 text-xs text-amber-700 dark:text-amber-300">
-                      {testResults.overflowSongs.length > 0 && (
-                        <div>
-                          <p className="font-semibold flex items-center gap-1">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Lagu Melebihi Slot (Overflow Songs):
-                          </p>
-                          <ul className="list-disc pl-5 mt-1 font-mono text-[11px]">
-                            {testResults.overflowSongs.map((os, idx) => (
-                              <li key={idx}>
-                                {os.bookCode} #{os.number} ("{os.line}")
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {testResults.unmappedLines.length > 0 && (
-                        <div>
-                          <p className="font-semibold flex items-center gap-1">
-                            <HelpCircle className="w-3.5 h-3.5" /> Baris Teks Tidak Terpetakan (Unmapped Lines):
-                          </p>
-                          <ul className="list-disc pl-5 mt-1 font-mono text-[11px] max-h-32 overflow-y-auto">
-                            {testResults.unmappedLines.map((ul, idx) => (
-                              <li key={idx} className="truncate">
-                                {ul}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                  {/* Unmapped Lines */}
+                  {testResults.unmappedLines.length > 0 && (
+                    <div className="p-3 bg-muted/40 border border-border/50 rounded-lg space-y-2 text-xs text-muted-foreground">
+                      <div>
+                        <p className="font-semibold flex items-center gap-1 text-foreground">
+                          <HelpCircle className="w-3.5 h-3.5 text-primary" /> Baris Teks Tidak Terpetakan (Unmapped Lines):
+                        </p>
+                        <ul className="list-disc pl-5 mt-1 font-mono text-[11px] max-h-32 overflow-y-auto">
+                          {testResults.unmappedLines.map((ul, idx) => (
+                            <li key={idx} className="truncate">
+                              {ul}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   )}
                 </div>
