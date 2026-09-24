@@ -1,7 +1,7 @@
-promise_progress: 100%
+promise_progress: 99%
 rtm_rows:
   green: 598
-  counted: 598
+  counted: 602
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -304,6 +304,11 @@ work_progress:
   tickets_done: 1
   tickets_total: 1
   work_progress: 100%
+- spec: SPEC-72
+  status: open
+  tickets_done: 0
+  tickets_total: 2
+  work_progress: 0%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -363,9 +368,9 @@ gate_readiness: 100%
 validators_red: []
 validators_skipped:
   review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
-    (changed at cfcd78a, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at f651cb1, reviewed at bc6c694),
+    (changed at cfcd78a, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at ecfb31b, reviewed at bc6c694),
     .how/presenter/SDD-presenter.md (changed at cfcd78a, reviewed at bc6c694), .how/registry/SDD-registry.md
-    (changed at cfcd78a, reviewed at bc6c694), .what/hub/SRS-hub.md (changed at f651cb1, reviewed at e1558cc),
+    (changed at cfcd78a, reviewed at bc6c694), .what/hub/SRS-hub.md (changed at ecfb31b, reviewed at e1558cc),
     .what/presenter/SRS-presenter.md (changed at cfcd78a, reviewed at bc6c694), .what/registry/SRS-registry.md
     (changed at cfcd78a, reviewed at 840014f)'
 open_questions:

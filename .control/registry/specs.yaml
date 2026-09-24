@@ -3096,6 +3096,41 @@ waves:
           - internal/parse/dynamic_extraction_test.go
           - internal/httpapi/services_field_values_test.go
 
+  # Opened 2026-09-24 from user triage notes.
+  # Rundown regex sandbox parity and unmapped lines pruning.
+  - id: SPEC-72
+    status: open
+    release: rundown-regex-sandbox-parity-and-unmapped-lines-pruning
+    prd: [operator-turn]
+    fr: [FR-32, FR-36]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-72-rundown-regex-sandbox-parity-and-unmapped-lines-pruning/
+    spec_reviewed:
+      date: '2026-09-24'
+      sha: 'ecfb31be8d1efe1c1adff2622f72308ffd61c847'
+      lenses: [edge-case-hunter, cross-runtime-parity, source-range-integrity, api-contract]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in corrected API route target (POST /api/services/preview), clarified TypeScript client-level unmapped lines reconciliation helper rather than mutating pure static parser, established precise terminal-token line targeting policy to prevent masking intermediate lines, enforced consistent whitespace normalization (NBSP -> ASCII space) across line and full-text fallback paths, and added stateful regex reset."
+    tickets:
+      - id: "SPEC-72-01"
+        component: hub
+        satisfies: [UC-31, FR-32, FR-36]
+        blocked_by: []
+        touches: [form-layout]
+        tests:
+          - tests/dynamic-field-extraction.test.mjs
+          - tests/smoke-spec-54.test.mjs
+      - id: "SPEC-72-02"
+        component: hub
+        satisfies: [UC-2, UC-31, FR-32, FR-36]
+        blocked_by: ["SPEC-72-01"]
+        touches: [form-layout, services]
+        tests:
+          - tests/dynamic-field-extraction.test.mjs
+          - internal/parse/dynamic_extraction_test.go
+          - internal/httpapi/services_field_values_test.go
+
+
 
 
 

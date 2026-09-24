@@ -1724,6 +1724,22 @@ rtm:
   FR: FR-2
   DEC: []
   UC: UC-2
+  ticket: SPEC-72-02
+  spec: SPEC-72
+  release: rundown-regex-sandbox-parity-and-unmapped-lines-pruning
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - internal/parse/dynamic_extraction_test.go
+  - internal/httpapi/services_field_values_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -4195,6 +4211,22 @@ rtm:
   FR: FR-27
   DEC: []
   UC: UC-2
+  ticket: SPEC-72-02
+  spec: SPEC-72
+  release: rundown-regex-sandbox-parity-and-unmapped-lines-pruning
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - internal/parse/dynamic_extraction_test.go
+  - internal/httpapi/services_field_values_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-27
+  DEC: []
+  UC: UC-2
   ticket: W10-02
   spec: W10
   release: intake-lyrics
@@ -6611,6 +6643,37 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-37
+  DEC: []
+  UC: UC-31
+  ticket: SPEC-72-01
+  spec: SPEC-72
+  release: rundown-regex-sandbox-parity-and-unmapped-lines-pruning
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - tests/smoke-spec-54.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-37
+  DEC: []
+  UC: UC-31
+  ticket: SPEC-72-02
+  spec: SPEC-72
+  release: rundown-regex-sandbox-parity-and-unmapped-lines-pruning
+  test:
+  - tests/dynamic-field-extraction.test.mjs
+  - internal/parse/dynamic_extraction_test.go
+  - internal/httpapi/services_field_values_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38
