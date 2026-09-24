@@ -907,6 +907,20 @@ rtm:
   FR: FR-14
   DEC: []
   UC: UC-18
+  ticket: SPEC-74-01
+  spec: SPEC-74
+  release: align-vulnerability-reporting-channel-to-github-advisories
+  test:
+  - tests/vulnerability-reporting-channel-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
   ticket: W2-2-1
   spec: W2
   release: go-spa-cutover

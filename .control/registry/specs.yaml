@@ -3271,6 +3271,32 @@ waves:
         tests:
           - tests/readme-structure.test.mjs
 
+  # Opened 2026-09-24 from user triage notes (spec-alamat-email-produk.md W1).
+  # Align security vulnerability reporting channel strictly to GitHub Security Advisories.
+  - id: SPEC-74
+    status: open
+    release: align-vulnerability-reporting-channel-to-github-advisories
+    prd: [operator-turn]
+    fr: [FR-40]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-74-align-security-vulnerability-reporting-to-github-advisories/
+    spec_reviewed:
+      date: '2026-09-24'
+      sha: 'a3317c087d3a4dcc22d7b960a3c2ae0c7dbea552'
+      lenses: [structure, prose, edge-case-hunter, test-isolation, requirements-traceability]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: dynamic string fragment assembly to prevent self-matching in test source and spec text, multi-surface defect injection matrix across root docs, issue templates, READMEs, and nested docs, strictly additive package.json test wiring preserving test-concurrency=1, exact canonical URL alignment without residual preposition artifacts, explicit distinction between in-repo automated guard and coordinator post-merge whole-tree recursive grep, and external release gate ownership for Wira Desk and email reception testing in ops."
+    tickets:
+      - id: "SPEC-74-01"
+        component: hub
+        satisfies: [UC-18, FR-40]
+        blocked_by: []
+        touches: [settings]
+        tests:
+          - tests/vulnerability-reporting-channel-guard.test.mjs
+
+
+
 
 
 
