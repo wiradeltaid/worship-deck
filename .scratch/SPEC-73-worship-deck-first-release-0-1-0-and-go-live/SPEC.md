@@ -43,20 +43,20 @@ Deliver the 16 go-live handover work items (WSD-H-01 through WSD-H-17) across 16
    - Configure installer shortcuts and run actions to pass `--desktop`; resolve data directory to `%LOCALAPPDATA%\WorshipDeck\` with mutex `Local\WorshipDeck.SingleInstance`.
    - Auto-generate cryptographically secure `AUTH_SECRET` in desktop mode if absent from environment, persisted with owner-only permissions; refuse startup in server mode if secrets (`AUTH_SECRET` or `JWT_SECRET`) contain `change-me*` or example defaults.
    - Introduce loopback-only Setup Screen for initial admin account creation when database has 0 accounts, with restricted status inspection.
-   - Hard-disable `POST /api/webhook` in code, returning immediate error responses without reading request bodies.
+   - Hard-disable `POST /api/webhook` in code, returning exactly HTTP 503 with response body `"Webhook intake is disabled in this release"` immediately before reading the request body.
    - Package bundled SDAH and KJV corpora, licenses, and notices in installer; start fresh databases with empty registries (no default templates).
 
 3. **Font Bundling & PPTX Embedding (WSD-H-06, WSD-H-07, WSD-H-08, WSD-H-11):**
    - Bundle all 35 font families locally using `@fontsource` packages; remove Google Fonts `<link>` tags and URL builders.
-   - Bundle local TTF font assets for PowerPoint export, removing runtime network font fetching in `embed-fonts.ts`.
-   - Convert branding SVGs to path-based artwork or local fonts; produce `THIRD-PARTY-NOTICES` covering all bundled fonts and licenses.
+   - Bundle local TTF font assets for PowerPoint export, completely deleting the runtime Google Fonts fetch path in `embed-fonts.ts` (not kept as a fallback); if a requested family or glyph is missing, fall back strictly to bundled local Inter from `data/fonts/` (never to a system font lookup and never to the network).
+   - Convert branding SVGs to path-based artwork or local fonts; produce `THIRD-PARTY-NOTICES` as a standalone file at the repository root covering all 35 bundled font families and licenses, packaged into the installer.
    - Sequence WSD-H-11 after WSD-H-08 to coordinate `ATTRIBUTIONS.md` updates and eliminate file-touch collisions.
 
 4. **Public Text, Nomenclature, & Legal Copies (WSD-H-12, WSD-H-13, WSD-H-14):**
    - Narrow `ATTRIBUTIONS.md` non-monetisation statement to the software and bundled corpora.
    - Unify UI and catalog terms to approved nomenclature ("congregation screen", "operator console", "Layout", "Baca susunan acara"); hide `/new` mockup route.
    - Align `README.md`, 9 translations, and `docs/` with actual build features and limitations (server-first, experimental installer, no portable ZIP).
-   - Copy `PRIVACY.md`, `SECURITY.md`, and their `.id.md` counterparts verbatim from ops with copy stamps; update `docs/threat-model.md`, gated by ops C-01 to C-03 and owner B-03/B-04.
+   - Copy `PRIVACY.md`, `SECURITY.md`, and their `.id.md` counterparts verbatim from ops with copy stamps; update `docs/threat-model.md`, gated by ops C-01 to C-03 and owner B-03/B-04. Maintain the ops verification protocol: repo CI tests verify copy stamps, placeholders, dashes, and relative links without reading private ops paths; verbatim fidelity is proven via local coordinator diff with empty diff output pasted in the PR description.
 
 ## User Stories
 
@@ -71,7 +71,8 @@ Deliver the 16 go-live handover work items (WSD-H-01 through WSD-H-17) across 16
   While raw notes initially listed WSD-H-11 in the first cohort, both WSD-H-08 (font notices) and WSD-H-11 (attribution scope) modify `ATTRIBUTIONS.md`. In accordance with handover §8.1 line 372 ("digabung PR dengan WSD-H-08 bila lebih rapi") and method rule `parallel-tickets-blocked`, sequencing WSD-H-11 downstream of WSD-H-08 eliminates branch collisions and provides clean, atomic commit boundaries for legal notices.
 - **External Release Gates:**
   - WSD-H-14 explicitly declares non-ticket external blockers: ops legal updates C-01 (effective date), C-02 (first-admin security fact), C-03 (cross-language links), B-03 (GitHub private vulnerability reporting), and B-04 (owner-confirmed go-live date).
-  - WSD-H-17 is formally classified as post-publication work, gated by release tag v0.1.0 publication (B-07), and excluded from pre-tag sign-off gates.
+  - WSD-H-17 is formally confirmed as strictly post-publication work, gated by release tag v0.1.0 publication (B-07), and excluded from pre-tag sign-off gates.
+  - Ticket numbering note: WSD-H-16 does not exist in the ops handover (§8.1); the sequence intentionally runs from WSD-H-15 directly to WSD-H-17 (total 16 tickets). No ticket is missing.
 - **Strict Startup-Path Secret Guards:**
   Server-mode validation rejects any startup attempt where `AUTH_SECRET` or `JWT_SECRET` contains `change-me`, `change-me*`, `your-secret-here`, or common insecure defaults. Tested directly in startup routines.
 - **Approved Feature-Name SSOT:**
@@ -90,7 +91,9 @@ Deliver the 16 go-live handover work items (WSD-H-01 through WSD-H-17) across 16
   - `internal/desktop/desktop_test.go`: verifies data directory resolution and single instance mutex.
   - `internal/auth/session_test.go` & startup tests: verifies auto-generation of desktop auth secret, failure handling for malformed secret files, and process exit rejection of placeholder secrets (`change-me*`, `your-secret-here`).
   - `internal/httpapi/auth_test.go` & `internal/gate/gate_test.go`: verifies loopback setup screen endpoint security and restricted status inspection.
-  - `internal/httpapi/webhook_test.go`: verifies disabled webhook error behavior and unread body reader.
+  - `internal/httpapi/webhook_test.go`: verifies disabled webhook returns HTTP 503 with exact message and proves request body reader is never read (fails on Read call).
+  - `tests/pptx-bundled-fonts.test.mjs`: asserts offline export with missing family embeds Inter and makes zero network calls (seen red first).
+  - `tests/third-party-notices.test.mjs`: asserts standalone `THIRD-PARTY-NOTICES` exists, lists 35 families, and is packaged into `{app}`.
 - **Staging & Packaging Verification:**
   - Verify `dist-desktop` and installer payload staging include SDAH, KJV, licenses, and notices.
   - Execute full test suite via `npm test` and `go test ./...`.

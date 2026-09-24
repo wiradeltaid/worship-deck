@@ -23,6 +23,7 @@
      (2) Zero occurrences of "Worship Presenter", `<TANGGAL GO-LIVE>`, `<GO-LIVE DATE>`, U+2014, or U+2013 across legal files and threat model.
      (3) All internal relative document links resolve to valid repository paths.
      Verify red first on today's files, then green.
+   - Verbatim Content Verification Protocol: Ops is a private repository and repository files/CI workflows MUST NOT read ops or local file paths. Verbatim fidelity is proven via a local diff of each copied body against the ops source text (ignoring the initial ops header commentary and the repository copy stamp line), executed locally by the coordinator, with the clean empty-diff output pasted verbatim into the pull request description.
 
 **Blocked by:** 04-wsd-h-04-first-admin-setup-screen, 10-wsd-h-10-changelog-rewrite, 13-wsd-h-13-readme-translations-docs-match-build.
 *(External Gate Prerequisites: Ops C-01 [effective date filled in ops], Ops C-02 [first-admin setup security exception drafted in ops], Ops C-03 [cross-language links added in ops], Owner B-03 [GitHub private vulnerability reporting enabled], and Owner B-04 [official go-live date confirmed]).*
@@ -34,6 +35,7 @@
 - [ ] Copy `privacy.id.md` to `PRIVACY.id.md`, `privacy.en.md` to `PRIVACY.md`, `security.id.md` to `SECURITY.id.md`, and `security.en.md` to `SECURITY.md`.
 - [ ] Add prescribed English copy stamp on line 2 of each file.
 - [ ] Update `docs/threat-model.md` to "WorshipDeck" and align data deletion semantics.
+- [ ] Run local body diff against ops sources, confirm empty diff, and paste result into PR description.
 - [ ] Add `tests/legal-copy-guard.test.mjs` validating copy stamps, dates, links, and absence of legacy names and dashes. Verify red first, then green.
 - [ ] Add `tests/legal-copy-guard.test.mjs` to `package.json` `scripts.test`.
 - [ ] Verify `npm test` passes cleanly.

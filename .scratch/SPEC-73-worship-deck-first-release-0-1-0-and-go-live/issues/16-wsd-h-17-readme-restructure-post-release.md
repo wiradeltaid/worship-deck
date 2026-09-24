@@ -13,7 +13,7 @@
    - Add `tests/readme-structure.test.mjs` asserting that all 10 README files stay under 100 lines and follow the prescribed section order (`Installation` preceding `Features`). Verify red first, then green.
 
 **Blocked by:** 13-wsd-h-13-readme-translations-docs-match-build, 14-wsd-h-14-legal-copies-ops-threat-model-aligned, 15-wsd-h-15-public-facts-file.
-*(External Milestone Prerequisite: Owner B-06 clean Windows VM sign-off and Owner B-07 publication of GitHub Release v0.1.0. This ticket is explicitly post-publication work and is excluded from pre-tag release-readiness assertions).*
+*(External Milestone Prerequisite: Owner B-06 clean Windows VM sign-off and Owner B-07 publication of GitHub Release v0.1.0. This ticket is strictly post-publication work and is excluded from pre-tag release-readiness assertions. Note on ticket numbering: WSD-H-16 does not exist in the ops handover §8.1; the sequence intentionally proceeds from WSD-H-15 to WSD-H-17, and no ticket is missing).*
 
 **Status:** open
 

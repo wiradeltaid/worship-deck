@@ -4,12 +4,12 @@
 1. Cleanse Branding SVGs:
    - In `public/branding/worship-deck-lockup-below.svg`, `worship-deck-lockup-right.svg`, and `worship-deck-lockup-right-white.svg`: remove `@import url("https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap");`.
    - Convert text elements in these SVGs to standalone path geometries (`<path d="...">`) or reference locally bundled typography so that SVG rendering triggers zero external network requests.
-2. Establish Third-Party Font Notices:
-   - Create `THIRD-PARTY-NOTICES` (or a dedicated section in `ATTRIBUTIONS.md`) comprehensively listing all 35 bundled font families, their copyright holders, and their respective SIL OFL 1.1 or Apache 2.0 license texts.
-   - Configure installer and release staging to ship `THIRD-PARTY-NOTICES` with the Windows desktop distribution.
+2. Establish Standalone Third-Party Font Notices:
+   - Create `THIRD-PARTY-NOTICES` as a standalone file at the repository root (not a section inside `ATTRIBUTIONS.md`), comprehensively listing all 35 bundled font families, their copyright holders, and their respective SIL OFL 1.1 or Apache 2.0 license texts.
+   - Configure installer and release staging to ship `THIRD-PARTY-NOTICES` with the Windows desktop distribution (packaged by WSD-H-09).
 3. Testing & Final Absence Guard:
    - Add `tests/branding-svg-guard.test.mjs` asserting that no SVG in `public/` or `spa/` contains `@import` or external font URLs.
-   - Add `tests/third-party-notices.test.mjs` verifying that all 35 font families from `font-catalog.ts` are documented in `THIRD-PARTY-NOTICES`.
+   - Add `tests/third-party-notices.test.mjs` verifying that `THIRD-PARTY-NOTICES` exists as a standalone file at the repo root and covers all 35 font families from `font-catalog.ts`.
 
 **Blocked by:** 07-wsd-h-07-pptx-embedding-bundled-font-files.
 
@@ -17,7 +17,7 @@
 
 - [ ] Read `public/branding/worship-deck-lockup-*.svg` and `ATTRIBUTIONS.md`.
 - [ ] Convert branding SVG text to paths and remove Google Fonts `@import` rules.
-- [ ] Author `THIRD-PARTY-NOTICES` covering all 35 bundled font families and licenses.
+- [ ] Author `THIRD-PARTY-NOTICES` as a standalone file at the repo root covering all 35 bundled font families and licenses.
 - [ ] Add `tests/branding-svg-guard.test.mjs` asserting zero external URLs in SVGs. Verify red first, then green.
 - [ ] Add `tests/third-party-notices.test.mjs` verifying coverage of all 35 families.
 - [ ] Add new test files to `package.json` `scripts.test`.

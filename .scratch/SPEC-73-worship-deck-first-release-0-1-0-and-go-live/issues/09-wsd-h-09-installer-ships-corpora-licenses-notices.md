@@ -15,8 +15,8 @@
      - `ATTRIBUTIONS.md`
      - `THIRD-PARTY-NOTICES` (from WSD-H-08)
    - Ensure runtime user data (`data.db`, `uploads/`, `logs/`) is strictly separated from `{app}` and routed to `%LOCALAPPDATA%\WorshipDeck\` per WSD-H-02.
-4. Testing:
-   - Add `tests/installer-corpora-staging.test.mjs` asserting that the desktop build staging directory contains all required corpora, licenses, and notices.
+4. Testing & Guards:
+   - Add `tests/installer-corpora-staging.test.mjs` asserting that the desktop build staging directory contains all required corpora, licenses, and notices. Specifically verify that `THIRD-PARTY-NOTICES` exists at the repo root, lists all 35 font families, and is present in the staged/installed directory.
    - Add Go test in `internal/db/bootstrap_test.go` asserting that clean database initialization seeds SDAH and KJV while leaving slide registry tables completely empty.
    - Report installer file size before and after font/corpora inclusion in PR notes.
 
@@ -27,7 +27,7 @@
 - [ ] Run diagnostic pass reproducing missing corpora in installer staging.
 - [ ] In `internal/db/bootstrap.go`: disable default seeding of 38 demo templates while keeping SDAH and KJV.
 - [ ] In `scripts/build-desktop.mjs` and `installer/worship-deck.iss`: include `data/`, `LICENSE`, `ATTRIBUTIONS.md`, and notices.
-- [ ] Add `tests/installer-corpora-staging.test.mjs` validating staged artifacts. Verify red first, then green.
+- [ ] Add `tests/installer-corpora-staging.test.mjs` validating staged artifacts, asserting `THIRD-PARTY-NOTICES` exists with 35 families and is packaged into `{app}`. Verify red first, then green.
 - [ ] Add Go test in `internal/db/bootstrap_test.go` validating clean bootstrap state.
 - [ ] Add `tests/installer-corpora-staging.test.mjs` to `package.json` `scripts.test`.
 - [ ] Verify `go test ./...` and `npm test` pass cleanly.
