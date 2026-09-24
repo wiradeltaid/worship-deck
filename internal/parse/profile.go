@@ -91,50 +91,17 @@ func LoadParserProfileFromJSON(raw string) (*ParserProfile, error) {
 	return &p, nil
 }
 
+// StaticDefaultParser returns the permanent static internal default parser profile.
+func StaticDefaultParser() *ParserProfile {
+	return DefaultParserProfile()
+}
+
 func LoadDefaultParserProfile(dbHandle *sql.DB) (*ParserProfile, error) {
-	if dbHandle == nil {
-		return DefaultParserProfile(), nil
-	}
-	var id, slug, rulesJSON string
-	err := dbHandle.QueryRow(`
-		SELECT id, slug, rules_json FROM rundown_parser_profiles WHERE is_default = 1 LIMIT 1
-	`).Scan(&id, &slug, &rulesJSON)
-	if err == sql.ErrNoRows {
-		return DefaultParserProfile(), nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	p, err := LoadParserProfileFromJSON(rulesJSON)
-	if err != nil {
-		return nil, err
-	}
-	p.ID = id
-	p.Slug = slug
-	return p, nil
+	return StaticDefaultParser(), nil
 }
 
 func LoadParserProfileByID(dbHandle *sql.DB, idOrSlug string) (*ParserProfile, error) {
-	if dbHandle == nil || idOrSlug == "" || idOrSlug == db.BuiltinDefaultParserProfileID || idOrSlug == db.BuiltinDefaultParserProfileSlug {
-		return DefaultParserProfile(), nil
-	}
-	var id, slug, rulesJSON string
-	err := dbHandle.QueryRow(`
-		SELECT id, slug, rules_json FROM rundown_parser_profiles WHERE id = ? OR slug = ? LIMIT 1
-	`, idOrSlug, idOrSlug).Scan(&id, &slug, &rulesJSON)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("parser profile %q not found", idOrSlug)
-	}
-	if err != nil {
-		return nil, err
-	}
-	p, err := LoadParserProfileFromJSON(rulesJSON)
-	if err != nil {
-		return nil, err
-	}
-	p.ID = id
-	p.Slug = slug
-	return p, nil
+	return StaticDefaultParser(), nil
 }
 
 func (p *ParserProfile) Compile() error {

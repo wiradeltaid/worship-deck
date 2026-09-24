@@ -1,5 +1,6 @@
 import { getDb } from './db/index';
 import {
+  parseRundownStatic,
   parseRundownWithProfile as parseWithRules,
   extractPredefinedFields,
   extractSongSetEntries,
@@ -59,10 +60,47 @@ export function lookupHymn(
   };
 }
 
+/**
+ * Primary static rundown parser (SPEC-70: profile customization retired in favor of dynamic regexes).
+ * Intakes raw text, parses built-in liturgy statically, and enriches with dynamic predefined_fields and song_set_entries regex suggestions.
+ */
 export function parseRundown(rawText: string): ParsedRundown {
-  return parseRundownWithProfile(rawText, null);
+  const parsed = parseRundownStatic(rawText, lookupHymn);
+
+  try {
+    const database = getDb();
+    const fields = database
+      .prepare(
+        `SELECT variable_name, extraction_regex FROM predefined_fields WHERE is_active = 1 AND extraction_regex IS NOT NULL`
+      )
+      .all() as Array<{ variable_name: string; extraction_regex: string | null }>;
+    if (fields && fields.length > 0) {
+      parsed.fieldSuggestions = extractPredefinedFields(rawText, fields);
+    }
+
+    const entries = database
+      .prepare(
+        `SELECT variable_name, extraction_regex FROM song_set_entries WHERE extraction_regex IS NOT NULL`
+      )
+      .all() as Array<{ variable_name: string; extraction_regex: string | null }>;
+    if (entries && entries.length > 0) {
+      parsed.songSetSuggestions = extractSongSetEntries(
+        rawText,
+        entries,
+        lookupHymn,
+        resolveSongBookCode()
+      );
+    }
+  } catch {
+    // safely ignore if tables or db not initialized
+  }
+
+  return parsed;
 }
 
+/**
+ * @deprecated Custom profile parsing is retired per SPEC-70. Retained as compatibility wrapper for golden fixture tests.
+ */
 export function parseRundownWithProfile(
   rawText: string,
   profile?: ParserProfileRules | null

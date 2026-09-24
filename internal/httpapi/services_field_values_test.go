@@ -495,6 +495,52 @@ func TestServicesParserProfileIdOmittedAndNullHandling(t *testing.T) {
 	if profReverted != "builtin-default" {
 		t.Errorf("expected reverted parser_profile_id builtin-default, got %q", profReverted)
 	}
+
+	// 8. POST /api/services with explicit legacy parserProfileId string: must be ignored and persist builtin-default
+	createLegacy := `{"date": "2026-10-17", "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE", "parserProfileId": "custom-obsolete-profile", "allowSecond": true}`
+	res = songSetRequest(t, ts, "POST", "/api/services", createLegacy, cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service legacy parserProfileId status = %d, want 201", res.StatusCode)
+	}
+	var createdLegacy struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&createdLegacy)
+	res.Body.Close()
+
+	var profLegacy string
+	var profVerLegacy int
+	if err := handle.QueryRow(`SELECT parser_profile_id, parser_profile_version FROM services WHERE id = ?`, createdLegacy.ID).Scan(&profLegacy, &profVerLegacy); err != nil {
+		t.Fatalf("query parser_profile_id for createdLegacy: %v", err)
+	}
+	if profLegacy != "builtin-default" {
+		t.Errorf("expected legacy parserProfileId to be ignored and persist builtin-default, got %q", profLegacy)
+	}
+	if profVerLegacy != 1 {
+		t.Errorf("expected parser_profile_version 1 for createdLegacy, got %d", profVerLegacy)
+	}
+
+	// 9. PUT /api/services/{id} with explicit legacy parserProfileId string: must be ignored and persist builtin-default
+	var legacyUpdated string
+	_ = handle.QueryRow(`SELECT updated_at FROM services WHERE id = ?`, createdLegacy.ID).Scan(&legacyUpdated)
+	updateLegacy := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdate with legacy ID", "parserProfileId": "custom-obsolete-profile-2"}`, legacyUpdated)
+	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", createdLegacy.ID), updateLegacy, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("update service legacy parserProfileId status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	var profLegacyAfterUpdate string
+	var profVerLegacyAfterUpdate int
+	if err := handle.QueryRow(`SELECT parser_profile_id, parser_profile_version FROM services WHERE id = ?`, createdLegacy.ID).Scan(&profLegacyAfterUpdate, &profVerLegacyAfterUpdate); err != nil {
+		t.Fatalf("query parser_profile_id after update: %v", err)
+	}
+	if profLegacyAfterUpdate != "builtin-default" {
+		t.Errorf("expected legacy parserProfileId on update to be ignored and persist builtin-default, got %q", profLegacyAfterUpdate)
+	}
+	if profVerLegacyAfterUpdate != 1 {
+		t.Errorf("expected parser_profile_version 1 after update, got %d", profVerLegacyAfterUpdate)
+	}
 }
 
 func TestServicesPreviewSongOverflowAndSlotsUnfilledEmptyArrayContract(t *testing.T) {

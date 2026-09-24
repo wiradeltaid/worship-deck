@@ -1690,10 +1690,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -1704,10 +1704,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -4161,10 +4161,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -4175,10 +4175,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27

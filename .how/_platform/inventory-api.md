@@ -62,13 +62,13 @@ Derived by `inventory.py` from `mux.HandleFunc` in `internal/httpapi/server.go`.
 | 88 | api | PATCH | `/api/admin/media-library/[id]` | registry | Update a media asset | published |
 | 89 | api | GET | `/api/admin/media-library` | registry | List the media library | published |
 | 90 | api | POST | `/api/admin/media-library` | registry | Add a media asset | published |
-| 91 | api | POST | `/api/admin/parser-profiles/[id]/set-default` | hub | Mark a parser profile as the default | published |
-| 92 | api | DELETE | `/api/admin/parser-profiles/[id]` | hub | Delete a rundown parser profile | published |
-| 93 | api | GET | `/api/admin/parser-profiles/[id]` | hub | One rundown parser profile | published |
-| 94 | api | PATCH | `/api/admin/parser-profiles/[id]` | hub | Update a rundown parser profile | published |
-| 95 | api | PUT | `/api/admin/parser-profiles/[id]` | hub | Update a rundown parser profile | published |
-| 96 | api | GET | `/api/admin/parser-profiles` | hub | List rundown parser profiles | published |
-| 97 | api | POST | `/api/admin/parser-profiles` | hub | Create a rundown parser profile | published |
+| 91 | api | POST | `/api/admin/parser-profiles/[id]/set-default` | hub | Mark a parser profile as the default | retired |
+| 92 | api | DELETE | `/api/admin/parser-profiles/[id]` | hub | Delete a rundown parser profile | retired |
+| 93 | api | GET | `/api/admin/parser-profiles/[id]` | hub | One rundown parser profile | retired |
+| 94 | api | PATCH | `/api/admin/parser-profiles/[id]` | hub | Update a rundown parser profile | retired |
+| 95 | api | PUT | `/api/admin/parser-profiles/[id]` | hub | Update a rundown parser profile | retired |
+| 96 | api | GET | `/api/admin/parser-profiles` | hub | List rundown parser profiles | retired |
+| 97 | api | POST | `/api/admin/parser-profiles` | hub | Create a rundown parser profile | retired |
 | 98 | api | DELETE | `/api/admin/predefined-fields/[id]` | hub | Delete a predefined form field | published |
 | 99 | api | POST | `/api/admin/predefined-fields/seed-defaults` | hub | Seed the built-in predefined fields | published |
 | 100 | api | POST | `/api/admin/predefined-fields` | hub | Create or update a predefined form field | published |
@@ -95,7 +95,7 @@ Derived by `inventory.py` from `mux.HandleFunc` in `internal/httpapi/server.go`.
 | 103 | api | GET | `/api/fonts` | registry | List installed fonts | published |
 | 18 | api | GET | `/api/hymns` | hub | Search hymns | published |
 | 104 | api | GET | `/api/media-library` | registry | Media assets the Operator may choose from | published |
-| 105 | api | GET | `/api/parser-profiles` | hub | Rundown parser profiles the Operator may choose from | published |
+| 105 | api | GET | `/api/parser-profiles` | hub | Rundown parser profiles the Operator may choose from | retired |
 | 70 | api | POST | `/api/present/[id]/remote/claim` | presenter | Bind a remote device to one presenting client using the displayed code | published |
 | 71 | api | POST | `/api/present/[id]/remote/intent` | presenter | One control intent from the remote — index, blank, transition, background, scripture, clear-scripture | published |
 | 72 | api | DELETE | `/api/present/[id]/remote/pair` | presenter | End the pairing deliberately; idempotent | published |

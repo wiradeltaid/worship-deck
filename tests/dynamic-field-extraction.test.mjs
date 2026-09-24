@@ -361,4 +361,26 @@ Closing Song: SDAH #476`;
   assert.equal(suggestions.closing_song_ds?.songBookCode, 'SDAH');
 });
 
+test('SPEC-70-02: Backend parser profile routes and legacy song matching retired', async () => {
+  const serverGoPath = path.join(root, 'internal', 'httpapi', 'server.go');
+  const serverGoSource = fs.readFileSync(serverGoPath, 'utf8');
+
+  // 1. Assert absence of parser profile route registrations in server.go
+  assert.ok(!serverGoSource.includes('GET /api/parser-profiles'), 'server.go must NOT register GET /api/parser-profiles');
+  assert.ok(!serverGoSource.includes('GET /api/admin/parser-profiles'), 'server.go must NOT register GET /api/admin/parser-profiles');
+  assert.ok(!serverGoSource.includes('POST /api/admin/parser-profiles'), 'server.go must NOT register POST /api/admin/parser-profiles');
+  assert.ok(!serverGoSource.includes('deleteParserProfile'), 'server.go must NOT register deleteParserProfile');
+
+  // 2. Assert deleted Go files are absent from disk
+  const parserProfilesGoPath = path.join(root, 'internal', 'httpapi', 'parser_profiles.go');
+  const songSetMatchingGoPath = path.join(root, 'internal', 'parse', 'song_set_matching.go');
+
+  assert.ok(!fs.existsSync(parserProfilesGoPath), 'internal/httpapi/parser_profiles.go must be deleted');
+  assert.ok(!fs.existsSync(songSetMatchingGoPath), 'internal/parse/song_set_matching.go must be deleted');
+
+  // 3. Assert matchSongSets is retired from TypeScript
+  const songSetMatchingModule = await import('../src/lib/song-set-matching.ts');
+  assert.equal(typeof songSetMatchingModule.matchSongSets, 'undefined', 'matchSongSets must be undefined');
+});
+
 

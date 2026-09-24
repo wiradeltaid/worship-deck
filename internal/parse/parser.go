@@ -43,6 +43,16 @@ type SongCandidate struct {
 	Timing     *string `json:"timing,omitempty"`
 }
 
+type SongSetSuggestion struct {
+	VariableName string `json:"variableName"`
+	SongNumber   int    `json:"songNumber"`
+	SongBookCode string `json:"songBookCode"`
+	Title        string `json:"title"`
+	Lyrics       string `json:"lyrics"`
+	SourceLine   string `json:"sourceLine,omitempty"`
+	MatchKind    string `json:"matchKind,omitempty"`
+}
+
 type Rundown struct {
 	Date                *string         `json:"date"`
 	Items               []Item          `json:"items"`
@@ -303,16 +313,12 @@ func ParseScriptureValue(raw string) *Scripture {
 }
 
 func ParseRundown(db *sql.DB, rawText string) Rundown {
-	profile, err := LoadDefaultParserProfile(db)
-	if err != nil || profile == nil {
-		profile = DefaultParserProfile()
-	}
-	return ParseRundownWithProfile(db, rawText, profile)
+	return ParseRundownWithProfile(db, rawText, StaticDefaultParser())
 }
 
 func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile) Rundown {
 	if profile == nil {
-		profile = DefaultParserProfile()
+		profile = StaticDefaultParser()
 	}
 	normalized := strings.ReplaceAll(strings.ReplaceAll(rawText, "\r\n", "\n"), "\r", "\n")
 	var lines []string

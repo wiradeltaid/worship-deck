@@ -179,7 +179,7 @@ usecases:
     satisfies: [FR-35]
     critical: false
   - id: UC-30
-    title: "I configure how the Rundown parser reads our congregation's format"
+    title: "I configure how the Rundown parser reads our congregation's format [RETIRED: superseded by UC-31]"
     actor: Admin
     component: hub
     satisfies: [FR-36]
