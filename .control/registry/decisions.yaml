@@ -1493,6 +1493,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-067
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-24)"
+    title: Daily Autopilot mandate for WorshipDeck first release 0.1.0 and go-live work (SPEC-73)
+    file: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-release-0-1-0-and-go-live.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-01'
+    touches:
+      - .control/memlog/autopilot-DEC-067.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

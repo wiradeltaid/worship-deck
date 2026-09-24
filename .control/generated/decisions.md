@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**66 decisions** — applied: 66.
+**67 decisions** — accepted: 1 · applied: 66.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -74,3 +74,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-064` | Daily Autopilot mandate for Service Form Parser Profile Retirement and Song Overflow Removal (SPEC-69) | `applied` | mandate | `.control/memlog/autopilot-DEC-064.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-064-daily-autopilot-mandate-parser-profile-retirement-and-overflow-removal.md` |
 | `DEC-065` | Daily Autopilot mandate for Complete Rundown Parser Profile Retirement and Section-Scoped Song Set Extraction… | `applied` | mandate | `.control/memlog/autopilot-DEC-065.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-065-daily-autopilot-mandate-parser-profile-retirement-and-song-set-extraction.md` |
 | `DEC-066` | Daily Autopilot mandate for Rundown Regex Sandbox Parity and Unmapped Lines Pruning (SPEC-72) | `applied` | mandate | `.control/memlog/autopilot-DEC-066.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-066-daily-autopilot-mandate-rundown-regex-sandbox-parity-unmapped-lines-pruning.md` |
+| `DEC-067` | Daily Autopilot mandate for WorshipDeck first release 0.1.0 and go-live work (SPEC-73) | `accepted` | mandate | `.control/memlog/autopilot-DEC-067.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-release-0-1-0-and-go-live.md` |
