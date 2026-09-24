@@ -3628,7 +3628,7 @@ rtm:
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -6611,7 +6611,7 @@ rtm:
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -8847,7 +8847,7 @@ rtm:
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

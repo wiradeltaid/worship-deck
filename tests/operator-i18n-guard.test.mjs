@@ -4,7 +4,7 @@
  * 2. `t('key', ...)` called with multiple arguments (t takes only key: I18nKey)
  */
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -119,4 +119,64 @@ test('guard proof: both undestructured useT and multi-arg t() are detected', () 
       },
     ]
   );
+});
+
+export function scanHarmonizedTerminology() {
+  const violations = [];
+  const catalogFiles = [
+    'src/lib/i18n/catalogue-en.ts',
+    'src/lib/i18n/catalogue-id.ts',
+  ];
+
+  const prohibitedTerms = [
+    { pattern: /\bOpen projector\b/i, name: 'Open projector' },
+    { pattern: /\bParser Profile\b/i, name: 'Parser Profile' },
+    { pattern: /\bUraikan\b/, name: 'Uraikan' },
+    { pattern: /\bproyektor\b/i, name: 'proyektor' },
+  ];
+
+  for (const rel of catalogFiles) {
+    const full = path.join(ROOT, rel);
+    const lines = readFileSync(full, 'utf8').split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      for (const { pattern, name } of prohibitedTerms) {
+        if (pattern.test(line)) {
+          violations.push(`${rel}:${i + 1}: prohibited term "${name}": ${line.trim()}`);
+        }
+      }
+    }
+  }
+
+  // Verify PresenterOperator.tsx has zero hardcoded "Open projector" in JSX
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterLines = readFileSync(presenterPath, 'utf8').split('\n');
+  for (let i = 0; i < presenterLines.length; i++) {
+    const line = presenterLines[i];
+    if (line.includes('Open projector') && !line.trim().startsWith('*') && !line.trim().startsWith('//')) {
+      violations.push(`PresenterOperator.tsx:${i + 1}: hardcoded "Open projector": ${line.trim()}`);
+    }
+  }
+
+  return violations;
+}
+
+test('WSD-H-12: zero prohibited terms (Open projector, Parser Profile, Uraikan, proyektor) in catalogues and presenter', () => {
+  const violations = scanHarmonizedTerminology();
+  assert.deepEqual(violations, [], `Prohibited terminology violations:\n${violations.join('\n')}`);
+});
+
+test('WSD-H-12: guard proof — injected prohibited term in catalogue-id.ts is detected', () => {
+  const target = path.join(ROOT, 'src', 'lib', 'i18n', 'catalogue-id.ts');
+  const original = readFileSync(target, 'utf8');
+  try {
+    writeFileSync(target, original.replace("'form.parse': 'Baca susunan acara'", "'form.parse': 'Uraikan'"));
+    const violations = scanHarmonizedTerminology();
+    assert.ok(
+      violations.some((v) => v.includes('catalogue-id.ts') && v.includes('Uraikan')),
+      'Injected Uraikan in catalogue-id.ts must be detected'
+    );
+  } finally {
+    writeFileSync(target, original);
+  }
 });

@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 10
+- Iteration: 11
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-11 completed and verified — ATTRIBUTIONS scope refinement
+- Stopped at: Ticket WSD-H-12 completed and verified — one feature-name list and application label harmonization
 - Blocked: —
 - Parked: —
-- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-12
+- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-13
 
 ## Decisions
 
@@ -28,6 +28,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-8 (WSD-H-08) | public/branding/*.svg, THIRD-PARTY-NOTICES, package.json | Remove external Google Fonts @import rules from branding SVGs, create standalone THIRD-PARTY-NOTICES at repo root detailing all 35 font families, copyright notices, and full OFL 1.1 / Apache 2.0 license texts, and add absence guards with real-file defect injection | external font network calls during branding SVG rendering or incomplete third-party font legal attribution | medium | public/branding/*.svg, THIRD-PARTY-NOTICES, package.json, tests/branding-svg-guard.test.mjs, tests/third-party-notices.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/08-wsd-h-08-branding-svgs-font-notices.md |
 | I-9 (WSD-H-09) | internal/db/bootstrap.go, scripts/build-desktop.mjs, installer/worship-deck.iss | Disable default seeding of 38 demo templates on clean installation (leaving slide registry empty while seeding SDAH and KJV), stage corpora, fonts, LICENSE, ATTRIBUTIONS.md, and THIRD-PARTY-NOTICES into desktop distribution, package into Inno Setup {app}, and verify with unit/staging guards | missing corpora in standalone installation or unexpected demo slides on production boot | medium | internal/db/bootstrap.go, internal/db/bootstrap_test.go, scripts/build-desktop.mjs, installer/worship-deck.iss, package.json, tests/installer-corpora-staging.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/09-wsd-h-09-installer-ships-corpora-licenses-notices.md |
 | I-10 (WSD-H-11) | ATTRIBUTIONS.md, package.json | Narrow non-monetisation statement in ATTRIBUTIONS.md to apply strictly to open-source software and bundled corpora (matching ops policy), remove em-dashes, and add tests/attributions-guard.test.mjs with defect injection | overbroad non-monetisation statement constraining commercial services | low | ATTRIBUTIONS.md, package.json, tests/attributions-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/11-wsd-h-11-attributions-scope.md |
+| I-11 (WSD-H-12) | catalogue-en.ts, catalogue-id.ts, keys.ts, PresenterOperator.tsx, spa/src/App.tsx | Harmonize UI labels across English and Indonesian: congregation screen/layar jemaat, Layout/Tata letak, order of service/susunan acara, Baca susunan acara, hide /new from production routes, and add absence guards in operator-i18n-guard.test.mjs | inconsistent feature naming and unreviewed mockup route exposure | medium | src/lib/i18n/catalogue-en.ts, src/lib/i18n/catalogue-id.ts, src/lib/i18n/keys.ts, src/operator/present/PresenterOperator.tsx, spa/src/App.tsx, tests/operator-i18n-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/12-wsd-h-12-feature-name-list-and-app-labels.md |
 
 ## Smoke Test Results
 
@@ -42,3 +43,4 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 - WSD-H-08 verification: PASS — `node --test tests/branding-svg-guard.test.mjs` (2/2 passed), `node --test tests/third-party-notices.test.mjs` (2/2 passed), `validate.py` green.
 - WSD-H-09 verification: PASS — `go test -v ./internal/db -run TestCleanBootstrap` (passed, 0 templates, SDAH & KJV seeded), `node --test tests/installer-corpora-staging.test.mjs` (3/3 passed), `validate.py` green.
 - WSD-H-11 verification: PASS — `node --test tests/attributions-guard.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-12 verification: PASS — `node --test tests/operator-i18n-guard.test.mjs` (4/4 passed), `node --test tests/i18n.test.mjs` (13/13 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.
