@@ -1474,6 +1474,25 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-066
+    type: mandate
+    status: applied
+    applied_at: '2026-09-24'
+    accepted_by: "kodesh87 (2026-09-24)"
+    title: Daily Autopilot mandate for Rundown Regex Sandbox Parity and Unmapped Lines Pruning (SPEC-72)
+    file: .control/decisions/DEC-066-daily-autopilot-mandate-rundown-regex-sandbox-parity-unmapped-lines-pruning.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-01'
+    touches:
+      - .control/memlog/autopilot-DEC-066.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

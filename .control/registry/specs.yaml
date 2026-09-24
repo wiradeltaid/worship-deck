@@ -3099,7 +3099,7 @@ waves:
   # Opened 2026-09-24 from user triage notes.
   # Rundown regex sandbox parity and unmapped lines pruning.
   - id: SPEC-72
-    status: open
+    status: closed
     release: rundown-regex-sandbox-parity-and-unmapped-lines-pruning
     prd: [operator-turn]
     fr: [FR-32, FR-36]
