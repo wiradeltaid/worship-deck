@@ -38,6 +38,10 @@ export interface ParsedSongCandidate {
   timing?: string | null;
 }
 
+/**
+ * @deprecated ParserProfileRules is retired per SPEC-70 in favor of dynamic predefined_fields and song_set_entries regexes.
+ * Retained for static built-in typing and golden fixture compatibility.
+ */
 export interface ParserProfileRules {
   schema_version: number;
   preprocess?: {
@@ -59,10 +63,6 @@ export interface ParserProfileRules {
     bracket_role?: string;
     colon_role?: string;
     clock_role?: string;
-  };
-  song_set_matching?: {
-    label_slots?: Array<{ label: string; target: string }>;
-    slot_family_prefix?: string;
   };
 }
 
@@ -359,6 +359,20 @@ function parseRoleLineWithProfile(
   return { role, name };
 }
 
+/**
+ * Static rundown parser (SPEC-70). Parses raw rundown text using static built-in liturgical patterns,
+ * completely decoupled from database parser profiles.
+ */
+export function parseRundownStatic(
+  rawText: string,
+  hymnLookup?: HymnLookupFn
+): ParsedRundown {
+  return parseRundownWithProfile(rawText, null, hymnLookup);
+}
+
+/**
+ * @deprecated Custom profile parsing is retired per SPEC-70. Retained as compatibility wrapper for golden fixture tests.
+ */
 export function parseRundownWithProfile(
   rawText: string,
   profileInput?: ParserProfileRules | null,
@@ -716,6 +730,7 @@ export function extractSongSetEntries(
     if (!varName || !regexPattern || !regexPattern.trim()) continue;
     try {
       const re = compileProfileRegex(regexPattern.trim());
+      let found = false;
       for (const line of lines) {
         const m = line.match(re);
         if (m) {
@@ -740,7 +755,37 @@ export function extractSongSetEntries(
                 lyricText: hymnInfo.lyrics,
                 incomplete: hymnInfo.incomplete,
               };
+              found = true;
               break;
+            }
+          }
+        }
+      }
+
+      if (!found) {
+        const m = rawText.match(re);
+        if (m) {
+          const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+          const bookStr = m.groups?.book || defaultBook;
+          if (numStr) {
+            const num = parseInt(numStr, 10);
+            if (num > 0) {
+              const bookCode = (bookStr || defaultBook).trim().toUpperCase();
+              let hymnInfo: { title: string; lyrics: string; incomplete?: boolean } = {
+                title: `${bookCode} ${num}`,
+                lyrics: '',
+                incomplete: true,
+              };
+              if (lookupHymnFn) {
+                hymnInfo = lookupHymnFn(num, bookCode);
+              }
+              suggestions[varName] = {
+                songNumber: num,
+                songBookCode: bookCode,
+                songTitle: hymnInfo.title,
+                lyricText: hymnInfo.lyrics,
+                incomplete: hymnInfo.incomplete,
+              };
             }
           }
         }

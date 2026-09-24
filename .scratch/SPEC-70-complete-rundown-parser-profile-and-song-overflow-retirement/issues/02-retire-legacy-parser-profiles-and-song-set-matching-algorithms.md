@@ -4,25 +4,25 @@
 
 **Blocked by:** 01 (retire-sandbox-parser-profile-and-song-overflow — implementation sequencing constraint to ensure frontend UI cleanups land before backend endpoints and legacy helper libraries are removed).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `internal/httpapi/server.go`, `internal/httpapi/parser_profiles.go`, `internal/parse/parser.go`, and `internal/parse/song_set_matching.go` in full.
-- [ ] In `internal/httpapi/`:
+- [x] Read `internal/httpapi/server.go`, `internal/httpapi/parser_profiles.go`, `internal/parse/parser.go`, and `internal/parse/song_set_matching.go` in full.
+- [x] In `internal/httpapi/`:
       (1) Remove `/api/parser-profiles` and `/api/admin/parser-profiles...` route registrations from `server.go`.
       (2) Remove or cleanly retire `parser_profiles.go` and `parser_profiles_test.go`.
       (3) Ensure `createServiceHandler`, `updateServiceHandler`, and `parseRundownHandler` gracefully ignore legacy/omitted `parserProfileId` parameters without throwing errors.
-- [ ] In `internal/parse/`:
+- [x] In `internal/parse/`:
       (1) Retire `song_set_matching.go` and `song_set_matching_test.go`.
       (2) In `parser.go`, replace dynamic database profile loading with a permanent static internal parser (`StaticDefaultParser`) that provides built-in date, section, and standard hymn book resolution (SDAH) without querying `rundown_parser_profiles`.
       (3) Remove obsolete profile unit tests that assert database profile customization.
-- [ ] In `src/lib/`:
+- [x] In `src/lib/`:
       (1) Clean up `src/lib/song-set-matching.ts` to remove `matchSongSets` and `songOverflow` types.
       (2) Clean up `src/lib/parser-rules.ts` and `src/lib/parser.ts` to remove obsolete profile-based matching in favor of dynamic regex matching.
-- [ ] In the method corpus:
+- [x] In the method corpus:
       (1) In `.control/registry/usecases.yaml`: Mark UC-30 as retired / superseded by UC-31 (Dynamic Form Layout, Predefined Fields, and Song Set Regex).
       (2) In `.what/hub/SRS-hub.md`: Update Actor Register and references to UC-30.
-      (3) In `.how/hub/SDD-hub.md`, `.how/hub/02-contracts/09-rundown-parser-profiles.md`, and `.how/hub/02-contracts/00-inventory.md`: Mark parser profile contracts as retired / historical.
-- [ ] Verify test suite passes cleanly:
+      (3) In `.how/hub/SDD-hub.md`, `.how/hub/02-contracts/09-rundown-parser-profiles.md`, `.how/hub/02-contracts/00-inventory.md`, and `.how/_platform/inventory-api.md`: Mark parser profile contracts as retired / historical.
+- [x] Verify test suite passes cleanly:
       (1) Run `go test ./...` in Go backend and verify all tests pass.
       (2) Run `npm test` and verify all tests pass.
       (3) Verify zero broken imports or references across the repository.

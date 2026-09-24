@@ -3,19 +3,22 @@ type: contract
 component: hub
 lc: LC-19
 direction: exposed
+status: retired
 created: '2026-09-22'
-updated: '2026-09-22'
+updated: '2026-09-24'
 ---
 
-# Contract — Rundown Parser Profiles
+# Contract — Rundown Parser Profiles [RETIRED]
+
+> **Historical / Retired Contract (SPEC-70):** Macro parser profiles and endpoints (`/api/admin/parser-profiles...`, `/api/parser-profiles`) have been retired. Intake parsing is governed by dynamic Predefined Field Regex (UC-31) and Song Set Entry Regex (SPEC-68).
 
 ## Source of truth
 
-`none`. `internal/httpapi/parser_profiles.go`, `src/lib/parser.ts`.
+`none`. Historical: `internal/httpapi/parser_profiles.go`, `src/lib/parser.ts`.
 
 ## Purpose
 
-UC-30. Admin authors named sets of extraction rules the Rundown parser applies; FR-36.
+UC-30 (retired; superseded by UC-31). Historical: Admin authors named sets of extraction rules the Rundown parser applies; FR-36.
 
 ## Operations
 

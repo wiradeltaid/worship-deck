@@ -1690,10 +1690,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -1704,10 +1704,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -1720,10 +1720,10 @@ rtm:
   - tests/dynamic-field-extraction.test.mjs
   - internal/parse/dynamic_extraction_test.go
   - internal/httpapi/services_field_values_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -4161,10 +4161,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -4175,10 +4175,10 @@ rtm:
   release: complete-rundown-parser-profile-and-song-overflow-retirement
   test:
   - tests/dynamic-field-extraction.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -4191,10 +4191,10 @@ rtm:
   - tests/dynamic-field-extraction.test.mjs
   - internal/parse/dynamic_extraction_test.go
   - internal/httpapi/services_field_values_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -6451,10 +6451,10 @@ rtm:
   - tests/dynamic-field-extraction.test.mjs
   - internal/parse/dynamic_extraction_test.go
   - internal/httpapi/services_field_values_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-32

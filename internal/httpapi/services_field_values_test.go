@@ -495,6 +495,52 @@ func TestServicesParserProfileIdOmittedAndNullHandling(t *testing.T) {
 	if profReverted != "builtin-default" {
 		t.Errorf("expected reverted parser_profile_id builtin-default, got %q", profReverted)
 	}
+
+	// 8. POST /api/services with explicit legacy parserProfileId string: must be ignored and persist builtin-default
+	createLegacy := `{"date": "2026-10-17", "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE", "parserProfileId": "custom-obsolete-profile", "allowSecond": true}`
+	res = songSetRequest(t, ts, "POST", "/api/services", createLegacy, cookie)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create service legacy parserProfileId status = %d, want 201", res.StatusCode)
+	}
+	var createdLegacy struct {
+		ID int `json:"id"`
+	}
+	_ = json.NewDecoder(res.Body).Decode(&createdLegacy)
+	res.Body.Close()
+
+	var profLegacy string
+	var profVerLegacy int
+	if err := handle.QueryRow(`SELECT parser_profile_id, parser_profile_version FROM services WHERE id = ?`, createdLegacy.ID).Scan(&profLegacy, &profVerLegacy); err != nil {
+		t.Fatalf("query parser_profile_id for createdLegacy: %v", err)
+	}
+	if profLegacy != "builtin-default" {
+		t.Errorf("expected legacy parserProfileId to be ignored and persist builtin-default, got %q", profLegacy)
+	}
+	if profVerLegacy != 1 {
+		t.Errorf("expected parser_profile_version 1 for createdLegacy, got %d", profVerLegacy)
+	}
+
+	// 9. PUT /api/services/{id} with explicit legacy parserProfileId string: must be ignored and persist builtin-default
+	var legacyUpdated string
+	_ = handle.QueryRow(`SELECT updated_at FROM services WHERE id = ?`, createdLegacy.ID).Scan(&legacyUpdated)
+	updateLegacy := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdate with legacy ID", "parserProfileId": "custom-obsolete-profile-2"}`, legacyUpdated)
+	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", createdLegacy.ID), updateLegacy, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("update service legacy parserProfileId status = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	var profLegacyAfterUpdate string
+	var profVerLegacyAfterUpdate int
+	if err := handle.QueryRow(`SELECT parser_profile_id, parser_profile_version FROM services WHERE id = ?`, createdLegacy.ID).Scan(&profLegacyAfterUpdate, &profVerLegacyAfterUpdate); err != nil {
+		t.Fatalf("query parser_profile_id after update: %v", err)
+	}
+	if profLegacyAfterUpdate != "builtin-default" {
+		t.Errorf("expected legacy parserProfileId on update to be ignored and persist builtin-default, got %q", profLegacyAfterUpdate)
+	}
+	if profVerLegacyAfterUpdate != 1 {
+		t.Errorf("expected parser_profile_version 1 after update, got %d", profVerLegacyAfterUpdate)
+	}
 }
 
 func TestServicesPreviewSongOverflowAndSlotsUnfilledEmptyArrayContract(t *testing.T) {
@@ -566,5 +612,53 @@ func TestServicesPreviewSongOverflowAndSlotsUnfilledEmptyArrayContract(t *testin
 	// Strictly assert songSlotsUnfilled is JSON array [] (not null)
 	if string(previewResp.SongSlotsUnfilled) != "[]" {
 		t.Errorf("expected songSlotsUnfilled to be strictly empty JSON array '[]', got %s", string(previewResp.SongSlotsUnfilled))
+	}
+}
+
+func TestSectionScopedSongSetExtractionHttp(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Configure section-scoped multiline dotall regexes in DB
+	_, _ = handle.Exec(`DELETE FROM song_set_entries`)
+	_, err := handle.Exec(`
+		INSERT INTO song_set_entries (global_id, variable_name, title, position, extraction_regex, updated_at)
+		VALUES
+			('019253c0-0000-7000-8000-000000000071', 'bt_opening_song', 'BT Opening Song', 1, ?, CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000072', 'ds_opening_song', 'DS Opening Song', 2, ?, CURRENT_TIMESTAMP)
+	`, `(?is)BIBLE\s+TALK.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`,
+		`(?is)DIVINE\s+SERVICE.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`)
+	if err != nil {
+		t.Fatalf("insert song_set_entries: %v", err)
+	}
+
+	multiSectionRundown := "SABBATH, OCTOBER 24, 2026\n\nBIBLE TALK (9:00 - 10:00)\nLeader: Leader One\n[ ] Opening song : SDAH #614 Sound the Battle Cry\n\nDIVINE SERVICE (10:00 - 12:00)\nLeader: Leader Two\n[ ] Opening Song : SDAH #508 Anywhere With Jesus\nSermon: Speaker Two\n"
+
+	payload := map[string]any{
+		"raw_payload": multiSectionRundown,
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	res := songSetRequest(t, ts, "POST", "/api/services/preview", string(bodyBytes), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("preview status = %d, want 200", res.StatusCode)
+	}
+	var previewResp struct {
+		SongSetSuggestions map[string]struct {
+			SongNumber   int    `json:"songNumber"`
+			SongBookCode string `json:"songBookCode"`
+			MatchKind    string `json:"matchKind"`
+		} `json:"songSetSuggestions"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&previewResp); err != nil {
+		t.Fatalf("decode preview response: %v", err)
+	}
+	res.Body.Close()
+
+	if previewResp.SongSetSuggestions["bt_opening_song"].SongNumber != 614 {
+		t.Errorf("expected bt_opening_song 614, got %d", previewResp.SongSetSuggestions["bt_opening_song"].SongNumber)
+	}
+	if previewResp.SongSetSuggestions["ds_opening_song"].SongNumber != 508 {
+		t.Errorf("expected ds_opening_song 508, got %d", previewResp.SongSetSuggestions["ds_opening_song"].SongNumber)
 	}
 }

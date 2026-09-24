@@ -43,6 +43,16 @@ type SongCandidate struct {
 	Timing     *string `json:"timing,omitempty"`
 }
 
+type SongSetSuggestion struct {
+	VariableName string `json:"variableName"`
+	SongNumber   int    `json:"songNumber"`
+	SongBookCode string `json:"songBookCode"`
+	Title        string `json:"title"`
+	Lyrics       string `json:"lyrics"`
+	SourceLine   string `json:"sourceLine,omitempty"`
+	MatchKind    string `json:"matchKind,omitempty"`
+}
+
 type Rundown struct {
 	Date                *string         `json:"date"`
 	Items               []Item          `json:"items"`
@@ -303,16 +313,12 @@ func ParseScriptureValue(raw string) *Scripture {
 }
 
 func ParseRundown(db *sql.DB, rawText string) Rundown {
-	profile, err := LoadDefaultParserProfile(db)
-	if err != nil || profile == nil {
-		profile = DefaultParserProfile()
-	}
-	return ParseRundownWithProfile(db, rawText, profile)
+	return ParseRundownWithProfile(db, rawText, StaticDefaultParser())
 }
 
 func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile) Rundown {
 	if profile == nil {
-		profile = DefaultParserProfile()
+		profile = StaticDefaultParser()
 	}
 	normalized := strings.ReplaceAll(strings.ReplaceAll(rawText, "\r\n", "\n"), "\r", "\n")
 	var lines []string
@@ -853,6 +859,7 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 	}
 
 	for _, p := range patterns {
+		found := false
 		for _, line := range lines {
 			if m := p.re.FindStringSubmatch(line); m != nil {
 				groups := extractNamedGroups(p.re, line)
@@ -874,22 +881,67 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 				}
 				if numStr != "" {
 					num, _ := strconv.Atoi(numStr)
-					bookCode := "SDAH"
-					if profile != nil {
-						bookCode = profile.ResolveBook(bookStr)
-					} else if bookStr != "" {
-						bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+					if num > 0 {
+						bookCode := "SDAH"
+						if profile != nil {
+							bookCode = profile.ResolveBook(bookStr)
+						} else if bookStr != "" {
+							bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+						}
+						title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
+						suggestions[p.variableName] = SongSetSuggestion{
+							VariableName: p.variableName,
+							SongNumber:   num,
+							SongBookCode: bookCode,
+							Title:        title,
+							Lyrics:       lyrics,
+							MatchKind:    "regex",
+						}
+						found = true
+						break
 					}
-					title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
-					suggestions[p.variableName] = SongSetSuggestion{
-						VariableName: p.variableName,
-						SongNumber:   num,
-						SongBookCode: bookCode,
-						Title:        title,
-						Lyrics:       lyrics,
-						MatchKind:    "regex",
+				}
+			}
+		}
+
+		if !found {
+			if m := p.re.FindStringSubmatch(rawText); m != nil {
+				groups := extractNamedGroups(p.re, rawText)
+				numStr := ""
+				bookStr := ""
+				if n, ok := groups["number"]; ok {
+					numStr = n
+				}
+				if b, ok := groups["book"]; ok {
+					bookStr = b
+				}
+				if numStr == "" && len(m) > 1 {
+					for _, sm := range m[1:] {
+						if _, err := strconv.Atoi(strings.TrimSpace(sm)); err == nil {
+							numStr = strings.TrimSpace(sm)
+							break
+						}
 					}
-					break
+				}
+				if numStr != "" {
+					num, _ := strconv.Atoi(numStr)
+					if num > 0 {
+						bookCode := "SDAH"
+						if profile != nil {
+							bookCode = profile.ResolveBook(bookStr)
+						} else if bookStr != "" {
+							bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+						}
+						title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
+						suggestions[p.variableName] = SongSetSuggestion{
+							VariableName: p.variableName,
+							SongNumber:   num,
+							SongBookCode: bookCode,
+							Title:        title,
+							Lyrics:       lyrics,
+							MatchKind:    "regex",
+						}
+					}
 				}
 			}
 		}

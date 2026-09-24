@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**64 decisions** — applied: 64.
+**65 decisions** — applied: 65.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -72,3 +72,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-062` | Daily Autopilot mandate for Presenter Raw Rundown Display & Dynamic Field Regex Consolidation (SPEC-67) | `applied` | mandate | `.control/memlog/autopilot-DEC-062.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-062-daily-autopilot-mandate-presenter-raw-rundown-and-field-regex.md` |
 | `DEC-063` | Daily Autopilot mandate for Song Set Regex Editing and Parser Profile Menu Removal (SPEC-68) | `applied` | mandate | `.control/memlog/autopilot-DEC-063.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-063-daily-autopilot-mandate-song-set-regex-and-parser-menu.md` |
 | `DEC-064` | Daily Autopilot mandate for Service Form Parser Profile Retirement and Song Overflow Removal (SPEC-69) | `applied` | mandate | `.control/memlog/autopilot-DEC-064.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-064-daily-autopilot-mandate-parser-profile-retirement-and-overflow-removal.md` |
+| `DEC-065` | Daily Autopilot mandate for Complete Rundown Parser Profile Retirement and Section-Scoped Song Set Extraction… | `applied` | mandate | `.control/memlog/autopilot-DEC-065.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-065-daily-autopilot-mandate-parser-profile-retirement-and-song-set-extraction.md` |

@@ -30,34 +30,30 @@ test('SPEC-44-02 & SPEC-44-03: Regex translation rejects lookarounds and transla
   assert.ok(regexGoSource.includes('jsNamedGroupRegex'), 'regex.go must translate named groups');
 });
 
-test('SPEC-44-04: Dynamic song sets 3-pass matching algorithm and omission contract', async () => {
-  const { matchSongSets } = await import('../src/lib/song-set-matching.ts');
+test('SPEC-44-04: Dynamic song sets regex extraction and omission contract (SPEC-70 retired matchSongSets)', async () => {
+  const songSetModule = await import('../src/lib/song-set-matching.ts');
+  const { extractSongSetEntries } = await import('../src/lib/parser-rules.ts');
+
+  // Verify matchSongSets is retired from song-set-matching.ts
+  assert.equal(typeof songSetModule.matchSongSets, 'undefined', 'matchSongSets must be retired per SPEC-70');
 
   const slots = [
-    { variableName: 'ds_opening_song', title: 'Opening Song', position: 1 },
-    { variableName: 'praise_song_1', title: 'Praise 1', position: 2 },
-    { variableName: 'praise_song_2', title: 'Praise 2', position: 3 },
-    { variableName: 'ds_closing_song', title: 'Closing Song', position: 4 },
+    { variableName: 'ds_opening_song', title: 'Opening Song', position: 1, extractionRegex: '(?i)Opening\\s*Song:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)' },
+    { variableName: 'praise_song_1', title: 'Praise 1', position: 2, extractionRegex: '(?i)Praise\\s*1:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)' },
+    { variableName: 'praise_song_2', title: 'Praise 2', position: 3, extractionRegex: '(?i)Praise\\s*2:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)' },
+    { variableName: 'ds_closing_song', title: 'Closing Song', position: 4, extractionRegex: '(?i)Closing\\s*Song:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)' },
   ];
 
-  const candidates = [
-    { line: 'Opening Song: SDAH 100', bookCode: 'SDAH', number: 100, title: 'Opening' },
-    { line: 'Praise 1: SDAH 159', bookCode: 'SDAH', number: 159, title: 'Praise One' },
-    { line: 'Closing Song: SDAH 1', bookCode: 'SDAH', number: 1, title: 'Closing' },
-  ];
+  const rawText = `Opening Song: SDAH 100\nPraise 1: SDAH 159\nClosing Song: SDAH 1`;
 
-  const result = matchSongSets(candidates, slots);
+  const suggestions = extractSongSetEntries(rawText, slots);
 
-  assert.equal(result.suggestions['ds_opening_song']?.songNumber, 100);
-  assert.equal(result.suggestions['ds_opening_song']?.matchKind, 'label');
-  assert.equal(result.suggestions['praise_song_1']?.songNumber, 159);
-  assert.equal(result.suggestions['praise_song_1']?.matchKind, 'positional');
-  assert.equal(result.suggestions['ds_closing_song']?.songNumber, 1);
-  assert.equal(result.suggestions['ds_closing_song']?.matchKind, 'label');
+  assert.equal(suggestions['ds_opening_song']?.songNumber, 100);
+  assert.equal(suggestions['praise_song_1']?.songNumber, 159);
+  assert.equal(suggestions['ds_closing_song']?.songNumber, 1);
 
   // praise_song_2 is unfilled and must be omitted
-  assert.deepEqual(result.songSlotsUnfilled, ['praise_song_2']);
-  assert.equal(result.suggestions['praise_song_2'], undefined);
+  assert.equal(suggestions['praise_song_2'], undefined);
 });
 
 test('SPEC-44-04: Executable Absence Guard & defect injection for slot omission', async () => {

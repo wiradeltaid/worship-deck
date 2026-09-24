@@ -28,7 +28,7 @@ Without Hub, the multimedia turn falls back to one person assembling files. This
 | --- | --- | --- |
 | Operator | Multimedia team | List, create, edit, generate, download, delete, Run-Sheet. **Not announcements** (FR-3 retired, DEC-004) |
 | Events | Later: Rundown sender on Telegram | Not a Hub user this phase |
-| Admin | Account and settings manager | Accounts, transitions, locale, Rundown parser profiles (UC-30), Service form fields and layout (UC-31) |
+| Admin | Account and settings manager | Accounts, transitions, locale, Service form fields and layout (UC-31; UC-30 parser profiles retired per SPEC-70) |
 
 ## UC Catalogue · [G3]
 

@@ -76,13 +76,6 @@ func (s *Server) postWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	profileID := db.BuiltinDefaultParserProfileID
 	profileVersion := 1
-	if p, err := parse.LoadDefaultParserProfile(s.DB); err == nil && p != nil {
-		profileID = p.ID
-		_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, p.ID).Scan(&profileVersion)
-		if profileVersion == 0 {
-			profileVersion = 1
-		}
-	}
 
 	tx, err := s.DB.Begin()
 	if err != nil {

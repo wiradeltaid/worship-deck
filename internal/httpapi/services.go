@@ -90,42 +90,9 @@ func (s *Server) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var profile *parse.ParserProfile
-	var profileID string
-	var profileVersion int
-	if pid, ok := body["parserProfileId"].(string); ok && strings.TrimSpace(pid) != "" {
-		p, err := parse.LoadParserProfileByID(s.DB, strings.TrimSpace(pid))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("parser profile %q not found", pid))
-			return
-		}
-		profile = p
-		profileID = p.ID
-	} else if pid, ok := body["parser_profile_id"].(string); ok && strings.TrimSpace(pid) != "" {
-		p, err := parse.LoadParserProfileByID(s.DB, strings.TrimSpace(pid))
-		if err != nil {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("parser profile %q not found", pid))
-			return
-		}
-		profile = p
-		profileID = p.ID
-	}
-	if profile == nil {
-		p, err := parse.LoadDefaultParserProfile(s.DB)
-		if err == nil {
-			profile = p
-			profileID = p.ID
-		} else {
-			profile = parse.DefaultParserProfile()
-			profileID = db.BuiltinDefaultParserProfileID
-		}
-	}
-	if profile != nil && profileID != "" {
-		_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, profileID).Scan(&profileVersion)
-		if profileVersion == 0 {
-			profileVersion = 1
-		}
-	}
+	profile := parse.StaticDefaultParser()
+	profileID := db.BuiltinDefaultParserProfileID
+	profileVersion := 1
 
 	parsed := parse.Normalize(parse.ParseRundownWithProfile(s.DB, rawPayload, profile))
 	if parse.HasStructuredFields(body) {
@@ -887,40 +854,9 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var profile *parse.ParserProfile
-	var profileID string
-	var profileVersion int
-	if pid, ok := body["parserProfileId"].(string); ok && strings.TrimSpace(pid) != "" {
-		profileID = strings.TrimSpace(pid)
-	} else if pid, ok := body["parser_profile_id"].(string); ok && strings.TrimSpace(pid) != "" {
-		profileID = strings.TrimSpace(pid)
-	}
-
-	if profileID != "" {
-		p, err := parse.LoadParserProfileByID(s.DB, profileID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("parser profile %q not found", profileID))
-			return
-		}
-		profile = p
-		profileID = p.ID
-		_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, p.ID).Scan(&profileVersion)
-		if profileVersion == 0 {
-			profileVersion = 1
-		}
-	}
-	if profile == nil {
-		p, err := parse.LoadDefaultParserProfile(s.DB)
-		if err == nil {
-			profile = p
-			profileID = p.ID
-			_ = s.DB.QueryRow(`SELECT version FROM rundown_parser_profiles WHERE id = ?`, p.ID).Scan(&profileVersion)
-		} else {
-			profile = parse.DefaultParserProfile()
-			profileID = db.BuiltinDefaultParserProfileID
-			profileVersion = 1
-		}
-	}
+	profile := parse.StaticDefaultParser()
+	profileID := db.BuiltinDefaultParserProfileID
+	profileVersion := 1
 
 	storedRaw := existing.raw.String
 	if rawPayload != nil {
@@ -1163,26 +1099,7 @@ func (s *Server) previewService(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "raw_payload is required")
 		return
 	}
-	var profile *parse.ParserProfile
-	if pid, ok := body["parserProfileId"].(string); ok && pid != "" {
-		p, err := parse.LoadParserProfileByID(s.DB, pid)
-		if err == nil {
-			profile = p
-		}
-	} else if pid, ok := body["parser_profile_id"].(string); ok && pid != "" {
-		p, err := parse.LoadParserProfileByID(s.DB, pid)
-		if err == nil {
-			profile = p
-		}
-	}
-	if profile == nil {
-		p, err := parse.LoadDefaultParserProfile(s.DB)
-		if err == nil {
-			profile = p
-		} else {
-			profile = parse.DefaultParserProfile()
-		}
-	}
+	profile := parse.StaticDefaultParser()
 
 	parsed := parse.Normalize(parse.ParseRundownWithProfile(s.DB, rawPayload, profile))
 	if parse.HasStructuredFields(body) {

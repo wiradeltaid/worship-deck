@@ -19,7 +19,7 @@ Following the consolidation of form intake onto dynamic Predefined Field Regex (
      SDAH #476 ("[  ] Closing Song : SDAH #476 "Burdens Are Lifted at Calvary"")
      ```
    - This misleads administrators into believing macro parser profiles and slot overflow limits still govern intake, when in reality intake is 100% driven by dynamic regex patterns configured on `predefined_fields` and `song_set_entries`.
-   - In addition, `src/components/admin/ParserProfilesPanel.tsx` remains in the tree as an unreferenced, orphaned component.
+   - In addition, `ParserProfilesPanel.tsx` remains in the tree as an unreferenced, orphaned component.
 
 2. **Obsolete Parser Profile Endpoints, Legacy Song Matching, and Persistence Dependencies in Backend and Client Libraries:**
    - In the Go backend, `internal/httpapi/parser_profiles.go` and routes in `server.go` (`GET /api/parser-profiles`, `/api/admin/parser-profiles...`) still expose macro profile CRUD surfaces.
@@ -37,7 +37,7 @@ Following the consolidation of form intake onto dynamic Predefined Field Regex (
      - Update `handleRunRundownTest` to evaluate song suggestions directly against `songSetEntries` using their dynamic `extraction_regex` (matching `internal/parse/parser.go:extractDynamicSongSetSuggestions` parity), with no calls to `parseRundownWithProfile` or `matchSongSets`.
      - Standardize `unmappedLines` semantics: a rundown line is marked mapped if it matches any active Predefined Field regex, any active Song Set Entry regex, or standard date/section delimiters. All remaining lines appear in `unmappedLines`.
      - Remove `overflowSongs` from `testResults` state and completely remove the amber warning box rendering `Lagu Melebihi Slot (Overflow Songs):`.
-   - Delete the orphaned `src/components/admin/ParserProfilesPanel.tsx` component.
+   - Delete the orphaned `ParserProfilesPanel.tsx` component.
    - Add an exhaustive absence-guard mutation matrix in smoke tests asserting that `FormLayoutAdminPanel.tsx` contains neither `defaultProfile`, `/api/parser-profiles`, nor `Lagu Melebihi Slot`, and that `ParserProfilesPanel.tsx` is deleted. Prove each guard via independent defect injection.
 
 2. **Retire Legacy Parser Profiles and Song Set Matching Across Backend, Client Libs, and Corpus:**
@@ -75,7 +75,7 @@ Following the consolidation of form intake onto dynamic Predefined Field Regex (
   - Standard Indonesian and English date patterns, section delimiters, and standard book codes (SDAH) remain supported natively without database queries.
   - Existing database table `rundown_parser_profiles` and columns `services.parser_profile_id` remain dormant for zero-data-loss database backward compatibility, but are no longer queried or mutated during intake.
 - **Clean Component Removal:**
-  - Delete `src/components/admin/ParserProfilesPanel.tsx` outright since it is completely unreferenced.
+  - Delete `ParserProfilesPanel.tsx` outright since it is completely unreferenced.
 - **Corpus Consistency:**
   - Mark UC-30 in `.control/registry/usecases.yaml` as retired / superseded by UC-31.
   - Update `SRS-hub.md`, `SDD-hub.md`, `09-rundown-parser-profiles.md`, and `00-inventory.md`.
@@ -86,7 +86,7 @@ Following the consolidation of form intake onto dynamic Predefined Field Regex (
   - Assert that `src/components/admin/FormLayoutAdminPanel.tsx` does not contain `Lagu Melebihi Slot` (proven by defect injection).
   - Assert that `src/components/admin/FormLayoutAdminPanel.tsx` does not contain `/api/parser-profiles` (proven by defect injection).
   - Assert that `src/components/admin/FormLayoutAdminPanel.tsx` does not contain `overflowSongs` (proven by defect injection).
-  - Assert that `src/components/admin/ParserProfilesPanel.tsx` does not exist on disk (proven by defect injection).
+  - Assert that `ParserProfilesPanel.tsx` does not exist on disk (proven by defect injection).
   - Assert that `internal/httpapi/server.go` does not register `/api/parser-profiles` routes.
 - **Sandbox Regression Tests:**
   - Provide a test fixture derived from the user's reported sample (containing SDAH #614, #316, #508, #671, #684, #476).

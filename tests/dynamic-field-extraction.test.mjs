@@ -361,4 +361,82 @@ Closing Song: SDAH #476`;
   assert.equal(suggestions.closing_song_ds?.songBookCode, 'SDAH');
 });
 
+test('SPEC-70-02: Backend parser profile routes and legacy song matching retired', async () => {
+  const serverGoPath = path.join(root, 'internal', 'httpapi', 'server.go');
+  const serverGoSource = fs.readFileSync(serverGoPath, 'utf8');
+
+  // 1. Assert absence of parser profile route registrations in server.go
+  assert.ok(!serverGoSource.includes('GET /api/parser-profiles'), 'server.go must NOT register GET /api/parser-profiles');
+  assert.ok(!serverGoSource.includes('GET /api/admin/parser-profiles'), 'server.go must NOT register GET /api/admin/parser-profiles');
+  assert.ok(!serverGoSource.includes('POST /api/admin/parser-profiles'), 'server.go must NOT register POST /api/admin/parser-profiles');
+  assert.ok(!serverGoSource.includes('deleteParserProfile'), 'server.go must NOT register deleteParserProfile');
+
+  // 2. Assert deleted Go files are absent from disk
+  const parserProfilesGoPath = path.join(root, 'internal', 'httpapi', 'parser_profiles.go');
+  const songSetMatchingGoPath = path.join(root, 'internal', 'parse', 'song_set_matching.go');
+
+  assert.ok(!fs.existsSync(parserProfilesGoPath), 'internal/httpapi/parser_profiles.go must be deleted');
+  assert.ok(!fs.existsSync(songSetMatchingGoPath), 'internal/parse/song_set_matching.go must be deleted');
+
+  // 3. Assert matchSongSets is retired from TypeScript
+  const songSetMatchingModule = await import('../src/lib/song-set-matching.ts');
+  assert.equal(typeof songSetMatchingModule.matchSongSets, 'undefined', 'matchSongSets must be undefined');
+});
+
+test('SPEC-71-01: Section-scoped multiline song set regex extraction with rawText fallback', () => {
+  const multiSectionRundown = `SABBATH, OCTOBER 24, 2026
+
+BIBLE TALK (9:00 - 10:00)
+Leader: Leader One
+[ ] Opening song : SDAH #614 Sound the Battle Cry
+Scripture Reading: Psalm 119:105
+[ ] Closing Song : SDAH #316 Lift Out Thy Life Within Me
+
+DIVINE SERVICE (10:00 - 12:00)
+Leader: Leader Two
+[ ] Opening Song : SDAH #508 "Anywhere With Jesus"
+Scripture: John 3:16
+[ ] Closing Song : SDAH #476 "Burdens Are Lifted at Calvary"
+Sermon: Speaker Two "The Blessed Hope"
+Closing Prayer: Elder One`;
+
+  const sectionEntries = [
+    {
+      variableName: 'bt_opening_song',
+      title: 'BT Opening Song',
+      extractionRegex: '(?is)BIBLE\\s+TALK.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'bt_closing_song',
+      title: 'BT Closing Song',
+      extractionRegex: '(?is)BIBLE\\s+TALK.*?Closing\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'ds_opening_song',
+      title: 'DS Opening Song',
+      extractionRegex: '(?is)DIVINE\\s+SERVICE.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'ds_closing_song',
+      title: 'DS Closing Song',
+      extractionRegex: '(?is)DIVINE\\s+SERVICE.*?Closing\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+  ];
+
+  const suggestions = extractSongSetEntries(multiSectionRundown, sectionEntries);
+
+  // Assert exact slot extractions across sections without collisions
+  assert.equal(suggestions.bt_opening_song?.songNumber, 614);
+  assert.equal(suggestions.bt_opening_song?.songBookCode, 'SDAH');
+
+  assert.equal(suggestions.bt_closing_song?.songNumber, 316);
+  assert.equal(suggestions.bt_closing_song?.songBookCode, 'SDAH');
+
+  assert.equal(suggestions.ds_opening_song?.songNumber, 508);
+  assert.equal(suggestions.ds_opening_song?.songBookCode, 'SDAH');
+
+  assert.equal(suggestions.ds_closing_song?.songNumber, 476);
+  assert.equal(suggestions.ds_closing_song?.songBookCode, 'SDAH');
+});
+
 
