@@ -730,6 +730,7 @@ export function extractSongSetEntries(
     if (!varName || !regexPattern || !regexPattern.trim()) continue;
     try {
       const re = compileProfileRegex(regexPattern.trim());
+      let found = false;
       for (const line of lines) {
         const m = line.match(re);
         if (m) {
@@ -754,7 +755,37 @@ export function extractSongSetEntries(
                 lyricText: hymnInfo.lyrics,
                 incomplete: hymnInfo.incomplete,
               };
+              found = true;
               break;
+            }
+          }
+        }
+      }
+
+      if (!found) {
+        const m = rawText.match(re);
+        if (m) {
+          const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+          const bookStr = m.groups?.book || defaultBook;
+          if (numStr) {
+            const num = parseInt(numStr, 10);
+            if (num > 0) {
+              const bookCode = (bookStr || defaultBook).trim().toUpperCase();
+              let hymnInfo: { title: string; lyrics: string; incomplete?: boolean } = {
+                title: `${bookCode} ${num}`,
+                lyrics: '',
+                incomplete: true,
+              };
+              if (lookupHymnFn) {
+                hymnInfo = lookupHymnFn(num, bookCode);
+              }
+              suggestions[varName] = {
+                songNumber: num,
+                songBookCode: bookCode,
+                songTitle: hymnInfo.title,
+                lyricText: hymnInfo.lyrics,
+                incomplete: hymnInfo.incomplete,
+              };
             }
           }
         }

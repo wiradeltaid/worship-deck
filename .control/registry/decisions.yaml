@@ -1457,7 +1457,8 @@ decisions:
       - .scratch/
   - id: DEC-065
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-24'
     accepted_by: "kodesh87 (2026-09-24)"
     title: Daily Autopilot mandate for Complete Rundown Parser Profile Retirement and Section-Scoped Song Set Extraction (SPEC-70, SPEC-71)
     file: .control/decisions/DEC-065-daily-autopilot-mandate-parser-profile-retirement-and-song-set-extraction.md

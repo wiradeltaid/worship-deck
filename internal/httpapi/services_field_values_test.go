@@ -614,3 +614,51 @@ func TestServicesPreviewSongOverflowAndSlotsUnfilledEmptyArrayContract(t *testin
 		t.Errorf("expected songSlotsUnfilled to be strictly empty JSON array '[]', got %s", string(previewResp.SongSlotsUnfilled))
 	}
 }
+
+func TestSectionScopedSongSetExtractionHttp(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Configure section-scoped multiline dotall regexes in DB
+	_, _ = handle.Exec(`DELETE FROM song_set_entries`)
+	_, err := handle.Exec(`
+		INSERT INTO song_set_entries (global_id, variable_name, title, position, extraction_regex, updated_at)
+		VALUES
+			('019253c0-0000-7000-8000-000000000071', 'bt_opening_song', 'BT Opening Song', 1, ?, CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000072', 'ds_opening_song', 'DS Opening Song', 2, ?, CURRENT_TIMESTAMP)
+	`, `(?is)BIBLE\s+TALK.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`,
+		`(?is)DIVINE\s+SERVICE.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`)
+	if err != nil {
+		t.Fatalf("insert song_set_entries: %v", err)
+	}
+
+	multiSectionRundown := "SABBATH, OCTOBER 24, 2026\n\nBIBLE TALK (9:00 - 10:00)\nLeader: Leader One\n[ ] Opening song : SDAH #614 Sound the Battle Cry\n\nDIVINE SERVICE (10:00 - 12:00)\nLeader: Leader Two\n[ ] Opening Song : SDAH #508 Anywhere With Jesus\nSermon: Speaker Two\n"
+
+	payload := map[string]any{
+		"raw_payload": multiSectionRundown,
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	res := songSetRequest(t, ts, "POST", "/api/services/preview", string(bodyBytes), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("preview status = %d, want 200", res.StatusCode)
+	}
+	var previewResp struct {
+		SongSetSuggestions map[string]struct {
+			SongNumber   int    `json:"songNumber"`
+			SongBookCode string `json:"songBookCode"`
+			MatchKind    string `json:"matchKind"`
+		} `json:"songSetSuggestions"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&previewResp); err != nil {
+		t.Fatalf("decode preview response: %v", err)
+	}
+	res.Body.Close()
+
+	if previewResp.SongSetSuggestions["bt_opening_song"].SongNumber != 614 {
+		t.Errorf("expected bt_opening_song 614, got %d", previewResp.SongSetSuggestions["bt_opening_song"].SongNumber)
+	}
+	if previewResp.SongSetSuggestions["ds_opening_song"].SongNumber != 508 {
+		t.Errorf("expected ds_opening_song 508, got %d", previewResp.SongSetSuggestions["ds_opening_song"].SongNumber)
+	}
+}

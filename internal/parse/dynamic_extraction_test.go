@@ -80,3 +80,71 @@ Closing Prayer: Deacon Michael
 		t.Errorf("expected songBookCode = 'SDAH', got %v", introit.SongBookCode)
 	}
 }
+
+func TestSectionScopedSongSetExtraction(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "section_parse.db")
+	handle, err := db.Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer handle.Close()
+
+	if err := db.Bootstrap(handle, "../../"); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+
+	// Insert song set entries with section-scoped multiline regexes using (?is) dotall
+	_, err = handle.Exec(`
+		INSERT INTO song_set_entries (global_id, variable_name, title, position, extraction_regex, updated_at)
+		VALUES
+			('019253c0-0000-7000-8000-000000000071', 'bt_opening_song', 'BT Opening Song', 1, ?, CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000072', 'ds_opening_song', 'DS Opening Song', 2, ?, CURRENT_TIMESTAMP)
+	`, `(?is)BIBLE\s+TALK.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`,
+		`(?is)DIVINE\s+SERVICE.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`)
+	if err != nil {
+		t.Fatalf("insert song set entries: %v", err)
+	}
+
+	// Synthetic multi-section bulletin with identical local line labels
+	rawBulletin := `SABBATH, OCTOBER 24, 2026
+
+BIBLE TALK (9:00 - 10:00)
+Leader: Leader One
+[ ] Opening song : SDAH #614 Sound the Battle Cry
+Scripture: Psalm 119:105
+
+DIVINE SERVICE (10:00 - 12:00)
+Leader: Leader Two
+[ ] Opening Song : SDAH #508 "Anywhere With Jesus"
+Sermon: Speaker Two "The Blessed Hope"
+Closing Prayer: Elder One
+`
+
+	parsed := ParseRundown(handle, rawBulletin)
+
+	if parsed.SongSetSuggestions == nil {
+		t.Fatalf("expected non-nil SongSetSuggestions")
+	}
+
+	btSong, ok := parsed.SongSetSuggestions["bt_opening_song"]
+	if !ok {
+		t.Fatalf("missing bt_opening_song in SongSetSuggestions")
+	}
+	if btSong.SongNumber != 614 {
+		t.Errorf("expected bt_opening_song number = 614, got %v", btSong.SongNumber)
+	}
+	if btSong.SongBookCode != "SDAH" {
+		t.Errorf("expected bt_opening_song book = 'SDAH', got %v", btSong.SongBookCode)
+	}
+
+	dsSong, ok := parsed.SongSetSuggestions["ds_opening_song"]
+	if !ok {
+		t.Fatalf("missing ds_opening_song in SongSetSuggestions")
+	}
+	if dsSong.SongNumber != 508 {
+		t.Errorf("expected ds_opening_song number = 508, got %v", dsSong.SongNumber)
+	}
+	if dsSong.SongBookCode != "SDAH" {
+		t.Errorf("expected ds_opening_song book = 'SDAH', got %v", dsSong.SongBookCode)
+	}
+}

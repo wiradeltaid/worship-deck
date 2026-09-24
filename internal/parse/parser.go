@@ -859,6 +859,7 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 	}
 
 	for _, p := range patterns {
+		found := false
 		for _, line := range lines {
 			if m := p.re.FindStringSubmatch(line); m != nil {
 				groups := extractNamedGroups(p.re, line)
@@ -880,22 +881,67 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 				}
 				if numStr != "" {
 					num, _ := strconv.Atoi(numStr)
-					bookCode := "SDAH"
-					if profile != nil {
-						bookCode = profile.ResolveBook(bookStr)
-					} else if bookStr != "" {
-						bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+					if num > 0 {
+						bookCode := "SDAH"
+						if profile != nil {
+							bookCode = profile.ResolveBook(bookStr)
+						} else if bookStr != "" {
+							bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+						}
+						title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
+						suggestions[p.variableName] = SongSetSuggestion{
+							VariableName: p.variableName,
+							SongNumber:   num,
+							SongBookCode: bookCode,
+							Title:        title,
+							Lyrics:       lyrics,
+							MatchKind:    "regex",
+						}
+						found = true
+						break
 					}
-					title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
-					suggestions[p.variableName] = SongSetSuggestion{
-						VariableName: p.variableName,
-						SongNumber:   num,
-						SongBookCode: bookCode,
-						Title:        title,
-						Lyrics:       lyrics,
-						MatchKind:    "regex",
+				}
+			}
+		}
+
+		if !found {
+			if m := p.re.FindStringSubmatch(rawText); m != nil {
+				groups := extractNamedGroups(p.re, rawText)
+				numStr := ""
+				bookStr := ""
+				if n, ok := groups["number"]; ok {
+					numStr = n
+				}
+				if b, ok := groups["book"]; ok {
+					bookStr = b
+				}
+				if numStr == "" && len(m) > 1 {
+					for _, sm := range m[1:] {
+						if _, err := strconv.Atoi(strings.TrimSpace(sm)); err == nil {
+							numStr = strings.TrimSpace(sm)
+							break
+						}
 					}
-					break
+				}
+				if numStr != "" {
+					num, _ := strconv.Atoi(numStr)
+					if num > 0 {
+						bookCode := "SDAH"
+						if profile != nil {
+							bookCode = profile.ResolveBook(bookStr)
+						} else if bookStr != "" {
+							bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
+						}
+						title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
+						suggestions[p.variableName] = SongSetSuggestion{
+							VariableName: p.variableName,
+							SongNumber:   num,
+							SongBookCode: bookCode,
+							Title:        title,
+							Lyrics:       lyrics,
+							MatchKind:    "regex",
+						}
+					}
 				}
 			}
 		}

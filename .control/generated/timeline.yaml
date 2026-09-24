@@ -1,4 +1,4 @@
-asof: '2026-09-23'
+asof: '2026-09-24'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -31,6 +31,9 @@ capabilities:
     - SPEC-68-02
     - SPEC-69-01
     - SPEC-69-02
+    - SPEC-70-01
+    - SPEC-70-02
+    - SPEC-71-01
     - W10-01
     - W10-02
     actual_start: '2026-09-18'
@@ -51,6 +54,9 @@ capabilities:
     - SPEC-68-02
     - SPEC-69-01
     - SPEC-69-02
+    - SPEC-70-01
+    - SPEC-70-02
+    - SPEC-71-01
     - W10-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -351,10 +357,11 @@ capabilities:
   - id: FR-32
     text: Weekly song inputs on the Hub form match the configured song-set list
     tickets:
+    - SPEC-71-01
     - W8-08
     actual_start: '2026-09-18'
-    actual_end: '2026-09-18'
-    state: done
+    actual_end: ''
+    state: in-progress
   - id: FR-34
     text: Operator edits a song's lyrics for this Service only, with an explicit action to save them back
       to the Song Book

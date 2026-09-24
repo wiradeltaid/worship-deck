@@ -583,6 +583,7 @@ export function FormLayoutAdminPanel() {
         };
       }
 
+      let found = false;
       try {
         const re = compileProfileRegex(regexPattern.trim());
         for (let idx = 0; idx < rawLines.length; idx++) {
@@ -596,6 +597,28 @@ export function FormLayoutAdminPanel() {
               const num = parseInt(numStr, 10);
               if (num > 0) {
                 mappedIndices.add(idx);
+                found = true;
+                return {
+                  slotVariable: varName,
+                  title: entry.title,
+                  songNumber: num,
+                  songBookCode: bookStr.trim().toUpperCase(),
+                  matchKind: 'dynamic_regex',
+                  status: 'matched' as const,
+                };
+              }
+            }
+          }
+        }
+
+        if (!found) {
+          const m = testRundownText.match(re);
+          if (m) {
+            const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+            const bookStr = m.groups?.book || 'SDAH';
+            if (numStr) {
+              const num = parseInt(numStr, 10);
+              if (num > 0) {
                 return {
                   slotVariable: varName,
                   title: entry.title,

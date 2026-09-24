@@ -3073,7 +3073,7 @@ waves:
   # Opened 2026-09-24 from user triage notes.
   # Section-scoped multiline song set regex extraction.
   - id: SPEC-71
-    status: open
+    status: closed
     release: section-scoped-multiline-song-set-regex-extraction
     prd: [operator-turn]
     fr: [FR-32, FR-36]

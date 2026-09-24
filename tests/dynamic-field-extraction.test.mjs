@@ -383,4 +383,60 @@ test('SPEC-70-02: Backend parser profile routes and legacy song matching retired
   assert.equal(typeof songSetMatchingModule.matchSongSets, 'undefined', 'matchSongSets must be undefined');
 });
 
+test('SPEC-71-01: Section-scoped multiline song set regex extraction with rawText fallback', () => {
+  const multiSectionRundown = `SABBATH, OCTOBER 24, 2026
+
+BIBLE TALK (9:00 - 10:00)
+Leader: Leader One
+[ ] Opening song : SDAH #614 Sound the Battle Cry
+Scripture Reading: Psalm 119:105
+[ ] Closing Song : SDAH #316 Lift Out Thy Life Within Me
+
+DIVINE SERVICE (10:00 - 12:00)
+Leader: Leader Two
+[ ] Opening Song : SDAH #508 "Anywhere With Jesus"
+Scripture: John 3:16
+[ ] Closing Song : SDAH #476 "Burdens Are Lifted at Calvary"
+Sermon: Speaker Two "The Blessed Hope"
+Closing Prayer: Elder One`;
+
+  const sectionEntries = [
+    {
+      variableName: 'bt_opening_song',
+      title: 'BT Opening Song',
+      extractionRegex: '(?is)BIBLE\\s+TALK.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'bt_closing_song',
+      title: 'BT Closing Song',
+      extractionRegex: '(?is)BIBLE\\s+TALK.*?Closing\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'ds_opening_song',
+      title: 'DS Opening Song',
+      extractionRegex: '(?is)DIVINE\\s+SERVICE.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'ds_closing_song',
+      title: 'DS Closing Song',
+      extractionRegex: '(?is)DIVINE\\s+SERVICE.*?Closing\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+  ];
+
+  const suggestions = extractSongSetEntries(multiSectionRundown, sectionEntries);
+
+  // Assert exact slot extractions across sections without collisions
+  assert.equal(suggestions.bt_opening_song?.songNumber, 614);
+  assert.equal(suggestions.bt_opening_song?.songBookCode, 'SDAH');
+
+  assert.equal(suggestions.bt_closing_song?.songNumber, 316);
+  assert.equal(suggestions.bt_closing_song?.songBookCode, 'SDAH');
+
+  assert.equal(suggestions.ds_opening_song?.songNumber, 508);
+  assert.equal(suggestions.ds_opening_song?.songBookCode, 'SDAH');
+
+  assert.equal(suggestions.ds_closing_song?.songNumber, 476);
+  assert.equal(suggestions.ds_closing_song?.songBookCode, 'SDAH');
+});
+
 
