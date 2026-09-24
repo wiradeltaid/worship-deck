@@ -321,6 +321,7 @@ func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile)
 		profile = StaticDefaultParser()
 	}
 	normalized := strings.ReplaceAll(strings.ReplaceAll(rawText, "\r\n", "\n"), "\r", "\n")
+	normalized = strings.ReplaceAll(normalized, " ", " ")
 	var lines []string
 	for _, l := range strings.Split(normalized, "\n") {
 		l = strings.TrimSpace(l)
@@ -587,8 +588,54 @@ func ParseRundownWithProfile(db *sql.DB, rawText string, profile *ParserProfile)
 		}
 	}
 
-	parsed.FieldSuggestions = extractDynamicFieldSuggestions(db, lines, rawText)
-	parsed.SongSetSuggestions = extractDynamicSongSetSuggestions(db, lines, rawText, profile)
+	parsed.FieldSuggestions = extractDynamicFieldSuggestions(db, lines, normalized)
+	parsed.SongSetSuggestions = extractDynamicSongSetSuggestions(db, lines, normalized, profile)
+
+	// Reconcile unmapped lines: prune lines captured by dynamic predefined fields or dynamic song sets (SPEC-72)
+	if len(parsed.UnmappedLines) > 0 {
+		var prunedUnmapped []string
+		for _, rawLine := range parsed.UnmappedLines {
+			trimmed := strings.TrimSpace(rawLine)
+			if trimmed == "" {
+				continue
+			}
+			captured := false
+
+			// Check against exact SourceLine or domain-specific song pattern
+			for _, sug := range parsed.SongSetSuggestions {
+				if sug.SourceLine != "" && (trimmed == sug.SourceLine || strings.Contains(trimmed, sug.SourceLine)) {
+					captured = true
+					break
+				}
+				if sug.SongNumber > 0 {
+					numStr := strconv.Itoa(sug.SongNumber)
+					songPattern := regexp.MustCompile(`(?i)(?:opening|closing|scripture|hymn|praise|introit|song|sdah|lagu)\b.*?(?:#|\b)` + regexp.QuoteMeta(numStr) + `\b`)
+					if songPattern.MatchString(trimmed) {
+						captured = true
+						break
+					}
+				}
+			}
+
+			// Check if line contains a captured predefined field value
+			if !captured {
+				for _, val := range parsed.FieldSuggestions {
+					valTrimmed := strings.TrimSpace(val)
+					if len(valTrimmed) >= 3 {
+						if trimmed == valTrimmed || strings.HasSuffix(trimmed, valTrimmed) || strings.Contains(trimmed, ": "+valTrimmed) || strings.Contains(trimmed, ":\t"+valTrimmed) {
+							captured = true
+							break
+						}
+					}
+				}
+			}
+
+			if !captured {
+				prunedUnmapped = append(prunedUnmapped, rawLine)
+			}
+		}
+		parsed.UnmappedLines = prunedUnmapped
+	}
 
 	// Sync dynamic field suggestions into legacy parsed fields if missing
 	if ref, ok := parsed.FieldSuggestions["scripture_reference"]; ok && ref != "" {
@@ -895,6 +942,7 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 							SongBookCode: bookCode,
 							Title:        title,
 							Lyrics:       lyrics,
+							SourceLine:   line,
 							MatchKind:    "regex",
 						}
 						found = true
@@ -905,7 +953,9 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 		}
 
 		if !found {
-			if m := p.re.FindStringSubmatch(rawText); m != nil {
+			submatches := p.re.FindStringSubmatchIndex(rawText)
+			if submatches != nil {
+				m := p.re.FindStringSubmatch(rawText)
 				groups := extractNamedGroups(p.re, rawText)
 				numStr := ""
 				bookStr := ""
@@ -933,12 +983,33 @@ func extractDynamicSongSetSuggestions(db *sql.DB, lines []string, rawText string
 							bookCode = strings.ToUpper(strings.TrimSpace(bookStr))
 						}
 						title, lyrics, _ := LookupHymnInBook(db, bookCode, num)
+
+						captureStart := submatches[0]
+						numIdx := p.re.SubexpIndex("number")
+						if numIdx > 0 && 2*numIdx < len(submatches) && submatches[2*numIdx] >= 0 {
+							captureStart = submatches[2*numIdx]
+						}
+						lineStart := strings.LastIndex(rawText[:captureStart], "\n")
+						if lineStart == -1 {
+							lineStart = 0
+						} else {
+							lineStart += 1
+						}
+						lineEndRel := strings.Index(rawText[captureStart:], "\n")
+						var sourceLine string
+						if lineEndRel == -1 {
+							sourceLine = strings.TrimSpace(rawText[lineStart:])
+						} else {
+							sourceLine = strings.TrimSpace(rawText[lineStart : captureStart+lineEndRel])
+						}
+
 						suggestions[p.variableName] = SongSetSuggestion{
 							VariableName: p.variableName,
 							SongNumber:   num,
 							SongBookCode: bookCode,
 							Title:        title,
 							Lyrics:       lyrics,
+							SourceLine:   sourceLine,
 							MatchKind:    "regex",
 						}
 					}

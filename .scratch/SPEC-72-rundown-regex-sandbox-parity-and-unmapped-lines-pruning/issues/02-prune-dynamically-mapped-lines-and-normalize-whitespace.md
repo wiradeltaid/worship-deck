@@ -19,18 +19,18 @@
 
 **Blocked by:** 01-sandbox-multiline-regex-evaluation-parity (implementation sequencing constraint: frontend sandbox mapped lines tracking lands first before backend unmapped lines reconciliation).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `internal/parse/parser.go`, `src/lib/parser-rules.ts`, and `internal/httpapi/services.go` in full.
-- [ ] In `internal/parse/parser.go`:
+- [x] Read `internal/parse/parser.go`, `src/lib/parser-rules.ts`, and `internal/httpapi/services.go` in full.
+- [x] In `internal/parse/parser.go`:
       (1) Normalize ` ` to ASCII space in `normalized` and use single normalized string across all extraction paths.
       (2) In `ParseRundownWithProfile`, reconcile `parsed.UnmappedLines` against lines captured by dynamic fields and dynamic song sets.
-- [ ] In `src/lib/parser-rules.ts`:
+- [x] In `src/lib/parser-rules.ts`:
       (1) Normalize ` ` to ASCII space in `normalizeNewlines`.
       (2) Export `reconcileDynamicUnmappedLines` to prune lines captured by dynamic fields and song set entries in UI forms.
-- [ ] Add Go unit tests in `internal/parse/dynamic_extraction_test.go`:
+- [x] Add Go unit tests in `internal/parse/dynamic_extraction_test.go`:
       (1) Verify `parsed.UnmappedLines` does not contain lines matched by dynamic song set regexes.
       (2) Verify bulletin text containing non-breaking spaces ` ` parses correctly.
-- [ ] Add Go HTTP API test in `internal/httpapi/services_field_values_test.go`:
+- [x] Add Go HTTP API test in `internal/httpapi/services_field_values_test.go`:
       (1) Verify `unmappedLines` in `POST /api/services/preview` response excludes matched dynamic song slots.
-- [ ] Run `npm test` and `go test ./...` verifying zero regressions.
+- [x] Run `npm test` and `go test ./...` verifying zero regressions.

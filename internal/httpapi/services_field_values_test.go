@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -660,5 +661,129 @@ func TestSectionScopedSongSetExtractionHttp(t *testing.T) {
 	}
 	if previewResp.SongSetSuggestions["ds_opening_song"].SongNumber != 508 {
 		t.Errorf("expected ds_opening_song 508, got %d", previewResp.SongSetSuggestions["ds_opening_song"].SongNumber)
+	}
+}
+
+func TestServicesPreviewUnmappedLinesPruning(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// Configure predefined field and section-scoped multiline dotall regexes in DB
+	_, _ = handle.Exec(`DELETE FROM song_set_entries`)
+	_, _ = handle.Exec(`DELETE FROM predefined_fields WHERE variable_name = 'offertory_person'`)
+
+	_, err := handle.Exec(`
+		INSERT INTO predefined_fields (
+			id, variable_name, shown_text, field_type, extraction_regex, is_system, is_active
+		) VALUES (
+			'field-offertory-test', 'offertory_person', 'Offertory Person', 'text', '(?i)^Offertory\s*[:\-]\s*(?<value>.*)$', 0, 1
+		)
+	`)
+	if err != nil {
+		t.Fatalf("insert predefined_field: %v", err)
+	}
+
+	_, err = handle.Exec(`
+		INSERT INTO song_set_entries (global_id, variable_name, title, position, extraction_regex, updated_at)
+		VALUES
+			('019253c0-0000-7000-8000-000000000071', 'bt_opening_song', 'BT Opening Song', 1, ?, CURRENT_TIMESTAMP),
+			('019253c0-0000-7000-8000-000000000072', 'ds_opening_song', 'DS Opening Song', 2, ?, CURRENT_TIMESTAMP)
+	`, `(?is)BIBLE\s+TALK.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`,
+		`(?is)DIVINE\s+SERVICE.*?Opening\s+[Ss]ong\s*:\s*(?:(?<book>[A-Za-z]+)\s*)?#?\s*(?<number>\d+)`)
+	if err != nil {
+		t.Fatalf("insert song_set_entries: %v", err)
+	}
+
+	// Multi-section rundown with non-breaking spaces ( ), matched songs/fields, and adversarial collision lines
+	multiSectionRundown := "SABBATH, OCTOBER 24, 2026\n\n" +
+		"BIBLE TALK (9:00 - 10:00)\n" +
+		"Leader: Leader One\n" +
+		"Attendance 614 in Bible Talk\n" +
+		"Announcements and Visitor Greetings\n" +
+		"[ ] Opening song : SDAH #614 Sound the Battle Cry\n\n" +
+		"DIVINE SERVICE (10:00 - 12:00)\n" +
+		"Leader: Leader Two\n" +
+		"Offertory: Elder John Smith\n" +
+		"Room 508 for Prayer Meeting\n" +
+		"Notes referencing Elder John Smith about audio\n" +
+		"[ ] Opening Song : SDAH #508 Anywhere With Jesus\n" +
+		"Sermon: Speaker Two\n"
+
+	payload := map[string]any{
+		"raw_payload": multiSectionRundown,
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	res := songSetRequest(t, ts, "POST", "/api/services/preview", string(bodyBytes), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("preview status = %d, want 200", res.StatusCode)
+	}
+	var previewResp struct {
+		FieldSuggestions    map[string]string `json:"fieldSuggestions"`
+		SongSetSuggestions map[string]struct {
+			SongNumber int `json:"songNumber"`
+		} `json:"songSetSuggestions"`
+		UnmappedLines []string `json:"unmappedLines"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&previewResp); err != nil {
+		t.Fatalf("decode preview response: %v", err)
+	}
+	res.Body.Close()
+
+	// Verify field and song extractions
+	if previewResp.FieldSuggestions["offertory_person"] != "Elder John Smith" {
+		t.Errorf("expected offertory_person 'Elder John Smith', got %q", previewResp.FieldSuggestions["offertory_person"])
+	}
+	if previewResp.SongSetSuggestions["bt_opening_song"].SongNumber != 614 {
+		t.Errorf("expected bt_opening_song 614, got %d", previewResp.SongSetSuggestions["bt_opening_song"].SongNumber)
+	}
+	if previewResp.SongSetSuggestions["ds_opening_song"].SongNumber != 508 {
+		t.Errorf("expected ds_opening_song 508, got %d", previewResp.SongSetSuggestions["ds_opening_song"].SongNumber)
+	}
+
+	// Assert matched song lines and target field line are pruned
+	for _, line := range previewResp.UnmappedLines {
+		if strings.Contains(line, "Opening song") && strings.Contains(line, "#614") {
+			t.Errorf("unmappedLines must NOT contain target hymn #614 line: %q", line)
+		}
+		if strings.Contains(line, "Opening Song") && strings.Contains(line, "#508") {
+			t.Errorf("unmappedLines must NOT contain target hymn #508 line: %q", line)
+		}
+		if strings.HasPrefix(line, "Offertory: Elder John Smith") {
+			t.Errorf("unmappedLines must NOT contain target Offertory line: %q", line)
+		}
+	}
+
+	// Assert adversarial collision lines and announcements remain unmapped
+	hasAttendance614 := false
+	hasRoom508 := false
+	hasNotesElder := false
+	hasAnnouncements := false
+	for _, line := range previewResp.UnmappedLines {
+		if strings.Contains(line, "Attendance 614") {
+			hasAttendance614 = true
+		}
+		if strings.Contains(line, "Room 508") {
+			hasRoom508 = true
+		}
+		if strings.Contains(line, "Notes referencing Elder John Smith") {
+			hasNotesElder = true
+		}
+		if strings.Contains(line, "Announcements and Visitor Greetings") {
+			hasAnnouncements = true
+		}
+	}
+
+	if !hasAttendance614 {
+		t.Errorf("expected adversarial line 'Attendance 614' to remain in unmappedLines, got: %v", previewResp.UnmappedLines)
+	}
+	if !hasRoom508 {
+		t.Errorf("expected adversarial line 'Room 508' to remain in unmappedLines, got: %v", previewResp.UnmappedLines)
+	}
+	if !hasNotesElder {
+		t.Errorf("expected adversarial line 'Notes referencing Elder John Smith' to remain in unmappedLines, got: %v", previewResp.UnmappedLines)
+	}
+	if !hasAnnouncements {
+		t.Errorf("expected 'Announcements and Visitor Greetings' in unmappedLines, got: %v", previewResp.UnmappedLines)
 	}
 }

@@ -1736,10 +1736,10 @@ rtm:
   - tests/dynamic-field-extraction.test.mjs
   - internal/parse/dynamic_extraction_test.go
   - internal/httpapi/services_field_values_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -4223,10 +4223,10 @@ rtm:
   - tests/dynamic-field-extraction.test.mjs
   - internal/parse/dynamic_extraction_test.go
   - internal/httpapi/services_field_values_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-27
@@ -6659,10 +6659,10 @@ rtm:
   test:
   - tests/dynamic-field-extraction.test.mjs
   - tests/smoke-spec-54.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-37
@@ -6675,10 +6675,10 @@ rtm:
   - tests/dynamic-field-extraction.test.mjs
   - internal/parse/dynamic_extraction_test.go
   - internal/httpapi/services_field_values_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38

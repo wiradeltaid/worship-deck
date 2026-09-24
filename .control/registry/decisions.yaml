@@ -1476,7 +1476,8 @@ decisions:
       - .scratch/
   - id: DEC-066
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-24'
     accepted_by: "kodesh87 (2026-09-24)"
     title: Daily Autopilot mandate for Rundown Regex Sandbox Parity and Unmapped Lines Pruning (SPEC-72)
     file: .control/decisions/DEC-066-daily-autopilot-mandate-rundown-regex-sandbox-parity-unmapped-lines-pruning.md

@@ -114,11 +114,15 @@ export function compileProfileRegex(pattern: string, flagsArr?: string[]): RegEx
     }
     return '';
   });
+  flags.add('d');
   return new RegExp(pat, Array.from(flags).join(''));
 }
 
-function normalizeNewlines(text: string): string {
-  return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+export function normalizeNewlines(text: string): string {
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/ /g, ' ');
 }
 
 function parseCalendarDate(rawDate: string): string | null {
@@ -667,9 +671,8 @@ export function extractPredefinedFields(
 ): Record<string, string> {
   const suggestions: Record<string, string> = {};
   if (!rawText || !fields) return suggestions;
-  const lines = rawText
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
+  const normalizedText = normalizeNewlines(rawText);
+  const lines = normalizedText
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
@@ -691,7 +694,7 @@ export function extractPredefinedFields(
         }
       }
       if (!found) {
-        const m = rawText.match(re);
+        const m = normalizedText.match(re);
         if (m) {
           const val = m.groups?.value || (m[1] !== undefined ? m[1] : m[0]);
           if (val && val.trim()) {
@@ -717,9 +720,8 @@ export function extractSongSetEntries(
 ): Record<string, any> {
   const suggestions: Record<string, any> = {};
   if (!rawText || !entries) return suggestions;
-  const lines = rawText
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
+  const normalizedText = normalizeNewlines(rawText);
+  const lines = normalizedText
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
@@ -754,6 +756,7 @@ export function extractSongSetEntries(
                 songTitle: hymnInfo.title,
                 lyricText: hymnInfo.lyrics,
                 incomplete: hymnInfo.incomplete,
+                sourceLine: line,
               };
               found = true;
               break;
@@ -763,7 +766,8 @@ export function extractSongSetEntries(
       }
 
       if (!found) {
-        const m = rawText.match(re);
+        re.lastIndex = 0;
+        const m = re.exec(normalizedText);
         if (m) {
           const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
           const bookStr = m.groups?.book || defaultBook;
@@ -779,12 +783,26 @@ export function extractSongSetEntries(
               if (lookupHymnFn) {
                 hymnInfo = lookupHymnFn(num, bookCode);
               }
+
+              let sourceLine = '';
+              let captureOffset = (m as any).indices?.groups?.number?.[0];
+              if (captureOffset === undefined) {
+                const numOffset = m[0].indexOf(numStr);
+                captureOffset = m.index + (numOffset !== -1 ? numOffset : 0);
+              }
+              const lineStart = normalizedText.lastIndexOf('\n', captureOffset);
+              const start = lineStart === -1 ? 0 : lineStart + 1;
+              const lineEndRel = normalizedText.indexOf('\n', captureOffset);
+              const end = lineEndRel === -1 ? normalizedText.length : lineEndRel;
+              sourceLine = normalizedText.slice(start, end).trim();
+
               suggestions[varName] = {
                 songNumber: num,
                 songBookCode: bookCode,
                 songTitle: hymnInfo.title,
                 lyricText: hymnInfo.lyrics,
                 incomplete: hymnInfo.incomplete,
+                sourceLine,
               };
             }
           }
@@ -795,5 +813,78 @@ export function extractSongSetEntries(
     }
   }
   return suggestions;
+}
+
+/**
+ * Reconciles unmapped lines by pruning lines captured by dynamic predefined fields
+ * or dynamic song set entry suggestions (SPEC-72).
+ *
+ * @param unmappedLines The initial unmapped lines from parsing
+ * @param fieldSuggestions Map of variableName -> extracted value string
+ * @param songSetSuggestions Map of variableName -> song suggestion ({ songNumber, songBookCode, sourceLine, ... })
+ * @returns Filtered array of lines that remain truly unmapped
+ */
+export function reconcileDynamicUnmappedLines(
+  unmappedLines: string[],
+  fieldSuggestions?: Record<string, string | null | undefined> | null,
+  songSetSuggestions?: Record<string, { songNumber?: number | string | null; songBookCode?: string | null; sourceLine?: string | null } | null | undefined> | null
+): string[] {
+  if (!unmappedLines || unmappedLines.length === 0) return [];
+  if (!fieldSuggestions && !songSetSuggestions) return [...unmappedLines];
+
+  const sourceLines = new Set<string>();
+  const songTargets: string[] = [];
+
+  if (songSetSuggestions) {
+    for (const sug of Object.values(songSetSuggestions)) {
+      if (!sug) continue;
+      if (sug.sourceLine && sug.sourceLine.trim()) {
+        sourceLines.add(sug.sourceLine.trim());
+      }
+      if (sug.songNumber !== undefined && sug.songNumber !== null) {
+        const numStr = String(sug.songNumber).trim();
+        if (numStr && numStr !== '0') {
+          songTargets.push(numStr);
+        }
+      }
+    }
+  }
+
+  const fieldTargets: string[] = [];
+  if (fieldSuggestions) {
+    for (const val of Object.values(fieldSuggestions)) {
+      if (typeof val === 'string' && val.trim().length >= 3) {
+        fieldTargets.push(val.trim());
+      }
+    }
+  }
+
+  return unmappedLines.filter((rawLine) => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) return false;
+
+    // 1. Exact match with identified source line
+    if (sourceLines.has(trimmed)) {
+      return false;
+    }
+
+    // 2. Strict song pattern match: only prune lines that look like song titles/entries,
+    // avoiding false-positive pruning of "Room 614" or "Attendance: 614"
+    for (const num of songTargets) {
+      const songPattern = new RegExp(`(?:opening|closing|scripture|hymn|praise|introit|song|sdah|lagu)\\b.*?(?:#|\\b)${num}\\b`, 'i');
+      if (songPattern.test(trimmed)) {
+        return false;
+      }
+    }
+
+    // 3. Strict field pattern match: line ends with or is prefixed with field value
+    for (const target of fieldTargets) {
+      if (trimmed === target || trimmed.endsWith(target) || trimmed.includes(': ' + target) || trimmed.includes(':\t' + target)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
