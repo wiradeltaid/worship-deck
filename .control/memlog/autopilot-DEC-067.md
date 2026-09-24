@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 13
+- Iteration: 14
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-13 completed and verified — README, nine translations, and docs match the release build
+- Stopped at: Ticket WSD-H-10 completed and verified — CHANGELOG 0.1.0 rewrite from actual release build
 - Blocked: —
 - Parked: —
-- Next: Execute ticket WSD-H-10 (CHANGELOG 0.1.0 rewrite from actual release build)
+- Next: Execute ticket WSD-H-14 (Legal copies from ops and threat model aligned)
 
 ## Decisions
 
@@ -31,6 +31,25 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-11 (WSD-H-12) | catalogue-en.ts, catalogue-id.ts, keys.ts, PresenterOperator.tsx, spa/src/App.tsx | Harmonize UI labels across English and Indonesian: congregation screen/layar jemaat, Layout/Tata letak, order of service/susunan acara, Baca susunan acara, hide /new from production routes, and add absence guards in operator-i18n-guard.test.mjs | inconsistent feature naming and unreviewed mockup route exposure | medium | src/lib/i18n/catalogue-en.ts, src/lib/i18n/catalogue-id.ts, src/lib/i18n/keys.ts, src/operator/present/PresenterOperator.tsx, spa/src/App.tsx, tests/operator-i18n-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/12-wsd-h-12-feature-name-list-and-app-labels.md |
 | I-12 (WSD-H-15) | docs/public-facts.yaml, tests/public-facts.test.mjs, package.json | Establish public facts manifest docs/public-facts.yaml following WDI pattern, declaring version, installer/checksum names, bundled fonts (35), corpora counts, licenses, and support email, with tests/public-facts.test.mjs derivation verification and real-file defect injection proofs | unverifiable claims and public fact drift across repository and marketing surfaces | medium | docs/public-facts.yaml, tests/public-facts.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/15-wsd-h-15-public-facts-file.md |
 | I-13 (WSD-H-13) | README*.md (all 10), docs/*.md, tests/readme-claims-guard.test.mjs, tests/doc-citations.test.mjs, package.json | Align root README and 9 translations to release build reality (self-hosted server recommended, Windows installer experimental, no portable zip, optional 38 demo layouts, dynamic form regexes, congregation screen nomenclature, zero em/en dashes), clean docs/*.md, update doc citations ratchet for resolvedHymns, and enforce with tests/readme-claims-guard.test.mjs | inaccurate public feature claims, broken links, and terminology drift | medium | README.md, README.*.md, docs/*.md, tests/readme-claims-guard.test.mjs, tests/doc-citations.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/13-wsd-h-13-readme-translations-docs-match-build.md |
+| I-14 (WSD-H-10) | CHANGELOG.md, tests/changelog-guard.test.mjs, package.json | Rewrite CHANGELOG [0.1.0] section grounded strictly in release build reality without internal IDs (DEC-, SPEC-, FR-), dashes, or prohibited terms (template, parser profile, webhook, projector, updater), plainly state system boundaries and limitations, and add tests/changelog-guard.test.mjs | inaccurate changelog claims, broken release notes parser, or internal ID leak | medium | CHANGELOG.md, tests/changelog-guard.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/10-wsd-h-10-changelog-rewrite.md |
+
+## Smoke Test Results
+
+- Preflight verification: PASS — `validate.py --baseline` green, Go test suite passed (exit 0), `npm test` passed (exit 0).
+- WSD-H-01 verification: PASS — `node --test tests/release-artifact-names.test.mjs` (4/4 passed), `node --test tests/installer-version-sync.test.mjs` (6/6 passed), `validate.py` green.
+- WSD-H-02 verification: PASS — `go test ./cmd/... ./internal/desktop/...` (passed), `node --test tests/desktop-mode-guard.test.mjs` (8/8 passed), `validate.py` green.
+- WSD-H-03 verification: PASS — `go test -v ./internal/auth/...` (passed), `go test -v ./cmd/api/...` (passed), `validate.py` green.
+- WSD-H-04 verification: PASS — `go test -v ./internal/httpapi -run TestSetup` (passed), `go test -v ./internal/gate/...` (passed), `node --test tests/first-admin-setup.test.mjs` (3/3 passed), `validate.py` green.
+- WSD-H-05 verification: PASS — `go test -v ./internal/httpapi -run TestWebhook` (passed, body unread verified), `node --test tests/webhook-auth.test.mjs` (8/8 passed), `validate.py` green.
+- WSD-H-06 verification: PASS — `node --test tests/bundled-fonts-guard.test.mjs` (5/5 passed), `node --test tests/artifact-font-catalog.test.mjs` (9/9 passed), `node --test tests/smoke-spec-17.test.mjs` (4/4 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.
+- WSD-H-07 verification: PASS — `node --test tests/pptx-bundled-fonts.test.mjs` (4/4 passed), PowerPoint COM export conformance verified, `validate.py` green.
+- WSD-H-08 verification: PASS — `node --test tests/branding-svg-guard.test.mjs` (2/2 passed), `node --test tests/third-party-notices.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-09 verification: PASS — `go test -v ./internal/db -run TestCleanBootstrap` (passed, 0 templates, SDAH & KJV seeded), `node --test tests/installer-corpora-staging.test.mjs` (3/3 passed), `validate.py` green.
+- WSD-H-11 verification: PASS — `node --test tests/attributions-guard.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-12 verification: PASS — `node --test tests/operator-i18n-guard.test.mjs` (4/4 passed), `node --test tests/i18n.test.mjs` (13/13 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.
+- WSD-H-15 verification: PASS — `node --test tests/public-facts.test.mjs` (4/4 passed), `node --test tests/public-repo-guard.test.mjs` (5/5 passed), `validate.py` green.
+- WSD-H-13 verification: PASS — `node --test tests/readme-claims-guard.test.mjs` (6/6 passed), `node --test tests/doc-citations.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-10 verification: PASS — `node --test tests/changelog-guard.test.mjs` (6/6 passed), PowerShell changelog extraction verified (3389 chars), `validate.py` green.
 
 ## Smoke Test Results
 

@@ -17,11 +17,11 @@
 
 **Blocked by:** 09-wsd-h-09-installer-ships-corpora-licenses-notices, 12-wsd-h-12-feature-name-list-and-app-labels, 13-wsd-h-13-readme-translations-docs-match-build.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read current `CHANGELOG.md` and review handover §1 WSD-H-10 table.
-- [ ] Rewrite preamble and `## [0.1.0]` section based strictly on actual release build features.
-- [ ] Ensure zero internal IDs, zero dashes (em/en), and accurate boundary notes.
-- [ ] Add `tests/changelog-guard.test.mjs` asserting absence of prohibited terms and dashes. Verify red first, then green.
-- [ ] Add `tests/changelog-guard.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `release.yml` changelog parser compatibility locally and ensure `npm test` passes cleanly.
+- [x] Read current `CHANGELOG.md` and review handover §1 WSD-H-10 table.
+- [x] Rewrite preamble and `## [0.1.0]` section based strictly on actual release build features.
+- [x] Ensure zero internal IDs, zero dashes (em/en), and accurate boundary notes.
+- [x] Add `tests/changelog-guard.test.mjs` asserting absence of prohibited terms and dashes. Verify red first, then green.
+- [x] Add `tests/changelog-guard.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `release.yml` changelog parser compatibility locally and ensure `npm test` passes cleanly.
