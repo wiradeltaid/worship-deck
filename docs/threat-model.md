@@ -210,10 +210,7 @@ Operators must address the following:
    passwords to local network eavesdroppers.
 2. **Secret Management:** Operators must generate high-entropy strings for `AUTH_SECRET` and
    `WEBHOOK_SECRET` and keep them out of public version control.
-3. **Filesystem Image Cleanup:** Deleting a member or announcement row in the database removes the
-   database record but does **not** automatically unlink the image file on disk in `data/uploads/`.
-   Operators must periodically purge orphaned media directly on the host filesystem if complete
-   data deletion is required.
+3. **Data Deletion Semantics:** Deleting a service removes its database record and automatically deletes orphaned upload files that are no longer referenced by other services or announcements. Deleting an announcement slide or Background Library image removes only its database record while keeping the image file in `data/uploads/` on disk (operators must purge the file from the filesystem if complete deletion is required). Deleting an uploaded font removes both the database record and the font file from disk. Operators must periodically audit storage if total erasure is mandated by local policy.
 4. **Host Security & Backups:** Access control to the physical or virtual host, file permissions for
    `data.db`, and backup storage encryption remain the exclusive responsibility of the operator.
 5. **Manual Sync (§3.7) is experimental.** Do not depend on it as the only path keeping two

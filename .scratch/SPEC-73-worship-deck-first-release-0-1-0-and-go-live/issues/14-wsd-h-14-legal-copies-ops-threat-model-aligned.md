@@ -28,14 +28,14 @@
 **Blocked by:** 04-wsd-h-04-first-admin-setup-screen, 10-wsd-h-10-changelog-rewrite, 13-wsd-h-13-readme-translations-docs-match-build.
 *(External Gate Prerequisites: Ops C-01 [effective date filled in ops], Ops C-02 [first-admin setup security exception drafted in ops], Ops C-03 [cross-language links added in ops], Owner B-03 [GitHub private vulnerability reporting enabled], and Owner B-04 [official go-live date confirmed]).*
 
-**Status:** open
+**Status:** closed
 
-- [ ] Verify external prerequisites completed: ops C-01, C-02, C-03, owner B-03, and owner B-04.
-- [ ] Inspect ops legal sources in `ops/research/wdi-ecosystem-strategy/legal/worship-deck/`.
-- [ ] Copy `privacy.id.md` to `PRIVACY.id.md`, `privacy.en.md` to `PRIVACY.md`, `security.id.md` to `SECURITY.id.md`, and `security.en.md` to `SECURITY.md`.
-- [ ] Add prescribed English copy stamp on line 2 of each file.
-- [ ] Update `docs/threat-model.md` to "WorshipDeck" and align data deletion semantics.
-- [ ] Run local body diff against ops sources, confirm empty diff, and paste result into PR description.
-- [ ] Add `tests/legal-copy-guard.test.mjs` validating copy stamps, dates, links, and absence of legacy names and dashes. Verify red first, then green.
-- [ ] Add `tests/legal-copy-guard.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Verify external prerequisites completed: ops C-01, C-02, C-03, owner B-03, and owner B-04.
+- [x] Inspect ops legal sources in `ops/research/wdi-ecosystem-strategy/legal/worship-deck/`.
+- [x] Copy `privacy.id.md` to `PRIVACY.id.md`, `privacy.en.md` to `PRIVACY.md`, `security.id.md` to `SECURITY.id.md`, and `security.en.md` to `SECURITY.md`.
+- [x] Add prescribed English copy stamp on line 2 of each file.
+- [x] Update `docs/threat-model.md` to "WorshipDeck" and align data deletion semantics.
+- [x] Run local body diff against ops sources, confirm empty diff, and paste result into PR description.
+- [x] Add `tests/legal-copy-guard.test.mjs` validating copy stamps, dates, links, and absence of legacy names and dashes. Verify red first, then green.
+- [x] Add `tests/legal-copy-guard.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.
