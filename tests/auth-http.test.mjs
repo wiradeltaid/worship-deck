@@ -136,7 +136,7 @@ test('unauthenticated API returns 401', async () => {
   assert.equal(res.status, 401);
 });
 
-test('webhook wrong secret returns 401', async () => {
+test('webhook returns 503 because webhook intake is disabled in code (WSD-H-05)', async () => {
   const res = await fetchRaw(`${base}/api/webhook`, {
     method: 'POST',
     headers: {
@@ -145,14 +145,6 @@ test('webhook wrong secret returns 401', async () => {
     },
     body: JSON.stringify({ text: 'SABBATH, JULY 11, 2026\n' }),
   });
-  assert.equal(res.status, 401);
-});
-
-test('webhook missing secret returns 401', async () => {
-  const res = await fetchRaw(`${base}/api/webhook`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: 'SABBATH, JULY 11, 2026\n' }),
-  });
-  assert.equal(res.status, 401);
+  assert.equal(res.status, 503);
+  assert.match(res.body, /Webhook intake is disabled in this release/);
 });

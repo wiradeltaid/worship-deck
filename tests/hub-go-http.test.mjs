@@ -228,7 +228,7 @@ test('GET /api/admin/settings and accounts and artifacts on a fresh hub', async 
   assert.ok(artifacts.body.templates.length > 0);
 });
 
-test('POST /api/webhook with secret creates a service', async () => {
+test('POST /api/webhook returns 503 because webhook intake is disabled in code (WSD-H-05)', async () => {
   const res = await json(
     `${base}/api/webhook`,
     'POST',
@@ -243,75 +243,8 @@ test('POST /api/webhook with secret creates a service', async () => {
     },
     { 'x-webhook-secret': WEBHOOK_SECRET }
   );
-  assert.equal(res.status, 201, JSON.stringify(res.body));
-  assert.ok(res.body.id > 0);
-  assert.equal(res.body.date, '2026-06-06');
-  assert.equal(res.body.imagesCount, 1);
-});
-
-test('POST /api/webhook refuses to overwrite an existing date without correction', async () => {
-  const rundown = [
-    'SABBATH, JUNE 13, 2026',
-    'DIVINE SERVICE',
-    'Opening Song: SDAH #159',
-    'Sermon: Pastor Ada',
-  ].join('\n');
-  const first = await json(
-    `${base}/api/webhook`,
-    'POST',
-    { text: rundown },
-    { 'x-webhook-secret': WEBHOOK_SECRET }
-  );
-  assert.equal(first.status, 201, JSON.stringify(first.body));
-
-  const clash = await json(
-    `${base}/api/webhook`,
-    'POST',
-    { text: rundown + '\nClosing Song: SDAH #1' },
-    { 'x-webhook-secret': WEBHOOK_SECRET }
-  );
-  assert.equal(clash.status, 409, JSON.stringify(clash.body));
-  assert.equal(clash.body.id, first.body.id);
-  assert.equal(clash.body.date, '2026-06-13');
-  assert.equal(typeof clash.body.updated_at, 'string');
-  assert.match(clash.body.raw_payload, /Pastor Ada/);
-
-  const missingToken = await json(
-    `${base}/api/webhook`,
-    'POST',
-    { action: 'correct', serviceId: first.body.id, text: rundown },
-    { 'x-webhook-secret': WEBHOOK_SECRET }
-  );
-  assert.equal(missingToken.status, 400);
-
-  const stale = await json(
-    `${base}/api/webhook`,
-    'POST',
-    {
-      action: 'correct',
-      serviceId: first.body.id,
-      text: rundown,
-      updated_at: '1999-01-01 00:00:00',
-    },
-    { 'x-webhook-secret': WEBHOOK_SECRET }
-  );
-  assert.equal(stale.status, 409);
-  assert.equal(stale.body.updated_at, clash.body.updated_at);
-
-  const ok = await json(
-    `${base}/api/webhook`,
-    'POST',
-    {
-      action: 'correct',
-      serviceId: first.body.id,
-      text: rundown + '\nClosing Song: SDAH #1',
-      updated_at: clash.body.updated_at,
-    },
-    { 'x-webhook-secret': WEBHOOK_SECRET }
-  );
-  assert.equal(ok.status, 200, JSON.stringify(ok.body));
-  assert.equal(ok.body.updated, true);
-  assert.notEqual(ok.body.updated_at, clash.body.updated_at);
+  assert.equal(res.status, 503, JSON.stringify(res.body));
+  assert.equal(res.body.error, 'Webhook intake is disabled in this release');
 });
 
 test('GET /api/scripture returns 400 for an unknown translation', async () => {

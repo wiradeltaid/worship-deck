@@ -6,6 +6,7 @@ import (
 )
 
 func TestCleanBootstrap_SeedsCorporaAndLeavesSlideRegistryEmpty(t *testing.T) {
+	t.Setenv("WPW_USE_SHIPPED_REGISTRY", "")
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "clean-bootstrap.db")
 
