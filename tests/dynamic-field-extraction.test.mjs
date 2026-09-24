@@ -27,7 +27,7 @@ process.env.DB_PATH = path.join(tmp, 'test.db');
 const srcUrl = (...parts) => pathToFileURL(path.join(root, 'src', ...parts)).href;
 
 const { getDb } = await import(srcUrl('lib', 'db', 'index.ts'));
-const { extractPredefinedFields, extractSongSetEntries } = await import(
+const { extractPredefinedFields, extractSongSetEntries, compileProfileRegex, reconcileDynamicUnmappedLines, normalizeNewlines } = await import(
   srcUrl('lib', 'parser-rules.ts')
 );
 
@@ -437,6 +437,209 @@ Closing Prayer: Elder One`;
 
   assert.equal(suggestions.ds_closing_song?.songNumber, 476);
   assert.equal(suggestions.ds_closing_song?.songBookCode, 'SDAH');
+});
+
+test('SPEC-72-01: Single regex evaluator matches multiline dotall patterns and extracts song numbers and books', () => {
+  const sampleBulletin = `SABBATH, OCTOBER 24, 2026
+
+BIBLE TALK (9:00 - 10:00)
+Leader: Leader One
+Welcome Remarks: Elder James
+[ ] Opening song : SDAH #614 Sound the Battle Cry
+Scripture Reading: Psalm 119:105
+[ ] Closing Song : SDAH #316 Lift Out Thy Life Within Me
+
+DIVINE SERVICE (10:00 - 12:00)
+Leader: Leader Two
+[ ] Opening Song : SDAH #508 "Anywhere With Jesus"
+Scripture: John 3:16
+[ ] Closing Song : SDAH #476 "Burdens Are Lifted at Calvary"`;
+
+  const multilineSongRegex = '(?is)BIBLE\\s+TALK.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)';
+  const re = compileProfileRegex(multilineSongRegex);
+
+  // Line-by-line produces null
+  const lines = sampleBulletin.split('\n');
+  let lineMatched = false;
+  for (const line of lines) {
+    if (line.match(re)) {
+      lineMatched = true;
+      break;
+    }
+  }
+  assert.equal(lineMatched, false, 'Line-by-line matching must yield false for section-anchored multiline pattern');
+
+  // Full-sample evaluation matches
+  re.lastIndex = 0;
+  const m = sampleBulletin.match(re);
+  assert.ok(m, 'Multiline evaluation must match full sample text');
+  const val = m.groups?.value || m.groups?.number || (m[1] !== undefined ? m[1] : m[0]);
+  assert.equal(val, '614');
+  assert.equal(m.groups?.book, 'SDAH');
+
+  // Test stateful regex reset (g flag simulation)
+  re.lastIndex = 999;
+  re.lastIndex = 0;
+  const m2 = sampleBulletin.match(re);
+  assert.ok(m2);
+  assert.equal(m2.groups?.number, '614');
+});
+
+test('SPEC-72-01: Rundown test area accurately maps multiline song target lines without masking intermediate content', () => {
+  const sampleBulletin = `SABBATH, OCTOBER 24, 2026
+
+BIBLE TALK (9:00 - 10:00)
+Leader: Leader One
+Welcome Remarks: Elder James
+[ ] Opening song : SDAH #614 Sound the Battle Cry
+Scripture Reading: Psalm 119:105
+[ ] Closing Song : SDAH #316 Lift Out Thy Life Within Me
+
+DIVINE SERVICE (10:00 - 12:00)
+Leader: Leader Two
+[ ] Opening Song : SDAH #508 "Anywhere With Jesus"
+Scripture: John 3:16
+[ ] Closing Song : SDAH #476 "Burdens Are Lifted at Calvary"`;
+
+  const songSetEntries = [
+    {
+      variableName: 'bt_opening',
+      title: 'BT Opening',
+      extractionRegex: '(?is)BIBLE\\s+TALK.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'bt_closing',
+      title: 'BT Closing',
+      extractionRegex: '(?is)BIBLE\\s+TALK.*?Closing\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'ds_opening',
+      title: 'DS Opening',
+      extractionRegex: '(?is)DIVINE\\s+SERVICE.*?Opening\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+    {
+      variableName: 'ds_closing',
+      title: 'DS Closing',
+      extractionRegex: '(?is)DIVINE\\s+SERVICE.*?Closing\\s+[Ss]ong\\s*:\\s*(?:(?<book>[A-Za-z]+)\\s*)?#?\\s*(?<number>\\d+)',
+    },
+  ];
+
+  const rawLines = sampleBulletin.split('\n');
+  const mappedIndices = new Set();
+
+  // Date and section header mapping
+  const dateRegex = /(?:20\d{2}-\d{2}-\d{2})|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+20\d{2}/i;
+  const sectionRegex = /^(BIBLE\s+TALK|DIVINE\s+SERVICE|BREAK)\b/i;
+
+  rawLines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed || dateRegex.test(trimmed) || sectionRegex.test(trimmed)) {
+      mappedIndices.add(idx);
+    }
+  });
+
+  // Evaluate song set entries and pinpoint target lines
+  for (const entry of songSetEntries) {
+    const re = compileProfileRegex(entry.extractionRegex);
+    re.lastIndex = 0;
+    const m = sampleBulletin.match(re);
+    assert.ok(m, `Entry ${entry.variableName} must match`);
+    const numStr = m.groups?.number;
+    assert.ok(numStr);
+    if (typeof m.index === 'number') {
+      const numOffset = m[0].lastIndexOf(numStr);
+      const targetOffset = m.index + (numOffset !== -1 ? numOffset : 0);
+      const targetIdx = sampleBulletin.slice(0, targetOffset).split('\n').length - 1;
+      if (targetIdx >= 0 && targetIdx < rawLines.length) {
+        mappedIndices.add(targetIdx);
+      }
+    }
+  }
+
+  const unmappedLines = [];
+  rawLines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (trimmed && !mappedIndices.has(idx)) {
+      unmappedLines.push(line);
+    }
+  });
+
+  // Matched song lines must be excluded from unmappedLines
+  assert.ok(!unmappedLines.some((l) => l.includes('SDAH #614')), 'SDAH #614 line must not be unmapped');
+  assert.ok(!unmappedLines.some((l) => l.includes('SDAH #316')), 'SDAH #316 line must not be unmapped');
+  assert.ok(!unmappedLines.some((l) => l.includes('SDAH #508')), 'SDAH #508 line must not be unmapped');
+  assert.ok(!unmappedLines.some((l) => l.includes('SDAH #476')), 'SDAH #476 line must not be unmapped');
+
+  // Intermediate lines must NOT be masked and must remain in unmappedLines
+  assert.ok(unmappedLines.some((l) => l.includes('Leader: Leader One')), 'Leader One must remain in unmapped');
+  assert.ok(unmappedLines.some((l) => l.includes('Welcome Remarks: Elder James')), 'Welcome Remarks must remain in unmapped');
+  assert.ok(unmappedLines.some((l) => l.includes('Scripture Reading: Psalm 119:105')), 'Scripture Reading must remain in unmapped');
+  assert.ok(unmappedLines.some((l) => l.includes('Leader: Leader Two')), 'Leader Two must remain in unmapped');
+  assert.ok(unmappedLines.some((l) => l.includes('Scripture: John 3:16')), 'Scripture must remain in unmapped');
+});
+
+test('SPEC-72-02: Target line pinpointing is resilient to trailing whitespace and newlines in multiline regex', () => {
+  const sample = `BIBLE TALK (9:00 - 10:00)
+Opening song : SDAH #614
+Welcome Remarks: Elder James`;
+
+  // Pattern with trailing \s* that consumes trailing newline
+  const trailingWhitespacePattern = '(?is)BIBLE\\s+TALK.*?Opening\\s+song\\s*:\\s*(?:SDAH\\s*)?#?(?<number>\\d+)\\s*';
+  const re = compileProfileRegex(trailingWhitespacePattern);
+  const m = sample.match(re);
+  assert.ok(m);
+  assert.equal(m.groups?.number, '614');
+
+  // Verify that target line pinpointing anchors to the capture offset rather than match-end
+  const numStr = m.groups.number;
+  const numOffset = m[0].lastIndexOf(numStr);
+  const targetOffset = (typeof m.index === 'number' ? m.index : 0) + (numOffset !== -1 ? numOffset : 0);
+  const targetIdx = sample.slice(0, targetOffset).split('\n').length - 1;
+
+  // Line 0: BIBLE TALK, Line 1: Opening song, Line 2: Welcome Remarks
+  assert.equal(targetIdx, 1, 'Target line must pinpoint line 1 (Opening song), NOT line 2 (Welcome Remarks)');
+});
+
+test('SPEC-72-02: reconcileDynamicUnmappedLines prunes matched songs and fields while preserving unmapped content', () => {
+  const initialUnmapped = [
+    'Leader: Leader One',
+    'Welcome Remarks: Elder James',
+    '[ ] Opening song : SDAH #614 Sound the Battle Cry',
+    'Scripture Reading: Psalm 119:105',
+    '[ ] Closing Song : SDAH #316 Lift Out Thy Life Within Me',
+    'Offertory Exhortation: Elder John Smith',
+  ];
+
+  const fieldSuggestions = {
+    offertory_exhortation: 'Elder John Smith',
+  };
+
+  const songSetSuggestions = {
+    bt_opening: { songNumber: 614, songBookCode: 'SDAH' },
+    bt_closing: { songNumber: 316, songBookCode: 'SDAH' },
+  };
+
+  const reconciled = reconcileDynamicUnmappedLines(initialUnmapped, fieldSuggestions, songSetSuggestions);
+
+  // Both song lines and the field line are pruned
+  assert.ok(!reconciled.some((l) => l.includes('#614')), '#614 line must be pruned');
+  assert.ok(!reconciled.some((l) => l.includes('#316')), '#316 line must be pruned');
+  assert.ok(!reconciled.some((l) => l.includes('Elder John Smith')), 'Offertory line must be pruned');
+
+  // Truly unmapped lines remain
+  assert.ok(reconciled.some((l) => l.includes('Leader: Leader One')), 'Leader One must remain');
+  assert.ok(reconciled.some((l) => l.includes('Welcome Remarks: Elder James')), 'Welcome Remarks must remain');
+  assert.ok(reconciled.some((l) => l.includes('Scripture Reading: Psalm 119:105')), 'Scripture Reading must remain');
+  assert.equal(reconciled.length, 3);
+});
+
+test('SPEC-72-02: normalizeNewlines normalizes non-breaking spaces ( ) to standard ASCII spaces', () => {
+  const textWithNBSP = 'BIBLE TALK\r\nOpening song : SDAH #614';
+  const normalized = normalizeNewlines(textWithNBSP);
+
+  assert.ok(!normalized.includes(' '), 'Normalized text must not contain NBSP');
+  assert.ok(!normalized.includes('\r'), 'Normalized text must not contain CR');
+  assert.equal(normalized, 'BIBLE TALK\nOpening song : SDAH #614');
 });
 
 

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, Trash2, ArrowUp, ArrowDown, Play, Sparkles, RefreshCw, CheckCircle2, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { compileProfileRegex, extractPredefinedFields } from '@/lib/parser-rules';
+import { compileProfileRegex, extractPredefinedFields, reconcileDynamicUnmappedLines } from '@/lib/parser-rules';
 import type { SongSetEntrySlot } from '@/lib/song-set-matching';
 import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/lib/form-layout';
 
@@ -500,10 +500,12 @@ export function FormLayoutAdminPanel() {
   const handleRunRundownTest = () => {
     if (!testRundownText.trim() || !layoutData) return;
 
-    const rawLines = testRundownText
+    const normalizedRundown = testRundownText
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
-      .split('\n');
+      .replace(/ /g, ' ');
+
+    const rawLines = normalizedRundown.split('\n');
 
     const mappedIndices = new Set<number>();
 
@@ -523,7 +525,7 @@ export function FormLayoutAdminPanel() {
     });
 
     // 1. Predefined Fields extraction
-    const extractedFieldsMap = extractPredefinedFields(testRundownText, layoutData.predefined_fields || []);
+    const extractedFieldsMap = extractPredefinedFields(normalizedRundown, layoutData.predefined_fields || []);
     const fieldResults = (layoutData.predefined_fields || []).map((f) => {
       const val = extractedFieldsMap[f.variable_name] || '';
       let status: 'matched' | 'empty regex' | 'unmatched' = 'unmatched';
@@ -545,11 +547,29 @@ export function FormLayoutAdminPanel() {
       if (!f.extraction_regex || !f.extraction_regex.trim()) continue;
       try {
         const re = compileProfileRegex(f.extraction_regex.trim());
+        re.lastIndex = 0;
+        let lineMatched = false;
         rawLines.forEach((line, idx) => {
           if (line.trim() && re.test(line)) {
             mappedIndices.add(idx);
+            lineMatched = true;
           }
         });
+        if (!lineMatched) {
+          re.lastIndex = 0;
+          const m = normalizedRundown.match(re);
+          if (m && typeof m.index === 'number') {
+            const val = m.groups?.value || (m[1] !== undefined ? m[1] : m[0]);
+            if (val && val.trim()) {
+              const valOffset = m[0].lastIndexOf(val.trim());
+              const targetOffset = m.index + (valOffset !== -1 ? valOffset : 0);
+              const targetIdx = normalizedRundown.slice(0, targetOffset).split('\n').length - 1;
+              if (targetIdx >= 0 && targetIdx < rawLines.length) {
+                mappedIndices.add(targetIdx);
+              }
+            }
+          }
+        }
       } catch {
         // ignore invalid regex
       }
@@ -561,11 +581,29 @@ export function FormLayoutAdminPanel() {
       if (!regexPattern || !regexPattern.trim()) continue;
       try {
         const re = compileProfileRegex(regexPattern.trim());
+        re.lastIndex = 0;
+        let lineMatched = false;
         rawLines.forEach((line, idx) => {
           if (line.trim() && re.test(line)) {
             mappedIndices.add(idx);
+            lineMatched = true;
           }
         });
+        if (!lineMatched) {
+          re.lastIndex = 0;
+          const m = normalizedRundown.match(re);
+          if (m && typeof m.index === 'number') {
+            const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
+            if (numStr) {
+              const numOffset = m[0].lastIndexOf(numStr);
+              const targetOffset = m.index + (numOffset !== -1 ? numOffset : 0);
+              const targetIdx = normalizedRundown.slice(0, targetOffset).split('\n').length - 1;
+              if (targetIdx >= 0 && targetIdx < rawLines.length) {
+                mappedIndices.add(targetIdx);
+              }
+            }
+          }
+        }
       } catch {
         // ignore invalid regex
       }
@@ -586,6 +624,7 @@ export function FormLayoutAdminPanel() {
       let found = false;
       try {
         const re = compileProfileRegex(regexPattern.trim());
+        re.lastIndex = 0;
         for (let idx = 0; idx < rawLines.length; idx++) {
           const line = rawLines[idx];
           if (!line.trim()) continue;
@@ -612,13 +651,22 @@ export function FormLayoutAdminPanel() {
         }
 
         if (!found) {
-          const m = testRundownText.match(re);
+          re.lastIndex = 0;
+          const m = normalizedRundown.match(re);
           if (m) {
             const numStr = m.groups?.number || (m[1] && /^\d+$/.test(m[1].trim()) ? m[1].trim() : null);
             const bookStr = m.groups?.book || 'SDAH';
             if (numStr) {
               const num = parseInt(numStr, 10);
               if (num > 0) {
+                if (typeof m.index === 'number') {
+                  const numOffset = m[0].lastIndexOf(numStr);
+                  const targetOffset = m.index + (numOffset !== -1 ? numOffset : 0);
+                  const targetIdx = normalizedRundown.slice(0, targetOffset).split('\n').length - 1;
+                  if (targetIdx >= 0 && targetIdx < rawLines.length) {
+                    mappedIndices.add(targetIdx);
+                  }
+                }
                 return {
                   slotVariable: varName,
                   title: entry.title,
@@ -642,14 +690,26 @@ export function FormLayoutAdminPanel() {
       };
     });
 
-    // 3. Collect truly unmapped lines
-    const unmappedLines: string[] = [];
+    // 3. Collect truly unmapped lines and reconcile with dynamic field and song extractions (SPEC-72)
+    const initialUnmapped: string[] = [];
     rawLines.forEach((line, idx) => {
       const trimmed = line.trim();
       if (trimmed && !mappedIndices.has(idx)) {
-        unmappedLines.push(line);
+        initialUnmapped.push(line);
       }
     });
+
+    const songSuggestionsMap: Record<string, { songNumber: number; songBookCode: string }> = {};
+    for (const s of songResults) {
+      if (s.status === 'matched' && s.songNumber) {
+        songSuggestionsMap[s.slotVariable] = {
+          songNumber: s.songNumber,
+          songBookCode: s.songBookCode || 'SDAH',
+        };
+      }
+    }
+
+    const unmappedLines = reconcileDynamicUnmappedLines(initialUnmapped, extractedFieldsMap, songSuggestionsMap);
 
     setTestResults({
       fields: fieldResults,
@@ -665,16 +725,36 @@ export function FormLayoutAdminPanel() {
     }
     try {
       const re = compileProfileRegex(singleRegexPattern.trim());
-      const lines = testRundownText.split('\n');
+      re.lastIndex = 0;
+      const normalizedSample = testRundownText
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .replace(/ /g, ' ');
+      const lines = normalizedSample.split('\n');
+
       for (const line of lines) {
+        if (!line.trim()) continue;
+        re.lastIndex = 0;
         const m = line.match(re);
         if (m) {
-          const val = m.groups?.value || (m[1] !== undefined ? m[1] : m[0]);
-          setSingleRegexResult(`Match on line: "${line}"\nExtracted value: "${val}"\nNamed Groups: ${JSON.stringify(m.groups || {})}`);
+          const val = m.groups?.value || m.groups?.number || (m[1] !== undefined ? m[1] : m[0]);
+          const bookInfo = m.groups?.book ? `\nSong Book: "${m.groups.book.trim()}"` : '';
+          setSingleRegexResult(`Match on line: "${line}"\nExtracted value: "${val}"${bookInfo}\nNamed Groups: ${JSON.stringify(m.groups || {})}`);
           return;
         }
       }
-      setSingleRegexResult('No match found across any line in sample text.');
+
+      // Multiline dotall fallback evaluating across normalized full text
+      re.lastIndex = 0;
+      const m = normalizedSample.match(re);
+      if (m) {
+        const val = m.groups?.value || m.groups?.number || (m[1] !== undefined ? m[1] : m[0]);
+        const bookInfo = m.groups?.book ? `\nSong Book: "${m.groups.book.trim()}"` : '';
+        setSingleRegexResult(`Multiline Match across text span:\nExtracted value: "${val}"${bookInfo}\nMatched Span: "${m[0]}"\nNamed Groups: ${JSON.stringify(m.groups || {})}`);
+        return;
+      }
+
+      setSingleRegexResult('No match found across any line or full sample text.');
     } catch (err: unknown) {
       setSingleRegexResult(`Regex Compilation Error: ${err instanceof Error ? err.message : String(err)}`);
     }

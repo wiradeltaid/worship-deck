@@ -14,15 +14,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/components/admin/FormLayoutAdminPanel.tsx` in full.
-- [ ] In `src/components/admin/FormLayoutAdminPanel.tsx`:
+- [x] Read `src/components/admin/FormLayoutAdminPanel.tsx` in full.
+- [x] In `src/components/admin/FormLayoutAdminPanel.tsx`:
       (1) In `runSingleRegexTest`, reset `re.lastIndex = 0` and add multiline dotall fallback evaluating `testRundownText.match(re)`.
       (2) Extract `val = m.groups?.value || m.groups?.number || (m[1] !== undefined ? m[1] : m[0])`, plus display `m.groups?.book` if present.
       (3) In `handleRunRundownTest`, register multiline song set match target line indices into `mappedIndices`.
       (4) In `handleRunRundownTest`, update pre-mapping loops to pinpoint target lines without masking intermediate content.
-- [ ] Add unit tests in `tests/dynamic-field-extraction.test.mjs` verifying:
+- [x] Add unit tests in `tests/dynamic-field-extraction.test.mjs` verifying:
       (1) Single regex evaluation successfully matches multiline dotall patterns, resets `lastIndex`, and extracts song numbers and books.
       (2) Extraction of the user's multi-section Sabbath bulletin fixture excludes matched song lines from `unmappedLines` while preserving truly unmapped lines.
-- [ ] Verify `npm test` passes without regression.
+- [x] Verify `npm test` passes without regression.
