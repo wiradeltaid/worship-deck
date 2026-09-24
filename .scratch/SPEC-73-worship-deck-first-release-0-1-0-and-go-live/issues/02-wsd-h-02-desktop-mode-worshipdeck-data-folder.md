@@ -16,13 +16,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `cmd/api/main.go`, `internal/desktop/datadir.go`, and `installer/worship-deck.iss`.
-- [ ] In `installer/worship-deck.iss`: update `[Icons]` and `[Run]` to pass `--desktop`.
-- [ ] In `internal/desktop/datadir.go`: update directory resolution to `WorshipDeck` / `worship-deck`.
-- [ ] In `internal/desktop/mutex.go`: update mutex name to `Local\WorshipDeck.SingleInstance`.
-- [ ] Update `internal/desktop/desktop_test.go` to assert new path resolution. Verify red first, then green.
-- [ ] Add `tests/desktop-mode-guard.test.mjs` asserting absence of `WorshipPresenter`. Verify red first, then green.
-- [ ] Add `tests/desktop-mode-guard.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `go test ./internal/desktop/...` and `npm test` pass cleanly.
+- [x] Read `cmd/api/main.go`, `internal/desktop/datadir.go`, and `installer/worship-deck.iss`.
+- [x] In `installer/worship-deck.iss`: update `[Icons]` and `[Run]` to pass `--desktop`.
+- [x] In `internal/desktop/datadir.go`: update directory resolution to `WorshipDeck` / `worship-deck`.
+- [x] In `internal/desktop/mutex.go`: update mutex name to `Local\WorshipDeck.SingleInstance`.
+- [x] Update `internal/desktop/desktop_test.go` to assert new path resolution. Verify red first, then green.
+- [x] Add `tests/desktop-mode-guard.test.mjs` asserting absence of `WorshipPresenter`. Verify red first, then green.
+- [x] Add `tests/desktop-mode-guard.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `go test ./internal/desktop/...` and `npm test` pass cleanly.

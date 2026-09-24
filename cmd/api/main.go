@@ -10,7 +10,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -28,9 +27,7 @@ func main() {
 	noBrowserFlag := flag.Bool("no-browser", false, "suppress automatic browser launch")
 	flag.Parse()
 
-	baseName := strings.ToLower(filepath.Base(os.Args[0]))
-	isDesktop := *desktopFlag || os.Getenv("DESKTOP") == "1" ||
-		strings.Contains(baseName, "worship-presenter")
+	isDesktop := *desktopFlag || os.Getenv("DESKTOP") == "1"
 
 	// 1. Resolve root directory (assets, catalogs, worker scripts)
 	root, err := os.Getwd()
@@ -70,7 +67,7 @@ func main() {
 			log.Fatalf("acquiring single-instance mutex: %v", err)
 		} else if alreadyRunning {
 			if dataDir != "" {
-				if info, rErr := desktop.ReadRuntimeInfo(dataDir); rErr == nil && info.URL != "" {
+				if info, rErr := desktop.ReadRuntimeInfo(dataDir); rErr == nil && info.URL != "" && desktop.IsValidLoopbackURL(info.URL) {
 					log.Printf("another instance is already running at %s; focusing browser and exiting", info.URL)
 					_ = desktop.OpenBrowser(info.URL)
 					os.Exit(0)

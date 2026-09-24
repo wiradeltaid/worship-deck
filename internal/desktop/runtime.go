@@ -3,10 +3,33 @@ package desktop
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
+
+// IsValidLoopbackURL validates that a raw URL is an http URL strictly pointing to loopback (127.0.0.1, localhost, or ::1) with a valid port.
+func IsValidLoopbackURL(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "http" {
+		return false
+	}
+	host := u.Hostname()
+	if host != "127.0.0.1" && host != "localhost" && host != "::1" {
+		return false
+	}
+	portStr := u.Port()
+	if portStr == "" {
+		return false
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port < 1 || port > 65535 {
+		return false
+	}
+	return true
+}
 
 // RuntimeInfo captures details of an actively running desktop instance.
 type RuntimeInfo struct {

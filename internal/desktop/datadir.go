@@ -12,9 +12,9 @@ import (
 // 1. Explicit CLI flag `--data-dir`
 // 2. Environment variable `DATA_DIR`
 // 3. If in desktop mode:
-//    - Windows: %LocalAppData%\WorshipPresenter
-//    - Linux: $XDG_DATA_HOME/worship-presenter (or ~/.local/share/worship-presenter)
-//    - macOS: ~/Library/Application Support/WorshipPresenter
+//    - Windows: %LocalAppData%\WorshipDeck
+//    - Linux: $XDG_DATA_HOME/worship-deck (or ~/.local/share/worship-deck)
+//    - macOS: ~/Library/Application Support/WorshipDeck
 // 4. Default: empty string (falls back to repository root / local dev data path)
 func ResolveDataDir(flagVal string, isDesktop bool) (string, error) {
 	if flagVal != "" {
@@ -37,24 +37,24 @@ func ResolveDataDir(flagVal string, isDesktop bool) (string, error) {
 			}
 			localAppData = filepath.Join(home, "AppData", "Local")
 		}
-		return filepath.Join(localAppData, "WorshipPresenter"), nil
+		return filepath.Join(localAppData, "WorshipDeck"), nil
 
 	case "darwin":
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("resolving user home directory: %w", err)
 		}
-		return filepath.Join(home, "Library", "Application Support", "WorshipPresenter"), nil
+		return filepath.Join(home, "Library", "Application Support", "WorshipDeck"), nil
 
 	default: // Linux / BSD
-		if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
-			return filepath.Join(xdg, "worship-presenter"), nil
+		if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" && filepath.IsAbs(xdg) {
+			return filepath.Join(xdg, "worship-deck"), nil
 		}
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("resolving user home directory: %w", err)
 		}
-		return filepath.Join(home, ".local", "share", "worship-presenter"), nil
+		return filepath.Join(home, ".local", "share", "worship-deck"), nil
 	}
 }
 

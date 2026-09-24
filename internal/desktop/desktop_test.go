@@ -44,7 +44,7 @@ func TestResolveDataDir_DesktopDefault(t *testing.T) {
 		t.Fatal("expected non-empty desktop data directory")
 	}
 	if runtime.GOOS == "windows" {
-		if !filepath.IsAbs(resolved) || filepath.Base(resolved) != "WorshipPresenter" {
+		if !filepath.IsAbs(resolved) || filepath.Base(resolved) != "WorshipDeck" {
 			t.Fatalf("unexpected windows desktop data dir: %s", resolved)
 		}
 	}
@@ -114,7 +114,7 @@ func TestRuntimeInfoRoundTrip(t *testing.T) {
 }
 
 func TestAcquireMutex_SingleAndSecondary(t *testing.T) {
-	mutexName := fmt.Sprintf("Local\\TestWorshipPresenter_%d", os.Getpid())
+	mutexName := fmt.Sprintf("Local\\TestWorshipDeck_%d", os.Getpid())
 
 	lock1, alreadyRunning, err := AcquireMutex(mutexName)
 	if err != nil {
