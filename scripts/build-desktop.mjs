@@ -6,7 +6,7 @@
  * 1. Vite SPA production build (spa/dist)
  * 2. Go desktop binary compilation (dist-desktop/worship-deck.exe)
  * 3. Portable Node.js & worker closure staging (dist-desktop/runtime, workers, src, node_modules)
- * 4. Inno Setup installer compilation (dist-installer/WorshipDeckSetup.exe) if ISCC is installed
+ * 4. Inno Setup installer compilation (dist-installer/WorshipDeck-<version>-x64-setup.exe) if ISCC is installed
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -112,7 +112,7 @@ export async function buildDesktopPackage(options = {}) {
     if (innoRes.status !== 0) {
       throw new Error(`Inno Setup compilation failed with exit code ${innoRes.status}`);
     }
-    const outputSetup = path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe');
+    const outputSetup = path.join(repoRoot, 'dist-installer', `WorshipDeck-${appVersion}-x64-setup.exe`);
     if (!fs.existsSync(outputSetup)) {
       throw new Error(`Expected installer output not found at ${outputSetup}`);
     }

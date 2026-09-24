@@ -58,7 +58,7 @@ A packaged Windows installer is also published on tagged GitHub Releases, built 
 guard test suites before packaging, and refuses to release if the tag, `package.json` version, and
 the matching `CHANGELOG.md` entry disagree. The installer is **not code-signed**, so Windows
 SmartScreen will likely warn on first run; what you can verify instead is the SHA-256 checksum —
-every release publishes a `SHA256SUMS.txt` alongside the installer. Hash the file you downloaded and
+every release publishes a `SHA256SUMS` file alongside the installer. Hash the file you downloaded and
 compare before running it.
 
 No tagged release has been cut yet as of this writing; the above describes what a release will

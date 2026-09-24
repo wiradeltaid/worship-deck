@@ -4591,7 +4591,7 @@ rtm:
   test:
   - tests/installer-version-sync.test.mjs
   - tests/release-artifact-names.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

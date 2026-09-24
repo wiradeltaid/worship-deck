@@ -82,6 +82,8 @@ jobs:
           npm run typecheck
           node --import ./tests/register-ts-resolve.mjs --test tests/public-repo-guard.test.mjs
           node --import ./tests/register-ts-resolve.mjs --test tests/theme-chrome.test.mjs
+          node --import ./tests/register-ts-resolve.mjs --test tests/installer-version-sync.test.mjs
+          node --import ./tests/register-ts-resolve.mjs --test tests/release-artifact-names.test.mjs
 
       - name: Package Windows desktop installer
         run: npm run package:installer
@@ -89,7 +91,7 @@ jobs:
       - name: Verify compiled installer file version
         shell: pwsh
         run: |
-          $installer = "dist-installer\WorshipDeckSetup.exe"
+          $installer = "dist-installer\WorshipDeck-$($env:VERSION)-x64-setup.exe"
           if (-not (Test-Path $installer)) { throw "Installer not found at $installer" }
           $fileVersion = (Get-Item $installer).VersionInfo.FileVersion
           if ($fileVersion -ne $env:VERSION) {
@@ -100,11 +102,11 @@ jobs:
       - name: Compute SHA-256 checksums
         shell: pwsh
         run: |
-          $installer = "dist-installer\WorshipDeckSetup.exe"
+          $installer = "dist-installer\WorshipDeck-$($env:VERSION)-x64-setup.exe"
           if (-not (Test-Path $installer)) { throw "Installer not found at $installer" }
           $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
           $name = [System.IO.Path]::GetFileName($installer)
-          "$hash  $name" | Set-Content dist-installer\SHA256SUMS.txt -Encoding utf8
+          "$hash  $name" | Set-Content dist-installer\SHA256SUMS -Encoding utf8
           Write-Host "SHA256: $hash ($name)"
 
       - name: Publish GitHub Release
@@ -112,7 +114,7 @@ jobs:
         with:
           body_path: changelog-section.md
           files: |
-            dist-installer/WorshipDeckSetup.exe
-            dist-installer/SHA256SUMS.txt
+            dist-installer/WorshipDeck-*-x64-setup.exe
+            dist-installer/SHA256SUMS
           draft: false
           prerelease: false
