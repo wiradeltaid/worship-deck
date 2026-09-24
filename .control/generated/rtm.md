@@ -4752,7 +4752,7 @@ rtm:
   - tests/artifact-font-catalog.test.mjs
   - tests/smoke-spec-17.test.mjs
   - tests/bundled-fonts-guard.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

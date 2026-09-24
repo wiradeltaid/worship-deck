@@ -120,7 +120,7 @@ export async function getFontData(
   }
 
   const def = getFontDefinition(canonical);
-  if (def?.googleFont && typeof fetch === 'function') {
+  if (def?.embeddable && typeof fetch === 'function') {
     try {
       const gName = def.family;
       const wght = v === 'bold' || v === 'boldItalic' ? '700' : '400';

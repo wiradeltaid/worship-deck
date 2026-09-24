@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 5
+- Iteration: 6
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-05 completed and verified — webhook disabled in code
+- Stopped at: Ticket WSD-H-06 completed and verified — bundled fonts for console and congregation screen
 - Blocked: —
 - Parked: —
-- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-06
+- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-07
 
 ## Decisions
 
@@ -23,6 +23,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-3 (WSD-H-03) | internal/auth/session.go, cmd/api/main.go, .env.example | Auto-generate cryptographically random 32-byte secret in <dataDir>/auth-secret.dat (0600) on first desktop launch under single-instance mutex protection, refuse silent overwrite of existing/short secrets, reject insecure placeholders (change-me*, your-secret-here*, secret, password) without leaking secret values in errors/logs, and preserve 503 response in server mode when unset, verified by Terra peer review | manual secret entry in desktop or allowing default insecure secrets | medium | internal/auth/session.go, cmd/api/main.go, .env.example, internal/auth/session_test.go, cmd/api/auth_secret_test.go, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/03-wsd-h-03-automatic-auth-secret-refuse-example-secrets.md |
 | I-4 (WSD-H-04) | internal/auth/accounts.go, internal/httpapi/auth.go, gate.go, LoginPage.tsx | Implement atomic loopback first-admin setup (POST /api/setup/admin, GET /api/setup/status) restricted to desktop mode and loopback, render setup screen on LoginPage when 0 accounts exist with password confirmation, and enforce session gate exemption with absence guard tests | requiring manual SQL/bootstrap password for desktop operators | medium | internal/auth/accounts.go, internal/gate/gate.go, internal/httpapi/server.go, internal/httpapi/auth.go, cmd/api/main.go, spa/src/pages/LoginPage.tsx, src/lib/i18n/keys.ts, catalogue-en.ts, catalogue-id.ts, internal/httpapi/setup_test.go, tests/first-admin-setup.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/04-wsd-h-04-first-admin-setup-screen.md |
 | I-5 (WSD-H-05) | internal/httpapi/webhook.go, scripts/setup.mjs, .env.example, deployment.md | Disable webhook intake in code by unconditionally returning 503 Service Unavailable ("Webhook intake is disabled in this release") before reading body (verified by failOnReadBody test), and remove WEBHOOK_SECRET from scripts/setup.mjs and .env.example | leaving enabled webhook without active production consumers | medium | internal/httpapi/webhook.go, internal/httpapi/webhook_test.go, scripts/setup.mjs, .env.example, .constitution/project/deployment.md, tests/webhook-auth.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/05-wsd-h-05-webhook-disabled-in-code.md |
+| I-6 (WSD-H-06) | spa/index.html, spa/projected.html, fonts.css, font-catalog.ts, package.json | Bundle all 35 typography font families locally via @fontsource packages under SIL OFL-1.1 and Apache-2.0 licenses in spa/src/fonts.css, eliminate Google Fonts CDN links from HTML templates, remove getGoogleFontsStylesheetUrl and googleFont properties from font-catalog.ts, and enforce absence guards with real-file defect injection | depending on external Google Fonts CDN for presentation slides | medium | package.json, package-lock.json, spa/index.html, spa/projected.html, spa/src/fonts.css, spa/src/styles.css, src/lib/fonts/embed-fonts.ts, src/lib/registry/font-catalog.ts, tests/artifact-font-catalog.test.mjs, tests/smoke-spec-17.test.mjs, tests/bundled-fonts-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/06-wsd-h-06-bundled-fonts-console-congregation-screen.md |
 
 ## Smoke Test Results
 
@@ -32,3 +33,4 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 - WSD-H-03 verification: PASS — `go test -v ./internal/auth/...` (passed), `go test -v ./cmd/api/...` (passed), `validate.py` green.
 - WSD-H-04 verification: PASS — `go test -v ./internal/httpapi -run TestSetup` (passed), `go test -v ./internal/gate/...` (passed), `node --test tests/first-admin-setup.test.mjs` (3/3 passed), `validate.py` green.
 - WSD-H-05 verification: PASS — `go test -v ./internal/httpapi -run TestWebhook` (passed, body unread verified), `node --test tests/webhook-auth.test.mjs` (8/8 passed), `validate.py` green.
+- WSD-H-06 verification: PASS — `node --test tests/bundled-fonts-guard.test.mjs` (5/5 passed), `node --test tests/artifact-font-catalog.test.mjs` (9/9 passed), `node --test tests/smoke-spec-17.test.mjs` (4/4 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.

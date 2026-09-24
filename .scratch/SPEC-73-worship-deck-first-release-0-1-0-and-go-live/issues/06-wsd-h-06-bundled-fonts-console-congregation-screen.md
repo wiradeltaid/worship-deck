@@ -16,13 +16,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `font-bundling-spec.md`, `spa/index.html`, `spa/projected.html`, and `src/lib/registry/font-catalog.ts`.
-- [ ] Install and configure `@fontsource` packages for all 35 font families.
-- [ ] Remove Google Fonts `<link>` tags from `spa/index.html` and `spa/projected.html`.
-- [ ] Remove Google URL builders in `src/lib/registry/font-catalog.ts`.
-- [ ] Reverse `tests/artifact-font-catalog.test.mjs` and `tests/smoke-spec-17.test.mjs` to demand absence of Google Fonts.
-- [ ] Add `tests/bundled-fonts-guard.test.mjs` asserting zero Google font URLs. Verify red first, then green.
-- [ ] Add `tests/bundled-fonts-guard.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Read `font-bundling-spec.md`, `spa/index.html`, `spa/projected.html`, and `src/lib/registry/font-catalog.ts`.
+- [x] Install and configure `@fontsource` packages for all 35 font families.
+- [x] Remove Google Fonts `<link>` tags from `spa/index.html` and `spa/projected.html`.
+- [x] Remove Google URL builders in `src/lib/registry/font-catalog.ts`.
+- [x] Reverse `tests/artifact-font-catalog.test.mjs` and `tests/smoke-spec-17.test.mjs` to demand absence of Google Fonts.
+- [x] Add `tests/bundled-fonts-guard.test.mjs` asserting zero Google font URLs. Verify red first, then green.
+- [x] Add `tests/bundled-fonts-guard.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.
