@@ -1,4 +1,4 @@
-# Developer & Contribution Guide — WorshipDeck
+# Developer and Contribution Guide: WorshipDeck
 
 Thank you for your interest in contributing to WorshipDeck! We welcome community contributions, particularly from software engineers adapting WorshipDeck to diverse liturgical traditions and language translations.
 

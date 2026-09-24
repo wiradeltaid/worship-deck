@@ -35,6 +35,7 @@ const ALLOWED = new Map(Object.entries({
   // --- symbols a shipped change removed, still named by records ---
   'ARCHITECTURE-SPINE.md|isKjvCorpusEmpty': 'the rename sentence isKjvCorpusEmpty() -> isBibleTranslationEmpty(code)',
   'ARCHITECTURE-SPINE.md|songset1': 'AD-19 names it as the REJECTED spelling — "songset1 re-imports the positional reading this decision exists to remove"',
+  'ARCHITECTURE-SPINE.md|resolvedHymns': 'WSD-H-05 disabled webhook intake in code, removing the resolvedHymns payload contract',
 }));
 
 // Citations this guard must not chase: commit SHAs, PPTX media names, and the

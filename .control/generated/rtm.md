@@ -4692,7 +4692,7 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/public-facts.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

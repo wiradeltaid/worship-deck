@@ -1,12 +1,12 @@
 # Congregation Privacy Notice Template (For Church Operators)
 
 > **About this document:**
-> Worship Presenter Web is self-hosted open-source software developed by Wira Delta Indonesia.
+> WorshipDeck is self-hosted open-source software developed by Wira Delta Indonesia.
 > Because the software is installed on a server managed by your own church or organization, Wira
 > Delta Indonesia has no access to your installation or data.
 >
-> Under data protection legislation — including Indonesia's Personal Data Protection Law (UU No.
-> 27/2022) and international equivalents — **your church organization is the legal Data Controller**
+> Under data protection legislation, including Indonesia's Personal Data Protection Law (UU No.
+> 27/2022) and international equivalents, **your church organization is the legal Data Controller**
 > for the personal information stored in this application.
 >
 > This template is provided as a starting point to help church administrators inform their
@@ -24,7 +24,7 @@
 **Contact / Inquiries:** `[Email or Phone of Church Office / Secretariat]`
 
 #### 1. Why We Collect and Use Your Information
-`[Name of Church]` uses a church presentation system (Worship Presenter Web) to facilitate worship
+`[Name of Church]` uses a church presentation system (WorshipDeck) to facilitate worship
 services and church announcements. In connection with these activities, we process the following
 information:
 - **Member Names:** Displayed on service rundown sheets and projection slides for scheduled worship
@@ -71,7 +71,7 @@ To exercise these rights, please contact our church administration at `[Church O
 **Kontak Sekretariat / Pengurus:** `[Email / No. HP Sekretariat Gereja]`
 
 #### 1. Tujuan Pengumpulan dan Penggunaan Data
-`[Nama Gereja]` menggunakan sistem penampil ibadah (Worship Presenter Web) yang dikelola secara
+`[Nama Gereja]` menggunakan sistem penampil ibadah (WorshipDeck) yang dikelola secara
 mandiri (*self-hosted*) untuk mendukung kelancaran kebaktian dan pengumuman jemaat. Terkait kegiatan
 tersebut, kami mengelola data berikut:
 - **Nama Anggota / Pelayan:** Ditampilkan pada warta jemaat dan slide proyeksi untuk jadwal pelayanan
