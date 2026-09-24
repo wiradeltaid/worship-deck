@@ -32,6 +32,37 @@ rtm:
   FR: FR-1
   DEC: []
   UC: UC-1
+  ticket: SPEC-73-03
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - internal/auth/session_test.go
+  - internal/httpapi/auth_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-11
+  FR: FR-1
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-73-04
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - internal/httpapi/auth_test.go
+  - internal/gate/gate_test.go
+  - tests/first-admin-setup.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-11
+  FR: FR-1
+  DEC: []
+  UC: UC-1
   ticket: W10-01
   spec: W10
   release: intake-lyrics
@@ -1485,6 +1516,37 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-73-03
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - internal/auth/session_test.go
+  - internal/httpapi/auth_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-73-04
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - internal/httpapi/auth_test.go
+  - internal/gate/gate_test.go
+  - tests/first-admin-setup.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3555,6 +3617,21 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-73-12
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/operator-i18n-guard.test.mjs
+  - tests/i18n.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -4503,6 +4580,136 @@ rtm:
   FR: FR-29
   DEC: []
   UC: UC-24
+  ticket: SPEC-73-01
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/installer-version-sync.test.mjs
+  - tests/release-artifact-names.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-02
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - internal/desktop/desktop_test.go
+  - tests/desktop-mode-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-09
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/installer-corpora-staging.test.mjs
+  - internal/db/bootstrap_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-10
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/changelog-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-11
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/attributions-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-13
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/doc-citations.test.mjs
+  - tests/readme-claims-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-14
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/legal-copy-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-15
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/public-facts.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
+  ticket: SPEC-73-16
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/readme-structure.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-29
+  DEC: []
+  UC: UC-24
   ticket: W11-05
   spec: W11
   release: artifacts-overhaul
@@ -4528,6 +4735,51 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
+  ticket: SPEC-73-06
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/artifact-font-catalog.test.mjs
+  - tests/smoke-spec-17.test.mjs
+  - tests/bundled-fonts-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
+  ticket: SPEC-73-07
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/pptx-bundled-fonts.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
+  ticket: SPEC-73-08
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/branding-svg-guard.test.mjs
+  - tests/third-party-notices.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -6348,6 +6600,21 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-73-12
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/operator-i18n-guard.test.mjs
+  - tests/i18n.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -6452,6 +6719,21 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-31
+  DEC: []
+  UC: UC-25
+  ticket: SPEC-73-05
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/webhook-auth.test.mjs
+  - internal/httpapi/webhook_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31
@@ -6720,6 +7002,21 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-38
+  DEC: []
+  UC: UC-25
+  ticket: SPEC-73-05
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/webhook-auth.test.mjs
+  - internal/httpapi/webhook_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38
@@ -8534,6 +8831,21 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-73-12
+  spec: SPEC-73
+  release: worship-deck-first-release-0-1-0-and-go-live
+  test:
+  - tests/operator-i18n-guard.test.mjs
+  - tests/i18n.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

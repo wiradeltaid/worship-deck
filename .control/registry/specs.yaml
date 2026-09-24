@@ -3130,6 +3130,148 @@ waves:
           - internal/parse/dynamic_extraction_test.go
           - internal/httpapi/services_field_values_test.go
 
+  # Opened 2026-09-24 from user triage notes (handover-rilis-perdana.md).
+  # WorshipDeck first release (0.1.0) and go-live work (WSD-H-01 to WSD-H-17).
+  - id: SPEC-73
+    status: open
+    release: worship-deck-first-release-0-1-0-and-go-live
+    prd: [operator-turn, offline-deck, rundown-to-service]
+    fr: [FR-1, FR-18, FR-26, FR-31, FR-40]
+    size: L
+    depends_on: []
+    spec_folder: .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/
+    spec_reviewed:
+      date: '2026-09-24'
+      sha: '374032a9da4976b11f4db2f3d47ae0d2c72a0224'
+      lenses: [structure, prose, edge-case-hunter, security-boundary-reviewer, release-integrity-reviewer, public-copy-and-legal-reviewer]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in sequencing rationale for WSD-H-11 downstream of WSD-H-08 to eliminate ATTRIBUTIONS.md branch collisions, explicit external release gates for WSD-H-14 (ops C-01..C-03 and owner B-03..B-04), explicit post-publication categorization for WSD-H-17 excluding it from pre-tag readiness, startup-path refusal coverage for all placeholder secret variants (change-me*, your-secret-here*) across AUTH_SECRET and JWT_SECRET, explicit secret file error handling, loopback restriction on GET /api/setup/status, and owner-confirmed feature nomenclature."
+    tickets:
+      - id: "SPEC-73-01"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: []
+        touches: [sync]
+        tests:
+          - tests/installer-version-sync.test.mjs
+          - tests/release-artifact-names.test.mjs
+      - id: "SPEC-73-02"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: []
+        touches: [settings]
+        tests:
+          - internal/desktop/desktop_test.go
+          - tests/desktop-mode-guard.test.mjs
+      - id: "SPEC-73-03"
+        component: hub
+        satisfies: [UC-1, FR-1, FR-40]
+        blocked_by: ["SPEC-73-02"]
+        touches: [auth]
+        tests:
+          - internal/auth/session_test.go
+          - internal/httpapi/auth_test.go
+      - id: "SPEC-73-04"
+        component: hub
+        satisfies: [UC-1, FR-1, FR-40]
+        blocked_by: ["SPEC-73-03"]
+        touches: [auth, accounts]
+        tests:
+          - internal/httpapi/auth_test.go
+          - internal/gate/gate_test.go
+          - tests/first-admin-setup.test.mjs
+      - id: "SPEC-73-05"
+        component: hub
+        satisfies: [UC-25, FR-31]
+        blocked_by: []
+        touches: [webhook]
+        tests:
+          - tests/webhook-auth.test.mjs
+          - internal/httpapi/webhook_test.go
+      - id: "SPEC-73-06"
+        component: registry
+        satisfies: [UC-21, FR-26, FR-40]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/artifact-font-catalog.test.mjs
+          - tests/smoke-spec-17.test.mjs
+          - tests/bundled-fonts-guard.test.mjs
+      - id: "SPEC-73-07"
+        component: hub
+        satisfies: [UC-21, FR-26, FR-40]
+        blocked_by: ["SPEC-73-06"]
+        touches: [artifacts, pptx]
+        tests:
+          - tests/pptx-bundled-fonts.test.mjs
+      - id: "SPEC-73-08"
+        component: registry
+        satisfies: [UC-21, FR-26, FR-40]
+        blocked_by: ["SPEC-73-07"]
+        touches: [artifacts]
+        tests:
+          - tests/branding-svg-guard.test.mjs
+          - tests/third-party-notices.test.mjs
+      - id: "SPEC-73-09"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-02", "SPEC-73-08"]
+        touches: [settings, hymns, scripture]
+        tests:
+          - tests/installer-corpora-staging.test.mjs
+          - internal/db/bootstrap_test.go
+      - id: "SPEC-73-10"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-09", "SPEC-73-12", "SPEC-73-13"]
+        touches: [settings]
+        tests:
+          - tests/changelog-guard.test.mjs
+      - id: "SPEC-73-11"
+        component: registry
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-08"]
+        touches: [artifacts]
+        tests:
+          - tests/attributions-guard.test.mjs
+      - id: "SPEC-73-12"
+        component: presenter
+        satisfies: [UC-14, FR-18, FR-40]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/operator-i18n-guard.test.mjs
+          - tests/i18n.test.mjs
+      - id: "SPEC-73-13"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-01", "SPEC-73-05", "SPEC-73-09", "SPEC-73-12", "SPEC-73-15"]
+        touches: [settings, sync, webhook]
+        tests:
+          - tests/doc-citations.test.mjs
+          - tests/readme-claims-guard.test.mjs
+      - id: "SPEC-73-14"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-04", "SPEC-73-10", "SPEC-73-13"]
+        touches: [settings, auth]
+        tests:
+          - tests/legal-copy-guard.test.mjs
+      - id: "SPEC-73-15"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-01"]
+        touches: [sync]
+        tests:
+          - tests/public-facts.test.mjs
+      - id: "SPEC-73-16"
+        component: hub
+        satisfies: [UC-24, FR-40]
+        blocked_by: ["SPEC-73-13", "SPEC-73-14", "SPEC-73-15"]
+        touches: [settings, sync]
+        tests:
+          - tests/readme-structure.test.mjs
+
+
 
 
 
