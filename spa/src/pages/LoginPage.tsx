@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,15 +29,42 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSetup, setIsSetup] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/setup/status', { credentials: 'same-origin' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { setupRequired?: boolean } | null) => {
+        if (active && data && data.setupRequired) {
+          setIsSetup(true);
+        }
+      })
+      .catch(() => {
+        // Status endpoint unavailable or non-loopback, fall back to normal login
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
+
+    if (isSetup && password !== confirmPassword) {
+      setError(t('setup.passwordMismatch'));
+      setBusy(false);
+      return;
+    }
+
     try {
-      const res = await fetch('/api/auth/login', {
+      const endpoint = isSetup ? '/api/setup/admin' : '/api/auth/login';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
@@ -45,11 +72,11 @@ export default function LoginPage() {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        throw new Error(data.error || t('login.invalid'));
+        throw new Error(data.error || (isSetup ? t('setup.failed') : t('login.invalid')));
       }
       window.location.assign(safeNextPath(searchParams.get('next')));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.failed'));
+      setError(err instanceof Error ? err.message : (isSetup ? t('setup.failed') : t('login.failed')));
     } finally {
       setBusy(false);
     }
@@ -69,9 +96,11 @@ export default function LoginPage() {
       <div className="relative z-10 flex w-full max-w-md flex-col items-center">
         <BrandMark />
         <h1 className="mb-2 bg-gradient-to-r from-foreground via-foreground/90 to-foreground/75 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
-          {t('chrome.brand.title')}
+          {isSetup ? t('setup.title') : t('chrome.brand.title')}
         </h1>
-        <p className="mb-8 text-sm text-muted-foreground">{t('login.subtitle')}</p>
+        <p className="mb-8 text-sm text-muted-foreground">
+          {isSetup ? t('setup.subtitle') : t('login.subtitle')}
+        </p>
 
         <div className="relative w-full overflow-hidden rounded-2xl border border-border/80 bg-card/60 p-8 shadow-xl backdrop-blur-xl">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
@@ -81,14 +110,14 @@ export default function LoginPage() {
                 htmlFor="login-username"
                 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                {t('login.username')}
+                {isSetup ? t('setup.username') : t('login.username')}
               </Label>
               <Input
                 id="login-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
-                placeholder={t('login.usernamePlaceholder')}
+                placeholder={isSetup ? t('setup.usernamePlaceholder') : t('login.usernamePlaceholder')}
                 required
                 disabled={busy}
                 className={LOGIN_FIELD}
@@ -99,20 +128,41 @@ export default function LoginPage() {
                 htmlFor="login-password"
                 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                {t('login.password')}
+                {isSetup ? t('setup.password') : t('login.password')}
               </Label>
               <Input
                 id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder={t('login.passwordPlaceholder')}
+                autoComplete={isSetup ? 'new-password' : 'current-password'}
+                placeholder={isSetup ? t('setup.passwordPlaceholder') : t('login.passwordPlaceholder')}
                 required
                 disabled={busy}
                 className={LOGIN_FIELD}
               />
             </div>
+            {isSetup ? (
+              <div className="space-y-2">
+                <Label
+                  htmlFor="setup-confirm-password"
+                  className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  {t('setup.confirmPassword')}
+                </Label>
+                <Input
+                  id="setup-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder={t('setup.confirmPasswordPlaceholder')}
+                  required
+                  disabled={busy}
+                  className={LOGIN_FIELD}
+                />
+              </div>
+            ) : null}
             {error ? (
               <p className="animate-pulse text-sm font-medium text-destructive" role="alert">
                 {error}
@@ -123,7 +173,13 @@ export default function LoginPage() {
               disabled={busy}
               className="mt-2 h-auto w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md hover:bg-primary/95 hover:shadow-primary/10 active:scale-[0.98]"
             >
-              {busy ? t('login.submitting') : t('login.submit')}
+              {busy
+                ? isSetup
+                  ? t('setup.submitting')
+                  : t('login.submitting')
+                : isSetup
+                  ? t('setup.submit')
+                  : t('login.submit')}
             </Button>
           </form>
         </div>

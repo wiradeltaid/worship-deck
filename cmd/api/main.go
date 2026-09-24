@@ -109,7 +109,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	srv := &httpapi.Server{DB: handle, Root: root}
+	srv := &httpapi.Server{DB: handle, Root: root, IsDesktop: isDesktop}
 
 	// 5. Resolve host and port listener
 	preferredPort := 3000

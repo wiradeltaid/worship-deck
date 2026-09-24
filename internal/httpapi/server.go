@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,12 +21,31 @@ import (
 )
 
 type Server struct {
-	DB   *sql.DB
-	Root string
+	DB        *sql.DB
+	Root      string
+	IsDesktop bool
+}
+
+func (s *Server) isDesktop() bool {
+	return s.IsDesktop || os.Getenv("DESKTOP") == "1"
+}
+
+func isLoopbackRequest(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	ip := net.ParseIP(host)
+	if ip != nil && ip.IsLoopback() {
+		return true
+	}
+	return host == "127.0.0.1" || host == "::1" || host == "localhost"
 }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/setup/status", s.getSetupStatus)
+	mux.HandleFunc("POST /api/setup/admin", s.postSetupAdmin)
 	mux.HandleFunc("POST /api/auth/login", s.postLogin)
 	mux.HandleFunc("POST /api/auth/logout", s.postLogout)
 	mux.HandleFunc("POST /api/auth/change-password", s.postChangePassword)

@@ -59,7 +59,7 @@ rtm:
   - internal/httpapi/auth_test.go
   - internal/gate/gate_test.go
   - tests/first-admin-setup.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -1548,7 +1548,7 @@ rtm:
   - internal/httpapi/auth_test.go
   - internal/gate/gate_test.go
   - tests/first-admin-setup.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -9,7 +10,72 @@ import (
 	"time"
 )
 
-var usernamePattern = regexp.MustCompile(`^[a-z0-9._-]+$`)
+var (
+	usernamePattern          = regexp.MustCompile(`^[a-z0-9._-]+$`)
+	ErrSetupAlreadyCompleted = errors.New("initial setup has already been completed")
+)
+
+// CountAccounts returns the count of accounts in the database.
+func CountAccounts(db *sql.DB) (int, error) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM accounts`).Scan(&count)
+	return count, err
+}
+
+// CreateFirstAdmin atomically creates the initial admin account if and only if zero accounts exist.
+// Returns ErrSetupAlreadyCompleted if an account already exists.
+func CreateFirstAdmin(db *sql.DB, username, password string) (*Account, error) {
+	u, err := ValidateUsername(username)
+	if err != nil {
+		return nil, err
+	}
+	if err := assertPassword(password); err != nil {
+		return nil, err
+	}
+	hash, err := HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var count int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM accounts`).Scan(&count); err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		return nil, ErrSetupAlreadyCompleted
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	res, err := tx.Exec(
+		`INSERT INTO accounts (username, password_hash, role, token_version, created_at) VALUES (?, ?, 'admin', 1, ?)`,
+		u, hash, now,
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &Account{
+		ID:           int(id),
+		Username:     u,
+		Role:         "admin",
+		TokenVersion: 1,
+		CreatedAt:    now,
+		PasswordHash: hash,
+	}, nil
+}
 
 type Account struct {
 	ID           int
