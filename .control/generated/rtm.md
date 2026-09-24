@@ -4781,7 +4781,7 @@ rtm:
   test:
   - tests/branding-svg-guard.test.mjs
   - tests/third-party-notices.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

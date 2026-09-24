@@ -13,12 +13,12 @@
 
 **Blocked by:** 07-wsd-h-07-pptx-embedding-bundled-font-files.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `public/branding/worship-deck-lockup-*.svg` and `ATTRIBUTIONS.md`.
-- [ ] Convert branding SVG text to paths and remove Google Fonts `@import` rules.
-- [ ] Author `THIRD-PARTY-NOTICES` as a standalone file at the repo root covering all 35 bundled font families and licenses.
-- [ ] Add `tests/branding-svg-guard.test.mjs` asserting zero external URLs in SVGs. Verify red first, then green.
-- [ ] Add `tests/third-party-notices.test.mjs` verifying coverage of all 35 families.
-- [ ] Add new test files to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Read `public/branding/worship-deck-lockup-*.svg` and `ATTRIBUTIONS.md`.
+- [x] Convert branding SVG text to paths and remove Google Fonts `@import` rules.
+- [x] Author `THIRD-PARTY-NOTICES` as a standalone file at the repo root covering all 35 bundled font families and licenses.
+- [x] Add `tests/branding-svg-guard.test.mjs` asserting zero external URLs in SVGs. Verify red first, then green.
+- [x] Add `tests/third-party-notices.test.mjs` verifying coverage of all 35 families.
+- [x] Add new test files to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.
