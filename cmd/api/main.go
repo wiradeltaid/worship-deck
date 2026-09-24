@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/wiradeltaid/worship-deck/internal/auth"
 	"github.com/wiradeltaid/worship-deck/internal/db"
 	"github.com/wiradeltaid/worship-deck/internal/desktop"
 	"github.com/wiradeltaid/worship-deck/internal/httpapi"
@@ -58,6 +59,11 @@ func main() {
 		}
 	}
 
+	// Validate that startup secrets (AUTH_SECRET, JWT_SECRET) are not using insecure placeholders
+	if err := auth.ValidateStartupSecrets(); err != nil {
+		log.Fatalf("invalid authentication configuration: %v", err)
+	}
+
 	// 3. Single-instance mutex enforcement in desktop mode
 	var mutexLock desktop.SingleInstanceLock
 	if isDesktop {
@@ -78,6 +84,13 @@ func main() {
 		}
 		if mutexLock != nil {
 			defer mutexLock.Release()
+		}
+
+		// Under protection of the single-instance mutex, initialize or auto-generate auth-secret.dat
+		if dataDir != "" {
+			if _, err := auth.InitDesktopAuthSecret(dataDir); err != nil {
+				log.Fatalf("initializing desktop auth secret: %v", err)
+			}
 		}
 	}
 

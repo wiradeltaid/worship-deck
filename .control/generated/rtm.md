@@ -43,7 +43,7 @@ rtm:
   test:
   - internal/auth/session_test.go
   - internal/httpapi/auth_test.go
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -1532,7 +1532,7 @@ rtm:
   test:
   - internal/auth/session_test.go
   - internal/httpapi/auth_test.go
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
