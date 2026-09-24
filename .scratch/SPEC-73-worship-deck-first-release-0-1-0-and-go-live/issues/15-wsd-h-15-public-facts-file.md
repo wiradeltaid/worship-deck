@@ -14,10 +14,10 @@
 
 **Blocked by:** 01-wsd-h-01-release-artifact-names.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Inspect public facts convention in `wira-desk/docs/public-facts.yaml`.
-- [ ] Author `docs/public-facts.yaml` covering version, installer name, font count (35), and corpora facts.
-- [ ] Add `tests/public-facts.test.mjs` verifying fact integrity against derived sources. Verify red first, then green.
-- [ ] Add `tests/public-facts.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Inspect public facts convention in `wira-desk/docs/public-facts.yaml`.
+- [x] Author `docs/public-facts.yaml` covering version, installer name, font count (35), and corpora facts.
+- [x] Add `tests/public-facts.test.mjs` verifying fact integrity against derived sources. Verify red first, then green.
+- [x] Add `tests/public-facts.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.

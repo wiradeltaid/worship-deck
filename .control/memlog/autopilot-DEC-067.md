@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 11
+- Iteration: 12
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-12 completed and verified — one feature-name list and application label harmonization
+- Stopped at: Ticket WSD-H-15 completed and verified — public facts manifest establishment (docs/public-facts.yaml and tests/public-facts.test.mjs)
 - Blocked: —
 - Parked: —
-- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-13
+- Next: Execute ticket WSD-H-13 (README, nine translations, and docs match the release build)
 
 ## Decisions
 
@@ -29,6 +29,23 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-9 (WSD-H-09) | internal/db/bootstrap.go, scripts/build-desktop.mjs, installer/worship-deck.iss | Disable default seeding of 38 demo templates on clean installation (leaving slide registry empty while seeding SDAH and KJV), stage corpora, fonts, LICENSE, ATTRIBUTIONS.md, and THIRD-PARTY-NOTICES into desktop distribution, package into Inno Setup {app}, and verify with unit/staging guards | missing corpora in standalone installation or unexpected demo slides on production boot | medium | internal/db/bootstrap.go, internal/db/bootstrap_test.go, scripts/build-desktop.mjs, installer/worship-deck.iss, package.json, tests/installer-corpora-staging.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/09-wsd-h-09-installer-ships-corpora-licenses-notices.md |
 | I-10 (WSD-H-11) | ATTRIBUTIONS.md, package.json | Narrow non-monetisation statement in ATTRIBUTIONS.md to apply strictly to open-source software and bundled corpora (matching ops policy), remove em-dashes, and add tests/attributions-guard.test.mjs with defect injection | overbroad non-monetisation statement constraining commercial services | low | ATTRIBUTIONS.md, package.json, tests/attributions-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/11-wsd-h-11-attributions-scope.md |
 | I-11 (WSD-H-12) | catalogue-en.ts, catalogue-id.ts, keys.ts, PresenterOperator.tsx, spa/src/App.tsx | Harmonize UI labels across English and Indonesian: congregation screen/layar jemaat, Layout/Tata letak, order of service/susunan acara, Baca susunan acara, hide /new from production routes, and add absence guards in operator-i18n-guard.test.mjs | inconsistent feature naming and unreviewed mockup route exposure | medium | src/lib/i18n/catalogue-en.ts, src/lib/i18n/catalogue-id.ts, src/lib/i18n/keys.ts, src/operator/present/PresenterOperator.tsx, spa/src/App.tsx, tests/operator-i18n-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/12-wsd-h-12-feature-name-list-and-app-labels.md |
+| I-12 (WSD-H-15) | docs/public-facts.yaml, tests/public-facts.test.mjs, package.json | Establish public facts manifest docs/public-facts.yaml following WDI pattern, declaring version, installer/checksum names, bundled fonts (35), corpora counts, licenses, and support email, with tests/public-facts.test.mjs derivation verification and real-file defect injection proofs | unverifiable claims and public fact drift across repository and marketing surfaces | medium | docs/public-facts.yaml, tests/public-facts.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/15-wsd-h-15-public-facts-file.md |
+
+## Smoke Test Results
+
+- Preflight verification: PASS — `validate.py --baseline` green, Go test suite passed (exit 0), `npm test` passed (exit 0).
+- WSD-H-01 verification: PASS — `node --test tests/release-artifact-names.test.mjs` (4/4 passed), `node --test tests/installer-version-sync.test.mjs` (6/6 passed), `validate.py` green.
+- WSD-H-02 verification: PASS — `go test ./cmd/... ./internal/desktop/...` (passed), `node --test tests/desktop-mode-guard.test.mjs` (8/8 passed), `validate.py` green.
+- WSD-H-03 verification: PASS — `go test -v ./internal/auth/...` (passed), `go test -v ./cmd/api/...` (passed), `validate.py` green.
+- WSD-H-04 verification: PASS — `go test -v ./internal/httpapi -run TestSetup` (passed), `go test -v ./internal/gate/...` (passed), `node --test tests/first-admin-setup.test.mjs` (3/3 passed), `validate.py` green.
+- WSD-H-05 verification: PASS — `go test -v ./internal/httpapi -run TestWebhook` (passed, body unread verified), `node --test tests/webhook-auth.test.mjs` (8/8 passed), `validate.py` green.
+- WSD-H-06 verification: PASS — `node --test tests/bundled-fonts-guard.test.mjs` (5/5 passed), `node --test tests/artifact-font-catalog.test.mjs` (9/9 passed), `node --test tests/smoke-spec-17.test.mjs` (4/4 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.
+- WSD-H-07 verification: PASS — `node --test tests/pptx-bundled-fonts.test.mjs` (4/4 passed), PowerPoint COM export conformance verified, `validate.py` green.
+- WSD-H-08 verification: PASS — `node --test tests/branding-svg-guard.test.mjs` (2/2 passed), `node --test tests/third-party-notices.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-09 verification: PASS — `go test -v ./internal/db -run TestCleanBootstrap` (passed, 0 templates, SDAH & KJV seeded), `node --test tests/installer-corpora-staging.test.mjs` (3/3 passed), `validate.py` green.
+- WSD-H-11 verification: PASS — `node --test tests/attributions-guard.test.mjs` (2/2 passed), `validate.py` green.
+- WSD-H-12 verification: PASS — `node --test tests/operator-i18n-guard.test.mjs` (4/4 passed), `node --test tests/i18n.test.mjs` (13/13 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), `validate.py` green.
+- WSD-H-15 verification: PASS — `node --test tests/public-facts.test.mjs` (4/4 passed), `node --test tests/public-repo-guard.test.mjs` (5/5 passed), `validate.py` green.
 
 ## Smoke Test Results
 

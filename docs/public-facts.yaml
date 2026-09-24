@@ -1,0 +1,110 @@
+# Every number, name, and claim that appears on a public surface.
+# Changing a value here without changing what it describes is a lie with a commit hash.
+
+facts:
+  - id: product_version
+    value: "0.1.0"
+    derived_from:
+      file: package.json
+      pattern: '"version":\s*"([^"]+)"'
+    appears_in:
+      - README.md
+      - installer/worship-deck.iss
+
+  - id: installer_filename
+    value: "WorshipDeck-0.1.0-x64-setup.exe"
+    derived_from:
+      file: scripts/build-desktop.mjs
+      pattern: 'WorshipDeck-\$\{appVersion\}-x64-setup\.exe'
+    appears_in:
+      - README.md
+      - .github/workflows/release.yml
+
+  - id: installer_checksum_filename
+    value: "SHA256SUMS"
+    derived_from:
+      file: .github/workflows/release.yml
+      pattern: 'dist-installer[\\/](SHA256SUMS)'
+    appears_in:
+      - README.md
+      - .github/workflows/release.yml
+
+  - id: desktop_data_folder_windows
+    value: '%LocalAppData%\WorshipDeck'
+    derived_from:
+      file: internal/desktop/datadir.go
+      pattern: '-\s*Windows:\s*(%LocalAppData%\\WorshipDeck)'
+    appears_in:
+      - README.md
+
+  - id: single_instance_mutex_name
+    value: 'Local\WorshipDeck.SingleInstance'
+    derived_from:
+      file: internal/desktop/mutex.go
+      pattern: 'DefaultMutexName\s*=\s*`([^`]+)`'
+    appears_in:
+      - docs/threat-model.md
+
+  - id: bundled_font_families_count
+    value: 35
+    derived_from:
+      file: spa/src/fonts.css
+      count_pattern: '@fontsource\/[a-z0-9-]+'
+    appears_in:
+      - README.md
+      - THIRD-PARTY-NOTICES
+
+  - id: bundled_song_books_count
+    value: 1
+    derived_from:
+      file: data/song-book
+      count_files: '*.json'
+    appears_in:
+      - README.md
+
+  - id: bundled_hymns_count
+    value: 695
+    derived_from:
+      file: data/song-book/sdah.json
+      pattern: '"hymns":\s*(\d+)'
+    appears_in:
+      - README.md
+
+  - id: bundled_bible_translations_count
+    value: 1
+    derived_from:
+      file: data/en/bible-translation
+      count_files: '*.json'
+    appears_in:
+      - README.md
+
+  - id: bundled_bible_verses_count
+    value: 31102
+    derived_from:
+      file: data/en/bible-translation/kjv.json
+      pattern: '"verses":\s*(\d+)'
+    appears_in:
+      - README.md
+
+  - id: license_identifier
+    value: "MIT"
+    derived_from:
+      file: LICENSE
+      pattern: '^([A-Z]+)\s+License'
+    appears_in:
+      - README.md
+      - package.json
+
+  - id: node_minimum_version
+    value: ">=22.12.0"
+    derived_from:
+      file: package.json
+      pattern: '"node":\s*"([^"]+)"'
+    appears_in:
+      - README.md
+
+  - id: support_email
+    value: "support@wiradelta.id"
+    source: .control/project-non-technical-log.md
+    appears_in:
+      - SECURITY.md
