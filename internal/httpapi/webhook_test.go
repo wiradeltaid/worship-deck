@@ -1,56 +1,54 @@
 package httpapi
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
 )
 
-func TestWebhook_AnnouncementsIgnoredNoAnnouncementItemsWritten(t *testing.T) {
-	ts, handle, _ := newSongSetTestServer(t)
+type failOnReadBody struct {
+	readCalled bool
+}
 
-	// Clean out any existing announcement_items
-	if _, err := handle.Exec(`DELETE FROM announcement_items`); err != nil {
-		t.Fatalf("delete announcement_items: %v", err)
-	}
+func (f *failOnReadBody) Read(p []byte) (n int, err error) {
+	f.readCalled = true
+	return 0, io.EOF
+}
 
-	secret := "test-webhook-secret-value"
-	t.Setenv("WEBHOOK_SECRET", secret)
+func (f *failOnReadBody) Close() error {
+	return nil
+}
 
-	payload := `{
-		"text": "SABBATH, JULY 25, 2026\nDIVINE SERVICE\nSermon: Pastor Test",
-		"announcements": "not-an-array-malformed-shape"
-	}`
+func TestWebhook_DisabledInCodeUnconditional503AndBodyUnread(t *testing.T) {
+	srv := &Server{}
 
-	req, err := http.NewRequest("POST", ts.URL+"/api/webhook", strings.NewReader(payload))
-	if err != nil {
-		t.Fatalf("create request: %v", err)
-	}
+	bodyReader := &failOnReadBody{}
+	req := httptest.NewRequest(http.MethodPost, "/api/webhook", bodyReader)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Webhook-Secret", secret)
+	req.Header.Set("X-Webhook-Secret", "test-webhook-secret-value")
+	w := httptest.NewRecorder()
 
-	res, err := ts.Client().Do(req)
-	if err != nil {
-		t.Fatalf("execute request: %v", err)
-	}
-	defer res.Body.Close()
+	srv.Handler().ServeHTTP(w, req)
 
-	if res.StatusCode != http.StatusCreated {
-		t.Fatalf("expected 201 Created, got %d", res.StatusCode)
+	// 1. Assert status code 503 Service Unavailable
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 Service Unavailable, got %d (body: %s)", w.Code, w.Body.String())
 	}
 
-	body := songSetJSON(t, res)
-	var count int
-	if err := handle.QueryRow(`SELECT COUNT(*) FROM announcement_items`).Scan(&count); err != nil {
-		t.Fatalf("query announcement_items: %v", err)
+	// 2. Assert exact message in JSON error body
+	var errResp map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &errResp); err != nil {
+		t.Fatalf("failed to parse JSON error response: %v (raw: %s)", err, w.Body.String())
 	}
-	if count != 0 {
-		t.Fatalf("expected 0 announcement_items after webhook with announcements[], got %d", count)
+	expectedMsg := "Webhook intake is disabled in this release"
+	if errResp["error"] != expectedMsg {
+		t.Fatalf("expected error %q, got %q", expectedMsg, errResp["error"])
 	}
 
-	if added, ok := body["announcementsAdded"]; ok {
-		if addedFloat, isNum := added.(float64); isNum && int(addedFloat) != 0 {
-			t.Fatalf("expected announcementsAdded to be 0, got %v", added)
-		}
+	// 3. Assert request body was NOT read (proven by failOnReadBody)
+	if bodyReader.readCalled {
+		t.Fatalf("CRITICAL SECURITY DEFECT: request body was read when webhook intake is disabled")
 	}
 }

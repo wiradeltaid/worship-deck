@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 4
+- Iteration: 5
 - Run branch: autopilot/DEC-067
-- Stopped at: Ticket WSD-H-04 completed and verified — first admin created on a setup screen
+- Stopped at: Ticket WSD-H-05 completed and verified — webhook disabled in code
 - Blocked: —
 - Parked: —
-- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-05
+- Next: Execute frontier tickets for SPEC-73 starting with WSD-H-06
 
 ## Decisions
 
@@ -22,6 +22,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-2 (WSD-H-02) | cmd/api/main.go, installer/worship-deck.iss, internal/desktop/datadir.go, mutex.go | Pass --desktop from installer shortcuts and Run command, switch desktop data folder to %LOCALAPPDATA%\WorshipDeck and mutex to Local\WorshipDeck.SingleInstance, validate loopback URL on secondary instance focus, and enforce complete absence of legacy names across cmd/, internal/, scripts/, and installer/ with defect injection proofs | leaving legacy names in Go codebase and unparameterized desktop shortcuts | medium | cmd/api/main.go, installer/worship-deck.iss, internal/desktop/datadir.go, internal/desktop/mutex.go, internal/desktop/runtime.go, internal/desktop/desktop_test.go, package.json, tests/desktop-mode-guard.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/02-wsd-h-02-desktop-mode-worshipdeck-data-folder.md |
 | I-3 (WSD-H-03) | internal/auth/session.go, cmd/api/main.go, .env.example | Auto-generate cryptographically random 32-byte secret in <dataDir>/auth-secret.dat (0600) on first desktop launch under single-instance mutex protection, refuse silent overwrite of existing/short secrets, reject insecure placeholders (change-me*, your-secret-here*, secret, password) without leaking secret values in errors/logs, and preserve 503 response in server mode when unset, verified by Terra peer review | manual secret entry in desktop or allowing default insecure secrets | medium | internal/auth/session.go, cmd/api/main.go, .env.example, internal/auth/session_test.go, cmd/api/auth_secret_test.go, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/03-wsd-h-03-automatic-auth-secret-refuse-example-secrets.md |
 | I-4 (WSD-H-04) | internal/auth/accounts.go, internal/httpapi/auth.go, gate.go, LoginPage.tsx | Implement atomic loopback first-admin setup (POST /api/setup/admin, GET /api/setup/status) restricted to desktop mode and loopback, render setup screen on LoginPage when 0 accounts exist with password confirmation, and enforce session gate exemption with absence guard tests | requiring manual SQL/bootstrap password for desktop operators | medium | internal/auth/accounts.go, internal/gate/gate.go, internal/httpapi/server.go, internal/httpapi/auth.go, cmd/api/main.go, spa/src/pages/LoginPage.tsx, src/lib/i18n/keys.ts, catalogue-en.ts, catalogue-id.ts, internal/httpapi/setup_test.go, tests/first-admin-setup.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/04-wsd-h-04-first-admin-setup-screen.md |
+| I-5 (WSD-H-05) | internal/httpapi/webhook.go, scripts/setup.mjs, .env.example, deployment.md | Disable webhook intake in code by unconditionally returning 503 Service Unavailable ("Webhook intake is disabled in this release") before reading body (verified by failOnReadBody test), and remove WEBHOOK_SECRET from scripts/setup.mjs and .env.example | leaving enabled webhook without active production consumers | medium | internal/httpapi/webhook.go, internal/httpapi/webhook_test.go, scripts/setup.mjs, .env.example, .constitution/project/deployment.md, tests/webhook-auth.test.mjs, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/05-wsd-h-05-webhook-disabled-in-code.md |
 
 ## Smoke Test Results
 
@@ -30,3 +31,4 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 - WSD-H-02 verification: PASS — `go test ./cmd/... ./internal/desktop/...` (passed), `node --test tests/desktop-mode-guard.test.mjs` (8/8 passed), `validate.py` green.
 - WSD-H-03 verification: PASS — `go test -v ./internal/auth/...` (passed), `go test -v ./cmd/api/...` (passed), `validate.py` green.
 - WSD-H-04 verification: PASS — `go test -v ./internal/httpapi -run TestSetup` (passed), `go test -v ./internal/gate/...` (passed), `node --test tests/first-admin-setup.test.mjs` (3/3 passed), `validate.py` green.
+- WSD-H-05 verification: PASS — `go test -v ./internal/httpapi -run TestWebhook` (passed, body unread verified), `node --test tests/webhook-auth.test.mjs` (8/8 passed), `validate.py` green.

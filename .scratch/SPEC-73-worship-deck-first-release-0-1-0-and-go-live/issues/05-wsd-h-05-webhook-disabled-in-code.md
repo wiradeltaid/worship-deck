@@ -14,12 +14,12 @@
 
 **Blocked by:** None (can start immediately; Owner Q1 confirmed).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `internal/httpapi/webhook.go`, `scripts/setup.mjs`, and `.env.example`.
-- [ ] In `internal/httpapi/webhook.go`: return immediate HTTP 503 "Webhook intake is disabled in this release" before reading request body.
-- [ ] In `scripts/setup.mjs`: remove `WEBHOOK_SECRET` generation.
-- [ ] In `.env.example`: remove `WEBHOOK_SECRET` entry.
-- [ ] In `.constitution/project/deployment.md`: update picoclaw webhook section to reflect disabled status.
-- [ ] Add Go test in `internal/httpapi/webhook_test.go` confirming body is unread (reader fails on Read call) and request rejected with HTTP 503. Verify red first, then green.
-- [ ] Update `tests/webhook-auth.test.mjs` and verify `npm test` passes cleanly.
+- [x] Read `internal/httpapi/webhook.go`, `scripts/setup.mjs`, and `.env.example`.
+- [x] In `internal/httpapi/webhook.go`: return immediate HTTP 503 "Webhook intake is disabled in this release" before reading request body.
+- [x] In `scripts/setup.mjs`: remove `WEBHOOK_SECRET` generation.
+- [x] In `.env.example`: remove `WEBHOOK_SECRET` entry.
+- [x] In `.constitution/project/deployment.md`: update picoclaw webhook section to reflect disabled status.
+- [x] Add Go test in `internal/httpapi/webhook_test.go` confirming body is unread (reader fails on Read call) and request rejected with HTTP 503. Verify red first, then green.
+- [x] Update `tests/webhook-auth.test.mjs` and verify `npm test` passes cleanly.

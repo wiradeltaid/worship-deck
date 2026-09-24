@@ -6735,7 +6735,7 @@ rtm:
   test:
   - tests/webhook-auth.test.mjs
   - internal/httpapi/webhook_test.go
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -7018,7 +7018,7 @@ rtm:
   test:
   - tests/webhook-auth.test.mjs
   - internal/httpapi/webhook_test.go
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
