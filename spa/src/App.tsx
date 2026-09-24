@@ -36,6 +36,8 @@ export default function App() {
   // two operator surfaces — full chrome (`OperatorShell`) and the presenter
   // window (`PresentGate`, which renders nothing but its Outlet so
   // PresenterOperator keeps its own chrome).
+  const isDev = Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV);
+
   const routes = (
     <Routes>
       <Route path="/services/:id/present/projector" element={<ProjectorPage />} />
@@ -47,7 +49,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/services/new" element={<CreateServicePage />} />
         <Route path="/services/:id" element={<RunSheetPage />} />
-        <Route path="/new" element={<WorkspaceMockupPage />} />
+        {isDev ? <Route path="/new" element={<WorkspaceMockupPage />} /> : null}
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/admin/artifacts" element={<AdminArtifactsPage />} />
         <Route path="/admin/sync" element={<AdminSyncPage />} />

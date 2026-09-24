@@ -1,6 +1,6 @@
 # WorshipDeck
 
-> Suíte local-first de apresentação e operação de culto para igrejas que transforma a ordem do culto em slides prontos para exibição — gera apresentações PowerPoint (.pptx) offline com fontes embutidas, console de operador para projetor de duas telas e controle remoto via smartphone por Wi-Fi local.
+> Suíte local-first de apresentação e operação de culto para igrejas que transforma a ordem do culto em slides prontos para exibição: gera apresentações PowerPoint (.pptx) com fontes embutidas para uso offline, console de operador para a tela da congregação e controle remoto via smartphone por Wi-Fi local.
 
 [English](README.md) | [Bahasa Indonesia](README.id.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Português (Brasil)](README.pt-BR.md) | [Русский](README.ru.md)  
 [Website](https://wiradelta.id/worship-deck) | [Download for Windows](https://github.com/wiradeltaid/worship-deck/releases) | [Changelog](CHANGELOG.md) | [Contributing](CONTRIBUTING.md) | [License](LICENSE) | [Security](SECURITY.md) | [Privacy](PRIVACY.md) | [Attributions](ATTRIBUTIONS.md)
@@ -9,53 +9,50 @@
 
 > **Aviso de tradução:** Este arquivo é uma tradução de [README.md](README.md) fornecida apenas para fins de conveniência. Em caso de divergências ou conflitos de interpretação, a versão oficial em inglês (`README.md`) prevalece como fonte autoritativa. Toda a documentação técnica aprofundada e documentos jurídicos são mantidos em inglês.
 
-Desenvolvido para congregações cristãs e cultos litúrgicos. Os modelos de slides são gerenciados como dados configuráveis em vez de código engessado, permitindo que qualquer igreja com uma liturgia semelhante faça adaptações diretamente pelo navegador.
+Desenvolvido para congregações cristãs e cultos litúrgicos. Os layouts de slides são gerenciados como dados configuráveis em vez de código engessado, permitindo que qualquer igreja com uma liturgia semelhante faça adaptações diretamente pelo navegador.
 
 ## Problema que Resolve
 
 Preparar manualmente os slides de cada culto consome de 2 a 4 horas por semana, grande parte gasta digitando novamente letras de hinos que já haviam sido cadastradas no passado. Mudanças de última hora nas músicas exigem refazer a apresentação do zero, e o conhecimento técnico frequentemente depende de um único voluntário.
 
-O WorshipDeck lê o roteiro preparado pelos líderes (colado em formulário ou enviado via bot de mensagens) e monta automaticamente slides limpos e consistentes.
+O WorshipDeck lê o roteiro preparado pelos líderes em mensagens ou formulários e monta automaticamente slides limpos e consistentes.
 
 ```text
-roteiro do culto  →  análise da liturgia  →  plano de slides  →  ┬→  PowerPoint (.pptx) offline
-                                                                 ├→  apresentação web em tela cheia
-                                                                 └→  console do operador + projetor
+roteiro do culto  ->  análise da liturgia  ->  plano de slides  ->  +->  PowerPoint (.pptx) offline
+                                                                    +->  apresentação web em tela cheia
+                                                                    +->  console do operador + tela da congregação
 ```
 
-As letras dos hinos são consultadas diretamente por número no banco de dados local. Os modelos visuais são editados no navegador por meio de um registro SQLite. Uma vez baixado o arquivo PowerPoint, a projeção não requer nenhuma conexão com a Internet, garantindo um culto sem imprevistos mesmo em caso de falha de rede no templo.
+As letras dos hinos são consultadas diretamente por número no banco de dados local. Os layouts visuais são editados no navegador por meio de um registro SQLite. Uma vez baixado o arquivo PowerPoint, a projeção não requer nenhuma conexão com a Internet, garantindo um culto sem imprevistos mesmo em caso de falha de rede no templo.
 
 ## Recursos Principais
 
-- **Importação rápida de roteiros:** Cole o texto do culto ou envie via webhook com chave secreta. Linhas não reconhecidas são exibidas com total transparência.
+- **Importação rápida de roteiros:** Cole o texto do culto no formulário web. Linhas não reconhecidas são exibidas com total transparência. (A recepção por webhook estará disponível em uma versão futura.)
 - **Divisão automática de estrofes e repetição de refrão:** Hinos chamados pelo número são automaticamente divididos em título, estrofes e refrãos repetidos para facilitar o canto congregacional.
-- **Editor visual de modelos (WYSIWYG):** 38 modelos nativos editáveis diretamente na tela: arraste, redimensione, personalize tipografias e adicione elementos gráficos.
-- **Um único layout para quatro saídas (16:9 widescreen):** Uma estrutura única de dados abastece o arquivo PPTX, apresentação web, janela do projetor e pré-visualização em tempo real na proporção exata de 1:1.
-- **Modo apresentador em duas telas:** Slide atual e próximo, miniaturas em película, lista do culto e janela independente para arrastar ao projetor da igreja.
-- **Função tela preta (Blank Screen):** Escureça instantaneamente a projeção da igreja e retorne sem perder o ponto de avanço (`B`).
+- **Layouts de slides editáveis:** Gerencie layouts em um registro SQLite com editor em tela no navegador. Mova e redimensione elementos, adicione caixas de texto ou importe layouts do PowerPoint. Um conjunto opcional de 38 layouts de demonstração está disponível para testes.
+- **Um único layout para quatro saídas:** Uma estrutura única de dados abastece o arquivo PPTX, apresentação web, tela da congregação e pré-visualização em tempo real na proporção 16:9 widescreen nativa.
+- **Modo apresentador em duas telas:** Slide atual e próximo, miniaturas em película, lista do culto, grade de salto rápido e janela independente para a tela da congregação.
+- **Função tela preta (Blank Screen):** Escureça instantaneamente a tela da congregação e retorne sem perder o ponto de avanço (`B`).
 - **Transições suaves configuráveis:** Corte, esmaecimento, dissolução e empurrão aplicados de forma idêntica na web e no PowerPoint.
 - **Consulta rápida de passagens bíblicas:** Projete versículos bíblicos (KJV) durante a mensagem e limpe a tela após a leitura.
 - **Mural de avisos da igreja:** Gerencie cartazes e anúncios locais a partir de arquivos locais ou endereços autorizados.
-- **Embutimento de fontes personalizadas:** Padrão ECMA-376 para renderização perfeita em qualquer computador com Microsoft PowerPoint.
-- **Gestão de contas e permissões:** Perfis separados de administrador e operador, bloqueio por limite de tentativas contra força bruta.
-- **Parser de roteiro e layout de formulário configuráveis:** Crie perfis de análise nomeados e organize os campos/agrupamentos do formulário de Culto pelo painel administrativo, sem tocar em código.
-- **Biblioteca de mídia:** Um conjunto reutilizável de imagens de fundo e cartazes, independente de qualquer modelo específico.
-- **Sincronização manual entre dispositivos** *(experimental — ainda não verificada entre duas máquinas reais)*: Envie e receba Cultos, entradas do Song Set, fundos e avisos entre duas instâncias do WorshipDeck na mesma rede local, sob demanda. Sem nuvem, sem sincronização em segundo plano.
+- **Tipografia offline:** 35 famílias de fontes locais empacotadas, com suporte ao padrão ECMA-376 para embutimento de fontes no PowerPoint.
+- **Gestão de contas e permissões:** Perfis separados de administrador e operador, bloqueio por limite de tentativas e sessões revogáveis.
+- **Layout de formulário e análise dinâmicos:** Configure campos predefinidos com regras regex personalizadas e organize agrupamentos de formulário diretamente no painel de administração.
+- **Biblioteca de mídia:** Um conjunto reutilizável de imagens de fundo e cartazes, independente de qualquer layout específico.
+- **Sincronização manual entre dispositivos (experimental):** Envie e receba Cultos, entradas do Song Set, fundos e avisos entre duas instâncias do WorshipDeck na mesma rede local, sob demanda. Sem nuvem, sem sincronização em segundo plano. Verificado em uma única máquina; a sincronização entre máquinas reais continua experimental.
 
 ## Requisitos de Sistema
 
-- **Aplicativo Desktop:** Windows 10/11 de 64 bits.
-- **Compilação do Código-Fonte:** Go 1.24+ e Node.js 22+. Utiliza SQLite integrado sem necessidade de configurar servidores de banco de dados externos.
+- **Instalação em Servidor (Recomendado):** Linux (testado no Ubuntu), Windows 10/11 ou ambiente POSIX com Go 1.24+ e Node.js 22.12+. Desenvolvido com React 19. Utiliza SQLite integrado sem necessidade de configurar servidores de banco de dados externos.
+- **Aplicativo Desktop Windows (Experimental):** Windows 10/11 de 64 bits.
+- **macOS:** Não testado oficialmente.
 
 ## Instalação
 
-### Instalador Desktop para Windows (Recomendado)
+### Servidor Local Autônomo (Recomendado)
 
-Baixe `WorshipDeckSetup.exe` na [página oficial de lançamentos](https://github.com/wiradeltaid/worship-deck/releases) e execute o assistente de instalação.
-
-> **Nota sobre o Windows SmartScreen:** Como este binário ainda não possui um certificado de assinatura EV comercial de alto custo, o Windows SmartScreen pode exibir um aviso. Clique em **"Mais informações"** e depois em **"Executar assim mesmo"**.
-
-### Execução a partir do Código-Fonte
+Executar o WorshipDeck como um servidor local autônomo é o modelo de implantação principal e recomendado:
 
 ```bash
 git clone https://github.com/wiradeltaid/worship-deck.git
@@ -65,25 +62,33 @@ npm run setup
 npm run dev
 ```
 
-O comando `npm run setup` gera o arquivo `.env`, inicializa o banco SQLite, cadastra os modelos de slides padrão e imprime a senha inicial do administrador gerada. `npm run dev` inicia a API Go em <http://localhost:3000> e o SPA React em <http://localhost:5173> (o Vite encaminha `/api` para o Go). Faça login como `admin` no SPA. Para uma única origem: `npm run spa:build && npm start` e abra a porta 3000. Rodar o `setup` novamente é seguro: ele nunca sobrescreve um `.env` ou banco de dados existentes.
+`npm run setup` gera o arquivo `.env` com novas credenciais, inicializa o banco de dados SQLite e exibe a senha gerada para a conta `admin`. `npm run dev` inicia a API em Go em <http://localhost:3000> e o frontend React SPA em <http://localhost:5173>. Faça login como `admin`. Para implantação em produção em porta única, execute `npm run spa:build && npm start` e acerte a porta 3000.
 
-Leia [`.constitution/project/private-data.md`](.constitution/project/private-data.md) antes de inserir os dados da sua própria congregação.
+Consulte [`.constitution/project/private-data.md`](.constitution/project/private-data.md) antes de inserir dados da sua congregação.
 
-### Criar um culto
+### Instalador Desktop para Windows (Experimental)
 
-**Services → New.** Cole o roteiro do culto na caixa de texto puro. O formato esperado é assim (nomes sintéticos):
+Baixe `WorshipDeck-0.1.0-x64-setup.exe` e `SHA256SUMS` na [página oficial de lançamentos](https://github.com/wiradeltaid/worship-deck/releases) e execute o assistente de instalação.
+
+Verifique o arquivo antes de executar: compare o hash SHA-256 calculado com o registrado em `SHA256SUMS`.
+
+> **Nota sobre o Windows SmartScreen:** Como esta versão ainda não possui um certificado comercial de assinatura, o Windows SmartScreen pode exibir um aviso. Clique em **Mais informações** e depois em **Executar assim mesmo**.
+
+### Criar um Culto
+
+Acesse **Services -> New**. Cole o roteiro na caixa de texto. O formato esperado é:
 
 ```text
 SABBATH, MARCH 14, 2026
 
-BIBLE TALK (09.30-10.50 /80 min)
-》welcome remarks: Mrs. Lestari
+BIBLE TALK (09.30-10.50 / 80 min)
+>> welcome remarks: Mrs. Lestari
 Song Leader : Ms. Ayu
 [  ] Opening song : SDAH #159 The Old Rugged Cross
 Memory Verse & Opening Prayer : Mr. Bagas
 Closing Prayer : Mr. Damar (1m)
 
-DIVINE SERVICE (10.50- 12.05/ 75 min)
+DIVINE SERVICE (10.50-12.05 / 75 min)
 Song Leader : Ms. Kirana
 [  ] Opening Song : SDAH #83 O Worship the King
 Intercessory Prayer: Mr. Farid (5m)
@@ -91,69 +96,66 @@ Sermon : Pr. Andi Hartono "Working Out" (45m)
 [  ] Closing Song : SDAH #249 Praise Him! Praise Him!
 ```
 
-Clique em **Parse**. Papéis, horários e números de hinos são extraídos para o formulário; os hinos são resolvidos em títulos a partir do corpus local. Tudo o que o analisador não conseguiu identificar é listado em vez de descartado.
+Clique em **Baca susunan acara** (ou **Parse** em inglês). Papéis, horários e números dos hinos são preenchidos no formulário, e os hinos são identificados no banco local. Linhas não reconhecidas são listadas para conferência.
 
-Preencha o cartaz do sermão e as fotos da família/juventude, se houver, e salve.
+Adicione o cartaz do sermão e fotos, depois salve o culto.
 
-### Apresentar
+### Apresentação
 
 Na página do culto:
 
-- **Baixar PPTX** — o pacote offline. É esse que mantém o culto funcionando se a rede, o notebook ou o servidor falharem.
-- **Apresentar** — o console do operador. Slide atual e próximo, tira de miniaturas, lista de slides e **Todos os slides** para pular para qualquer ponto.
-- **Abrir projetor** — uma janela separada para arrastar até a segunda tela. As setas avançam ambas. `B` apaga o projetor e o restaura.
+- **Baixar PPTX:** Apresentação PowerPoint para uso offline que garante o culto caso haja falha de rede ou equipamento.
+- **Apresentar:** Console do operador com prévia do slide atual e próximo, miniaturas e salto rápido.
+- **Abrir tela da congregação:** Janela independente para arrastar ao segundo monitor da igreja. Tecla `B` para tela preta.
 
-### Extras opcionais
+### Recursos Adicionais
 
-**Consulta bíblica.** O modo apresentador pode colocar uma passagem KJV no projetor. O corpus fica em `data/en/bible-translation/kjv.json` e é conciliado a partir desse arquivo a cada inicialização.
+**Consulta bíblica:** Exiba versículos da Bíblia KJV na tela da congregação a partir de `data/en/bible-translation/kjv.json`.
 
-**Ingestão via chat.** `POST /api/webhook` com um cabeçalho `x-webhook-secret` aceita um roteiro em JSON, permitindo que um bot crie ou corrija um culto. O segredo fica em `.env`; o endpoint é protegido apenas por ele, nunca por uma sessão.
+**Entrada por mensagens:** A recepção de roteiros via webhook estará disponível em versão futura.
 
-### Solução de problemas
+### Solução de Problemas
 
-**`Missing song book corpus`** — falta `data/song-book/sdah.json`. Ele acompanha o repositório, então restaure-o do controle de versão: `git checkout -- data/song-book/sdah.json`. Depois rode `npm run corpus:verify` para confirmar que ambos os corpora estão completos.
+**`Missing song book corpus`:** O arquivo `data/song-book/sdah.json` está ausente. Restaure-o pelo Git: `git checkout -- data/song-book/sdah.json` e execute `npm run corpus:verify`.
 
-**Bloqueado** — `npm run auth:set-password -- admin` define uma nova senha via prompt interativo. `npm run auth:unlock -- --list` mostra e limpa o bloqueio por tentativas de login.
+**Bloqueio de acesso:** Execute `npm run auth:set-password -- admin` para redefinir a senha. Execute `npm run auth:unlock -- --list` para desbloquear tentativas de login.
 
-**Faltam imagens na apresentação** — imagens remotas precisam passar pelas regras de segurança de URL. Fazer upload direto para o servidor sempre funciona.
+**Imagens ausentes:** Imagens remotas devem respeitar as regras de segurança de URL. O envio direto para o servidor sempre funciona.
 
-## Deixando com a cara da sua igreja
+## Personalização
 
-O registro incluído é um exemplo de trabalho — uma ordem de culto real com dados de contato e pagamento fictícios. Duas coisas para mudar:
+A instalação padrão começa com um registro limpo pronto para os seus próprios projetos:
 
-1. **Modelos de slides.** Entre como administrador e abra `/admin/artifacts`. Todo modelo é editável em uma tela; os slides fixos (oferta, oração de quarta, contato) são onde entram os seus próprios dados.
-2. **Substituições privadas.** Se preferir manter o registro da sua congregação totalmente fora do git, coloque-o em `data/local/default-registry.json` e o aplicativo semeia a partir daí. Esse caminho é ignorado pelo git. Veja [`.constitution/project/private-data.md`](.constitution/project/private-data.md).
+1. **Layouts de slides:** Acesse `/admin/artifacts` como administrador. Os layouts podem ser criados no editor de tela ou importados do PowerPoint. É possível carregar 38 layouts de demonstração com `npm run seed:demo`.
+2. **Registro privado:** Para manter os dados da sua igreja fora do Git, salve em `data/local/default-registry.json`. O caminho é ignorado pelo Git. Veja [`.constitution/project/private-data.md`](.constitution/project/private-data.md).
 
-## Corpus incluídos
+## Coleções de Textos Incluídas
 
-Dois corpus padrão vêm incluídos, de modo que um clone resolve um número de hino e uma referência bíblica sem nenhum arquivo à parte e sem rede na inicialização:
+Duas coleções de textos verificadas acompanham o projeto:
 
-| Arquivo | Conteúdo | Na inicialização |
+| Arquivo | Conteúdo | Ao Iniciar |
 | --- | --- | --- |
-| `data/song-book/sdah.json` | 695 hinos do Hinário Adventista do Sétimo Dia | título e letra reaplicados a partir do arquivo |
-| `data/en/bible-translation/kjv.json` | 66 livros, 1189 capítulos, 31102 versículos KJV | conciliado a partir do arquivo incluído a cada inicialização (~130–150 ms medidos) |
+| `data/song-book/sdah.json` | 695 hinos do Seventh-day Adventist Hymnal | títulos e letras lidos do arquivo |
+| `data/en/bible-translation/kjv.json` | 66 livros, 1189 capítulos, 31102 versículos KJV | sincronizados do arquivo local (~130 a 150 ms) |
 
-`npm run corpus:verify` confirma que ambos estão completos. Nenhum dos dois tem gerador: os exports dos quais foram convertidos não existem mais, então esses arquivos são a fonte de registro — restaure do controle de versão em vez de reconstruir.
+Execute `npm run corpus:verify` para validar a integridade dos dados.
 
-Leia [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — ele nomeia os detentores dos direitos autorais, declara o propósito congregacional sem fins lucrativos e traz um contato para pedidos de remoção. Cada corpus também carrega seu próprio texto de licença dentro do arquivo.
+Consulte [ATTRIBUTIONS.md](ATTRIBUTIONS.md) para detalhes de direitos autorais e contatos de remoção.
 
-Se estiver adaptando isso para outro hinário, adicione seu corpus em `data/song-book/<book-code>.json` no mesmo formato. Os hinos são indexados por `(book_code, number)`, então um segundo livro fica ao lado do incluído em vez de substituí-lo.
+## Implantação em Servidor
 
-## Implantação
+Compile a API Go e o SPA, e execute `./api` (ou `npm start`) em um servidor com Node 22 configurado no `PATH`. Veja [`.constitution/project/deployment.md`](.constitution/project/deployment.md).
 
-Compile a API Go e o SPA, execute `./api` (ou `npm start`) em um host com Node 22 no `PATH` para o worker de PPTX — veja [`.constitution/project/deployment.md`](.constitution/project/deployment.md). SQLite, imagens enviadas e o cache de apresentações precisam de caminhos de host duradouros; esse arquivo cobre quais.
+## Histórico do Projeto e Privacidade
 
-## Histórico do projeto
+Este projeto iniciou como repositório privado para uma igreja local. O histórico público foi recriado a partir de dados sintéticos de demonstração (*Harborlight Adventist Fellowship*) para proteger a privacidade dos membros.
 
-Este projeto começou como um repositório privado de uma única congregação. Esse histórico não foi trazido para cá, porque continha nomes reais de membros, fotografias de pessoas identificáveis incluindo menores, capturas de mensagens privadas e um código de pagamento ativo — nada disso pertencia a um repositório público, e nada disso pode ser despublicado depois de indexado.
+Colaboradores devem ler [`.constitution/project/private-data.md`](.constitution/project/private-data.md) antes de enviar alterações.
 
-Este repositório, portanto, começa a partir de um único commit inicial com uma congregação de exemplo sintética. O porquê de o sistema ser moldado da forma como é está em `.what/` e `.how/` (DEC-001).
-
-Colaboradores: leiam [`.constitution/project/private-data.md`](.constitution/project/private-data.md) antes do primeiro commit. Há um teste que falha se dados de congregação chegarem a um arquivo versionado, e ele existe por um motivo.
-
-## Licença e Notificação de Marca
+## Licença e Marcas
 
 - **Licença do Código:** Distribuído sob a [Licença MIT](LICENSE).
-- **Hinários e Direitos de Terceiros:** Hinários, traduções bíblicas e componentes de terceiros estão detalhados em [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Privacidade e Segurança:** Sem backend em nuvem e zero telemetria — toda requisição permanece no seu computador ou na rede local da igreja. A única funcionalidade que fala com outro host é a Sincronização Manual, e esse host é outra instância do WorshipDeck que você mesmo executa, acionada apenas quando um operador a inicia (consulte [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md)).
-- **Nome e Marca Registrada:** A licença MIT concede direitos sobre o código-fonte, não sobre nomes ou logotipos. Os nomes **WorshipDeck** e **Wira Delta Indonesia**, bem como o ícone do produto, permanecem como propriedade da PT Wira Delta Indonesia.
+- **Atribuições e Coleções:** Hinários, traduções bíblicas e bibliotecas de terceiros estão listados em [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+- **Fontes de Terceiros:** Avisos de direitos autorais e licenças completas SIL OFL 1.1 e Apache 2.0 para 35 famílias de fontes constam em [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+- **Privacidade e Segurança:** 100% offline-first. Os dados permanecem no seu computador; zero telemetria e zero coleta analítica (veja [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md)).
+- **Nome e Logotipo:** A licença MIT abrange o código-fonte, mas não confere direitos de marca. Os nomes **WorshipDeck** e **Wira Delta Indonesia**, bem como o logotipo do produto, são de propriedade exclusiva da PT Wira Delta Indonesia.

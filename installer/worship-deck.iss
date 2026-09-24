@@ -22,7 +22,7 @@ DefaultDirName={autopf}\WorshipDeck
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\dist-installer
-OutputBaseFilename=WorshipDeckSetup
+OutputBaseFilename=WorshipDeck-{#MyAppVersion}-x64-setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -55,15 +55,19 @@ Source: "..\dist-desktop\runtime\*"; DestDir: "{app}\runtime"; Flags: ignorevers
 Source: "..\dist-desktop\workers\*"; DestDir: "{app}\workers"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\dist-desktop\src\*"; DestDir: "{app}\src"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\dist-desktop\node_modules\*"; DestDir: "{app}\node_modules"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist-desktop\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist-desktop\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist-desktop\ATTRIBUTIONS.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist-desktop\THIRD-PARTY-NOTICES"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\spa\dist\*"; DestDir: "{app}\spa\dist"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\worship-deck.ico"; WorkingDir: "{app}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--desktop"; IconFilename: "{app}\worship-deck.ico"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; IconFilename: "{app}\worship-deck.ico"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\worship-deck.ico"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--desktop"; IconFilename: "{app}\worship-deck.ico"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--desktop"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; Clean up only application program files and staged bundles, NEVER delete %LocalAppData%\WorshipDeck
@@ -72,8 +76,12 @@ Type: filesandordirs; Name: "{app}\runtime"
 Type: filesandordirs; Name: "{app}\workers"
 Type: filesandordirs; Name: "{app}\src"
 Type: filesandordirs; Name: "{app}\node_modules"
+Type: filesandordirs; Name: "{app}\data"
 Type: files; Name: "{app}\{#MyAppExeName}"
 Type: files; Name: "{app}\package.json"
+Type: files; Name: "{app}\LICENSE"
+Type: files; Name: "{app}\ATTRIBUTIONS.md"
+Type: files; Name: "{app}\THIRD-PARTY-NOTICES"
 
 [Code]
 // Data preservation guarantee:

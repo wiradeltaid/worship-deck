@@ -6,9 +6,15 @@ var exemptPrefixes = []string{
 	"/api/webhook",
 	"/api/auth/login",
 	"/api/auth/logout",
+	"/api/setup",
 	"/login",
 	"/assets",
 	"/branding",
+}
+
+// IsSetupPath reports whether the path is for initial desktop setup.
+func IsSetupPath(pathname string) bool {
+	return pathname == "/api/setup" || strings.HasPrefix(pathname, "/api/setup/")
 }
 
 // IsGated reports whether the request path must pass the session check.

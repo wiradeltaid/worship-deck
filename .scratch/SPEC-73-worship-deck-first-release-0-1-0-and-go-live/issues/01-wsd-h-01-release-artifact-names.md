@@ -12,13 +12,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `installer/worship-deck.iss`, `.github/workflows/release.yml`, and `scripts/build-desktop.mjs`.
-- [ ] In `installer/worship-deck.iss`: set `OutputBaseFilename=WorshipDeck-{#MyAppVersion}-x64-setup`.
-- [ ] In `.github/workflows/release.yml`: update build artifact paths to `WorshipDeck-*-x64-setup.exe` and `SHA256SUMS`.
-- [ ] In `scripts/build-desktop.mjs`: align desktop packaging filenames with package version.
-- [ ] In `tests/installer-version-sync.test.mjs`: assert new versioned installer naming pattern.
-- [ ] Add `tests/release-artifact-names.test.mjs` asserting absence of legacy installer naming. Verify red first by injecting legacy name, then green.
-- [ ] Add `tests/release-artifact-names.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Read `installer/worship-deck.iss`, `.github/workflows/release.yml`, and `scripts/build-desktop.mjs`.
+- [x] In `installer/worship-deck.iss`: set `OutputBaseFilename=WorshipDeck-{#MyAppVersion}-x64-setup`.
+- [x] In `.github/workflows/release.yml`: update build artifact paths to `WorshipDeck-*-x64-setup.exe` and `SHA256SUMS`.
+- [x] In `scripts/build-desktop.mjs`: align desktop packaging filenames with package version.
+- [x] In `tests/installer-version-sync.test.mjs`: assert new versioned installer naming pattern.
+- [x] Add `tests/release-artifact-names.test.mjs` asserting absence of legacy installer naming. Verify red first by injecting legacy name, then green.
+- [x] Add `tests/release-artifact-names.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.

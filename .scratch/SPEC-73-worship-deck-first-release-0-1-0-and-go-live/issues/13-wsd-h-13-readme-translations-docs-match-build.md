@@ -20,12 +20,12 @@
 
 **Blocked by:** 01-wsd-h-01-release-artifact-names, 05-wsd-h-05-webhook-disabled-in-code, 09-wsd-h-09-installer-ships-corpora-licenses-notices, 12-wsd-h-12-feature-name-list-and-app-labels, 15-wsd-h-15-public-facts-file.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `README.md` and docs files (`docs/getting-started.md`, `configuration.md`, `features.md`, `overview.md`).
-- [ ] Rewrite `README.md` to prioritize server install, note experimental installer, remove portable ZIPs, templates, and profiles.
-- [ ] Synchronize all 9 `README.<locale>.md` files with matching claims and structure.
-- [ ] Clean obsolete claims in `docs/*.md`.
-- [ ] Add `tests/readme-claims-guard.test.mjs` asserting absence of prohibited claims and dashes. Verify red first, then green.
-- [ ] Add `tests/readme-claims-guard.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `tests/doc-citations.test.mjs` and `npm test` pass cleanly.
+- [x] Read `README.md` and docs files (`docs/getting-started.md`, `configuration.md`, `features.md`, `overview.md`).
+- [x] Rewrite `README.md` to prioritize server install, note experimental installer, remove portable ZIPs, templates, and profiles.
+- [x] Synchronize all 9 `README.<locale>.md` files with matching claims and structure.
+- [x] Clean obsolete claims in `docs/*.md`.
+- [x] Add `tests/readme-claims-guard.test.mjs` asserting absence of prohibited claims and dashes. Verify red first, then green.
+- [x] Add `tests/readme-claims-guard.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `tests/doc-citations.test.mjs` and `npm test` pass cleanly.

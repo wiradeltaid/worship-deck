@@ -69,7 +69,31 @@ test('SPEC-64: release.yml verifies compiled installer FileVersion against tag/v
   );
   assert.ok(
     releaseYmlSource.includes('VersionInfo.FileVersion'),
-    'release.yml must inspect VersionInfo.FileVersion of WorshipDeckSetup.exe'
+    'release.yml must inspect VersionInfo.FileVersion of installer'
+  );
+});
+
+test('SPEC-73: installer naming follows WorshipDeck-{#MyAppVersion}-x64-setup and SHA256SUMS', () => {
+  assert.match(
+    issSource,
+    /OutputBaseFilename=WorshipDeck-\{#MyAppVersion\}-x64-setup/,
+    'worship-deck.iss must output WorshipDeck-{#MyAppVersion}-x64-setup'
+  );
+  assert.ok(
+    buildSource.includes('WorshipDeck-${appVersion}-x64-setup.exe'),
+    'build-desktop.mjs must look for WorshipDeck-${appVersion}-x64-setup.exe'
+  );
+  assert.ok(
+    releaseYmlSource.includes('WorshipDeck-$($env:VERSION)-x64-setup.exe'),
+    'release.yml must use WorshipDeck-$($env:VERSION)-x64-setup.exe'
+  );
+  assert.ok(
+    releaseYmlSource.includes('dist-installer\\SHA256SUMS'),
+    'release.yml must output to dist-installer\\SHA256SUMS'
+  );
+  assert.ok(
+    !releaseYmlSource.includes('SHA256SUMS.txt'),
+    'release.yml must strictly avoid SHA256SUMS.txt'
   );
 });
 

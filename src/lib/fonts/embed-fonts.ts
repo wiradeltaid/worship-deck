@@ -94,8 +94,8 @@ function escapeXml(unsafe: string): string {
 }
 
 /**
- * Reads TrueType font data (.ttf) from the local repository cache (data/fonts/)
- * or fetches on-demand from Google Fonts if online.
+ * Reads TrueType font data (.ttf) strictly from the local repository bundled fonts (data/fonts/).
+ * Never makes network requests; falls back strictly to bundled Inter if family is missing.
  */
 export async function getFontData(
   fontFamily: string,
@@ -119,35 +119,12 @@ export async function getFontData(
     } catch {}
   }
 
-  const def = getFontDefinition(canonical);
-  if (def?.googleFont && typeof fetch === 'function') {
+  // WSD-H-07: Fall back strictly to bundled Inter from data/fonts/, NEVER to network
+  const fallbackFile = path.resolve('data/fonts', 'Inter.ttf');
+  if (fs.existsSync(fallbackFile)) {
     try {
-      const gName = def.family;
-      const wght = v === 'bold' || v === 'boldItalic' ? '700' : '400';
-      const ital = v === 'italic' || v === 'boldItalic' ? '1' : '0';
-      const res = await fetch(
-        `https://fonts.googleapis.com/css2?family=${encodeURIComponent(gName)}:ital,wght@${ital},${wght}&display=swap`,
-        {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        }
-      );
-      if (res.ok) {
-        const css = await res.text();
-        const m = css.match(/src:\s*url\((https:\/\/[^)]+\.ttf)\)/);
-        if (m && m[1]) {
-          const fontRes = await fetch(m[1]);
-          if (fontRes.ok) {
-            const arrayBuf = await fontRes.arrayBuffer();
-            const buf = Buffer.from(arrayBuf);
-            fs.mkdirSync(path.dirname(fontFile), { recursive: true });
-            fs.writeFileSync(fontFile, buf);
-            return buf;
-          }
-        }
-      }
-    } catch {
-      // Degrade gracefully if offline or fetch fails
-    }
+      return fs.readFileSync(fallbackFile);
+    } catch {}
   }
 
   return null;

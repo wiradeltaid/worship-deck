@@ -9,17 +9,16 @@ test('SPEC-17-01: Font catalog module structure verified', () => {
 
   assert.ok(fontCatalogContent.includes('export const FONT_CATALOG: FontDefinition[] = ['), 'FONT_CATALOG missing');
   assert.ok(fontCatalogContent.includes("export const DEFAULT_FONT_FAMILY = 'Arial';"), 'DEFAULT_FONT_FAMILY missing');
-  assert.ok(fontCatalogContent.includes('getGoogleFontsStylesheetUrl'), 'getGoogleFontsStylesheetUrl missing');
+  assert.ok(!fontCatalogContent.includes('getGoogleFontsStylesheetUrl'), 'getGoogleFontsStylesheetUrl must be deleted');
 });
 
-test('SPEC-17-01: HTML templates include Google Fonts stylesheet links', () => {
+test('WSD-H-06: HTML templates do NOT include Google Fonts stylesheet links (offline bundled)', () => {
   const indexHtml = fs.readFileSync(path.resolve('spa/index.html'), 'utf8');
   const projectedHtml = fs.readFileSync(path.resolve('spa/projected.html'), 'utf8');
 
   for (const [name, content] of [['index.html', indexHtml], ['projected.html', projectedHtml]]) {
-    assert.ok(content.includes('fonts.googleapis.com'), `${name} missing fonts.googleapis.com`);
-    assert.ok(content.includes('fonts.gstatic.com'), `${name} missing fonts.gstatic.com`);
-    assert.ok(content.includes('display=swap'), `${name} missing display=swap`);
+    assert.ok(!content.includes('fonts.googleapis.com'), `${name} must not contain fonts.googleapis.com`);
+    assert.ok(!content.includes('fonts.gstatic.com'), `${name} must not contain fonts.gstatic.com`);
   }
 });
 

@@ -22,12 +22,12 @@
 
 **Blocked by:** 02-wsd-h-02-desktop-mode-worshipdeck-data-folder, 08-wsd-h-08-branding-svgs-font-notices.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Run diagnostic pass reproducing missing corpora in installer staging.
-- [ ] In `internal/db/bootstrap.go`: disable default seeding of 38 demo templates while keeping SDAH and KJV.
-- [ ] In `scripts/build-desktop.mjs` and `installer/worship-deck.iss`: include `data/`, `LICENSE`, `ATTRIBUTIONS.md`, and notices.
-- [ ] Add `tests/installer-corpora-staging.test.mjs` validating staged artifacts, asserting `THIRD-PARTY-NOTICES` exists with 35 families and is packaged into `{app}`. Verify red first, then green.
-- [ ] Add Go test in `internal/db/bootstrap_test.go` validating clean bootstrap state.
-- [ ] Add `tests/installer-corpora-staging.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `go test ./...` and `npm test` pass cleanly.
+- [x] Run diagnostic pass reproducing missing corpora in installer staging.
+- [x] In `internal/db/bootstrap.go`: disable default seeding of 38 demo templates while keeping SDAH and KJV.
+- [x] In `scripts/build-desktop.mjs` and `installer/worship-deck.iss`: include `data/`, `LICENSE`, `ATTRIBUTIONS.md`, and notices.
+- [x] Add `tests/installer-corpora-staging.test.mjs` validating staged artifacts, asserting `THIRD-PARTY-NOTICES` exists with 35 families and is packaged into `{app}`. Verify red first, then green.
+- [x] Add Go test in `internal/db/bootstrap_test.go` validating clean bootstrap state.
+- [x] Add `tests/installer-corpora-staging.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `go test ./...` and `npm test` pass cleanly.

@@ -19,7 +19,7 @@ SQLite, the PPTX cache, and uploads must sit on host storage that survives a pro
 | --- | --- |
 | `AUTH_SECRET` | Session cookie signature (required in production) |
 | `AUTH_BOOTSTRAP_USER` / `AUTH_BOOTSTRAP_PASSWORD` | First-boot admin seed; remove after `accounts` is no longer empty |
-| `WEBHOOK_SECRET` | Telegram intake gate; 503 when unset |
+| `WEBHOOK_SECRET` | Paused for 0.1.0 release (webhook intake disabled in code) |
 | `DB_PATH` | SQLite file. Default `./data.db`. On VPS/LiveServer, a path on durable host storage (for example `/var/lib/presenter-dev/data.db`) |
 | `PPTX_CACHE_DIR` | Generated deck cache |
 | `UPLOADS_DIR` | Local image files (when used) |
@@ -30,7 +30,7 @@ SQLite, the PPTX cache, and uploads must sit on host storage that survives a pro
 
 Operator runbooks for `presenter-dev` live in the devops repo (`deploy-dev.ps1`). A Cloudflare Tunnel in front of the listen port is the published pattern; there is no public inbound port on the venue router.
 
-picoclaw lives on a separate host and `POST`s `/api/webhook` with `x-webhook-secret`. The webhook is never cookie-gated.
+Webhook intake (picoclaw / Telegram) is paused for 0.1.0 release; `POST /api/webhook` unconditionally returns HTTP 503 Service Unavailable ("Webhook intake is disabled in this release"). It will be reintroduced in a future release.
 
 ## SQLite
 

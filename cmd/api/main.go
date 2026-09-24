@@ -10,10 +10,10 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
+	"github.com/wiradeltaid/worship-deck/internal/auth"
 	"github.com/wiradeltaid/worship-deck/internal/db"
 	"github.com/wiradeltaid/worship-deck/internal/desktop"
 	"github.com/wiradeltaid/worship-deck/internal/httpapi"
@@ -28,9 +28,7 @@ func main() {
 	noBrowserFlag := flag.Bool("no-browser", false, "suppress automatic browser launch")
 	flag.Parse()
 
-	baseName := strings.ToLower(filepath.Base(os.Args[0]))
-	isDesktop := *desktopFlag || os.Getenv("DESKTOP") == "1" ||
-		strings.Contains(baseName, "worship-presenter")
+	isDesktop := *desktopFlag || os.Getenv("DESKTOP") == "1"
 
 	// 1. Resolve root directory (assets, catalogs, worker scripts)
 	root, err := os.Getwd()
@@ -61,6 +59,11 @@ func main() {
 		}
 	}
 
+	// Validate that startup secrets (AUTH_SECRET, JWT_SECRET) are not using insecure placeholders
+	if err := auth.ValidateStartupSecrets(); err != nil {
+		log.Fatalf("invalid authentication configuration: %v", err)
+	}
+
 	// 3. Single-instance mutex enforcement in desktop mode
 	var mutexLock desktop.SingleInstanceLock
 	if isDesktop {
@@ -70,7 +73,7 @@ func main() {
 			log.Fatalf("acquiring single-instance mutex: %v", err)
 		} else if alreadyRunning {
 			if dataDir != "" {
-				if info, rErr := desktop.ReadRuntimeInfo(dataDir); rErr == nil && info.URL != "" {
+				if info, rErr := desktop.ReadRuntimeInfo(dataDir); rErr == nil && info.URL != "" && desktop.IsValidLoopbackURL(info.URL) {
 					log.Printf("another instance is already running at %s; focusing browser and exiting", info.URL)
 					_ = desktop.OpenBrowser(info.URL)
 					os.Exit(0)
@@ -81,6 +84,13 @@ func main() {
 		}
 		if mutexLock != nil {
 			defer mutexLock.Release()
+		}
+
+		// Under protection of the single-instance mutex, initialize or auto-generate auth-secret.dat
+		if dataDir != "" {
+			if _, err := auth.InitDesktopAuthSecret(dataDir); err != nil {
+				log.Fatalf("initializing desktop auth secret: %v", err)
+			}
 		}
 	}
 
@@ -99,7 +109,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	srv := &httpapi.Server{DB: handle, Root: root}
+	srv := &httpapi.Server{DB: handle, Root: root, IsDesktop: isDesktop}
 
 	// 5. Resolve host and port listener
 	preferredPort := 3000

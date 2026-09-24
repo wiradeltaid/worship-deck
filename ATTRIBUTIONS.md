@@ -21,13 +21,13 @@ congregation can install the tool and use it, without each one having to
 assemble the same texts by hand.
 
 **How it is used.** Non-commercially, for worship and study within
-congregations. Nothing in this project is sold, licensed for a fee, or
-monetised in any form. The corpus is not offered as a hymnal, a substitute for
+congregations. WorshipDeck does not sell or license the software or its bundled
+corpora for a fee. The corpus is not offered as a hymnal, a substitute for
 purchasing one, or a general-purpose lyrics database.
 
 **No claim of ownership.** Including this corpus is not a claim of any right in
 it. It remains the property of its copyright holders, and this notice is not a
-licence — neither ours to give nor granted to us.
+license, neither ours to give nor granted to us.
 
 ### Removal requests
 

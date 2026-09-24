@@ -1,0 +1,116 @@
+/* Presentation Font Catalog — Local Bundled Fonts (WSD-H-06) */
+
+/* 1. Sans-Serif (12) */
+@import "@fontsource/inter";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@import "@fontsource/roboto";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/700.css";
+
+@import "@fontsource/open-sans";
+@import "@fontsource/open-sans/600.css";
+@import "@fontsource/open-sans/700.css";
+
+@import "@fontsource/lato";
+@import "@fontsource/lato/700.css";
+
+@import "@fontsource/montserrat";
+@import "@fontsource/montserrat/600.css";
+@import "@fontsource/montserrat/700.css";
+@import "@fontsource/montserrat/800.css";
+
+@import "@fontsource/poppins";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+
+@import "@fontsource/nunito";
+@import "@fontsource/nunito/600.css";
+@import "@fontsource/nunito/700.css";
+
+@import "@fontsource/raleway";
+@import "@fontsource/raleway/600.css";
+@import "@fontsource/raleway/700.css";
+
+@import "@fontsource/oswald";
+@import "@fontsource/oswald/600.css";
+@import "@fontsource/oswald/700.css";
+
+@import "@fontsource/barlow-condensed";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
+@import "@fontsource/dm-sans";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/700.css";
+
+@import "@fontsource/work-sans";
+@import "@fontsource/work-sans/600.css";
+@import "@fontsource/work-sans/700.css";
+
+/* 2. Serif (8) */
+@import "@fontsource/merriweather";
+@import "@fontsource/merriweather/700.css";
+
+@import "@fontsource/playfair-display";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
+
+@import "@fontsource/lora";
+@import "@fontsource/lora/600.css";
+@import "@fontsource/lora/700.css";
+
+@import "@fontsource/cinzel";
+@import "@fontsource/cinzel/600.css";
+@import "@fontsource/cinzel/700.css";
+
+@import "@fontsource/cormorant-garamond";
+@import "@fontsource/cormorant-garamond/600.css";
+@import "@fontsource/cormorant-garamond/700.css";
+
+@import "@fontsource/pt-serif";
+@import "@fontsource/pt-serif/700.css";
+
+@import "@fontsource/eb-garamond";
+@import "@fontsource/eb-garamond/600.css";
+@import "@fontsource/eb-garamond/700.css";
+
+@import "@fontsource/baskervville";
+@import "@fontsource/baskervville/400-italic.css";
+
+/* 3. Display (8) */
+@import "@fontsource/bebas-neue";
+@import "@fontsource/anton";
+
+@import "@fontsource/league-spartan";
+@import "@fontsource/league-spartan/600.css";
+@import "@fontsource/league-spartan/700.css";
+@import "@fontsource/league-spartan/800.css";
+
+@import "@fontsource/righteous";
+
+@import "@fontsource/teko";
+@import "@fontsource/teko/500.css";
+@import "@fontsource/teko/600.css";
+@import "@fontsource/teko/700.css";
+
+@import "@fontsource/abril-fatface";
+@import "@fontsource/alfa-slab-one";
+@import "@fontsource/russo-one";
+
+/* 4. Script & Handwriting (7) */
+@import "@fontsource/great-vibes";
+@import "@fontsource/pacifico";
+
+@import "@fontsource/caveat";
+@import "@fontsource/caveat/600.css";
+@import "@fontsource/caveat/700.css";
+
+@import "@fontsource/dancing-script";
+@import "@fontsource/dancing-script/600.css";
+@import "@fontsource/dancing-script/700.css";
+
+@import "@fontsource/sacramento";
+@import "@fontsource/shadows-into-light";
+@import "@fontsource/satisfy";

@@ -819,7 +819,7 @@ export default function PresenterOperator({
             All slides
           </Button>
           <Button variant="outline" onClick={openProjector}>
-            Open projector
+            {t('presenter.openCongregationScreen')}
           </Button>
           <Button
             variant="outline"
@@ -861,15 +861,14 @@ export default function PresenterOperator({
         </div>
         {projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">
-            The browser blocked the projector window. Allow popups for this site,
-            or{' '}
+            {t('presenter.congregationScreenBlocked')}{' '}
             <a
               className="underline underline-offset-2"
               href={projectorUrl}
               target="_blank"
               rel="noreferrer"
             >
-              open the projector in a tab
+              {t('presenter.openCongregationScreenTab')}
             </a>
             .
           </p>
@@ -882,9 +881,7 @@ export default function PresenterOperator({
             to do, never that a heartbeat timed out. */}
         {liveness.verdict === 'lost' ? (
           <p role="status" className="basis-full text-xs text-amber-300">
-            The projector is not answering. Use{' '}
-            <span className="font-medium">Open projector</span> above to
-            reconnect it.
+            {t('presenter.congregationScreenLost')}
           </p>
         ) : null}
         {remoteState === 'role-lost' ? (

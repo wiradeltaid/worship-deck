@@ -42,7 +42,6 @@ function ensureEnv() {
   const filled = fs
     .readFileSync(examplePath, 'utf8')
     .replace(/^AUTH_SECRET=.*$/m, `AUTH_SECRET=${secret()}`)
-    .replace(/^WEBHOOK_SECRET=.*$/m, `WEBHOOK_SECRET=${secret()}`)
     .replace(/^AUTH_BOOTSTRAP_USER=.*$/m, 'AUTH_BOOTSTRAP_USER=admin')
     .replace(/^AUTH_BOOTSTRAP_PASSWORD=.*$/m, `AUTH_BOOTSTRAP_PASSWORD=${password}`);
 

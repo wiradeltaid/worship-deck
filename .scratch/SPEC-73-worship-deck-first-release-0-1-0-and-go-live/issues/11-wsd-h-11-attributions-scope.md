@@ -13,10 +13,10 @@
 **Blocked by:** 08-wsd-h-08-branding-svgs-font-notices.
 *(Sequencing Rationale: Both WSD-H-08 and WSD-H-11 touch `ATTRIBUTIONS.md` and third-party notices. In accordance with handover §8.1 line 372 ("digabung PR dengan WSD-H-08 bila lebih rapi") and method rule `parallel-tickets-blocked`, sequencing H-11 downstream of H-08 provides a clean atomic commit boundary and avoids concurrent merge conflicts).*
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `ATTRIBUTIONS.md` lines 20-35.
-- [ ] Refine the non-monetisation sentence to apply strictly to the software and corpora.
-- [ ] Add `tests/attributions-guard.test.mjs` asserting absence of "monetised in any form". Verify red first, then green.
-- [ ] Add `tests/attributions-guard.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Read `ATTRIBUTIONS.md` lines 20-35.
+- [x] Refine the non-monetisation sentence to apply strictly to the software and corpora.
+- [x] Add `tests/attributions-guard.test.mjs` asserting absence of "monetised in any form". Verify red first, then green.
+- [x] Add `tests/attributions-guard.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.

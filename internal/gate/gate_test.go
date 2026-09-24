@@ -67,10 +67,19 @@ func TestExemptPaths(t *testing.T) {
 		"/branding/",
 		"/branding/worship-deck-icon-square.svg",
 		"/branding/worship-deck-mark.svg",
+		"/api/setup/status",
+		"/api/setup/admin",
 	}
 	for _, p := range exempt {
 		if IsGated(p) {
 			t.Errorf("%s must be exempt", p)
 		}
+	}
+
+	if !IsSetupPath("/api/setup/status") || !IsSetupPath("/api/setup/admin") {
+		t.Errorf("IsSetupPath must return true for setup endpoints")
+	}
+	if IsSetupPath("/api/auth/login") {
+		t.Errorf("IsSetupPath must return false for non-setup endpoints")
 	}
 }

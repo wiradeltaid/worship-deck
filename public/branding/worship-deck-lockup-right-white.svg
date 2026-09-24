@@ -2,7 +2,6 @@
   <title>WorshipDeck Lockup Right (White)</title>
   <defs>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&amp;display=swap');
       .lk-rt-wh-text {
         font-family: 'Inter', 'Geist Sans', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
         font-size: 136px;

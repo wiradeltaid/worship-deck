@@ -27,16 +27,16 @@
 
 **Blocked by:** 02-wsd-h-02-desktop-mode-worshipdeck-data-folder.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `internal/auth/session.go`, `internal/httpapi/auth.go`, and `cmd/api/main.go`.
-- [ ] In `internal/auth/session.go`: implement desktop-mode secret file resolution, permission verification, and cryptographically secure generation.
-- [ ] In `cmd/api/main.go` and `internal/auth/session.go`: validate `AUTH_SECRET` and `JWT_SECRET` against prohibited placeholder list (`change-me*`, `your-secret-here*`), failing startup on match.
-- [ ] Ensure server mode behavior remains unchanged (503 when unset).
-- [ ] Add Go tests verifying:
+- [x] Read `internal/auth/session.go`, `internal/httpapi/auth.go`, and `cmd/api/main.go`.
+- [x] In `internal/auth/session.go`: implement desktop-mode secret file resolution, permission verification, and cryptographically secure generation.
+- [x] In `cmd/api/main.go` and `internal/auth/session.go`: validate `AUTH_SECRET` and `JWT_SECRET` against prohibited placeholder list (`change-me*`, `your-secret-here*`), failing startup on match.
+- [x] Ensure server mode behavior remains unchanged (503 when unset).
+- [x] Add Go tests verifying:
       (1) Desktop mode auto-generates and reuses secret file.
       (2) Malformed/empty secret file fails cleanly without secret regeneration.
       (3) Server mode returns 503 when unset.
       (4) Insecure placeholder secrets (`change-me*`, `your-secret-here*`) terminate startup with clear message (proven red first).
       (5) Secret value never appears in captured log output.
-- [ ] Verify `go test ./internal/auth/...` and `go test ./cmd/api/...` pass cleanly.
+- [x] Verify `go test ./internal/auth/...` and `go test ./cmd/api/...` pass cleanly.

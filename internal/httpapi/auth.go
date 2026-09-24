@@ -1,6 +1,7 @@
 ﻿package httpapi
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"regexp"
@@ -17,6 +18,67 @@ const (
 	rateLimitedLogin   = "Too many login attempts. Try again later."
 	maxUsernameInput   = 96
 )
+
+func (s *Server) getSetupStatus(w http.ResponseWriter, r *http.Request) {
+	if !s.isDesktop() || !isLoopbackRequest(r) {
+		writeError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+	if s.DB == nil {
+		writeError(w, http.StatusServiceUnavailable, "Database not available")
+		return
+	}
+	count, err := auth.CountAccounts(s.DB)
+	if err != nil {
+		log.Printf("getSetupStatus error: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"setupRequired": count == 0,
+	})
+}
+
+func (s *Server) postSetupAdmin(w http.ResponseWriter, r *http.Request) {
+	if !s.isDesktop() || !isLoopbackRequest(r) {
+		writeError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+	if s.DB == nil {
+		writeError(w, http.StatusServiceUnavailable, "Database not available")
+		return
+	}
+	body, err, status, msg := readJSONObject(r, 1<<20)
+	if err != nil {
+		writeError(w, status, msg)
+		return
+	}
+	username := asString(body["username"])
+	password := asString(body["password"])
+
+	acct, err := auth.CreateFirstAdmin(s.DB, username, password)
+	if err != nil {
+		if errors.Is(err, auth.ErrSetupAlreadyCompleted) {
+			writeError(w, http.StatusForbidden, "Setup already completed")
+			return
+		}
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	token, err := auth.Sign(acct.ID, acct.Role, acct.TokenVersion)
+	if err != nil {
+		log.Printf("postSetupAdmin session error: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	auth.SetSessionCookie(w, token)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":       true,
+		"role":     acct.Role,
+		"username": acct.Username,
+	})
+}
 
 func (s *Server) postLogin(w http.ResponseWriter, r *http.Request) {
 	body, err, status, msg := readJSONObject(r, 1<<20)

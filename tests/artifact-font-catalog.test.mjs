@@ -20,7 +20,6 @@ const {
   getFontDefinition,
   isFontExportReady,
   getFontStack,
-  getGoogleFontsStylesheetUrl,
 } = await import(srcUrl('lib', 'registry', 'font-catalog.ts'));
 
 const { DEFAULT_FONT_FAMILY: CANVAS_DEFAULT_FONT } = await import(
@@ -154,26 +153,21 @@ test('DEFAULT_FONT_FAMILY is canonical Arial and deduplicated across modules', (
   );
 });
 
-test('Google Fonts stylesheet URL includes all non-system fonts with googleFont definitions', () => {
-  const url = getGoogleFontsStylesheetUrl();
-  assert.ok(url.startsWith('https://fonts.googleapis.com/css2?'));
-  assert.ok(url.endsWith('&display=swap'));
+test('WSD-H-06: Google Fonts stylesheet URL builder and googleFont properties removed from font catalog', async () => {
+  const fontCatalogModule = await import(srcUrl('lib', 'registry', 'font-catalog.ts'));
+  assert.equal(fontCatalogModule.getGoogleFontsStylesheetUrl, undefined, 'getGoogleFontsStylesheetUrl must be deleted');
 
-  const googleFonts = FONT_CATALOG.filter((f) => Boolean(f.googleFont));
-  assert.equal(googleFonts.length, 35, '35 non-system fonts must have Google Font definitions');
-
-  for (const font of googleFonts) {
-    assert.ok(url.includes(`family=${font.googleFont}`), `URL must include ${font.googleFont}`);
+  for (const font of FONT_CATALOG) {
+    assert.equal(font.googleFont, undefined, `Font ${font.family} must not have googleFont property`);
   }
 });
 
-test('spa/index.html and spa/projected.html embed Google Fonts stylesheet link', () => {
+test('WSD-H-06: spa/index.html and spa/projected.html do not embed Google Fonts CDN links', () => {
   const indexHtml = fs.readFileSync(path.join(root, 'spa', 'index.html'), 'utf8');
   const projectedHtml = fs.readFileSync(path.join(root, 'spa', 'projected.html'), 'utf8');
 
   for (const [name, content] of [['index.html', indexHtml], ['projected.html', projectedHtml]]) {
-    assert.ok(content.includes('https://fonts.googleapis.com'), `${name} must include fonts.googleapis.com`);
-    assert.ok(content.includes('https://fonts.gstatic.com'), `${name} must include fonts.gstatic.com`);
-    assert.ok(content.includes('display=swap'), `${name} must include display=swap stylesheet`);
+    assert.ok(!content.includes('fonts.googleapis.com'), `${name} must NOT include fonts.googleapis.com`);
+    assert.ok(!content.includes('fonts.gstatic.com'), `${name} must NOT include fonts.gstatic.com`);
   }
 });

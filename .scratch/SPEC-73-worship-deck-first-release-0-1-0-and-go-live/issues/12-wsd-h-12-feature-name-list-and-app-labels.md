@@ -19,11 +19,11 @@
 
 **Blocked by:** None (can start immediately; PR #109 merged, Owner Q3 and Q4 confirmed).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/i18n/catalogue-en.ts`, `catalogue-id.ts`, and `src/operator/present/PresenterOperator.tsx`.
-- [ ] Update catalog keys for congregation screen, layout, order of service, and Indonesian parse button.
-- [ ] Replace hardcoded "Open projector" strings in `PresenterOperator.tsx` with localized catalog keys.
-- [ ] In `spa/src/App.tsx`: hide `/new` mockup route from production navigation.
-- [ ] Update `tests/operator-i18n-guard.test.mjs` to assert absence of prohibited terms. Verify red first, then green.
-- [ ] Verify `npm test` passes with full i18n key parity.
+- [x] Read `src/lib/i18n/catalogue-en.ts`, `catalogue-id.ts`, and `src/operator/present/PresenterOperator.tsx`.
+- [x] Update catalog keys for congregation screen, layout, order of service, and Indonesian parse button.
+- [x] Replace hardcoded "Open projector" strings in `PresenterOperator.tsx` with localized catalog keys.
+- [x] In `spa/src/App.tsx`: hide `/new` mockup route from production navigation.
+- [x] Update `tests/operator-i18n-guard.test.mjs` to assert absence of prohibited terms. Verify red first, then green.
+- [x] Verify `npm test` passes with full i18n key parity.

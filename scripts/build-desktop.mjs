@@ -6,7 +6,7 @@
  * 1. Vite SPA production build (spa/dist)
  * 2. Go desktop binary compilation (dist-desktop/worship-deck.exe)
  * 3. Portable Node.js & worker closure staging (dist-desktop/runtime, workers, src, node_modules)
- * 4. Inno Setup installer compilation (dist-installer/WorshipDeckSetup.exe) if ISCC is installed
+ * 4. Inno Setup installer compilation (dist-installer/WorshipDeck-<version>-x64-setup.exe) if ISCC is installed
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,6 +30,40 @@ export function resolvePackageVersion(root = repoRoot) {
     throw new Error(`Invalid or missing semver version in package.json: "${version}"`);
   }
   return version;
+}
+
+export function stageCorporaAndNotices(targetDir) {
+  console.log('[build-desktop] Staging corpora, fonts, licenses, and notices...');
+
+  // 1. Songbook corpus
+  const songBookSrc = path.join(repoRoot, 'data', 'song-book');
+  const songBookDest = path.join(targetDir, 'data', 'song-book');
+  fs.mkdirSync(songBookDest, { recursive: true });
+  fs.copyFileSync(path.join(songBookSrc, 'sdah.json'), path.join(songBookDest, 'sdah.json'));
+
+  // 2. Bible translation corpus
+  const bibleSrc = path.join(repoRoot, 'data', 'en', 'bible-translation');
+  const bibleDest = path.join(targetDir, 'data', 'en', 'bible-translation');
+  fs.mkdirSync(bibleDest, { recursive: true });
+  fs.copyFileSync(path.join(bibleSrc, 'kjv.json'), path.join(bibleDest, 'kjv.json'));
+
+  // 3. Bundled fonts
+  const fontsSrc = path.join(repoRoot, 'data', 'fonts');
+  const fontsDest = path.join(targetDir, 'data', 'fonts');
+  fs.mkdirSync(fontsDest, { recursive: true });
+  for (const f of fs.readdirSync(fontsSrc)) {
+    if (f.endsWith('.ttf')) {
+      fs.copyFileSync(path.join(fontsSrc, f), path.join(fontsDest, f));
+    }
+  }
+
+  // 4. Legal licenses & third-party notices
+  for (const f of ['LICENSE', 'ATTRIBUTIONS.md', 'THIRD-PARTY-NOTICES']) {
+    const src = path.join(repoRoot, f);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(targetDir, f));
+    }
+  }
 }
 
 export async function buildDesktopPackage(options = {}) {
@@ -78,6 +112,9 @@ export async function buildDesktopPackage(options = {}) {
     throw new Error('Desktop packaging requires runtime/node.exe to be present');
   }
 
+  // WSD-H-09: Stage corpora, fonts, licenses, and notices
+  stageCorporaAndNotices(distDesktop);
+
   // 4. Compile Inno Setup installer
   const requireInstaller = options.requireInstaller ?? (process.argv.includes('--installer') || process.env.REQUIRE_INSTALLER === '1');
   console.log(`[build-desktop] 4/4: Checking Inno Setup compiler (ISCC) (requireInstaller: ${requireInstaller})...`);
@@ -112,7 +149,7 @@ export async function buildDesktopPackage(options = {}) {
     if (innoRes.status !== 0) {
       throw new Error(`Inno Setup compilation failed with exit code ${innoRes.status}`);
     }
-    const outputSetup = path.join(repoRoot, 'dist-installer', 'WorshipDeckSetup.exe');
+    const outputSetup = path.join(repoRoot, 'dist-installer', `WorshipDeck-${appVersion}-x64-setup.exe`);
     if (!fs.existsSync(outputSetup)) {
       throw new Error(`Expected installer output not found at ${outputSetup}`);
     }

@@ -23,17 +23,17 @@
 
 **Blocked by:** 03-wsd-h-03-automatic-auth-secret-refuse-example-secrets.
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `internal/gate/gate.go`, `internal/httpapi/auth.go`, and `spa/src/pages/LoginPage.tsx`.
-- [ ] In `internal/httpapi/auth.go`: implement `POST /api/setup/admin` and `GET /api/setup/status` with atomic transaction, desktop mode check, and loopback enforcement.
-- [ ] In `internal/gate/gate.go`: update session gate allowlist with strict desktop/loopback guards.
-- [ ] In `spa/src/pages/LoginPage.tsx`: render Setup Screen when zero accounts exist in desktop mode.
-- [ ] Add i18n keys for setup form in `src/lib/i18n/catalogue-en.ts` and `catalogue-id.ts`.
-- [ ] Add Go tests in `internal/httpapi/auth_test.go` and `internal/gate/gate_test.go` verifying:
+- [x] Read `internal/gate/gate.go`, `internal/httpapi/auth.go`, and `spa/src/pages/LoginPage.tsx`.
+- [x] In `internal/httpapi/auth.go`: implement `POST /api/setup/admin` and `GET /api/setup/status` with atomic transaction, desktop mode check, and loopback enforcement.
+- [x] In `internal/gate/gate.go`: update session gate allowlist with strict desktop/loopback guards.
+- [x] In `spa/src/pages/LoginPage.tsx`: render Setup Screen when zero accounts exist in desktop mode.
+- [x] Add i18n keys for setup form in `src/lib/i18n/catalogue-en.ts` and `catalogue-id.ts`.
+- [x] Add Go tests in `internal/httpapi/auth_test.go` and `internal/gate/gate_test.go` verifying:
       (1) Setup rejected when an account already exists.
       (2) Setup rejected in server mode.
       (3) Setup and status rejected for remote/non-loopback requests.
       (4) Happy path creates admin and sets session cookie.
-- [ ] Add client test in `tests/first-admin-setup.test.mjs` and add to `package.json` `scripts.test`.
-- [ ] Verify `go test ./...` and `npm test` pass cleanly.
+- [x] Add client test in `tests/first-admin-setup.test.mjs` and add to `package.json` `scripts.test`.
+- [x] Verify `go test ./...` and `npm test` pass cleanly.
