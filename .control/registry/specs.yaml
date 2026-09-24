@@ -3039,6 +3039,37 @@ waves:
         tests:
           - tests/dynamic-field-extraction.test.mjs
 
+  # Opened 2026-09-24 from user triage notes.
+  # Complete rundown parser profile and song overflow retirement.
+  - id: SPEC-70
+    status: open
+    release: complete-rundown-parser-profile-and-song-overflow-retirement
+    prd: [operator-turn]
+    fr: [FR-32, FR-36]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-70-complete-rundown-parser-profile-and-song-overflow-retirement/
+    spec_reviewed:
+      date: '2026-09-24'
+      sha: '926aad6c744a99e1b08149c7cd3d8a05d00e1198'
+      lenses: [edge-case-hunter, parser-parity, migration-lifecycle, contract-surface, corpus-consistency]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in static parser successor specification without DB profile coupling, explicit absence-guard mutation matrix (Lagu Melebihi Slot, overflowSongs, /api/parser-profiles, and file deletion), rigorous unmappedLines post-retirement semantics, regression fixture matching reported bulletin lines, explicit service payload/webhook compatibility handling, and complete corpus inventory updates for UC-30 retirement."
+    tickets:
+      - id: "SPEC-70-01"
+        component: hub
+        satisfies: [UC-2, FR-36]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/smoke-spec-54.test.mjs
+      - id: "SPEC-70-02"
+        component: hub
+        satisfies: [UC-2, FR-32, FR-36]
+        blocked_by: ["SPEC-70-01"]
+        touches: [services]
+        tests:
+          - tests/dynamic-field-extraction.test.mjs
+
 
 
 
