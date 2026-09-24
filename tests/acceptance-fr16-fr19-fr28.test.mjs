@@ -132,7 +132,9 @@ Closing Song: SDAH #200`;
     await scriptureInput.fill('John 3:16');
 
     // Click Push button
-    const pushBtn = pagePresenter.locator('button:has-text("Push to projector"), button:has-text("Kirim ke proyektor")');
+    const pushBtn = pagePresenter.locator(
+      'button:has-text("Push to congregation screen"), button:has-text("Kirim ke layar jemaat"), button:has-text("Push to projector"), button:has-text("Kirim ke proyektor")'
+    );
     await pushBtn.waitFor({ state: 'visible', timeout: 5000 });
     await pushBtn.click();
 
