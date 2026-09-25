@@ -38,12 +38,15 @@ func TestBackgroundPrecedenceAndParity(t *testing.T) {
 	_, _ = handle.Exec(`INSERT OR REPLACE INTO background_default_assignments (role, background_image_id, updated_at) VALUES ('song_set', ?, ?), ('general', ?, ?)`, idSong, now, idGeneral, now)
 
 	// Insert song-set-entry templates into artifact_templates
-	_, _ = handle.Exec(`
-		INSERT INTO artifact_templates (id, label, base_type, variable_name, position, payload, updated_at)
-		VALUES ('bt-opening-song', 'Opening Song BT', 'song-set-entry', 'opening_song_bt', 10, NULL, ?),
-		       ('bt-closing-song', 'Closing Song BT', 'song-set-entry', 'closing_song_bt', 20, NULL, ?),
-		       ('welcome-test', 'Welcome Test', 'general', NULL, 30, '{"schemaVersion":1,"id":"welcome-test","label":"Welcome Test","baseType":"general","layouts":{"default":{"aspectRatio":"16:9","backgroundColor":"#000000","elements":[]}}}', ?)
+	_, err = handle.Exec(`
+		INSERT OR REPLACE INTO artifact_templates (id, label, base_type, variable_name, position, payload, updated_at)
+		VALUES ('bt-opening-song', 'Opening Song BT', 'song-set-entry', 'opening_song_bt', 100, NULL, ?),
+		       ('bt-closing-song', 'Closing Song BT', 'song-set-entry', 'closing_song_bt', 200, NULL, ?),
+		       ('welcome-test', 'Welcome Test', 'general', NULL, 300, '{"schemaVersion":1,"id":"welcome-test","label":"Welcome Test","baseType":"general","layouts":{"default":{"aspectRatio":"16:9","backgroundColor":"#000000","elements":[]}}}', ?)
 	`, now, now, now)
+	if err != nil {
+		t.Fatalf("insert templates: %v", err)
+	}
 
 	// Create test service
 	resSvc, err := handle.Exec(`INSERT INTO services (date, raw_payload, parsed_data) VALUES ('2026-09-26', 'sample', '{}')`)
@@ -120,10 +123,17 @@ func TestBackgroundPrecedenceAndParity(t *testing.T) {
 		}
 
 		// Non-song slide lacking custom background receives General Default
-		if it.Artifact.BaseType == "general" && it.Artifact.Group == nil {
+		if it.Artifact.InstanceID == "welcome-test" {
 			foundGeneralSlide = true
 			if bg != "/assets/general-default.png" {
-				t.Fatalf("general slide bg=%q, want /assets/general-default.png", bg)
+				t.Fatalf("general slide without custom bg=%q, want /assets/general-default.png", bg)
+			}
+		}
+
+		// Non-song slide with authored template background retains it
+		if it.Artifact.InstanceID == "welcome" {
+			if bg != "/assets/welcome-bg.png" {
+				t.Fatalf("welcome slide with authored bg=%q, want /assets/welcome-bg.png", bg)
 			}
 		}
 	}
