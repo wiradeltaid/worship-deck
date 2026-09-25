@@ -3295,6 +3295,99 @@ waves:
         tests:
           - tests/vulnerability-reporting-channel-guard.test.mjs
 
+  # Opened 2026-09-25 from user triage notes.
+  # Isolate presenter slide list scroll from window.
+  - id: SPEC-75
+    status: open
+    release: isolate-presenter-slide-list-scroll-from-window
+    prd: [operator-turn]
+    fr: [FR-16]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-75-isolate-presenter-slide-list-scroll-from-window/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: '2d34be19166a55f6c422eb896c4c644f398aab22'
+      lenses: [structure, prose, edge-case-hunter, traceability, runtime-interaction]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: strictly scoping the primary fix to the vertical slides list panel per raw note intent while neutralizing filmstrip scroll leak, adding behavior-level proof verifying active slide navigation preserves non-zero window scroll position without displacement, expanding geometry test matrix with boundary cases (partial visibility, edge equality, oversized children, non-negative clamping), aligning ticket test command with TypeScript loader, and refining window stability phrasing."
+    tickets:
+      - id: "SPEC-75-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-container-scroll.test.mjs
+
+  # Opened 2026-09-25 from user triage notes.
+  # Song set background thumbnail dropdowns and canvas image fit modes.
+  - id: SPEC-76
+    status: open
+    release: background-thumbnails-and-canvas-image-fit-modes
+    prd: [operator-turn]
+    fr: [FR-16, FR-1]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-76-background-thumbnails-and-canvas-image-fit-modes/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: '2d34be19166a55f6c422eb896c4c644f398aab22'
+      lenses: [structure, prose, edge-case-hunter, requirements-traceability, interaction-state-persistence]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: recording explicit product decision adopting standard Fit/Cover/Stretch triad in lieu of unbounded unscaled rendering, eliminating legacy resize coercion that forced objectFit to fill in ArtifactEditor, replacing opaque hash filenames in thumbnail selectors with clean Image <id> labels and thumbnail previews while preserving distinct form and presenter sentinel semantics, removing artificial inter-ticket dependency between independent tickets, and strengthening behavioral/PPTX test strategy."
+    tickets:
+      - id: "SPEC-76-01"
+        component: presenter
+        satisfies: [UC-27, FR-16]
+        blocked_by: []
+        touches: [services, present-channel]
+        tests:
+          - tests/background-thumbnail-picker.test.mjs
+      - id: "SPEC-76-02"
+        component: registry
+        satisfies: [UC-14, FR-1]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/canvas-image-fit-modes.test.mjs
+
+  # Opened 2026-09-25 from user triage notes.
+  # Client-side image cropping and resizing.
+  - id: SPEC-77
+    status: open
+    release: client-side-image-cropping-and-resizing
+    prd: [operator-turn]
+    fr: [FR-1, FR-2, FR-3]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-77-client-side-image-cropping-and-resizing/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: '2d34be19166a55f6c422eb896c4c644f398aab22'
+      lenses: [structure, prose, edge-case-hunter, contract-checker, scope-and-traceability, test-strategy]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: defining explicit cropConfig props on service image fields rather than fragile label regexes, specifying MIME and PNG transparency preservation with matching file extensions, establishing deterministic resize profiles with no-upscaling guarantee, adding canvas failure recovery and double-submit prevention with raw file fallback, scoping integration strictly to the 4 confirmed entry points, and extracting pure target dimension calculations for DOM-free Node unit testability."
+    tickets:
+      - id: "SPEC-77-01"
+        component: registry
+        satisfies: [UC-14, FR-1]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/image-crop-helper.test.mjs
+      - id: "SPEC-77-02"
+        component: hub
+        satisfies: [UC-1, FR-2]
+        blocked_by: ["SPEC-77-01"]
+        touches: [services]
+        tests:
+          - tests/service-image-crop-integration.test.mjs
+      - id: "SPEC-77-03"
+        component: registry
+        satisfies: [UC-14, UC-26, FR-1, FR-3]
+        blocked_by: ["SPEC-77-01"]
+        touches: [artifacts, settings]
+        tests:
+          - tests/canvas-media-crop-integration.test.mjs
+
 
 
 

@@ -68,6 +68,20 @@ rtm:
   FR: FR-1
   DEC: []
   UC: UC-1
+  ticket: SPEC-77-02
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/service-image-crop-integration.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-11
+  FR: FR-1
+  DEC: []
+  UC: UC-1
   ticket: W10-01
   spec: W10
   release: intake-lyrics
@@ -1379,6 +1393,20 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-75-01
+  spec: SPEC-75
+  release: isolate-presenter-slide-list-scroll-from-window
+  test:
+  - tests/presenter-container-scroll.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live
@@ -1563,6 +1591,20 @@ rtm:
   - internal/gate/gate_test.go
   - tests/first-admin-setup.test.mjs
   status: closed
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-2
+  DEC: []
+  UC: UC-1
+  ticket: SPEC-77-02
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/service-image-crop-integration.test.mjs
+  status: open
   exempt: false
   green: false
   broken_at: status
@@ -3643,6 +3685,48 @@ rtm:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
   status: closed
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-76-02
+  spec: SPEC-76
+  release: background-thumbnails-and-canvas-image-fit-modes
+  test:
+  - tests/canvas-image-fit-modes.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-77-01
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/image-crop-helper.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-77-03
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/canvas-media-crop-integration.test.mjs
+  status: open
   exempt: false
   green: false
   broken_at: status
@@ -6634,6 +6718,48 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-76-02
+  spec: SPEC-76
+  release: background-thumbnails-and-canvas-image-fit-modes
+  test:
+  - tests/canvas-image-fit-modes.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-77-01
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/image-crop-helper.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-77-03
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/canvas-media-crop-integration.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -6788,6 +6914,20 @@ rtm:
   FR: FR-32
   DEC: []
   UC: UC-26
+  ticket: SPEC-77-03
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/canvas-media-crop-integration.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-32
+  DEC: []
+  UC: UC-26
   ticket: W8-08
   spec: W8
   release: hub-service-ops
@@ -6798,6 +6938,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-33
+  DEC: []
+  UC: UC-27
+  ticket: SPEC-76-01
+  spec: SPEC-76
+  release: background-thumbnails-and-canvas-image-fit-modes
+  test:
+  - tests/background-thumbnail-picker.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-33
@@ -8862,6 +9016,48 @@ rtm:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
   status: closed
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-76-02
+  spec: SPEC-76
+  release: background-thumbnails-and-canvas-image-fit-modes
+  test:
+  - tests/canvas-image-fit-modes.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-77-01
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/image-crop-helper.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-77-03
+  spec: SPEC-77
+  release: client-side-image-cropping-and-resizing
+  test:
+  - tests/canvas-media-crop-integration.test.mjs
+  status: open
   exempt: false
   green: false
   broken_at: status
