@@ -21,6 +21,7 @@ import {
   toCssColor,
   toCssGeometry,
   toCssJustifyContent,
+  resolveEffectiveBackgroundImage,
 } from '@/lib/artifacts/render-model';
 
 /**
@@ -395,15 +396,7 @@ export default function ArtifactSlide({
 
   const isEditor = editorMode ?? Boolean(instance.instanceId?.startsWith('editor-'));
   const { layout } = instance;
-  const isVerseOrReff =
-    instance.layoutKey === 'verse' ||
-    instance.layoutKey === 'reff' ||
-    instance.layoutKey === 'lyric' ||
-    instance.group?.role === 'lyric';
-  const effectiveBgImage =
-    isVerseOrReff && backgroundOverride !== undefined
-      ? backgroundOverride || undefined
-      : layout.backgroundImage;
+  const effectiveBgImage = resolveEffectiveBackgroundImage(instance, backgroundOverride);
 
   const sortedElements = useMemo(() => {
     return [...(layout.elements ?? [])]

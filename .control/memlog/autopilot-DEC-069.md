@@ -8,17 +8,19 @@ artifact: .control/decisions/DEC-069-daily-autopilot-mandate-dual-default-backgr
 
 - State: Active — running SPEC-81
 - Run branch: autopilot/DEC-069
-- Stopped at: Iteration 0 (initialized)
+- Stopped at: Iteration 1 (SPEC-81-01 closed)
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
-- Next: SPEC-81-01 (Presenter live background preview & override strictly scoped to lyric slides)
+- Next: SPEC-81-02 (Dual default backgrounds model & library UI)
 
 ## Decisions
 
 | When | Where | Decided | Instead of | Cost if wrong | Landed in |
 |---|---|---|---|---|---|
 | I-0 (start) | mandate | Start daily autopilot mandate DEC-069 for Dual Default Backgrounds, Song-Set Resolution, and Presenter/PPTX Parity (SPEC-81) | waiting for interactive manual dispatch | low | .control/decisions/DEC-069-daily-autopilot-mandate-dual-default-backgrounds-presenter-pptx-parity.md |
+| I-1 (SPEC-81-01) | src/operator/present/PresenterOperator.tsx, src/components/artifacts/ArtifactSlide.tsx, src/lib/artifacts/render-model.ts | Pass liveBackground override to Current, Next, and FilmstripFrame SlideViews, extract pure resolveEffectiveBackgroundImage & isLyricSlide to render-model.ts, and add comprehensive tests with defect injection, verified by Terra peer review | keeping presenter operator preview disconnected from live background | medium | src/operator/present/PresenterOperator.tsx, src/components/artifacts/ArtifactSlide.tsx, src/lib/artifacts/render-model.ts, package.json, tests/presenter-live-background-preview.test.mjs, .scratch/SPEC-81-dual-default-backgrounds-and-presenter-pptx-parity/issues/01-presenter-live-background-preview.md |
 
 ## Smoke Test Results
 
 - Preflight verification: PASS — `validate.py --baseline` green, Go test suite passed (exit 0), `npm test` passed (exit 0; 1346 pass, 0 fail), `public-repo-guard` passed (5/5).
+- SPEC-81-01 verification: PASS — `tests/presenter-live-background-preview.test.mjs` (6/6 passed), `npm run typecheck` (passed), `npm run spa:build` (passed), Terra peer review APPROVED.

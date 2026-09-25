@@ -7118,7 +7118,7 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/presenter-live-background-preview.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
