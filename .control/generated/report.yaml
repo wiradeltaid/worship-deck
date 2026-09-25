@@ -1,13 +1,13 @@
-asof: '2026-09-24'
+asof: '2026-09-25'
 since: ''
 since_report: ''
-sha: f651cb1ae0f2f355059ba3d3460ab8a3c8acea13
-registry_dirty: true
+sha: c504d2d798c136c10fb4eef65a7ea803606d2442
+registry_dirty: false
 uncommitted_tickets: []
-promise_progress: 100%
+promise_progress: 97%
 rtm_rows:
-  green: 598
-  counted: 598
+  green: 617
+  counted: 638
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -309,6 +309,36 @@ work_progress:
   status: closed
   tickets_done: 1
   tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-72
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-73
+  status: open
+  tickets_done: 0
+  tickets_total: 16
+  work_progress: 0%
+- spec: SPEC-74
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-75
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-76
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-77
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
   work_progress: 100%
 - spec: W1
   status: closed
@@ -1249,10 +1279,6 @@ moved:
   date: '2026-09-18'
 - id: CAP-5
   kind: CAP
-  event: closed
-  date: '2026-09-18'
-- id: CAP-5
-  kind: CAP
   event: started
   date: '2026-09-18'
 - id: CAP-6
@@ -1298,10 +1324,6 @@ moved:
 - id: FR-13
   kind: FR
   event: started
-  date: '2026-09-18'
-- id: FR-14
-  kind: FR
-  event: closed
   date: '2026-09-18'
 - id: FR-14
   kind: FR
@@ -1389,10 +1411,6 @@ moved:
   date: '2026-09-18'
 - id: FR-3
   kind: FR
-  event: closed
-  date: '2026-09-18'
-- id: FR-3
-  kind: FR
   event: started
   date: '2026-09-18'
 - id: FR-30
@@ -1406,10 +1424,6 @@ moved:
 - id: FR-32
   kind: FR
   event: started
-  date: '2026-09-18'
-- id: FR-33
-  kind: FR
-  event: closed
   date: '2026-09-18'
 - id: FR-33
   kind: FR

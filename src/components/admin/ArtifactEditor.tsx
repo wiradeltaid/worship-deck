@@ -67,6 +67,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import ImageCropDialog from '@/components/media/ImageCropDialog';
 import {
   Select,
   SelectContent,
@@ -296,7 +297,7 @@ export default function ArtifactEditor({
   const [strokeColor, setStrokeColor] = useState('#FFFFFF');
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [elementOpacity, setElementOpacity] = useState(100);
-  const [imageFit, setImageFit] = useState<'contain' | 'fill'>('contain');
+  const [imageFit, setImageFit] = useState<'contain' | 'cover' | 'fill'>('contain');
   const [boxWidthInput, setBoxWidthInput] = useState('');
   const [boxHeightInput, setBoxHeightInput] = useState('');
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
@@ -317,6 +318,12 @@ export default function ArtifactEditor({
   const insertCounterRef = useRef(0);
   const bgFileInputRef = useRef<HTMLInputElement | null>(null);
   const [showBgDialog, setShowBgDialog] = useState(false);
+  const [cropTarget, setCropTarget] = useState<{
+    file: File;
+    defaultAspect: number | null;
+    onComplete: (file: File) => void;
+    title: string;
+  } | null>(null);
   const [bgLibrary, setBgLibrary] = useState<Array<{ id: number; url: string; name?: string; category?: string }>>([]);
   const [showImageChoiceDialog, setShowImageChoiceDialog] = useState(false);
   const [showGalleryDialog, setShowGalleryDialog] = useState(false);
@@ -528,7 +535,15 @@ export default function ArtifactEditor({
       setStrokeWidth(sw);
     }
 
-    const images = active.filter((obj) => Boolean((obj as any).data?.imageRef || (obj as any).data?.isImage));
+    const images = active.filter(
+      (obj) =>
+        Boolean(
+          (obj as any).data?.imageRef ||
+          (obj as any).data?.isImage ||
+          (obj as any).data?.placeholderKey ||
+          (obj as any).data?.type === 'image-placeholder'
+        )
+    );
     setSelectedImageCount(images.length);
     if (images.length > 0) {
       const imgObj = images[0] as any;
@@ -536,7 +551,8 @@ export default function ArtifactEditor({
       const liveEl = liveElementsRef.current.find((e) => e.id === elId) ?? addedElementsRef.current.get(elId || '');
       const op = typeof liveEl?.style?.opacity === 'number' ? Math.round(liveEl.style.opacity * 100) : 100;
       setElementOpacity(op);
-      const fit = liveEl?.style?.objectFit === 'fill' ? 'fill' : 'contain';
+      const rawFit = liveEl?.style?.objectFit;
+      const fit: 'contain' | 'cover' | 'fill' = rawFit === 'fill' ? 'fill' : rawFit === 'cover' ? 'cover' : 'contain';
       setImageFit(fit);
       const wVal = liveEl?.w !== undefined ? Number(liveEl.w.toFixed(1)) : 0;
       const hVal = liveEl?.h !== undefined ? Number(liveEl.h.toFixed(1)) : 0;
@@ -1231,29 +1247,23 @@ export default function ArtifactEditor({
               const h = baseH * scaleY;
               const left = member.left ?? 0;
               const top = member.top ?? 0;
-              const isImage = Boolean((member as any).data?.imageRef || (member as any).data?.isImage);
-
-              if (isImage && (isHoriz || isVert)) {
-                (member as any).data.objectFit = 'fill';
-                (member as any).data.style = { ...((member as any).data.style || {}), objectFit: 'fill' };
-                setImageFit('fill');
-              }
+              const isImage = Boolean(
+                (member as any).data?.imageRef ||
+                (member as any).data?.isImage ||
+                (member as any).data?.placeholderKey ||
+                (member as any).data?.type === 'image-placeholder'
+              );
 
               const { x: newX, y: newY } = centerPxToTopLeftPct(left, top, w, h);
               setLiveElements((prev) =>
                 prev.map((el) => {
                   if (el.id !== id) return el;
-                  const isImageEl = el.type === 'image' || el.type === 'image-placeholder';
-                  const nextStyle = (isImage && (isHoriz || isVert))
-                    ? { ...el.style, objectFit: 'fill' as const }
-                    : el.style;
                   return {
                     ...el,
                     x: newX,
                     y: newY,
                     w: pxToPct(w, CANVAS_WIDTH),
                     h: pxToPct(h, CANVAS_HEIGHT),
-                    style: nextStyle,
                   };
                 })
               );
@@ -1272,12 +1282,12 @@ export default function ArtifactEditor({
         if (target) {
           const targetData = ((target as any).data = (target as any).data || {});
           targetData.userResizedWidth = true;
-          const isImage = Boolean(targetData.imageRef || targetData.isImage);
-          if (isImage) {
-            targetData.objectFit = 'fill';
-            targetData.style = { ...(targetData.style || {}), objectFit: 'fill' };
-            setImageFit('fill');
-          }
+          const isImage = Boolean(
+            targetData.imageRef ||
+            targetData.isImage ||
+            targetData.placeholderKey ||
+            targetData.type === 'image-placeholder'
+          );
           const id = getElementId(target);
           if (id) {
             const scaleX = Math.abs(target.scaleX ?? 1);
@@ -1292,14 +1302,12 @@ export default function ArtifactEditor({
             setLiveElements((prev) =>
               prev.map((el) => {
                 if (el.id !== id) return el;
-                const nextStyle = isImage ? { ...el.style, objectFit: 'fill' as const } : el.style;
                 return {
                   ...el,
                   x: newX,
                   y: newY,
                   w: pxToPct(w, CANVAS_WIDTH),
                   h: pxToPct(h, CANVAS_HEIGHT),
-                  style: nextStyle,
                 };
               })
             );
@@ -1361,7 +1369,12 @@ export default function ArtifactEditor({
             const scaleX = Math.abs(member.scaleX ?? 1);
             const scaleY = Math.abs(member.scaleY ?? 1);
             const isText = isFabricTextObject(member);
-            const isImage = Boolean((member as any).data?.imageRef || (member as any).data?.isImage);
+            const isImage = Boolean(
+              (member as any).data?.imageRef ||
+              (member as any).data?.isImage ||
+              (member as any).data?.placeholderKey ||
+              (member as any).data?.type === 'image-placeholder'
+            );
             const mData = member ? ((member as any).data = (member as any).data || {}) : null;
 
             if (scaleX !== 1 || scaleY !== 1) {
@@ -1373,11 +1386,6 @@ export default function ArtifactEditor({
               if (mData) {
                 mData.authoredWidth = newW;
                 mData.authoredHeight = newH;
-                if (isImage) {
-                  mData.objectFit = 'fill';
-                  mData.style = { ...(mData.style || {}), objectFit: 'fill' };
-                  setImageFit('fill');
-                }
               }
               member.set({
                 width: newW,
@@ -1407,17 +1415,12 @@ export default function ArtifactEditor({
               setLiveElements((prev) =>
                 prev.map((el) => {
                   if (el.id !== id) return el;
-                  const isImageEl = el.type === 'image' || el.type === 'image-placeholder';
-                  const nextStyle = (isImage && (scaleX !== 1 || scaleY !== 1))
-                    ? { ...el.style, objectFit: 'fill' as const }
-                    : el.style;
                   return {
                     ...el,
                     x: newX,
                     y: newY,
                     w: pxToPct(w, CANVAS_WIDTH),
                     h: pxToPct(h, CANVAS_HEIGHT),
-                    style: nextStyle,
                   };
                 })
               );
@@ -1909,6 +1912,30 @@ export default function ArtifactEditor({
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handlePickInsertImage = (file: File) => {
+    setCropTarget({
+      file,
+      defaultAspect: null,
+      title: 'Crop & Resize Image',
+      onComplete: (croppedFile) => {
+        setCropTarget(null);
+        void insertImage(croppedFile);
+      },
+    });
+  };
+
+  const handlePickBackgroundFile = (file: File) => {
+    setCropTarget({
+      file,
+      defaultAspect: 16 / 9,
+      title: 'Crop & Resize Background',
+      onComplete: (croppedFile) => {
+        setCropTarget(null);
+        void handleUploadBackgroundFile(croppedFile);
+      },
+    });
+  };
 
   const insertImage = useCallback(
     async (file: File) => {
@@ -3744,9 +3771,10 @@ export default function ArtifactEditor({
   );
 
   const handleToggleImageFit = useCallback(
-    (targetFit?: 'contain' | 'fill') => {
+    (targetFit?: 'contain' | 'cover' | 'fill') => {
       recordUndo();
-      const nextFit: 'contain' | 'fill' = targetFit ?? (imageFit === 'fill' ? 'contain' : 'fill');
+      const nextFit: 'contain' | 'cover' | 'fill' =
+        targetFit ?? (imageFit === 'contain' ? 'cover' : imageFit === 'cover' ? 'fill' : 'contain');
       setImageFit(nextFit);
       const canvas = fabricCanvasRef.current;
       const activeIds = canvas
@@ -3757,6 +3785,8 @@ export default function ArtifactEditor({
       setLiveElements((prev) =>
         prev.map((el) => {
           if (!targetIds.has(el.id)) return el;
+          const isImg = el.type === 'image' || el.type === 'image-placeholder';
+          if (!isImg) return el;
           const newStyle = { ...el.style, objectFit: nextFit };
           return {
             ...el,
@@ -5245,7 +5275,7 @@ export default function ArtifactEditor({
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          void insertImage(file);
+                          handlePickInsertImage(file);
                         }
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
@@ -5317,7 +5347,7 @@ export default function ArtifactEditor({
                         className="hidden"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f) void handleUploadBackgroundFile(f);
+                          if (f) handlePickBackgroundFile(f);
                           if (bgFileInputRef.current) bgFileInputRef.current.value = '';
                         }}
                       />
@@ -5833,13 +5863,37 @@ export default function ArtifactEditor({
                         </div>
                       </div>
                     </>
-                  ) : fabricCanvasRef.current?.getActiveObjects().some((o) => Boolean((o as any).data?.imageRef)) || selectedImageCount > 0 ? (
+                  ) : fabricCanvasRef.current?.getActiveObjects().some((o) => Boolean((o as any).data?.imageRef || (o as any).data?.isImage || (o as any).data?.placeholderKey || (o as any).data?.type === 'image-placeholder')) || selectedImageCount > 0 ? (
                     <>
                       <div className="flex items-center gap-3 overflow-x-auto overflow-y-hidden shrink-0 flex-nowrap py-0.5">
                         <span className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-[10px] font-medium font-mono text-accent-foreground uppercase">
                           IMAGE
                         </span>
                         <div className="flex items-center gap-1 bg-background/50 rounded-md p-0.5 border border-border/50">
+                          <Button
+                            type="button"
+                            variant={imageFit === 'contain' ? 'default' : 'ghost'}
+                            size="xs"
+                            className="h-6 text-[11px] px-2"
+                            onClick={() => {
+                              if (imageFit !== 'contain') handleToggleImageFit('contain');
+                            }}
+                            title="Fit inside box while preserving aspect ratio (letterbox)"
+                          >
+                            Fit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={imageFit === 'cover' ? 'default' : 'ghost'}
+                            size="xs"
+                            className="h-6 text-[11px] px-2"
+                            onClick={() => {
+                              if (imageFit !== 'cover') handleToggleImageFit('cover');
+                            }}
+                            title="Fill entire box while preserving aspect ratio (crops excess)"
+                          >
+                            Cover
+                          </Button>
                           <Button
                             type="button"
                             variant={imageFit === 'fill' ? 'default' : 'ghost'}
@@ -5851,18 +5905,6 @@ export default function ArtifactEditor({
                             title="Stretch image to fill the box without ratio lock"
                           >
                             Stretch
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={imageFit === 'contain' ? 'default' : 'ghost'}
-                            size="xs"
-                            className="h-6 text-[11px] px-2"
-                            onClick={() => {
-                              if (imageFit !== 'contain') handleToggleImageFit('contain');
-                            }}
-                            title="Keep original image aspect ratio"
-                          >
-                            Fit
                           </Button>
                         </div>
                         <Label className="flex items-center gap-1.5 text-xs">
@@ -6408,6 +6450,17 @@ export default function ArtifactEditor({
             </div>
           </div>
         ) : null}
+        {cropTarget && (
+          <ImageCropDialog
+            open={Boolean(cropTarget)}
+            file={cropTarget.file}
+            defaultAspect={cropTarget.defaultAspect}
+            defaultResize="1080p"
+            title={cropTarget.title}
+            onComplete={cropTarget.onComplete}
+            onCancel={() => setCropTarget(null)}
+          />
+        )}
       </section>
     </div>
   );

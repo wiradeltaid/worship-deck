@@ -4,17 +4,17 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `package.json` and `src/components/ui/dialog.tsx` first.
-- [ ] Add `react-easy-crop: "^5.2.0"` dependency to `package.json`.
-- [ ] Author `lib/images/crop-image.ts` (under `src/lib/images/`):
+- [x] Read `package.json` and `src/components/ui/dialog.tsx` first.
+- [x] Add `react-easy-crop: "^5.2.0"` dependency to `package.json`.
+- [x] Author `lib/images/crop-image.ts` (under `src/lib/images/`):
       - Implement and export pure function `calculateTargetDimensions(cropWidth: number, cropHeight: number, limits?: ResizeLimits): Dimensions`.
       - Implement `getCroppedImg(imageSrc: string, pixelCrop: CropArea, options?: ResizeOptions): Promise<File>`.
       - Preserve PNG alpha channel when exporting transparent PNGs (`image/png` or `image/webp`).
       - Export JPEGs with quality `0.88`.
       - Ensure exported filename extension matches the Blob MIME type (`cropped-<name>.jpg`, `cropped-<name>.png`).
-- [ ] Author `components/media/ImageCropDialog.tsx` (under `src/components/media/`):
+- [x] Author `components/media/ImageCropDialog.tsx` (under `src/components/media/`):
       - Implement interactive dialog with `Cropper` from `react-easy-crop`.
       - Provide segmented aspect ratio controls: `16:9` (Slide), `1:1` (Avatar), `4:3` (Standard), and `null` (Freeform).
       - Provide zoom slider with fine step control (1x to 3x).
@@ -24,8 +24,8 @@
       - Provide "Cancel" button (aborts and closes).
       - Manage and revoke object URLs on cancel, completion, and unmount.
       - Error recovery: if canvas processing throws or `toBlob()` returns null, show an error banner while keeping "Skip Crop / Upload As-Is" active.
-- [ ] Author `tests/image-crop-helper.test.mjs`:
+- [x] Author `tests/image-crop-helper.test.mjs`:
       - Unit test `calculateTargetDimensions` across all boundary conditions: 4000x3000 to 16:9 (1440x1080), 3840x2160 to Max 1080p (1920x1080), 600x600 under Max 800px (no upscaling, stays 600x600).
       - Unit test MIME type and extension mapping.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/image-crop-helper.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run test suite and `npm run typecheck` to verify 100% green execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/image-crop-helper.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run test suite and `npm run typecheck` to verify 100% green execution.

@@ -4,23 +4,23 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx` and `src/operator/DynamicFormBody.tsx` first.
-- [ ] In `src/operator/DynamicFormBody.tsx`:
+- [x] Read `src/operator/present/PresenterOperator.tsx` and `src/operator/DynamicFormBody.tsx` first.
+- [x] In `src/operator/DynamicFormBody.tsx`:
       - Update the song set background `<Select>` dropdown:
       - Render each background option with an `<img ... />` thumbnail preview (`h-6 w-9 object-cover rounded border`) and clean label (`Image ${img.id}${img.isDefault ? ' (Default)' : ''}`).
       - Eliminate `.split('/').pop()` raw hash filename rendering.
       - Render the `<SelectTrigger>` with thumbnail preview when a background is selected, or a clean icon/badge when Default Background (`''`) is active.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Update the live background override `<Select>` dropdown:
       - Render each background option with an `<img ... />` thumbnail preview and clean label.
       - Eliminate `.split('/').pop()` raw hash filename rendering.
       - Render the `<SelectTrigger>` with thumbnail preview when a background is selected, or clean default styling when Deck default (`null`) is active.
-- [ ] Author `tests/background-thumbnail-picker.test.mjs`:
+- [x] Author `tests/background-thumbnail-picker.test.mjs`:
       - Verify that `PresenterOperator.tsx` renders thumbnail images for background options in `<SelectContent>` and `<SelectTrigger>`.
       - Verify that `DynamicFormBody.tsx` renders thumbnail images for song set background options.
       - Assert absence of raw hash filenames (`.split('/').pop()`) in option labels across both files.
       - Verify distinct sentinel handling (`''` in form vs `null` in presenter).
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/background-thumbnail-picker.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run tests and `npm run typecheck` to verify 100% green execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/background-thumbnail-picker.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run tests and `npm run typecheck` to verify 100% green execution.

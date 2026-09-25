@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx` and `src/operator/present/presenter-model.ts` first.
-- [ ] In `src/operator/present/presenter-model.ts`:
+- [x] Read `src/operator/present/PresenterOperator.tsx` and `src/operator/present/presenter-model.ts` first.
+- [x] In `src/operator/present/presenter-model.ts`:
       - Implement and export `scrollChildIntoContainerView(container: HTMLElement, child: HTMLElement, axis: 'vertical' | 'horizontal' = 'vertical'): boolean`.
       - On vertical axis:
         - If child height > container height: top-align (`container.scrollTop += (childTop - containerTop)`).
@@ -16,13 +16,13 @@
         - Else: return `false` (no-op).
       - Enforce non-negative clamping: `container.scrollTop = Math.max(0, container.scrollTop)`.
       - Return `true` if scroll was adjusted, `false` if already fully visible.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Declare `slideListContainerRef = useRef<HTMLDivElement | null>(null)` and attach to `<div className="min-h-0 flex-1 overflow-y-auto p-1.5 ...">` in the Slides section.
       - In the `useEffect([index])` hook, replace bare `activeRowRef.current?.scrollIntoView` call with:
         `if (slideListContainerRef.current && activeRowRef.current) scrollChildIntoContainerView(slideListContainerRef.current, activeRowRef.current, 'vertical');`
       - Ensure filmstrip thumbnail tracking does not invoke ancestor vertical scrolling.
       - Verify that `activeRowRef` no longer invokes `.scrollIntoView()`.
-- [ ] Author `tests/presenter-container-scroll.test.mjs`:
+- [x] Author `tests/presenter-container-scroll.test.mjs`:
       - Verify vertical scrolling calculation for child elements positioned above, below, partially hidden at edges, and within container viewport.
       - Verify zero movement and zero jitter when child element is exactly edge-aligned.
       - Verify top-alignment when child is taller than container viewport.
@@ -30,5 +30,5 @@
       - Behavior-level check: initialize environment with non-zero `window.scrollY` (e.g. 150), trigger active slide navigation to an off-panel item, and assert that `container.scrollTop` updates while `window.scrollY` remains strictly 150.
       - Absence guard asserting `src/operator/present/PresenterOperator.tsx` contains 0 occurrences of `.scrollIntoView(` on `activeRowRef`.
       - Presence guard asserting `src/operator/present/PresenterOperator.tsx` imports and calls `scrollChildIntoContainerView`.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-container-scroll.test.mjs` into `package.json` test script additively (preserving existing test commands and `--test-concurrency=1`).
-- [ ] Run test suite (`node --import ./tests/register-ts-resolve.mjs --test tests/presenter-container-scroll.test.mjs` and `npm run typecheck`) to ensure 100% clean execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-container-scroll.test.mjs` into `package.json` test script additively (preserving existing test commands and `--test-concurrency=1`).
+- [x] Run test suite (`node --import ./tests/register-ts-resolve.mjs --test tests/presenter-container-scroll.test.mjs` and `npm run typecheck`) to ensure 100% clean execution.

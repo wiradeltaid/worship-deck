@@ -21,7 +21,7 @@ const manifestPath = path.join(root, 'docs', 'public-facts.yaml');
  * Handles arrays of fact items with id, value, derived_from, source, and appears_in.
  */
 export function parseFactsYaml(yamlContent) {
-  const lines = yamlContent.split('\n');
+  const lines = yamlContent.replace(/\r/g, '').split('\n');
   const facts = [];
   let currentFact = null;
   let inDerivedFrom = false;

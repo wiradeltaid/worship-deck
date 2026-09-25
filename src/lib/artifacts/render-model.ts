@@ -1103,9 +1103,9 @@ export function resolveFontFamily(style: ResolvedStyle): string {
     : DEFAULT_FONT_FAMILY;
 }
 
-export function resolveObjectFit(style: ResolvedStyle): 'contain' | 'cover' | 'fill' {
-  if (style.objectFit === 'cover') return 'cover';
-  if (style.objectFit === 'fill') return 'fill';
+export function resolveObjectFit(style?: ResolvedStyle): 'contain' | 'cover' | 'fill' {
+  if (style?.objectFit === 'cover') return 'cover';
+  if (style?.objectFit === 'fill') return 'fill';
   return DEFAULT_OBJECT_FIT;
 }
 

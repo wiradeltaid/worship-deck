@@ -4,25 +4,25 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/components/admin/ArtifactEditor.tsx`, `src/lib/registry/types.ts`, `src/lib/artifacts/render-model.ts`, `src/components/artifacts/ArtifactSlide.tsx`, and `src/lib/pptx-draw.ts` first.
-- [ ] In `src/components/admin/ArtifactEditor.tsx`:
+- [x] Read `src/components/admin/ArtifactEditor.tsx`, `src/lib/registry/types.ts`, `src/lib/artifacts/render-model.ts`, `src/components/artifacts/ArtifactSlide.tsx`, and `src/lib/pptx-draw.ts` first.
+- [x] In `src/components/admin/ArtifactEditor.tsx`:
       - Expand `imageFit` state to `'contain' | 'cover' | 'fill'`.
       - Expand the image properties toolbar button group to 3 segmented options: `Fit` (`contain`), `Cover` (`cover`), `Stretch` (`fill`), with clear tooltip descriptions.
       - Update element selection filter so that `selectedImageCount` and active image detection recognize `image-placeholder` elements (by `el.type === 'image-placeholder'`, `data.isImage`, or `data.placeholderKey`).
       - Remove legacy resize coercion code paths (in `object:scaling` / bounding box handlers around lines 1236-1240, 1277-1278, and 1377-1378) that forced `objectFit = 'fill'`. Preserve the element's existing `objectFit`.
       - In `handleToggleImageFit` (or `setImageFit`), serialize `objectFit` to `element.style.objectFit` and update Fabric object data accordingly.
-- [ ] In `src/lib/artifacts/render-model.ts` and `src/components/artifacts/ArtifactSlide.tsx`:
+- [x] In `src/lib/artifacts/render-model.ts` and `src/components/artifacts/ArtifactSlide.tsx`:
       - Verify that `resolveObjectFit` correctly handles `contain`, `cover`, and `fill`.
       - Verify that `ImageElement` in `ArtifactSlide.tsx` renders `<img style={{ objectFit: resolveObjectFit(element.style) }} />`.
-- [ ] In `src/lib/pptx-draw.ts`:
+- [x] In `src/lib/pptx-draw.ts`:
       - Verify that `renderImageElement` maps `contain` and `cover` to pptxgenjs `sizing: { type: objectFit, w, h }` and `fill` to unconstrained stretch.
-- [ ] Author `tests/canvas-image-fit-modes.test.mjs`:
+- [x] Author `tests/canvas-image-fit-modes.test.mjs`:
       - Verify that `ArtifactEditor.tsx` renders buttons for all 3 fit modes (`contain`, `cover`, `fill`).
       - Verify that `image-placeholder` elements activate the image properties toolbar.
       - Verify that scaling / resizing handlers do not coerce `objectFit` to `fill`.
       - Verify that `resolveObjectFit` accurately resolves `contain`, `cover`, and `fill`.
       - Verify that `pptx-draw.ts` preserves sizing specifications for all three modes.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/canvas-image-fit-modes.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run tests and `npm run typecheck` to verify 100% clean execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/canvas-image-fit-modes.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run tests and `npm run typecheck` to verify 100% clean execution.

@@ -73,10 +73,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/service-image-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-11
   FR: FR-1
@@ -1398,10 +1398,10 @@ rtm:
   release: isolate-presenter-slide-list-scroll-from-window
   test:
   - tests/presenter-container-scroll.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1604,10 +1604,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/service-image-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3698,10 +3698,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/canvas-image-fit-modes.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3712,10 +3712,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/image-crop-helper.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3726,10 +3726,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6723,10 +6723,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/canvas-image-fit-modes.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6737,10 +6737,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/image-crop-helper.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6751,10 +6751,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6919,10 +6919,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-32
@@ -6948,10 +6948,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/background-thumbnail-picker.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-33
@@ -9029,10 +9029,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/canvas-image-fit-modes.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9043,10 +9043,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/image-crop-helper.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9057,10 +9057,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

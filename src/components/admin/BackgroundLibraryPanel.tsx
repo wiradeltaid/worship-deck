@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, Pencil, RefreshCw, Trash2, X } from 'lucide-react';
+import ImageCropDialog from '@/components/media/ImageCropDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,6 +52,7 @@ export function BackgroundLibraryPanel() {
   const [busy, setBusy] = useState<'upload' | 'fetch' | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [picked, setPicked] = useState(false);
+  const [cropTargetFile, setCropTargetFile] = useState<File | null>(null);
 
   // Category filtering & upload category (SPEC-40: Announcement, Background, General)
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'general' | 'background' | 'announcement'>('all');
@@ -108,15 +110,20 @@ export function BackgroundLibraryPanel() {
     }
   };
 
-  const uploadPickedFile = async () => {
+  const uploadPickedFile = () => {
     const file = pickerRef.current?.files?.[0];
     if (!file) return;
+    setUploadError(null);
+    setCropTargetFile(file);
+  };
 
+  const handleUploadCroppedFile = async (fileToUpload: File) => {
+    setCropTargetFile(null);
     setUploadError(null);
     setBusy('upload');
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await readJson(res);
       if (!res.ok || !data.url) {
@@ -402,7 +409,14 @@ export function BackgroundLibraryPanel() {
                   disabled={isBusy}
                   onChange={(e) => {
                     setUploadError(null);
-                    setPicked(Boolean(e.target.files?.length));
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setPicked(true);
+                      setCropTargetFile(f);
+                    } else {
+                      setPicked(false);
+                      setCropTargetFile(null);
+                    }
                   }}
                 />
               </div>
@@ -657,6 +671,22 @@ export function BackgroundLibraryPanel() {
           )}
         </CardContent>
       </Card>
+
+      {cropTargetFile && (
+        <ImageCropDialog
+          open={Boolean(cropTargetFile)}
+          file={cropTargetFile}
+          defaultAspect={16 / 9}
+          defaultResize="1080p"
+          title="Crop & Resize Background"
+          onComplete={handleUploadCroppedFile}
+          onCancel={() => {
+            setCropTargetFile(null);
+            if (pickerRef.current) pickerRef.current.value = '';
+            setPicked(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -4,20 +4,20 @@
 
 **Blocked by:** `SPEC-77-01` (Client-Side Image Crop Dialog and Canvas Helper).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/components/admin/ArtifactEditor.tsx`, `src/components/admin/BackgroundLibraryPanel.tsx`, and the ImageCropDialog component first.
-- [ ] In `src/components/admin/ArtifactEditor.tsx`:
+- [x] Read `src/components/admin/ArtifactEditor.tsx`, `src/components/admin/BackgroundLibraryPanel.tsx`, and the ImageCropDialog component first.
+- [x] In `src/components/admin/ArtifactEditor.tsx`:
       - Intercept file input for "Insert Image": open `ImageCropDialog` with initial aspect `null` (Freeform) and resize `Max 1080p`.
       - Intercept file input for "Upload Background": open `ImageCropDialog` with initial aspect `16 / 9` and resize `Max 1080p`.
       - On crop complete (or skip crop): pass resulting `File` to `uploadImageFile`, add image element to canvas or update background URL, and close dialog.
-- [ ] In `src/components/admin/BackgroundLibraryPanel.tsx`:
+- [x] In `src/components/admin/BackgroundLibraryPanel.tsx`:
       - Intercept file picker change: open `ImageCropDialog` with initial aspect `16 / 9` and resize `Max 1080p`.
       - On crop complete (or skip crop): upload file to `/api/upload`, add to media library, and close dialog.
-- [ ] Author `tests/canvas-media-crop-integration.test.mjs`:
+- [x] Author `tests/canvas-media-crop-integration.test.mjs`:
       - Verify `ArtifactEditor.tsx` wires `ImageCropDialog` to image insertion and background upload handlers.
       - Verify `BackgroundLibraryPanel.tsx` wires `ImageCropDialog` to media library file picker.
       - Verify 16:9 initial aspect ratio for background contexts with Freeform switchability.
       - Verify "Skip Crop" bypasses crop processing.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/canvas-media-crop-integration.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run test suite and `npm run typecheck` to verify 100% green execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/canvas-media-crop-integration.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run test suite and `npm run typecheck` to verify 100% green execution.

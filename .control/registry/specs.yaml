@@ -3298,7 +3298,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Isolate presenter slide list scroll from window.
   - id: SPEC-75
-    status: open
+    status: closed
     release: isolate-presenter-slide-list-scroll-from-window
     prd: [operator-turn]
     fr: [FR-16]
@@ -3322,7 +3322,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Song set background thumbnail dropdowns and canvas image fit modes.
   - id: SPEC-76
-    status: open
+    status: closed
     release: background-thumbnails-and-canvas-image-fit-modes
     prd: [operator-turn]
     fr: [FR-16, FR-1]
@@ -3353,7 +3353,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Client-side image cropping and resizing.
   - id: SPEC-77
-    status: open
+    status: closed
     release: client-side-image-cropping-and-resizing
     prd: [operator-turn]
     fr: [FR-1, FR-2, FR-3]

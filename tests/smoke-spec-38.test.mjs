@@ -1092,11 +1092,11 @@ test('FEAT: image stretch parity across render-model, canvas-utils, artifact-edi
     'pptx-draw must omit sizing parameter when objectFit is fill to stretch image'
   );
 
-  // 5. ArtifactEditor sets objectFit: 'fill' on image when resized via handles
+  // 5. SPEC-76 supersedes automatic resize coercion: manual resizing preserves authored objectFit
   assert.ok(
-    currentEditorCode.includes("isImage && (isHoriz || isVert)") &&
-    currentEditorCode.includes("objectFit: 'fill'"),
-    'ArtifactEditor must automatically set objectFit: fill when image is resized via handles'
+    !currentEditorCode.includes("(member as any).data.objectFit = 'fill'") &&
+    currentEditorCode.includes("handleToggleImageFit"),
+    'ArtifactEditor must preserve authored objectFit instead of forcing fill during resize (SPEC-76)'
   );
 });
 
