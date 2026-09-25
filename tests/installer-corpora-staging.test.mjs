@@ -5,10 +5,10 @@
  * 1. Staging pipeline stageCorporaAndNotices copies:
  *    - data/song-book/sdah.json
  *    - data/en/bible-translation/kjv.json
- *    - data/fonts/*.ttf (all 35 font families)
+ *    - data/fonts/*.ttf (all 41 font families and bold variants)
  *    - LICENSE
  *    - ATTRIBUTIONS.md
- *    - THIRD-PARTY-NOTICES (covering all 35 font families)
+ *    - THIRD-PARTY-NOTICES (covering all 41 font families)
  * 2. installer/worship-deck.iss packages data\*, LICENSE, ATTRIBUTIONS.md, and THIRD-PARTY-NOTICES into {app}.
  * 3. Real-file defect injection proofs for staging verification.
  */
@@ -44,7 +44,7 @@ test('WSD-H-09: stageCorporaAndNotices stages all corpora, fonts, licenses, and 
     const fontsDir = path.join(tempDir, 'data', 'fonts');
     assert.ok(fs.existsSync(fontsDir), 'data/fonts directory must be staged');
     const ttfFiles = fs.readdirSync(fontsDir).filter((f) => f.endsWith('.ttf'));
-    assert.equal(ttfFiles.length, 35, `Expected 35 TTF font files staged, got ${ttfFiles.length}`);
+    assert.equal(ttfFiles.length, 46, `Expected 46 TTF font files staged (41 families + 5 bold variants), got ${ttfFiles.length}`);
 
     // 3. Verify legal docs
     for (const doc of ['LICENSE', 'ATTRIBUTIONS.md', 'THIRD-PARTY-NOTICES']) {
@@ -54,7 +54,7 @@ test('WSD-H-09: stageCorporaAndNotices stages all corpora, fonts, licenses, and 
       assert.ok(stat.size > 100, `${doc} must have non-trivial content`);
     }
 
-    // 4. Verify THIRD-PARTY-NOTICES contains 35 families
+    // 4. Verify THIRD-PARTY-NOTICES contains 41 families
     const notices = fs.readFileSync(path.join(tempDir, 'THIRD-PARTY-NOTICES'), 'utf8');
     assert.ok(notices.includes('SIL OPEN FONT LICENSE Version 1.1'));
     assert.ok(notices.includes('Apache License'));

@@ -53,6 +53,23 @@ test('WSD-H-07: getFontData resolves local font files from multiple categories w
   }
 });
 
+test('SPEC-79: getFontData resolves new curated fonts and distinct bold variant buffers', async () => {
+  const newFamilies = ['Plus Jakarta Sans', 'Fraunces', 'Source Serif 4', 'Calistoga', 'Cinzel Decorative', 'Syne'];
+  for (const fam of newFamilies) {
+    const regular = await getFontData(fam, 'normal');
+    assert.ok(regular instanceof Buffer, `Expected regular buffer for ${fam}`);
+    assert.ok(regular.length > 1000, `Expected non-trivial regular font file for ${fam}`);
+  }
+
+  const boldFamilies = ['Plus Jakarta Sans', 'Fraunces', 'Source Serif 4', 'Cinzel Decorative', 'Syne'];
+  for (const fam of boldFamilies) {
+    const regular = await getFontData(fam, 'normal');
+    const bold = await getFontData(fam, 'bold');
+    assert.ok(bold instanceof Buffer, `Expected bold buffer for ${fam}`);
+    assert.notEqual(regular.length, bold.length, `Bold buffer for ${fam} must be distinct from regular`);
+  }
+});
+
 test('WSD-H-07: missing font family falls back strictly to local bundled Inter without network calls', async () => {
   const originalFetch = globalThis.fetch;
   let fetchCalled = false;

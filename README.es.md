@@ -36,7 +36,7 @@ Las letras de los himnos se consultan directamente por número en la base de dat
 - **Transiciones configurables:** Corte, fundido, disolución y desplazamiento aplicados de forma idéntica en web y PowerPoint.
 - **Consulta inmediata de pasajes bíblicos:** Proyecte lecturas bíblicas (KJV) durante el culto y retírelas al instante.
 - **Gestión de anuncios:** Administración de volantes y afiches desde almacenamiento local o URLs autorizadas.
-- **Tipografía personalizada:** 35 familias tipográficas empaquetadas localmente sin conexión, además de incrustación ECMA-376 para fuentes personalizadas en PowerPoint.
+- **Tipografía personalizada:** 41 familias tipográficas empaquetadas localmente sin conexión, además de incrustación ECMA-376 para fuentes personalizadas en PowerPoint.
 - **Cuentas y roles:** Separación entre administradores y operadores, limitación de intentos de acceso y sesiones revocables.
 - **Diseño de formulario y análisis dinámicos:** Configure campos predefinidos con expresiones regulares personalizadas y organice agrupaciones de formulario directamente desde el panel de administración.
 - **Biblioteca de medios:** Un conjunto reutilizable de imágenes de fondo y volantes, independiente de cualquier diseño específico.
@@ -156,6 +156,6 @@ Los colaboradores deben consultar [`.constitution/project/private-data.md`](.con
 
 - **Licencia del Código:** Distribuido bajo la [Licencia MIT](LICENSE).
 - **Atribuciones y Corpus:** Himnarios, traducciones bíblicas y avisos de terceros se detallan en [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Fuentes Tipográficas de Terceros:** Avisos de derechos de autor y licencias completas SIL OFL 1.1 y Apache 2.0 para 35 familias tipográficas se encuentran en [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+- **Fuentes Tipográficas de Terceros:** Avisos de derechos de autor y licencias completas SIL OFL 1.1 y Apache 2.0 para 41 familias tipográficas se encuentran en [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
 - **Privacidad y Seguridad:** 100% offline-first. Los datos permanecen estrictamente en su equipo; cero telemetría y cero analítica (consulte [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md)).
 - **Nombre y Logotipo:** La licencia MIT cubre el código fuente, no las marcas comerciales. Los nombres **WorshipDeck** y **Wira Delta Indonesia**, así como los logotipos del producto, son propiedad exclusiva de PT Wira Delta Indonesia.

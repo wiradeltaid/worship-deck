@@ -3415,7 +3415,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Curated free presentation fonts expansion (6 OFL fonts).
   - id: SPEC-79
-    status: open
+    status: closed
     release: curated-presentation-fonts-expansion
     prd: [offline-deck]
     fr: [FR-39]

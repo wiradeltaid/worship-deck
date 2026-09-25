@@ -4,10 +4,10 @@
 
 **Blocked by:** `SPEC-79-01` (Bundle Curated Presentation Fonts).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `THIRD-PARTY-NOTICES`, `docs/public-facts.yaml`, and `tests/third-party-notices.test.mjs` first.
-- [ ] In `THIRD-PARTY-NOTICES`:
+- [x] Read `THIRD-PARTY-NOTICES`, `docs/public-facts.yaml`, and `tests/third-party-notices.test.mjs` first.
+- [x] In `THIRD-PARTY-NOTICES`:
       - Add attribution headers, copyright notices, and SIL Open Font License 1.1 blocks for:
         - Plus Jakarta Sans (Gumpita Rahayu / Tokotype)
         - Fraunces (Phaedra Charles, Flavia Zimbardi / Undercase Type)
@@ -15,8 +15,8 @@
         - Calistoga (Yvonne Schüttler / Sorkin Type)
         - Cinzel Decorative (Natanael Gama)
         - Syne (Lucas Descroix, Bonjour Monde / Synesthesie)
-- [ ] In `docs/public-facts.yaml`:
+- [x] In `docs/public-facts.yaml`:
       - Update `bundled_font_families_count: 41`.
-- [ ] In `tests/third-party-notices.test.mjs`:
+- [x] In `tests/third-party-notices.test.mjs`:
       - Update the expected font family count to 41 and ensure all 6 new fonts are validated.
-- [ ] Run `tests/third-party-notices.test.mjs`, `tests/public-facts.test.mjs`, and `tests/bundled-fonts-guard.test.mjs` to ensure 100% green execution.
+- [x] Run `tests/third-party-notices.test.mjs`, `tests/public-facts.test.mjs`, and `tests/bundled-fonts-guard.test.mjs` to ensure 100% green execution.

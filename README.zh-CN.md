@@ -36,7 +36,7 @@ WorshipDeck 直接读取活动负责人编写的礼拜程序单（文本粘贴�
 - **多种切换过渡动画：** 无过渡、剪切、淡入淡出、溶解或推入，网页放映与 PowerPoint 表现完全一致。
 - **经文即时查阅：** 讲道过程中可实时将圣经经文（KJV）投屏至会众屏幕，读毕一键清除。
 - **家事公告与海报轮播：** 集中管理教会通告海报，支持本地上传或从安全白名单 URL 获取。
-- **离线字体支持：** 内置 35 种本地打包字体家族，支持 ECMA-376 规范字体嵌入，确保离线在任何 PowerPoint 设备上正常渲染。
+- **离线字体支持：** 内置 41 种本地打包字体家族，支持 ECMA-376 规范字体嵌入，确保离线在任何 PowerPoint 设备上正常渲染。
 - **多角色权限控制：** 独立的管理员与操作员账户，防暴力破解登录频次限制，会话支持即时吊销。
 - **动态表单布局与解析配置：** 在管理面板中配置预定义字段及其正则表达式提取规则，自由编排表单分组，无需修改代码。
 - **素材库 (Media Library)：** 与任一布局解耦、可跨布局复用的背景图与海报图片池。
@@ -156,6 +156,6 @@ Sermon : Pr. Andi Hartono "Working Out" (45m)
 
 - **代码许可：** 基于 [MIT 许可证](LICENSE) 发布。
 - **诗歌语料与鸣谢：** 教会诗歌本、圣经译本及第三方库鸣谢详见 [ATTRIBUTIONS.md](ATTRIBUTIONS.md)。
-- **第三方字体声明：** 35 种字体家族的版权信息及 SIL OFL 1.1 与 Apache 2.0 完整许可证文本收录于 [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES)。
+- **第三方字体声明：** 41 种字体家族的版权信息及 SIL OFL 1.1 与 Apache 2.0 完整许可证文本收录于 [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES)。
 - **隐私与安全：** 100% 本地优先。数据完全保留在您的本地设备上；零遥测、零数据统计（详见 [PRIVACY.md](PRIVACY.md) 与 [SECURITY.md](SECURITY.md)）。
 - **名称与图标声明：** MIT 许可证仅涵盖源代码。**WorshipDeck**、**Wira Delta Indonesia** 名称及产品图标商标权归 PT Wira Delta Indonesia 独家所有。

@@ -1,11 +1,11 @@
 /**
- * 45 Curated Presentation Fonts for Worship Slides & PPTX Export.
+ * 51 Curated Presentation Fonts for Worship Slides & PPTX Export.
  *
  * Categories:
  * - system: 10 Universal system fonts supported natively across PowerPoint installations.
- * - sans: 12 Clean modern sans-serifs for lyrics, reading, and body text.
- * - serif: 8 Dignified classic serifs for scripture, sermon titles, and communion.
- * - display: 8 Bold, high-impact fonts for event themes, opening titles, and countdowns.
+ * - sans: 13 Clean modern sans-serifs for lyrics, reading, and body text.
+ * - serif: 10 Dignified classic serifs for scripture, sermon titles, and communion.
+ * - display: 11 Bold, high-impact fonts for event themes, opening titles, and countdowns.
  * - script: 7 Elegant calligraphy, brush, and handwriting fonts for greetings and personal notes.
  */
 
@@ -57,7 +57,7 @@ export const FONT_CATALOG: FontDefinition[] = [
   { family: 'Times New Roman', label: 'Times New Roman', category: 'system', fallback: 'serif', pptxSafe: true, embeddable: false },
   { family: 'Garamond', label: 'Garamond', category: 'system', fallback: 'serif', pptxSafe: true, embeddable: false },
 
-  // 2. Modern Sans-Serif (12 fonts)
+  // 2. Modern Sans-Serif (13 fonts)
   { family: 'Inter', label: 'Inter', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Roboto', label: 'Roboto', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Open Sans', label: 'Open Sans', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
@@ -70,8 +70,9 @@ export const FONT_CATALOG: FontDefinition[] = [
   { family: 'Barlow Condensed', label: 'Barlow Condensed', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'DM Sans', label: 'DM Sans', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Work Sans', label: 'Work Sans', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Plus Jakarta Sans', label: 'Plus Jakarta Sans', category: 'sans', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
 
-  // 3. Dignified Serif (8 fonts)
+  // 3. Dignified Serif (10 fonts)
   { family: 'Merriweather', label: 'Merriweather', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
   { family: 'Playfair Display', label: 'Playfair Display', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
   { family: 'Lora', label: 'Lora', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
@@ -80,8 +81,10 @@ export const FONT_CATALOG: FontDefinition[] = [
   { family: 'PT Serif', label: 'PT Serif', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
   { family: 'EB Garamond', label: 'EB Garamond', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
   { family: 'Baskervville', label: 'Baskervville', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Source Serif 4', label: 'Source Serif 4', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
+  { family: 'Cinzel Decorative', label: 'Cinzel Decorative', category: 'serif', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Times New Roman', embeddable: true },
 
-  // 4. Bold Display & Title Impact (8 fonts)
+  // 4. Bold Display & Title Impact (11 fonts)
   { family: 'Bebas Neue', label: 'Bebas Neue', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Anton', label: 'Anton', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'League Spartan', label: 'League Spartan', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
@@ -90,6 +93,9 @@ export const FONT_CATALOG: FontDefinition[] = [
   { family: 'Abril Fatface', label: 'Abril Fatface', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Alfa Slab One', label: 'Alfa Slab One', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Russo One', label: 'Russo One', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Fraunces', label: 'Fraunces', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Calistoga', label: 'Calistoga', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Syne', label: 'Syne', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
 
   // 5. Script & Handwriting (7 fonts)
   { family: 'Great Vibes', label: 'Great Vibes', category: 'script', fallback: 'cursive', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },

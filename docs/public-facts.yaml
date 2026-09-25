@@ -46,7 +46,7 @@ facts:
       - docs/threat-model.md
 
   - id: bundled_font_families_count
-    value: 35
+    value: 41
     derived_from:
       file: spa/src/fonts.css
       count_pattern: '@fontsource\/[a-z0-9-]+'

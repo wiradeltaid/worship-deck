@@ -16,12 +16,15 @@ and their respective licence terms.
 | Barlow Condensed | SIL Open Font License 1.1 | Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) |
 | Baskervville | SIL Open Font License 1.1 | Copyright 2018 The Baskervville Project Authors (https://github.com/anrt-type/ANRT-Baskervville) |
 | Bebas Neue | SIL Open Font License 1.1 | Copyright 2019 The Bebas Neue Project Authors (https://github.com/dharmatype/Bebas-Neue) |
+| Calistoga | SIL Open Font License 1.1 | Copyright 2019 The Calistoga Project Authors (https://github.com/SorkinType/Calistoga), designed by Yvonne Schüttler |
 | Caveat | SIL Open Font License 1.1 | Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat) |
 | Cinzel | SIL Open Font License 1.1 | Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel) |
+| Cinzel Decorative | SIL Open Font License 1.1 | Copyright 2012 Natanael Gama (info@ndiscovered.com) |
 | Cormorant Garamond | SIL Open Font License 1.1 | Copyright 2015 The Cormorant Project Authors (github.com/CatharsisFonts/Cormorant) |
 | Dancing Script | SIL Open Font License 1.1 | Copyright 2016 The Dancing Script Project Authors (https://github.com/googlefonts/DancingScript) |
 | DM Sans | SIL Open Font License 1.1 | Copyright 2014 The DM Sans Project Authors (https://github.com/googlefonts/dm-fonts) |
 | EB Garamond | SIL Open Font License 1.1 | Copyright 2017 The EB Garamond Project Authors (https://github.com/octaviopardo/EBGaramond12) |
+| Fraunces | SIL Open Font License 1.1 | Copyright 2020 The Fraunces Project Authors (https://github.com/undercasetype/Fraunces), designed by Phaedra Charles and Flavia Zimbardi |
 | Great Vibes | SIL Open Font License 1.1 | Copyright 2010 The Great Vibes Pro Project Authors (https://github.com/googlefonts/great-vibes) |
 | Inter | SIL Open Font License 1.1 | Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) |
 | Lato | SIL Open Font License 1.1 | Copyright (c) 2010-2011 by tyPoland Lukasz Dziedzic (team@latofonts.com) |
@@ -34,6 +37,7 @@ and their respective licence terms.
 | Oswald | SIL Open Font License 1.1 | Copyright 2016 The Oswald Project Authors (https://github.com/googlefonts/OswaldFont) |
 | Pacifico | SIL Open Font License 1.1 | Copyright 2018 The Pacifico Project Authors (https://github.com/googlefonts/Pacifico) |
 | Playfair Display | SIL Open Font License 1.1 | Copyright 2017 The Playfair Display Project Authors (https://github.com/clauseggers/Playfair-Display) |
+| Plus Jakarta Sans | SIL Open Font License 1.1 | Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans), designed by Gumpita Rahayu |
 | Poppins | SIL Open Font License 1.1 | Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins) |
 | PT Serif | SIL Open Font License 1.1 | Copyright (c) 2010 ParaType Ltd. (http://www.paratype.com) |
 | Raleway | SIL Open Font License 1.1 | Copyright 2010 The Raleway Project Authors (impallari@gmail.com) |
@@ -43,6 +47,8 @@ and their respective licence terms.
 | Sacramento | SIL Open Font License 1.1 | Copyright (c) 2012 by Brian J. Bonislawsky DBA Astigmatic (astigma@astigmatic.com) |
 | Satisfy | Apache License 2.0 | Copyright 2011 Font Diner, Inc (diner@fontdiner.com) |
 | Shadows Into Light | SIL Open Font License 1.1 | Copyright (c) 2010, Kimberly Geswein (kimberlygeswein.com) |
+| Source Serif 4 | SIL Open Font License 1.1 | Copyright 2014-2021 Adobe Systems Incorporated (http://www.adobe.com/), designed by Frank Grießhammer |
+| Syne | SIL Open Font License 1.1 | Copyright 2019 The Syne Project Authors (https://gitlab.com/bonjour-monde/fonderie/syne-typeface), designed by Lucas Descroix and Bonjour Monde |
 | Teko | SIL Open Font License 1.1 | Copyright 2023 The Teko Project Authors (https://www.github.com/googlefonts/teko) |
 | Work Sans | SIL Open Font License 1.1 | Copyright 2019 The Work Sans Project Authors (https://github.com/weiweihuanghuang/Work-Sans) |
 
@@ -52,11 +58,11 @@ and their respective licence terms.
 
 Applies to:
 Abril Fatface, Alfa Slab One, Anton, Barlow Condensed, Baskervville, Bebas Neue,
-Caveat, Cinzel, Cormorant Garamond, Dancing Script, DM Sans, EB Garamond,
-Great Vibes, Inter, Lato, League Spartan, Lora, Merriweather, Montserrat,
-Nunito, Open Sans, Oswald, Pacifico, Playfair Display, Poppins, PT Serif,
-Raleway, Righteous, Roboto, Russo One, Sacramento, Shadows Into Light,
-Teko, Work Sans.
+Calistoga, Caveat, Cinzel, Cinzel Decorative, Cormorant Garamond, Dancing Script,
+DM Sans, EB Garamond, Fraunces, Great Vibes, Inter, Lato, League Spartan, Lora,
+Merriweather, Montserrat, Nunito, Open Sans, Oswald, Pacifico, Playfair Display,
+Plus Jakarta Sans, Poppins, PT Serif, Raleway, Righteous, Roboto, Russo One,
+Sacramento, Shadows Into Light, Source Serif 4, Syne, Teko, Work Sans.
 
 ```
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
