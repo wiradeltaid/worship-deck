@@ -220,6 +220,14 @@ func forbidden(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Forbidden", http.StatusForbidden)
 }
 
+func parseWordWrapParam(param string) bool {
+	wrapParam := strings.ToLower(strings.TrimSpace(param))
+	if wrapParam == "false" || wrapParam == "0" {
+		return false
+	}
+	return true
+}
+
 func (s *Server) getPptx(w http.ResponseWriter, r *http.Request) {
 	setNoStore(w)
 	id, err := strconv.Atoi(r.PathValue("id"))
@@ -239,12 +247,14 @@ func (s *Server) getPptx(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fontManifest, _ := s.getFontManifest(r.Context())
+	wordWrap := parseWordWrapParam(r.URL.Query().Get("wrap"))
 
 	payload, err := json.Marshal(map[string]interface{}{
 		"serviceDate": date,
 		"transition":  transition,
 		"plan":        items,
 		"fonts":       fontManifest,
+		"wordWrap":    wordWrap,
 	})
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

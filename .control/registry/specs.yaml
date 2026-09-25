@@ -3391,7 +3391,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # PPTX text box word wrap option on export.
   - id: SPEC-78
-    status: open
+    status: closed
     release: pptx-word-wrap-option
     prd: [offline-deck]
     fr: [FR-14]

@@ -40,9 +40,10 @@ if (!plan) {
 }
 
 const fonts = Array.isArray(body.fonts) ? body.fonts : undefined;
+const wordWrap = typeof body.wordWrap === 'boolean' ? body.wordWrap : true;
 
 try {
-  const buffer = await generatePptxFromPlan(serviceDate, plan, transition, fonts);
+  const buffer = await generatePptxFromPlan(serviceDate, plan, transition, fonts, { wordWrap });
   process.stdout.write(buffer);
 } catch (error) {
   console.error('[pptx-worker] draw failed:', error);
