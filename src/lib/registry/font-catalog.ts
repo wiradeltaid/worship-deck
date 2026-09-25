@@ -93,8 +93,8 @@ export const FONT_CATALOG: FontDefinition[] = [
   { family: 'Abril Fatface', label: 'Abril Fatface', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Alfa Slab One', label: 'Alfa Slab One', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Russo One', label: 'Russo One', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
-  { family: 'Fraunces', label: 'Fraunces', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
-  { family: 'Calistoga', label: 'Calistoga', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Georgia', embeddable: true },
+  { family: 'Fraunces', label: 'Fraunces', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
+  { family: 'Calistoga', label: 'Calistoga', category: 'display', fallback: 'serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
   { family: 'Syne', label: 'Syne', category: 'display', fallback: 'sans-serif', pptxSafe: false, pptxSubstitute: 'Arial', embeddable: true },
 
   // 5. Script & Handwriting (7 fonts)
