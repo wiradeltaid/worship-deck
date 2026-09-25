@@ -168,6 +168,14 @@ CREATE TABLE IF NOT EXISTS background_library_images (
   category TEXT NOT NULL DEFAULT 'background'
 );
 
+-- SPEC-81 / UC-25 / FR-31: Dual default background role assignments (song_set and general).
+CREATE TABLE IF NOT EXISTS background_default_assignments (
+  role TEXT PRIMARY KEY CHECK (role IN ('song_set', 'general')),
+  background_image_id INTEGER NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (background_image_id) REFERENCES background_library_images(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS song_books (
   book_code TEXT PRIMARY KEY,
   name TEXT,

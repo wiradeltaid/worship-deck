@@ -108,6 +108,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PATCH /api/admin/background-library/{id}", s.patchBackgroundLibraryImage)
 	mux.HandleFunc("POST /api/admin/background-library/{id}/replace", s.replaceBackgroundLibraryImage)
 	mux.HandleFunc("DELETE /api/admin/background-library/{id}", s.deleteBackgroundLibraryImage)
+	mux.HandleFunc("PUT /api/admin/background-defaults/{role}", s.putBackgroundDefaultRole)
+	mux.HandleFunc("DELETE /api/admin/background-defaults/{role}", s.deleteBackgroundDefaultRole)
 	mux.HandleFunc("GET /api/background-library", s.listBackgroundLibraryForOperator)
 	mux.HandleFunc("GET /api/admin/media-library", s.listBackgroundLibrary)
 	mux.HandleFunc("POST /api/admin/media-library", s.createBackgroundLibraryImage)

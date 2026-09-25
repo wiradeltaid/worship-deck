@@ -7031,7 +7031,7 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/background-dual-defaults.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -7370,7 +7370,7 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/background-dual-defaults.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

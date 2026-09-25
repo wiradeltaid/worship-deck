@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,20 +15,45 @@ import (
 	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
-// BackgroundLibraryImage represents one image in the background or media library (UC-25, S10, SPEC-39, SPEC-40).
+// BackgroundLibraryImage represents one image in the background or media library (UC-25, S10, SPEC-39, SPEC-40, SPEC-81).
 type backgroundLibraryImage struct {
-	ID        int    `json:"id"`
-	URL       string `json:"url"`
-	Name      string `json:"name"`
-	Category  string `json:"category"`
-	IsDefault bool   `json:"isDefault"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	ID           int      `json:"id"`
+	URL          string   `json:"url"`
+	Name         string   `json:"name"`
+	Category     string   `json:"category"`
+	IsDefault    bool     `json:"isDefault"`
+	DefaultRoles []string `json:"defaultRoles"`
+	CreatedAt    string   `json:"createdAt"`
+	UpdatedAt    string   `json:"updatedAt"`
 }
 
-// listBackgroundLibrary serves GET /api/admin/background-library and GET /api/admin/media-library (UC-25, SPEC-39, SPEC-40).
+func (s *Server) getBackgroundDefaultRolesMap() (map[int][]string, error) {
+	rows, err := s.DB.Query(`SELECT role, background_image_id FROM background_default_assignments ORDER BY role ASC`)
+	if err != nil {
+		// Table might not exist yet in unmigrated tests
+		return make(map[int][]string), nil
+	}
+	defer rows.Close()
+	m := make(map[int][]string)
+	for rows.Next() {
+		var role string
+		var imageID int
+		if err := rows.Scan(&role, &imageID); err != nil {
+			return nil, err
+		}
+		m[imageID] = append(m[imageID], role)
+	}
+	return m, rows.Err()
+}
+
+// listBackgroundLibrary serves GET /api/admin/background-library and GET /api/admin/media-library (UC-25, SPEC-39, SPEC-40, SPEC-81).
 func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 	if !requireAdmin(w, r) {
+		return
+	}
+	rolesMap, err := s.getBackgroundDefaultRolesMap()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 	category := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("category")))
@@ -35,7 +61,6 @@ func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 		category = "announcement"
 	}
 	var rows *sql.Rows
-	var err error
 	if category == "announcement" {
 		rows, err = s.DB.Query(
 			`SELECT id, COALESCE(url, ''), COALESCE(name, ''), is_default, COALESCE(created_at, ''), COALESCE(updated_at, ''), COALESCE(category, 'background')
@@ -75,7 +100,12 @@ func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 		if img.Category == "flyer" {
 			img.Category = "announcement"
 		}
-		img.IsDefault = (isDef == 1)
+		roles := rolesMap[img.ID]
+		if roles == nil {
+			roles = []string{}
+		}
+		img.DefaultRoles = roles
+		img.IsDefault = len(roles) > 0
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
@@ -85,10 +115,15 @@ func (s *Server) listBackgroundLibrary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"images": images})
 }
 
-// listBackgroundLibraryForOperator serves GET /api/background-library and GET /api/media-library for any signed-in Hub user/operator (FR-32, UC-27, SPEC-39, SPEC-40).
+// listBackgroundLibraryForOperator serves GET /api/background-library and GET /api/media-library for any signed-in Hub user/operator (FR-32, UC-27, SPEC-39, SPEC-40, SPEC-81).
 func (s *Server) listBackgroundLibraryForOperator(w http.ResponseWriter, r *http.Request) {
 	if sessionFrom(r) == nil {
 		writeError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+	rolesMap, err := s.getBackgroundDefaultRolesMap()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 	category := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("category")))
@@ -96,7 +131,6 @@ func (s *Server) listBackgroundLibraryForOperator(w http.ResponseWriter, r *http
 		category = "announcement"
 	}
 	var rows *sql.Rows
-	var err error
 	if category == "announcement" {
 		rows, err = s.DB.Query(
 			`SELECT id, COALESCE(url, ''), COALESCE(name, ''), is_default, COALESCE(category, 'background')
@@ -126,11 +160,12 @@ func (s *Server) listBackgroundLibraryForOperator(w http.ResponseWriter, r *http
 	defer rows.Close()
 
 	type opImage struct {
-		ID        int    `json:"id"`
-		URL       string `json:"url"`
-		Name      string `json:"name"`
-		Category  string `json:"category"`
-		IsDefault bool   `json:"isDefault"`
+		ID           int      `json:"id"`
+		URL          string   `json:"url"`
+		Name         string   `json:"name"`
+		Category     string   `json:"category"`
+		IsDefault    bool     `json:"isDefault"`
+		DefaultRoles []string `json:"defaultRoles"`
 	}
 	images := []opImage{}
 	for rows.Next() {
@@ -143,7 +178,12 @@ func (s *Server) listBackgroundLibraryForOperator(w http.ResponseWriter, r *http
 		if img.Category == "flyer" {
 			img.Category = "announcement"
 		}
-		img.IsDefault = (isDef == 1)
+		roles := rolesMap[img.ID]
+		if roles == nil {
+			roles = []string{}
+		}
+		img.DefaultRoles = roles
+		img.IsDefault = len(roles) > 0
 		images = append(images, img)
 	}
 	if err := rows.Err(); err != nil {
@@ -227,6 +267,14 @@ func (s *Server) createBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
+	}
+
+	if isDef {
+		_, _ = tx.Exec(`
+			INSERT INTO background_default_assignments (role, background_image_id, updated_at)
+			VALUES ('general', ?, ?)
+			ON CONFLICT(role) DO UPDATE SET background_image_id = excluded.background_image_id, updated_at = excluded.updated_at
+		`, id, now)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -328,6 +376,13 @@ func (s *Server) patchBackgroundLibraryImage(w http.ResponseWriter, r *http.Requ
 			writeError(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
+		_, _ = tx.Exec(`
+			INSERT INTO background_default_assignments (role, background_image_id, updated_at)
+			VALUES ('general', ?, ?)
+			ON CONFLICT(role) DO UPDATE SET background_image_id = excluded.background_image_id, updated_at = excluded.updated_at
+		`, id, now)
+	} else if !isDef && currentDef == 1 {
+		_, _ = tx.Exec(`DELETE FROM background_default_assignments WHERE background_image_id = ?`, id)
 	}
 
 	isDefInt := 0
@@ -585,6 +640,12 @@ func (s *Server) deleteBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Delete any default role assignments associated with this image to guarantee clean cascade (SPEC-81 / UC-25)
+	_, _ = tx.ExecContext(r.Context(),
+		`DELETE FROM background_default_assignments WHERE background_image_id = ?`,
+		id,
+	)
+
 	res, err := tx.ExecContext(r.Context(),
 		`DELETE FROM background_library_images WHERE id = ? AND updated_at = ?`,
 		id, updatedAt,
@@ -603,4 +664,100 @@ func (s *Server) deleteBackgroundLibraryImage(w http.ResponseWriter, r *http.Req
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"deleted": true, "id": id})
+}
+
+// putBackgroundDefaultRole serves PUT /api/admin/background-defaults/{role} (SPEC-81 / UC-25 / FR-31).
+// Body: { "imageId": number }
+func (s *Server) putBackgroundDefaultRole(w http.ResponseWriter, r *http.Request) {
+	if !requireAdmin(w, r) {
+		return
+	}
+	role := strings.ToLower(strings.TrimSpace(r.PathValue("role")))
+	if role != "song_set" && role != "general" {
+		writeError(w, http.StatusBadRequest, "Invalid role; must be 'song_set' or 'general'")
+		return
+	}
+	body, err, status, msg := readJSONObject(r, 1<<20)
+	if err != nil {
+		writeError(w, status, msg)
+		return
+	}
+	rawImageID, ok := body["imageId"]
+	if !ok {
+		writeError(w, http.StatusBadRequest, "imageId is required")
+		return
+	}
+	var imageID int
+	switch v := rawImageID.(type) {
+	case float64:
+		if math.IsNaN(v) || math.IsInf(v, 0) || v != math.Trunc(v) {
+			writeError(w, http.StatusBadRequest, "Invalid imageId")
+			return
+		}
+		imageID = int(v)
+	case int:
+		imageID = v
+	default:
+		writeError(w, http.StatusBadRequest, "Invalid imageId")
+		return
+	}
+	if imageID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid imageId")
+		return
+	}
+
+	var exists int
+	err = s.DB.QueryRow(`SELECT 1 FROM background_library_images WHERE id = ?`, imageID).Scan(&exists)
+	if err == sql.ErrNoRows {
+		writeError(w, http.StatusNotFound, "Image not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+
+	now := timeNowRFC3339Nano()
+	_, err = s.DB.Exec(`
+		INSERT INTO background_default_assignments (role, background_image_id, updated_at)
+		VALUES (?, ?, ?)
+		ON CONFLICT(role) DO UPDATE SET
+			background_image_id = excluded.background_image_id,
+			updated_at = excluded.updated_at
+	`, role, imageID, now)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	_, _ = s.DB.Exec(`UPDATE background_library_images SET is_default = 1 WHERE id = ?`, imageID)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"role":      role,
+		"imageId":   imageID,
+		"updatedAt": now,
+	})
+}
+
+// deleteBackgroundDefaultRole serves DELETE /api/admin/background-defaults/{role} (SPEC-81 / UC-25 / FR-31).
+func (s *Server) deleteBackgroundDefaultRole(w http.ResponseWriter, r *http.Request) {
+	if !requireAdmin(w, r) {
+		return
+	}
+	role := strings.ToLower(strings.TrimSpace(r.PathValue("role")))
+	if role != "song_set" && role != "general" {
+		writeError(w, http.StatusBadRequest, "Invalid role; must be 'song_set' or 'general'")
+		return
+	}
+
+	_, err := s.DB.Exec(`DELETE FROM background_default_assignments WHERE role = ?`, role)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	_, _ = s.DB.Exec(`UPDATE background_library_images SET is_default = 0 WHERE id NOT IN (SELECT background_image_id FROM background_default_assignments)`)
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"deleted": true,
+		"role":    role,
+	})
 }

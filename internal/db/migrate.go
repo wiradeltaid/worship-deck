@@ -48,7 +48,50 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureServiceAnnouncementSetSlides(handle); err != nil {
 		return err
 	}
+	if err := ensureBackgroundDefaultAssignments(handle); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ensureBackgroundDefaultAssignments establishes the dual-default role table and backfills legacy defaults (SPEC-81).
+func ensureBackgroundDefaultAssignments(handle *sql.DB) error {
+	_, err := handle.Exec(`
+		CREATE TABLE IF NOT EXISTS background_default_assignments (
+			role TEXT PRIMARY KEY CHECK (role IN ('song_set', 'general')),
+			background_image_id INTEGER NOT NULL,
+			updated_at TEXT NOT NULL,
+			FOREIGN KEY (background_image_id) REFERENCES background_library_images(id) ON DELETE CASCADE
+		);
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Check if one-time legacy backfill has already run (SPEC-81)
+	var migrated int
+	err = handle.QueryRow(`SELECT 1 FROM settings WHERE key = 'background_defaults_migrated'`).Scan(&migrated)
+	if err == nil {
+		// Already migrated, do not backfill again even if all defaults were cleared
+		return nil
+	}
+
+	var defaultID int
+	err = handle.QueryRow(`SELECT id FROM background_library_images WHERE is_default = 1 ORDER BY id ASC LIMIT 1`).Scan(&defaultID)
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if err == nil && defaultID > 0 {
+		_, err = handle.Exec(`
+			INSERT OR IGNORE INTO background_default_assignments (role, background_image_id, updated_at)
+			VALUES ('song_set', ?, ?), ('general', ?, ?)
+		`, defaultID, now, defaultID, now)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Stamp marker in settings so migration never re-runs on restarts
+	_, err = handle.Exec(`INSERT OR REPLACE INTO settings (key, value) VALUES ('background_defaults_migrated', '1')`)
+	return err
 }
 
 func ensureServiceAnnouncementSetSlides(handle *sql.DB) error {

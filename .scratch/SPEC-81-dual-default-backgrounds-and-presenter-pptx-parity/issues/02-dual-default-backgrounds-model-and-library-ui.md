@@ -4,26 +4,26 @@
 
 **Blocked by:** None (can run in parallel with SPEC-81-01).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `internal/db/schema.sql`, `internal/httpapi/background_library.go`, and `src/components/admin/BackgroundLibraryPanel.tsx` first.
-- [ ] In `internal/db/schema.sql` and migration scripts:
+- [x] Read `internal/db/schema.sql`, `internal/httpapi/background_library.go`, and `src/components/admin/BackgroundLibraryPanel.tsx` first.
+- [x] In `internal/db/schema.sql` and migration scripts:
       - Create table `background_default_assignments (role TEXT PRIMARY KEY, background_image_id INTEGER NOT NULL, updated_at TEXT NOT NULL, FOREIGN KEY (background_image_id) REFERENCES background_library_images(id) ON DELETE CASCADE)`.
       - Backfill initial rows from `background_library_images WHERE is_default = 1` for both `song_set` and `general` (deterministic lowest ID on multiple).
-- [ ] In `internal/httpapi/background_library.go`:
+- [x] In `internal/httpapi/background_library.go`:
       - Update `listBackgroundLibrary` and `listBackgroundLibraryForOperator` to return `defaultRoles: []string` on each image object.
       - Add handler `putBackgroundDefaultRole(w, r)`: `PUT /api/admin/background-defaults/{role}` body `{ "imageId": number }`.
       - Add handler `deleteBackgroundDefaultRole(w, r)`: `DELETE /api/admin/background-defaults/{role}`.
       - Ensure deleting an image in `deleteBackgroundLibraryImage` cascades cleanly without FK restriction errors.
-- [ ] In `src/components/admin/BackgroundLibraryPanel.tsx`:
+- [x] In `src/components/admin/BackgroundLibraryPanel.tsx`:
       - Update `BackgroundImage` interface to include `defaultRoles?: string[]`.
       - Render dual badges: `Song-Set Default` and `General Default`.
       - Render dual action buttons: `Set Song-Set Default` and `Set General Default` with busy spinners and toast notifications.
-- [ ] Author `tests/background-dual-defaults.test.mjs`:
+- [x] Author `tests/background-dual-defaults.test.mjs`:
       - Verify table migration and backfill.
       - Verify deletion of default image cascades cleanly and unsets default role without error (UC-25).
       - Verify Go API handlers reject invalid roles and enforce single assignment per role.
       - Verify BackgroundLibraryPanel renders both role badges and actions.
       - Include real-file defect injection proofs.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/background-dual-defaults.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run test suite and `npm run typecheck` to verify 100% green execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/background-dual-defaults.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run test suite and `npm run typecheck` to verify 100% green execution.
