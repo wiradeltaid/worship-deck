@@ -232,12 +232,14 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active,
   activeRef,
   onSelect,
+  backgroundOverride,
 }: {
   slide: SlidePlanItem | undefined;
   entry: PresenterEntry;
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
+  backgroundOverride?: string | null;
 }) {
   // The caption is clipped at 8rem, so the full text lives in the tooltip —
   // minus the headline when it only repeats the label ("Thank You · Thank You").
@@ -258,7 +260,9 @@ const FilmstripFrame = memo(function FilmstripFrame({
       }`}
     >
       <span className="block aspect-video overflow-hidden rounded-sm bg-black">
-        {slide ? <SlideView slide={slide} /> : null}
+        {slide ? (
+          <SlideView slide={slide} backgroundOverride={backgroundOverride} />
+        ) : null}
       </span>
       <span className="mt-1 flex items-center gap-1 overflow-hidden">
         <span
@@ -950,7 +954,10 @@ export default function PresenterOperator({
                   text={scriptureOverlay.text}
                 />
               ) : current ? (
-                <SlideView slide={current} />
+                <SlideView
+                  slide={current}
+                  backgroundOverride={liveBackground}
+                />
               ) : null}
             </div>
           </section>
@@ -1163,6 +1170,7 @@ export default function PresenterOperator({
                   active={entry.index === index}
                   activeRef={activeFrameRef}
                   onSelect={manualNavigate}
+                  backgroundOverride={liveBackground}
                 />
               ))}
             </div>
@@ -1231,7 +1239,10 @@ export default function PresenterOperator({
             </p>
             <div className="aspect-video w-full max-w-[32rem] overflow-hidden rounded-lg border border-border bg-black">
               {next ? (
-                <SlideView slide={next} />
+                <SlideView
+                  slide={next}
+                  backgroundOverride={liveBackground}
+                />
               ) : (
                 <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
                   End of deck — nothing after this slide.

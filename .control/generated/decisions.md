@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**68 decisions** — applied: 68.
+**69 decisions** — applied: 69.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -76,3 +76,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-066` | Daily Autopilot mandate for Rundown Regex Sandbox Parity and Unmapped Lines Pruning (SPEC-72) | `applied` | mandate | `.control/memlog/autopilot-DEC-066.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-066-daily-autopilot-mandate-rundown-regex-sandbox-parity-unmapped-lines-pruning.md` |
 | `DEC-067` | Daily Autopilot mandate for WorshipDeck first release 0.1.0 and go-live work (SPEC-73) | `applied` | mandate | `.control/memlog/autopilot-DEC-067.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-release-0-1-0-and-go-live.md` |
 | `DEC-068` | Daily Autopilot mandate for PPTX Word Wrap Option, Curated Presentation Fonts Expansion, and Image Crop Aspec… | `applied` | mandate | `.control/memlog/autopilot-DEC-068.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-068-daily-autopilot-mandate-pptx-wrap-fonts-expansion-image-crop-aspect.md` |
+| `DEC-069` | Daily Autopilot mandate for Dual Default Backgrounds, Song-Set Resolution, and Presenter/PPTX Parity (SPEC-81) | `applied` | mandate | `.control/memlog/autopilot-DEC-069.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-069-daily-autopilot-mandate-dual-default-backgrounds-presenter-pptx-parity.md` |

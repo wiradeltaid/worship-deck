@@ -861,7 +861,7 @@ export function elementToFabricObject(
   if (typeof fabric?.Rect === 'function') {
     return new fabric.Rect({
       ...common,
-      fill: 'rgba(255,255,255,0.08)',
+      fill: 'transparent',
       stroke: '#cccccc',
       strokeDashArray: [6, 4],
       data: { elementId: element.id, placeholderKey: element.placeholderKey },

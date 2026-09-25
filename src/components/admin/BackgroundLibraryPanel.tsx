@@ -15,6 +15,7 @@ export interface BackgroundImage {
   name?: string;
   category?: string;
   isDefault: boolean;
+  defaultRoles?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -59,7 +60,7 @@ export function BackgroundLibraryPanel() {
   const [uploadCategory, setUploadCategory] = useState<'general' | 'background' | 'announcement'>('announcement');
 
   // Action states
-  const [settingDefaultId, setSettingDefaultId] = useState<number | null>(null);
+  const [settingDefaultRole, setSettingDefaultRole] = useState<{ id: number; role: 'song_set' | 'general' } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -164,49 +165,48 @@ export function BackgroundLibraryPanel() {
     }
   };
 
-  const handleMakeDefault = async (image: BackgroundImage) => {
-    if (image.isDefault) return;
-
-    setSettingDefaultId(image.id);
+  const handleSetDefaultRole = async (image: BackgroundImage, role: 'song_set' | 'general') => {
+    setSettingDefaultRole({ id: image.id, role });
     try {
-      const res = await fetch(`/api/admin/background-library/${image.id}`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/admin/background-defaults/${role}`, {
+        method: 'PUT',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isDefault: true,
-          updatedAt: image.updatedAt,
-        }),
+        body: JSON.stringify({ imageId: image.id }),
       });
-
-      if (res.status === 409) {
-        toast.error(t('admin.backgrounds.staleConflict'));
-        void fetchImages();
-        return;
-      }
 
       if (!res.ok) {
         toast.error(t('admin.backgrounds.defaultFailed'));
         return;
       }
 
-      const updated = (await res.json()) as BackgroundImage;
       setImages((prev) =>
         prev.map((item) => {
-          if (item.id === updated.id) {
-            return updated;
+          const currentRoles = (item.defaultRoles ?? []).filter((r) => r !== role);
+          if (item.id === image.id) {
+            const nextRoles = [...currentRoles, role];
+            return {
+              ...item,
+              defaultRoles: nextRoles,
+              isDefault: nextRoles.length > 0,
+            };
           }
-          if (item.isDefault) {
-            return { ...item, isDefault: false };
-          }
-          return item;
+          return {
+            ...item,
+            defaultRoles: currentRoles,
+            isDefault: currentRoles.length > 0,
+          };
         })
       );
-      toast.success(t('admin.backgrounds.defaultSaved'));
+      toast.success(
+        role === 'song_set'
+          ? t('admin.backgrounds.songSetDefaultSaved')
+          : t('admin.backgrounds.generalDefaultSaved')
+      );
     } catch {
       toast.error(t('admin.backgrounds.defaultFailed'));
     } finally {
-      setSettingDefaultId(null);
+      setSettingDefaultRole(null);
     }
   };
 
@@ -524,7 +524,7 @@ export function BackgroundLibraryPanel() {
               {images
                 .filter((img) => categoryFilter === 'all' || (img.category || 'background') === categoryFilter)
                 .map((img) => {
-                const isSettingDefault = settingDefaultId === img.id;
+                const isSettingDefault = settingDefaultRole?.id === img.id;
                 const isDeleting = deletingId === img.id;
                 const isReplacing = replacingId === img.id;
                 const isEditing = editingId === img.id;
@@ -545,20 +545,29 @@ export function BackgroundLibraryPanel() {
                         alt={displayName}
                         className="h-full w-full object-cover"
                       />
-                      <div className="absolute left-2 top-2 flex items-center gap-1.5">
+                      <div className="absolute left-2 top-2 flex flex-wrap items-center gap-1.5">
                         <Badge
                           variant="secondary"
                           className="text-[10px] font-semibold uppercase tracking-wider bg-background/80 backdrop-blur-xs"
                         >
                           {img.category || 'background'}
                         </Badge>
-                        {img.isDefault ? (
+                        {img.defaultRoles?.includes('song_set') ? (
                           <Badge
                             variant="default"
-                            className="shadow-sm font-semibold text-[10px]"
+                            className="shadow-sm font-semibold text-[10px] bg-emerald-600 hover:bg-emerald-600 text-white"
                           >
                             <Check className="mr-1 h-3 w-3" />
-                            {t('admin.backgrounds.defaultBadge')}
+                            {t('admin.backgrounds.songSetDefaultBadge')}
+                          </Badge>
+                        ) : null}
+                        {img.defaultRoles?.includes('general') ? (
+                          <Badge
+                            variant="default"
+                            className="shadow-sm font-semibold text-[10px] bg-blue-600 hover:bg-blue-600 text-white"
+                          >
+                            <Check className="mr-1 h-3 w-3" />
+                            {t('admin.backgrounds.generalDefaultBadge')}
                           </Badge>
                         ) : null}
                       </div>
@@ -621,29 +630,41 @@ export function BackgroundLibraryPanel() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-border pt-2.5">
-                        <div className="flex items-center gap-1.5">
-                          {!img.isDefault ? (
+                      <div className="flex flex-wrap items-center justify-between gap-1.5 border-t border-border pt-2.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {!img.defaultRoles?.includes('song_set') ? (
                             <Button
                               type="button"
                               variant="outline"
                               size="xs"
-                              disabled={isSettingDefault || isDeleting || isReplacing}
-                              onClick={() => void handleMakeDefault(img)}
+                              disabled={settingDefaultRole !== null || isDeleting || isReplacing}
+                              onClick={() => void handleSetDefaultRole(img, 'song_set')}
                             >
-                              {isSettingDefault ? '…' : t('admin.backgrounds.makeDefault')}
+                              {settingDefaultRole?.id === img.id && settingDefaultRole?.role === 'song_set'
+                                ? '…'
+                                : t('admin.backgrounds.setSongSetDefault')}
                             </Button>
-                          ) : (
-                            <span className="text-xs font-semibold text-primary">
-                              {t('admin.backgrounds.defaultBadge')}
-                            </span>
-                          )}
+                          ) : null}
+
+                          {!img.defaultRoles?.includes('general') ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="xs"
+                              disabled={settingDefaultRole !== null || isDeleting || isReplacing}
+                              onClick={() => void handleSetDefaultRole(img, 'general')}
+                            >
+                              {settingDefaultRole?.id === img.id && settingDefaultRole?.role === 'general'
+                                ? '…'
+                                : t('admin.backgrounds.setGeneralDefault')}
+                            </Button>
+                          ) : null}
 
                           <Button
                             type="button"
                             variant="secondary"
                             size="xs"
-                            disabled={isSettingDefault || isDeleting || isReplacing}
+                            disabled={settingDefaultRole !== null || isDeleting || isReplacing}
                             title="Replace image in place preserving URL"
                             onClick={() => handleReplaceClick(img)}
                           >

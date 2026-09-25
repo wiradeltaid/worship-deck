@@ -633,3 +633,141 @@ func TestMediaLibrary_InPlaceReplacementAndCustomName(t *testing.T) {
 	}
 	_ = handle
 }
+
+func TestBackgroundLibrary_DualDefaultRoleAssignments(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	// 1. Unauthenticated PUT -> 401
+	res := songSetRequest(t, ts, "PUT", "/api/admin/background-defaults/song_set", `{"imageId":1}`, nil)
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated PUT = %d, want 401", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 2. Invalid role -> 400
+	res = songSetRequest(t, ts, "PUT", "/api/admin/background-defaults/invalid_role", `{"imageId":1}`, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("PUT invalid role status = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = songSetRequest(t, ts, "DELETE", "/api/admin/background-defaults/invalid_role", "", cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("DELETE invalid role status = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Fractional imageId rejection (Finding 4)
+	res = songSetRequest(t, ts, "PUT", "/api/admin/background-defaults/song_set", `{"imageId":1.9}`, cookie)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("PUT fractional imageId status = %d, want 400", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 3. Create two background images
+	res1 := songSetRequest(t, ts, "POST", "/api/admin/background-library", `{"url":"/assets/welcome-bg.png"}`, cookie)
+	if res1.StatusCode != http.StatusCreated {
+		t.Fatalf("POST image 1 = %d, want 201", res1.StatusCode)
+	}
+	var c1 map[string]any
+	_ = jsonDecode(res1.Body, &c1)
+	res1.Body.Close()
+	id1 := int(c1["id"].(float64))
+
+	res2 := songSetRequest(t, ts, "POST", "/api/admin/background-library", `{"url":"/assets/closing-prayer-bg.png"}`, cookie)
+	if res2.StatusCode != http.StatusCreated {
+		t.Fatalf("POST image 2 = %d, want 201", res2.StatusCode)
+	}
+	var c2 map[string]any
+	_ = jsonDecode(res2.Body, &c2)
+	res2.Body.Close()
+	id2 := int(c2["id"].(float64))
+
+	// 4. Assign non-existent image -> 404
+	res = songSetRequest(t, ts, "PUT", "/api/admin/background-defaults/song_set", `{"imageId":99999}`, cookie)
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("PUT non-existent image = %d, want 404", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 5. Assign id1 to song_set default
+	res = songSetRequest(t, ts, "PUT", "/api/admin/background-defaults/song_set", fmt.Sprintf(`{"imageId":%d}`, id1), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("PUT song_set default = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 6. Assign id2 to general default
+	res = songSetRequest(t, ts, "PUT", "/api/admin/background-defaults/general", fmt.Sprintf(`{"imageId":%d}`, id2), cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("PUT general default = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// 7. Verify GET /api/admin/background-library includes defaultRoles
+	res = songSetRequest(t, ts, "GET", "/api/admin/background-library", "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("GET admin bg list = %d, want 200", res.StatusCode)
+	}
+	var adminList map[string]any
+	_ = jsonDecode(res.Body, &adminList)
+	res.Body.Close()
+	for _, raw := range adminList["images"].([]any) {
+		m := raw.(map[string]any)
+		id := int(m["id"].(float64))
+		roles := m["defaultRoles"].([]any)
+		if id == id1 {
+			if len(roles) != 1 || roles[0].(string) != "song_set" {
+				t.Fatalf("id1 defaultRoles = %v, want ['song_set']", roles)
+			}
+			if !m["isDefault"].(bool) {
+				t.Fatalf("id1 isDefault = false, want true")
+			}
+		}
+		if id == id2 {
+			if len(roles) != 1 || roles[0].(string) != "general" {
+				t.Fatalf("id2 defaultRoles = %v, want ['general']", roles)
+			}
+			if !m["isDefault"].(bool) {
+				t.Fatalf("id2 isDefault = false, want true")
+			}
+		}
+	}
+
+	// 8. Delete role assignment via DELETE /api/admin/background-defaults/song_set
+	res = songSetRequest(t, ts, "DELETE", "/api/admin/background-defaults/song_set", "", cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("DELETE song_set default = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Verify song_set is now unassigned
+	res = songSetRequest(t, ts, "GET", "/api/admin/background-library", "", cookie)
+	_ = jsonDecode(res.Body, &adminList)
+	res.Body.Close()
+	for _, raw := range adminList["images"].([]any) {
+		m := raw.(map[string]any)
+		id := int(m["id"].(float64))
+		roles := m["defaultRoles"].([]any)
+		if id == id1 && len(roles) != 0 {
+			t.Fatalf("id1 defaultRoles after DELETE = %v, want []", roles)
+		}
+	}
+
+	// 9. Cascading deletion check (UC-25): deleting image asset unsets role without error
+	var id2Updated string
+	_ = handle.QueryRow(`SELECT updated_at FROM background_library_images WHERE id = ?`, id2).Scan(&id2Updated)
+	res = songSetRequest(t, ts, "DELETE", fmt.Sprintf("/api/admin/background-library/%d?updated_at=%s", id2, id2Updated), `{"updatedAt":"`+id2Updated+`"}`, cookie)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("DELETE image2 = %d, want 200", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Verify general default role is cleanly deleted
+	var generalCount int
+	_ = handle.QueryRow(`SELECT COUNT(*) FROM background_default_assignments WHERE role = 'general'`).Scan(&generalCount)
+	if generalCount != 0 {
+		t.Fatalf("general role count after asset deletion = %d, want 0 (cascade)", generalCount)
+	}
+}

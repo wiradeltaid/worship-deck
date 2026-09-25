@@ -3471,7 +3471,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Dual default backgrounds, song-set resolution, and presenter/pptx parity.
   - id: SPEC-81
-    status: open
+    status: closed
     release: dual-default-backgrounds-and-presenter-pptx-parity
     prd: [operator-turn, offline-deck]
     fr: [FR-14, FR-16, FR-31, FR-32]

@@ -696,6 +696,7 @@ export function bootstrap(database: Database.Database): void {
   migrateParserProfiles(database);
   migrateFormLayout(database);
   migrateFrozenAnnouncementSlides(database);
+  migrateBackgroundDefaultAssignments(database);
 
   // --- corpus load ---
   // DEC-005/AD-36: upsertHymns is a bootstrap-once seed and MUST run after
@@ -708,6 +709,47 @@ export function bootstrap(database: Database.Database): void {
   migrateDataVersionToCurrent(database);
 
   bootstrapAdminIfEmpty(database);
+}
+
+/**
+ * SPEC-81: Dual default background role assignments table & backfill migration.
+ */
+export function migrateBackgroundDefaultAssignments(database: Database.Database) {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS background_default_assignments (
+      role TEXT PRIMARY KEY CHECK (role IN ('song_set', 'general')),
+      background_image_id INTEGER NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (background_image_id) REFERENCES background_library_images(id) ON DELETE CASCADE
+    );
+  `);
+
+  const marker = database
+    .prepare("SELECT 1 FROM settings WHERE key = 'background_defaults_migrated'")
+    .get();
+  if (marker) {
+    return;
+  }
+
+  const defaultRow = database
+    .prepare(
+      'SELECT id FROM background_library_images WHERE is_default = 1 ORDER BY id ASC LIMIT 1'
+    )
+    .get() as { id: number } | undefined;
+
+  if (defaultRow && defaultRow.id > 0) {
+    const now = new Date().toISOString();
+    database
+      .prepare(
+        `INSERT OR IGNORE INTO background_default_assignments (role, background_image_id, updated_at)
+         VALUES ('song_set', ?, ?), ('general', ?, ?)`
+      )
+      .run(defaultRow.id, now, defaultRow.id, now);
+  }
+
+  database
+    .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('background_defaults_migrated', '1')")
+    .run();
 }
 
 export function getDb() {

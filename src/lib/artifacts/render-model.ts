@@ -1261,3 +1261,41 @@ export function resolveElementImage(
   if (typeof url !== 'string' || !url.trim()) return undefined;
   return url;
 }
+
+/**
+ * SPEC-81: Determines whether a slide instance is a lyric slide.
+ * Evaluates layoutKey ('verse' | 'reff' | 'lyric') and group.role ('lyric').
+ */
+export function isLyricSlide(instance: {
+  layoutKey?: string;
+  group?: { role?: string };
+}): boolean {
+  return (
+    instance.layoutKey === 'verse' ||
+    instance.layoutKey === 'reff' ||
+    instance.layoutKey === 'lyric' ||
+    instance.group?.role === 'lyric'
+  );
+}
+
+/**
+ * SPEC-81: Resolves the effective background image for an artifact slide instance.
+ * When backgroundOverride is provided:
+ * - If the slide is a lyric slide (isLyricSlide), backgroundOverride is applied (empty string or null resolves to undefined).
+ * - If the slide is NOT a lyric slide, the authored layout.backgroundImage is preserved.
+ * When backgroundOverride is undefined, the authored layout.backgroundImage is preserved.
+ */
+export function resolveEffectiveBackgroundImage(
+  instance: {
+    layoutKey?: string;
+    group?: { role?: string };
+    layout: { backgroundImage?: string };
+  },
+  backgroundOverride?: string | null
+): string | undefined {
+  const isLyric = isLyricSlide(instance);
+  return isLyric && backgroundOverride !== undefined
+    ? backgroundOverride || undefined
+    : instance.layout.backgroundImage;
+}
+

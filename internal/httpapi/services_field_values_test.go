@@ -440,7 +440,7 @@ func TestServicesParserProfileIdOmittedAndNullHandling(t *testing.T) {
 	res.Body.Close()
 
 	// 5. PUT /api/services/{id} with omitted parserProfileId
-	updateOmitted := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdated"}`, svcResp.UpdatedAt)
+	updateOmitted := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdated", "allowSecond": true}`, svcResp.UpdatedAt)
 	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", created1.ID), updateOmitted, cookie)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("update service omitted parserProfileId status = %d, want 200", res.StatusCode)
@@ -452,7 +452,7 @@ func TestServicesParserProfileIdOmittedAndNullHandling(t *testing.T) {
 	res.Body.Close()
 
 	// 6. PUT /api/services/{id} with explicit null parserProfileId
-	updateNull := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdated Null", "parserProfileId": null}`, updateResp1.UpdatedAt)
+	updateNull := fmt.Sprintf(`{"date": "2026-10-17", "updated_at": %q, "raw_payload": "SABBATH, OCTOBER 17, 2026\nDIVINE SERVICE\nUpdated Null", "parserProfileId": null, "allowSecond": true}`, updateResp1.UpdatedAt)
 	res = songSetRequest(t, ts, "PUT", fmt.Sprintf("/api/services/%d", created1.ID), updateNull, cookie)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("update service null parserProfileId status = %d, want 200", res.StatusCode)

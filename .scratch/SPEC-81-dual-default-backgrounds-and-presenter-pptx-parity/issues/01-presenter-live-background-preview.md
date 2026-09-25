@@ -4,19 +4,19 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx`, `src/components/SlideView.tsx`, and `src/components/artifacts/ArtifactSlide.tsx` first.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] Read `src/operator/present/PresenterOperator.tsx`, `src/components/SlideView.tsx`, and `src/components/artifacts/ArtifactSlide.tsx` first.
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Update `FilmstripFrame` props to accept `backgroundOverride?: string | null`.
       - Forward `backgroundOverride` from `FilmstripFrame` into `<SlideView slide={slide} backgroundOverride={backgroundOverride} />`.
       - In `PresenterOperator`, pass `backgroundOverride={liveBackground}` to `<SlideView slide={current} ... />`.
       - Pass `backgroundOverride={liveBackground}` to `<SlideView slide={next} ... />`.
       - In the filmstrip render loop (line 1159), pass `backgroundOverride={liveBackground}` to `<FilmstripFrame ... />`.
-- [ ] Author `tests/presenter-live-background-preview.test.mjs`:
+- [x] Author `tests/presenter-live-background-preview.test.mjs`:
       - Verify that `SlideView` invocations for `current`, `next`, and `FilmstripFrame` explicitly pass `backgroundOverride`.
       - Verify that selecting live background updates the operator slide view for lyric slides (`isVerseOrReff`) alongside `BroadcastChannel` messages.
       - Verify that non-lyric slides in Current/Next/Filmstrip do not receive live background override.
       - Include real-file defect injection proofs asserting that removing `backgroundOverride` from `PresenterOperator.tsx` causes test failure.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-live-background-preview.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run test suite and `npm run typecheck` to verify 100% green execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-live-background-preview.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run test suite and `npm run typecheck` to verify 100% green execution.
