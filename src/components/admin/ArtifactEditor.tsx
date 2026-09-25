@@ -67,6 +67,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import ImageCropDialog from '@/components/media/ImageCropDialog';
 import {
   Select,
   SelectContent,
@@ -317,6 +318,12 @@ export default function ArtifactEditor({
   const insertCounterRef = useRef(0);
   const bgFileInputRef = useRef<HTMLInputElement | null>(null);
   const [showBgDialog, setShowBgDialog] = useState(false);
+  const [cropTarget, setCropTarget] = useState<{
+    file: File;
+    defaultAspect: number | null;
+    onComplete: (file: File) => void;
+    title: string;
+  } | null>(null);
   const [bgLibrary, setBgLibrary] = useState<Array<{ id: number; url: string; name?: string; category?: string }>>([]);
   const [showImageChoiceDialog, setShowImageChoiceDialog] = useState(false);
   const [showGalleryDialog, setShowGalleryDialog] = useState(false);
@@ -1905,6 +1912,30 @@ export default function ArtifactEditor({
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handlePickInsertImage = (file: File) => {
+    setCropTarget({
+      file,
+      defaultAspect: null,
+      title: 'Crop & Resize Image',
+      onComplete: (croppedFile) => {
+        setCropTarget(null);
+        void insertImage(croppedFile);
+      },
+    });
+  };
+
+  const handlePickBackgroundFile = (file: File) => {
+    setCropTarget({
+      file,
+      defaultAspect: 16 / 9,
+      title: 'Crop & Resize Background',
+      onComplete: (croppedFile) => {
+        setCropTarget(null);
+        void handleUploadBackgroundFile(croppedFile);
+      },
+    });
+  };
 
   const insertImage = useCallback(
     async (file: File) => {
@@ -5244,7 +5275,7 @@ export default function ArtifactEditor({
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          void insertImage(file);
+                          handlePickInsertImage(file);
                         }
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
@@ -5316,7 +5347,7 @@ export default function ArtifactEditor({
                         className="hidden"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f) void handleUploadBackgroundFile(f);
+                          if (f) handlePickBackgroundFile(f);
                           if (bgFileInputRef.current) bgFileInputRef.current.value = '';
                         }}
                       />
@@ -6419,6 +6450,17 @@ export default function ArtifactEditor({
             </div>
           </div>
         ) : null}
+        {cropTarget && (
+          <ImageCropDialog
+            open={Boolean(cropTarget)}
+            file={cropTarget.file}
+            defaultAspect={cropTarget.defaultAspect}
+            defaultResize="1080p"
+            title={cropTarget.title}
+            onComplete={cropTarget.onComplete}
+            onCancel={() => setCropTarget(null)}
+          />
+        )}
       </section>
     </div>
   );

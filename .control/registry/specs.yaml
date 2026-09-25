@@ -3353,7 +3353,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Client-side image cropping and resizing.
   - id: SPEC-77
-    status: open
+    status: closed
     release: client-side-image-cropping-and-resizing
     prd: [operator-turn]
     fr: [FR-1, FR-2, FR-3]

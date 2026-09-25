@@ -1,8 +1,14 @@
 import { useId, useRef, useState } from 'react';
 import { ImageFieldPreview } from '@/components/ImageFieldPreview';
+import ImageCropDialog from '@/components/media/ImageCropDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+export interface CropConfig {
+  defaultAspect?: number | null;
+  defaultResize?: 'original' | '1080p' | '800px';
+}
 
 /**
  * One service image field: the picture, the two ways to set it, and the way to
@@ -50,6 +56,7 @@ export function ImageUploadField({
   previewAlt,
   uploadLabel,
   disabled = false,
+  cropConfig,
 }: {
   /** Field name shown above the controls, e.g. "Sermon Graphic". */
   label: string;
@@ -60,6 +67,7 @@ export function ImageUploadField({
   /** Text on the upload button, e.g. "Upload Sermon Image". */
   uploadLabel: string;
   disabled?: boolean;
+  cropConfig?: CropConfig;
 }) {
   const pickerId = useId();
   const linkId = useId();
@@ -72,6 +80,7 @@ export function ImageUploadField({
   const [error, setError] = useState<string | null>(null);
   // Mirrors the native picker so the upload button knows whether it has work.
   const [picked, setPicked] = useState(false);
+  const [cropTargetFile, setCropTargetFile] = useState<File | null>(null);
 
   const isBusy = busy !== null;
   const locked = disabled || isBusy;
@@ -81,23 +90,30 @@ export function ImageUploadField({
     setPicked(false);
   };
 
-  const uploadPickedFile = async () => {
+  const uploadPickedFile = () => {
     const file = pickerRef.current?.files?.[0];
     if (!file) {
       setError('Choose a file first.');
       return;
     }
     setError(null);
+    setCropTargetFile(file);
+  };
+
+  const handleUploadFile = async (fileToUpload: File) => {
+    setCropTargetFile(null);
+    setError(null);
     setBusy('upload');
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await readJson(res);
       if (!res.ok || !data.url) {
         throw new Error(data.error || 'Upload failed');
       }
       onChange(data.url);
+      clearPicker();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
@@ -163,7 +179,14 @@ export function ImageUploadField({
                 disabled={locked}
                 onChange={(e) => {
                   setError(null);
-                  setPicked(Boolean(e.target.files?.length));
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPicked(true);
+                    setCropTargetFile(file);
+                  } else {
+                    setPicked(false);
+                    setCropTargetFile(null);
+                  }
                 }}
               />
             </div>
@@ -236,6 +259,21 @@ export function ImageUploadField({
           ) : null}
         </div>
       </div>
+
+      {cropTargetFile && (
+        <ImageCropDialog
+          open={Boolean(cropTargetFile)}
+          file={cropTargetFile}
+          defaultAspect={cropConfig?.defaultAspect}
+          defaultResize={cropConfig?.defaultResize}
+          title={`Crop & Resize ${label}`}
+          onComplete={handleUploadFile}
+          onCancel={() => {
+            setCropTargetFile(null);
+            clearPicker();
+          }}
+        />
+      )}
     </div>
   );
 }

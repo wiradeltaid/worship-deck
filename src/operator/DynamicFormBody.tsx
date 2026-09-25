@@ -287,6 +287,11 @@ function PredefinedFieldSlotRenderer({
           previewAlt={label}
           uploadLabel={`Upload ${label}`}
           disabled={disabled}
+          cropConfig={
+            refKey === 'family_of_the_week' || refKey === 'youth_of_the_week'
+              ? { defaultAspect: 1, defaultResize: '800px' }
+              : { defaultAspect: null, defaultResize: '1080p' }
+          }
         />
       )}
     </div>
@@ -509,6 +514,7 @@ function AnnouncementSlotRenderer({
         previewAlt={`Announcement Slot ${slotIndex}`}
         uploadLabel={`Upload Slot ${slotIndex} Poster`}
         disabled={disabled}
+        cropConfig={{ defaultAspect: null, defaultResize: '1080p' }}
       />
     </div>
   );

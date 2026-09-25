@@ -68,10 +68,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/service-image-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-11
   FR: FR-1
@@ -1599,10 +1599,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/service-image-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3707,10 +3707,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/image-crop-helper.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3721,10 +3721,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6732,10 +6732,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/image-crop-helper.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6746,10 +6746,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6914,10 +6914,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-32
@@ -9038,10 +9038,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/image-crop-helper.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9052,10 +9052,10 @@ rtm:
   release: client-side-image-cropping-and-resizing
   test:
   - tests/canvas-media-crop-integration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
