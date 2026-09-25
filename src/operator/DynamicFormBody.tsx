@@ -52,7 +52,7 @@ export interface DynamicFormBodyProps {
   onAnnouncementInsertChange: (slotIndex: number, url: string) => void;
   songSetEntries: Array<{ variableName: string; title: string }>;
   songBooks: Array<{ bookCode: string; name: string; isDefault: boolean }>;
-  backgroundLibrary: Array<{ id: number; url: string; isDefault: boolean }>;
+  backgroundLibrary: Array<{ id: number; url: string; isDefault: boolean; defaultRoles?: string[] }>;
   openLyricEditors: Record<string, boolean>;
   onToggleLyricEditor: (variableName: string) => void;
   savingBookStatus?: Record<string, boolean>;
@@ -317,7 +317,7 @@ function SongSetSlotRenderer({
   refKey: string;
   songSetEntries: Array<{ variableName: string; title: string }>;
   songBooks: Array<{ bookCode: string; name: string; isDefault: boolean }>;
-  backgroundLibrary: Array<{ id: number; url: string; isDefault: boolean }>;
+  backgroundLibrary: Array<{ id: number; url: string; isDefault: boolean; defaultRoles?: string[] }>;
   values: { songNumber: string; songBookCode: string; background: string; lyricText: string };
   onChange: (field: 'songNumber' | 'songBookCode' | 'background' | 'lyricText', val: string) => void;
   isLyricOpen: boolean;
@@ -335,6 +335,9 @@ function SongSetSlotRenderer({
   const selectedBookCode = values.songBookCode || defaultBook?.bookCode || 'SDAH';
   const hasValidNum = /^\d+$/.test(values.songNumber.trim());
   const selectedFormBg = backgroundLibrary.find((b) => b.url === values.background);
+  const songSetDefaultBg = backgroundLibrary.find(
+    (b) => b.defaultRoles?.includes('song_set') || (b.isDefault && (!b.defaultRoles || b.defaultRoles.length === 0))
+  );
 
   return (
     <div
@@ -415,16 +418,32 @@ function SongSetSlotRenderer({
                     className="h-4 w-6 shrink-0 rounded border border-border object-cover bg-muted"
                   />
                   <span className="truncate text-xs">
-                    Image {selectedFormBg.id}{selectedFormBg.isDefault ? ' (Default)' : ''}
+                    Image {selectedFormBg.id}
+                    {selectedFormBg.defaultRoles?.includes('song_set') ? ' (Song-Set Default)' : ''}
+                  </span>
+                </div>
+              ) : songSetDefaultBg ? (
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <img
+                    src={songSetDefaultBg.url}
+                    alt=""
+                    className="h-4 w-6 shrink-0 rounded border border-border object-cover bg-muted"
+                  />
+                  <span className="truncate text-xs">
+                    Use Song-Set Default (#{songSetDefaultBg.id})
                   </span>
                 </div>
               ) : (
-                <SelectValue placeholder="Default Background" />
+                <SelectValue placeholder="Use Song-Set Default" />
               )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="default">
-                <span className="truncate text-xs text-muted-foreground">Default Background</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {songSetDefaultBg
+                    ? `Use Song-Set Default (#${songSetDefaultBg.id})`
+                    : 'Use Song-Set Default'}
+                </span>
               </SelectItem>
               {backgroundLibrary.map((img) => (
                 <SelectItem key={img.id} value={img.url}>
@@ -435,7 +454,12 @@ function SongSetSlotRenderer({
                       className="h-6 w-9 shrink-0 rounded border border-border object-cover bg-muted"
                     />
                     <span className="truncate text-xs">
-                      Image {img.id}{img.isDefault ? ' (Default)' : ''}
+                      Image {img.id}
+                      {img.defaultRoles?.includes('song_set')
+                        ? ' (Song-Set Default)'
+                        : img.defaultRoles?.includes('general')
+                        ? ' (General Default)'
+                        : ''}
                     </span>
                   </div>
                 </SelectItem>

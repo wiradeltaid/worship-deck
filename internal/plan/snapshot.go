@@ -157,6 +157,7 @@ func LoadSnapshot(db *sql.DB, serviceID int) (Snapshot, error) {
 
 	if db != nil {
 		loadAnnouncementSlidesIntoSnapshot(db, serviceID, &snap)
+		loadDefaultBackgroundsIntoSnapshot(db, &snap)
 	}
 
 	if serviceID > 0 && db != nil {
@@ -313,6 +314,29 @@ func resolveDefaultBook(db *sql.DB) string {
 	return "SDAH"
 }
 
+// loadDefaultBackgroundsIntoSnapshot loads active role defaults into snapshot (SPEC-81).
+func loadDefaultBackgroundsIntoSnapshot(db *sql.DB, snap *Snapshot) {
+	if db == nil || snap == nil {
+		return
+	}
+	var songSetBg, genBg string
+	_ = db.QueryRow(`
+		SELECT COALESCE(b.url, '')
+		  FROM background_default_assignments bda
+		  JOIN background_library_images b ON b.id = bda.background_image_id
+		 WHERE bda.role = 'song_set'
+	`).Scan(&songSetBg)
+	snap.SongSetDefaultBackground = strings.TrimSpace(songSetBg)
+
+	_ = db.QueryRow(`
+		SELECT COALESCE(b.url, '')
+		  FROM background_default_assignments bda
+		  JOIN background_library_images b ON b.id = bda.background_image_id
+		 WHERE bda.role = 'general'
+	`).Scan(&genBg)
+	snap.GeneralDefaultBackground = strings.TrimSpace(genBg)
+}
+
 func loadSongSetInputsIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {
 	if snap.SongInputs == nil {
 		snap.SongInputs = map[string]HymnItem{}
@@ -321,12 +345,14 @@ func loadSongSetInputsIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {
 
 	rows, err := db.Query(
 		`SELECT ssi.variable_name, ssi.song_number, COALESCE(ssi.song_book_code, ''),
-		        COALESCE(h.title, ''), COALESCE(ssi.lyric_override, h.lyrics, '')
+		        COALESCE(h.title, ''), COALESCE(ssi.lyric_override, h.lyrics, ''),
+		        COALESCE(b.url, '')
 		   FROM song_set_inputs ssi
 		   LEFT JOIN hymns h ON h.number = ssi.song_number
 		                    AND h.book_code = CASE WHEN ssi.song_book_code IS NOT NULL AND TRIM(ssi.song_book_code) != ''
 		                                           THEN UPPER(TRIM(ssi.song_book_code))
 		                                           ELSE ? END
+		   LEFT JOIN background_library_images b ON (b.id = ssi.background_id OR b.url = ssi.background_id)
 		  WHERE ssi.service_id = ? AND ssi.song_number IS NOT NULL AND ssi.song_number > 0`,
 		defaultBook,
 		serviceID,
@@ -336,9 +362,9 @@ func loadSongSetInputsIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var vn, book, title, lyrics string
+		var vn, book, title, lyrics, bgURL string
 		var num int
-		if err := rows.Scan(&vn, &num, &book, &title, &lyrics); err != nil {
+		if err := rows.Scan(&vn, &num, &book, &title, &lyrics, &bgURL); err != nil {
 			continue
 		}
 		bookCode := strings.ToUpper(strings.TrimSpace(book))
@@ -349,11 +375,12 @@ func loadSongSetInputsIntoSnapshot(db *sql.DB, serviceID int, snap *Snapshot) {
 			title = fmt.Sprintf("%s %d", bookCode, num)
 		}
 		snap.SongInputs[vn] = HymnItem{
-			BookCode:   bookCode,
-			Number:     num,
-			Title:      title,
-			Lyrics:     lyrics,
-			Incomplete: strings.TrimSpace(lyrics) == "",
+			BookCode:        bookCode,
+			Number:          num,
+			Title:           title,
+			Lyrics:          lyrics,
+			Incomplete:      strings.TrimSpace(lyrics) == "",
+			BackgroundImage: strings.TrimSpace(bgURL),
 		}
 	}
 }

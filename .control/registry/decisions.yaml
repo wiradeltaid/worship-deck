@@ -1532,7 +1532,8 @@ decisions:
       - .scratch/
   - id: DEC-069
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-09-25'
     accepted_by: "kodesh87 (2026-09-25)"
     title: Daily Autopilot mandate for Dual Default Backgrounds, Song-Set Resolution, and Presenter/PPTX Parity (SPEC-81)
     file: .control/decisions/DEC-069-daily-autopilot-mandate-dual-default-backgrounds-presenter-pptx-parity.md

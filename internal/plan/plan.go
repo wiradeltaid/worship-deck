@@ -15,6 +15,7 @@ type request struct {
 	layoutKey  string
 	values     map[string]interface{}
 	fade       *bool
+	background *string
 }
 
 type groupChild struct {
@@ -81,7 +82,7 @@ func leaf(r request) []node {
 	return []node{{kind: "artifact", req: r}}
 }
 
-func songGroup(hymn HymnItem, idPrefix, templateID string) []node {
+func songGroup(hymn HymnItem, idPrefix, templateID string, snap Snapshot) []node {
 	var children []groupChild
 	prefix := hymn.BookCode
 	if prefix == "" {
@@ -91,12 +92,21 @@ func songGroup(hymn HymnItem, idPrefix, templateID string) []node {
 	if hymn.Incomplete {
 		subtitle = fmt.Sprintf("%s %d (incomplete)", prefix, hymn.Number)
 	}
+
+	var songBg *string
+	if hymn.BackgroundImage != "" {
+		songBg = &hymn.BackgroundImage
+	} else if snap.SongSetDefaultBackground != "" {
+		songBg = &snap.SongSetDefaultBackground
+	}
+
 	children = append(children, groupChild{
 		role: RoleTitle,
 		req: request{
 			id:         idPrefix + "-title",
 			templateID: templateID,
 			layoutKey:  "title",
+			background: songBg,
 			values: map[string]interface{}{
 				"song_number": subtitle,
 				"song_title":  hymn.Title,
@@ -123,6 +133,7 @@ func songGroup(hymn HymnItem, idPrefix, templateID string) []node {
 					id:         fmt.Sprintf("%s-lyric-%d", idPrefix, i+1),
 					templateID: templateID,
 					layoutKey:  layoutKey,
+					background: songBg,
 					values:     vals,
 				},
 			})
@@ -530,7 +541,7 @@ func nodesFor(id string, c ctx, snap Snapshot) []node {
 					} else {
 						prefix = tmpl.ID
 					}
-					return songGroup(hymn, prefix, tmpl.ID)
+					return songGroup(hymn, prefix, tmpl.ID, snap)
 				}
 				return nil
 			}
@@ -655,6 +666,32 @@ func hydrateOne(snap Snapshot, r request, group *GroupRef, c ctx) (*DrawItem, er
 	if tmpl.BaseType == "general" {
 		values = mergeCatalogValues(c, r.values)
 	}
+
+	// SPEC-81: Background image resolution precedence:
+	// For song-set slides: Explicit Selection -> Song-Set Default Background -> Template Authoring -> General Default Background -> #000000
+	// For non-song slides: Authored Template / Content -> General Default Background -> #000000
+	lKey := r.layoutKey
+	if lKey == "" {
+		lKey = "default"
+	}
+	if tmpl.Layouts == nil {
+		tmpl.Layouts = map[string]Layout{}
+	}
+	layout := tmpl.Layouts[lKey]
+	if r.background != nil && *r.background != "" {
+		layout.BackgroundImage = r.background
+	} else if layout.BackgroundImage == nil || *layout.BackgroundImage == "" {
+		if snap.GeneralDefaultBackground != "" {
+			genBg := snap.GeneralDefaultBackground
+			layout.BackgroundImage = &genBg
+		}
+	}
+	// Terminal fallback: if neither background image nor background color is set, ensure #000000
+	if (layout.BackgroundImage == nil || *layout.BackgroundImage == "") && layout.BackgroundColor == "" {
+		layout.BackgroundColor = "#000000"
+	}
+	tmpl.Layouts[lKey] = layout
+
 	inst, err := hydrateArtifact(tmpl, r.id, r.layoutKey, values, group)
 	if err != nil {
 		return nil, err

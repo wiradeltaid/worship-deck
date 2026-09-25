@@ -959,10 +959,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/song-set-background-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14
@@ -3811,10 +3811,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/song-set-background-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6893,10 +6893,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/song-set-background-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -7031,10 +7031,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/background-dual-defaults.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31
@@ -7118,10 +7118,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/presenter-live-background-preview.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-33
@@ -7370,10 +7370,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/background-dual-defaults.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38
@@ -9298,10 +9298,10 @@ rtm:
   release: dual-default-backgrounds-and-presenter-pptx-parity
   test:
   - tests/song-set-background-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

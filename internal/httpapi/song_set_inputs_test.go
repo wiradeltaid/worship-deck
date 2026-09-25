@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 // loginAsOperator creates a second account with the operator role through the
@@ -375,4 +376,81 @@ func TestCustomSongSetInPreviewAndServicePlan(t *testing.T) {
 	if !hasCustomSongInService {
 		t.Errorf("saved service plan does not contain slides for custom song-set bible_talk_opening")
 	}
+}
+
+func TestPreviewSongSets_ClearingAndBackgroundConstraint(t *testing.T) {
+	ts, handle, _ := newSongSetTestServer(t)
+	admin := songSetLogin(t, ts)
+
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	resBg, err := handle.Exec(`INSERT INTO background_library_images (url, name, category, is_default, created_at, updated_at) VALUES ('/assets/clearing-test-bg.png', 'Clearing BG', 'background', 0, ?, ?)`, now, now)
+	if err != nil {
+		t.Fatalf("insert bg: %v", err)
+	}
+	_ = resBg
+
+	// 1. Create a service with opening_song_bt populated and carrying the background
+	res := songSetRequest(t, ts, "POST", "/api/services", `{
+		"raw_payload": "SABBATH, JULY 25, 2026\nDIVINE SERVICE\nSermon: Pastor Adam",
+		"fields": {
+			"songSets": {
+				"opening_song_bt": {"songNumber": 159, "songBookCode": "SDAH", "background": "/assets/clearing-test-bg.png"}
+			}
+		}
+	}`, admin)
+	createBody := songSetJSON(t, res)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create failed: %d %v", res.StatusCode, createBody)
+	}
+	serviceID := int64(createBody["id"].(float64))
+
+	// Verify initial persisted service plan carries the background URL
+	resPlan := songSetRequest(t, ts, "GET", fmt.Sprintf("/api/services/%d", serviceID), "", admin)
+	initBody := songSetJSON(t, resPlan)
+	initItems, _ := initBody["plan"].([]any)
+	foundInitBg := false
+	for _, it := range initItems {
+		itm, _ := it.(map[string]any)
+		art, _ := itm["artifact"].(map[string]any)
+		instID, _ := art["instanceId"].(string)
+		if strings.HasPrefix(instID, "bt-opening") {
+			layout, _ := art["layout"].(map[string]any)
+			if layout["backgroundImage"] == "/assets/clearing-test-bg.png" {
+				foundInitBg = true
+			}
+		}
+	}
+	if !foundInitBg {
+		t.Fatalf("initial persisted plan should carry /assets/clearing-test-bg.png")
+	}
+
+	// 2. Preview service with opening_song_bt cleared (empty string)
+	resPreview := songSetRequest(t, ts, "POST", "/api/services/preview", fmt.Sprintf(`{
+		"serviceId": %d,
+		"raw_payload": "SABBATH, JULY 25, 2026\nDIVINE SERVICE\nSermon: Pastor Adam",
+		"fields": {
+			"songSets": {
+				"opening_song_bt": {"songNumber": "", "background": ""}
+			}
+		}
+	}`, serviceID), admin)
+	prevBody := songSetJSON(t, resPreview)
+	if resPreview.StatusCode != http.StatusOK {
+		t.Fatalf("preview with cleared song failed: %d %v", resPreview.StatusCode, prevBody)
+	}
+
+	planItems, _ := prevBody["plan"].([]any)
+	for _, it := range planItems {
+		itm, _ := it.(map[string]any)
+		art, _ := itm["artifact"].(map[string]any)
+		instID, _ := art["instanceId"].(string)
+		if strings.HasPrefix(instID, "bt-opening-title") || strings.HasPrefix(instID, "bt-opening-lyric") {
+			t.Fatalf("cleared song slot must NOT generate song slides in preview, found %s", instID)
+		}
+		layout, _ := art["layout"].(map[string]any)
+		if layout["backgroundImage"] == "/assets/clearing-test-bg.png" {
+			t.Fatalf("cleared song background /assets/clearing-test-bg.png must NOT survive in preview plan, found on %s", instID)
+		}
+	}
+	_ = handle
 }

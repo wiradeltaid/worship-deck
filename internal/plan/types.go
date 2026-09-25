@@ -154,11 +154,12 @@ type Media struct {
 }
 
 type HymnItem struct {
-	BookCode   string
-	Number     int
-	Title      string
-	Lyrics     string
-	Incomplete bool
+	BookCode        string
+	Number          int
+	Title           string
+	Lyrics          string
+	Incomplete      bool
+	BackgroundImage string
 }
 
 type AnnouncementSlide struct {
@@ -170,12 +171,14 @@ type AnnouncementSlide struct {
 }
 
 type Snapshot struct {
-	Order                 []string
-	ByID                  map[string]Template
-	SongInputs            map[string]HymnItem
-	AnnouncementSlides    map[int][]AnnouncementSlide
-	AnnouncementSetLabels map[int]string
-	FieldValues           map[string]string
+	Order                    []string
+	ByID                     map[string]Template
+	SongInputs               map[string]HymnItem
+	SongSetDefaultBackground string
+	GeneralDefaultBackground string
+	AnnouncementSlides       map[int][]AnnouncementSlide
+	AnnouncementSetLabels    map[int]string
+	FieldValues              map[string]string
 }
 
 func (s Snapshot) Has(id string) bool {

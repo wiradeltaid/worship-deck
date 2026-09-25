@@ -1258,6 +1258,7 @@ func (s *Server) applyPreviewSongSets(snap *plan.Snapshot, body map[string]any) 
 		}
 		num := parse.CoerceSongNumber(em["songNumber"])
 		if num == nil || *num <= 0 {
+			delete(snap.SongInputs, vn)
 			continue
 		}
 		bookCode := ""
@@ -1287,12 +1288,22 @@ func (s *Server) applyPreviewSongSets(snap *plan.Snapshot, body map[string]any) 
 		if lyricOverride != "" {
 			finalLyrics = lyricOverride
 		}
+
+		var bgURL string
+		if bg, ok := em["background"].(string); ok && strings.TrimSpace(bg) != "" {
+			bgVal := strings.TrimSpace(bg)
+			var foundURL string
+			_ = s.DB.QueryRow(`SELECT COALESCE(url, '') FROM background_library_images WHERE id = ? OR url = ?`, bgVal, bgVal).Scan(&foundURL)
+			bgURL = strings.TrimSpace(foundURL)
+		}
+
 		snap.SongInputs[vn] = plan.HymnItem{
-			BookCode:   resolvedBook,
-			Number:     *num,
-			Title:      title,
-			Lyrics:     finalLyrics,
-			Incomplete: strings.TrimSpace(finalLyrics) == "",
+			BookCode:        resolvedBook,
+			Number:          *num,
+			Title:           title,
+			Lyrics:          finalLyrics,
+			Incomplete:      strings.TrimSpace(finalLyrics) == "",
+			BackgroundImage: bgURL,
 		}
 	}
 }
