@@ -1511,6 +1511,25 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-068
+    type: mandate
+    status: applied
+    applied_at: '2026-09-25'
+    accepted_by: "kodesh87 (2026-09-25)"
+    title: Daily Autopilot mandate for PPTX Word Wrap Option, Curated Presentation Fonts Expansion, and Image Crop Aspect Handling (SPEC-78, SPEC-79, SPEC-80)
+    file: .control/decisions/DEC-068-daily-autopilot-mandate-pptx-wrap-fonts-expansion-image-crop-aspect.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-02'
+    touches:
+      - .control/memlog/autopilot-DEC-068.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

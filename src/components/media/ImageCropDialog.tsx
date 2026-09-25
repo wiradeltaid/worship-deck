@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useId } from 'react';
+import React, { useState, useEffect, useCallback, useId, useMemo } from 'react';
 import Cropper from 'react-easy-crop';
 import {
   Dialog,
@@ -12,26 +12,34 @@ import {
   getCroppedImg,
   type CropArea,
   type ResizeProfile,
+  type AspectPresetId,
+  ASPECT_RATIO_PRESETS,
+  PRESET_NUMERICAL_ASPECTS,
+  resolveDefaultPreset,
+  resolveCustomAspect,
+  calculateEffectiveAspect,
 } from '@/lib/images/crop-image';
+
+export type { AspectPresetId };
+export {
+  ASPECT_RATIO_PRESETS,
+  PRESET_NUMERICAL_ASPECTS,
+  resolveDefaultPreset,
+  resolveCustomAspect,
+  calculateEffectiveAspect,
+};
 
 export interface ImageCropDialogProps {
   open: boolean;
   file: File | null;
-  defaultAspect?: number | null; // e.g. 16/9, 1, 4/3, or null for Freeform
+  defaultAspect?: number | null | AspectPresetId;
   defaultResize?: ResizeProfile;
   title?: string;
   onComplete: (file: File) => void;
   onCancel: () => void;
 }
 
-const ASPECT_RATIO_PRESETS: Array<{ label: string; value: number | null }> = [
-  { label: '16:9', value: 16 / 9 },
-  { label: '1:1', value: 1 },
-  { label: '4:3', value: 4 / 3 },
-  { label: 'Freeform', value: null },
-];
-
-const RESIZE_PROFILES: Array<{ label: string; value: ResizeProfile; desc: string }> = [
+export const RESIZE_PROFILES: Array<{ label: string; value: ResizeProfile; desc: string }> = [
   { label: 'Max 1080p', value: '1080p', desc: 'Up to 1920×1080' },
   { label: 'Max 800px', value: '800px', desc: 'Up to 800×800' },
   { label: 'Original', value: 'original', desc: 'Full pixel crop' },
@@ -49,8 +57,11 @@ export default function ImageCropDialog({
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [selectedAspect, setSelectedAspect] = useState<number | null>(defaultAspect);
+  const [selectedPreset, setSelectedPreset] = useState<AspectPresetId>(() => resolveDefaultPreset(defaultAspect));
   const [selectedProfile, setSelectedProfile] = useState<ResizeProfile>(defaultResize);
+  const [mediaSize, setMediaSize] = useState<{ naturalWidth: number; naturalHeight: number } | null>(null);
+  const [customWidth, setCustomWidth] = useState<string>('16');
+  const [customHeight, setCustomHeight] = useState<string>('9');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -68,8 +79,9 @@ export default function ImageCropDialog({
     setImageSrc(objectUrl);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
-    setSelectedAspect(defaultAspect);
+    setSelectedPreset(resolveDefaultPreset(defaultAspect));
     setSelectedProfile(defaultResize);
+    setMediaSize(null);
     setCroppedAreaPixels(null);
     setErrorMessage(null);
     setIsProcessing(false);
@@ -83,8 +95,23 @@ export default function ImageCropDialog({
     setCroppedAreaPixels(areaPixels);
   }, []);
 
+  const onMediaLoadedHandler = useCallback((loaded: { naturalWidth: number; naturalHeight: number }) => {
+    setMediaSize({ naturalWidth: loaded.naturalWidth, naturalHeight: loaded.naturalHeight });
+  }, []);
+
+  const customValidation = useMemo(
+    () => resolveCustomAspect(customWidth, customHeight),
+    [customWidth, customHeight]
+  );
+
+  const effectiveAspect = useMemo(() => {
+    return calculateEffectiveAspect(selectedPreset, mediaSize, customWidth, customHeight).aspect;
+  }, [selectedPreset, mediaSize, customWidth, customHeight]);
+
   const handleApplyCrop = async () => {
     if (!file || !imageSrc || !croppedAreaPixels) return;
+    if (selectedPreset === 'custom' && !customValidation.isValid) return;
+
     setIsProcessing(true);
     setErrorMessage(null);
 
@@ -112,6 +139,11 @@ export default function ImageCropDialog({
     return null;
   }
 
+  const isApplyDisabled =
+    isProcessing ||
+    !croppedAreaPixels ||
+    (selectedPreset === 'custom' && !customValidation.isValid);
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onCancel(); }}>
       <DialogContent className="max-w-2xl sm:max-w-2xl p-4 gap-3 bg-popover text-popover-foreground">
@@ -132,13 +164,19 @@ export default function ImageCropDialog({
               image={imageSrc}
               crop={crop}
               zoom={zoom}
-              aspect={selectedAspect ?? undefined}
+              aspect={effectiveAspect}
               onCropChange={setCrop}
               onZoomChange={setZoom}
+              onMediaLoaded={onMediaLoadedHandler}
               onCropComplete={onCropCompleteHandler}
             />
           )}
         </div>
+
+        {/* Pan and zoom interaction hint */}
+        <p className="text-[11px] text-muted-foreground text-center">
+          Geser gambar untuk mengatur posisi, gunakan slider zoom untuk memperbesar/memperkecil
+        </p>
 
         {/* Controls Grid */}
         <div className="space-y-3 pt-1 text-xs">
@@ -163,28 +201,66 @@ export default function ImageCropDialog({
           </div>
 
           {/* Aspect Ratio Preset Selector */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-12 shrink-0 font-medium text-xs text-foreground">Ratio:</span>
-            <div className="flex flex-wrap gap-1">
-              {ASPECT_RATIO_PRESETS.map((preset) => {
-                const isActive = selectedAspect === preset.value;
-                return (
-                  <Button
-                    key={preset.label}
-                    type="button"
-                    size="xs"
-                    variant={isActive ? 'default' : 'outline'}
-                    className="h-6 text-[11px] px-2.5"
-                    onClick={() => {
-                      setCroppedAreaPixels(null);
-                      setSelectedAspect(preset.value);
-                    }}
-                  >
-                    {preset.label}
-                  </Button>
-                );
-              })}
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-12 shrink-0 font-medium text-xs text-foreground">Ratio:</span>
+              <div className="flex flex-wrap gap-1">
+                {ASPECT_RATIO_PRESETS.map((preset) => {
+                  const isActive = selectedPreset === preset.id;
+                  return (
+                    <Button
+                      key={preset.id}
+                      type="button"
+                      size="xs"
+                      variant={isActive ? 'default' : 'outline'}
+                      className="h-6 text-[11px] px-2.5"
+                      onClick={() => {
+                        setCroppedAreaPixels(null);
+                        setSelectedPreset(preset.id);
+                      }}
+                      title={preset.desc}
+                    >
+                      {preset.label}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Custom Ratio Inputs */}
+            {selectedPreset === 'custom' && (
+              <div className="flex items-center gap-2 pl-14 pt-1">
+                <span className="text-muted-foreground text-[11px]">Rasio W:H :</span>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  aria-label="Custom Aspect Width"
+                  value={customWidth}
+                  onChange={(e) => {
+                    setCroppedAreaPixels(null);
+                    setCustomWidth(e.target.value);
+                  }}
+                  className="w-16 h-6 px-1.5 text-center font-mono text-xs border rounded bg-background"
+                />
+                <span className="font-semibold text-muted-foreground">:</span>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  aria-label="Custom Aspect Height"
+                  value={customHeight}
+                  onChange={(e) => {
+                    setCroppedAreaPixels(null);
+                    setCustomHeight(e.target.value);
+                  }}
+                  className="w-16 h-6 px-1.5 text-center font-mono text-xs border rounded bg-background"
+                />
+                {!customValidation.isValid && customValidation.error && (
+                  <span className="text-destructive text-[11px]">{customValidation.error}</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Resize Profile Selector */}
@@ -239,7 +315,7 @@ export default function ImageCropDialog({
               variant="default"
               size="sm"
               onClick={handleApplyCrop}
-              disabled={isProcessing || !croppedAreaPixels}
+              disabled={isApplyDisabled}
             >
               {isProcessing ? 'Processing...' : 'Crop & Upload'}
             </Button>

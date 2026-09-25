@@ -3,7 +3,7 @@
  *
  * Enforces:
  * 1. THIRD-PARTY-NOTICES exists as a standalone file at the repository root.
- * 2. It covers all 35 font families from src/lib/registry/font-catalog.ts.
+ * 2. It covers all 41 font families from src/lib/registry/font-catalog.ts.
  * 3. It includes both SIL OFL 1.1 and Apache 2.0 license texts.
  */
 import { test } from 'node:test';
@@ -25,7 +25,7 @@ test('WSD-H-08: THIRD-PARTY-NOTICES exists as a standalone file at root', () => 
   assert.ok(stat.size > 1000, `THIRD-PARTY-NOTICES must be a non-trivial license document, got ${stat.size} bytes`);
 });
 
-test('WSD-H-08: THIRD-PARTY-NOTICES covers all 35 typography font families', () => {
+test('WSD-H-08 / SPEC-79: THIRD-PARTY-NOTICES covers all 41 typography font families', () => {
   const noticesPath = path.join(root, 'THIRD-PARTY-NOTICES');
   const content = fs.readFileSync(noticesPath, 'utf8');
 
@@ -34,9 +34,9 @@ test('WSD-H-08: THIRD-PARTY-NOTICES covers all 35 typography font families', () 
   assert.ok(content.includes('Apache License'), 'Apache 2.0 text missing');
   assert.ok(content.includes('Version 2.0, January 2004'), 'Apache 2.0 version text missing');
 
-  // Non-system fonts (35)
+  // Non-system fonts (41)
   const nonSystemFonts = FONT_CATALOG.filter((f) => f.category !== 'system');
-  assert.equal(nonSystemFonts.length, 35, 'Expected 35 non-system font families in catalog');
+  assert.equal(nonSystemFonts.length, 41, 'Expected 41 non-system font families in catalog');
 
   const missing = [];
   for (const font of nonSystemFonts) {

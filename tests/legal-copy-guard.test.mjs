@@ -117,7 +117,7 @@ test('WSD-H-14: guard proof — injected missing copy stamp in PRIVACY.md is det
   const target = path.join(root, 'PRIVACY.md');
   const original = fs.readFileSync(target, 'utf8');
   try {
-    const mutated = original.replace(/<!-- Copied from.*?-->\n\n/s, '');
+    const mutated = original.replace(/<!-- Copied from.*?-->\r?\n\r?\n/s, '');
     fs.writeFileSync(target, mutated);
     const violations = checkCopyStamps(root);
     assert.ok(

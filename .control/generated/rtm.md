@@ -945,10 +945,10 @@ rtm:
   release: pptx-word-wrap-option
   test:
   - tests/pptx-word-wrap-option.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14
@@ -3754,10 +3754,10 @@ rtm:
   release: curated-presentation-fonts-expansion
   test:
   - tests/bundled-fonts-guard.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3769,10 +3769,10 @@ rtm:
   test:
   - tests/third-party-notices.test.mjs
   - tests/public-facts.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3783,10 +3783,10 @@ rtm:
   release: image-crop-presets-and-aspect-handling
   test:
   - tests/crop-aspect-presets.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6822,10 +6822,10 @@ rtm:
   release: curated-presentation-fonts-expansion
   test:
   - tests/bundled-fonts-guard.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6837,10 +6837,10 @@ rtm:
   test:
   - tests/third-party-notices.test.mjs
   - tests/public-facts.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6851,10 +6851,10 @@ rtm:
   release: image-crop-presets-and-aspect-handling
   test:
   - tests/crop-aspect-presets.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -9171,10 +9171,10 @@ rtm:
   release: curated-presentation-fonts-expansion
   test:
   - tests/bundled-fonts-guard.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9186,10 +9186,10 @@ rtm:
   test:
   - tests/third-party-notices.test.mjs
   - tests/public-facts.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9200,10 +9200,10 @@ rtm:
   release: image-crop-presets-and-aspect-handling
   test:
   - tests/crop-aspect-presets.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

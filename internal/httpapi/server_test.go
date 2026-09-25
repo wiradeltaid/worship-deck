@@ -20,3 +20,27 @@ func TestSpaIndexName(t *testing.T) {
 		}
 	}
 }
+
+func TestParseWordWrapParam(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want bool
+	}{
+		{"", true},
+		{"true", true},
+		{"TRUE", true},
+		{"1", true},
+		{"yes", true},
+		{"arbitrary", true},
+		{"false", false},
+		{"FALSE", false},
+		{"0", false},
+		{" 0 ", false},
+		{" false ", false},
+	}
+	for _, tc := range cases {
+		if got := parseWordWrapParam(tc.raw); got != tc.want {
+			t.Errorf("parseWordWrapParam(%q) = %v, want %v", tc.raw, got, tc.want)
+		}
+	}
+}

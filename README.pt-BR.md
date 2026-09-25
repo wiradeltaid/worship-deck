@@ -36,7 +36,7 @@ As letras dos hinos são consultadas diretamente por número no banco de dados l
 - **Transições suaves configuráveis:** Corte, esmaecimento, dissolução e empurrão aplicados de forma idêntica na web e no PowerPoint.
 - **Consulta rápida de passagens bíblicas:** Projete versículos bíblicos (KJV) durante a mensagem e limpe a tela após a leitura.
 - **Mural de avisos da igreja:** Gerencie cartazes e anúncios locais a partir de arquivos locais ou endereços autorizados.
-- **Tipografia offline:** 35 famílias de fontes locais empacotadas, com suporte ao padrão ECMA-376 para embutimento de fontes no PowerPoint.
+- **Tipografia offline:** 41 famílias de fontes locais empacotadas, com suporte ao padrão ECMA-376 para embutimento de fontes no PowerPoint.
 - **Gestão de contas e permissões:** Perfis separados de administrador e operador, bloqueio por limite de tentativas e sessões revogáveis.
 - **Layout de formulário e análise dinâmicos:** Configure campos predefinidos com regras regex personalizadas e organize agrupamentos de formulário diretamente no painel de administração.
 - **Biblioteca de mídia:** Um conjunto reutilizável de imagens de fundo e cartazes, independente de qualquer layout específico.
@@ -156,6 +156,6 @@ Colaboradores devem ler [`.constitution/project/private-data.md`](.constitution/
 
 - **Licença do Código:** Distribuído sob a [Licença MIT](LICENSE).
 - **Atribuições e Coleções:** Hinários, traduções bíblicas e bibliotecas de terceiros estão listados em [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Fontes de Terceiros:** Avisos de direitos autorais e licenças completas SIL OFL 1.1 e Apache 2.0 para 35 famílias de fontes constam em [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+- **Fontes de Terceiros:** Avisos de direitos autorais e licenças completas SIL OFL 1.1 e Apache 2.0 para 41 famílias de fontes constam em [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
 - **Privacidade e Segurança:** 100% offline-first. Os dados permanecem no seu computador; zero telemetria e zero coleta analítica (veja [PRIVACY.md](PRIVACY.md) e [SECURITY.md](SECURITY.md)).
 - **Nome e Logotipo:** A licença MIT abrange o código-fonte, mas não confere direitos de marca. Os nomes **WorshipDeck** e **Wira Delta Indonesia**, bem como o logotipo do produto, são de propriedade exclusiva da PT Wira Delta Indonesia.

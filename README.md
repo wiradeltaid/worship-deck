@@ -34,7 +34,7 @@ Hymn lyrics come from a local corpus, looked up by number. Layouts come from a r
 - **Selectable transitions:** None, cut, fade, dissolve, or push, applied identically to the deck and the browser.
 - **Scripture lookup:** Pull a KJV passage onto the congregation screen during the service and clear it again.
 - **Announcement flyers:** A persistent list, with images uploaded to the hub or pulled from an allow-listed URL.
-- **Custom typography:** 35 bundled offline font families, plus support for importing custom font files with automated variant pairing and ECMA-376 PowerPoint embedding.
+- **Custom typography:** 41 bundled offline font families, plus support for importing custom font files with automated variant pairing and ECMA-376 PowerPoint embedding.
 - **Accounts and roles:** Per-person admin and operator accounts, rate-limited sign-in, and sessions that can be revoked.
 - **Dynamic form layout and parsing:** Configure Predefined Fields with custom regex extraction rules and arrange the Service form groupings directly from the admin panel, no code change needed.
 - **Media library:** A shared, reusable pool of background and flyer images, separate from any one slide layout.

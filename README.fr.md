@@ -36,7 +36,7 @@ Les paroles des cantiques sont indexées directement par numéro depuis la base 
 - **Transitions au choix :** Coupure, fondu, dissolution et glissement appliqués à l'identique sur le Web et dans PowerPoint.
 - **Affichage direct de passages bibliques :** Projetez des versets bibliques (KJV) pendant le culte et masquez-les d'un clic.
 - **Annonces paroissiales :** Gestion des affiches et avis paroissiaux depuis les fichiers locaux ou des adresses approuvées.
-- **Typographie personnalisée :** 35 familles de polices intégrées localement hors ligne, avec prise en charge de l'encapsulation ECMA-376 pour les polices personnalisées sous PowerPoint.
+- **Typographie personnalisée :** 41 familles de polices intégrées localement hors ligne, avec prise en charge de l'encapsulation ECMA-376 pour les polices personnalisées sous PowerPoint.
 - **Gestion des accès :** Séparation des comptes administrateur et opérateur, limitation du débit de connexion et sessions révocables.
 - **Mise en page et analyse dynamiques :** Configurez des champs prédéfinis avec des règles regex personnalisées et organisez les groupes de formulaires directement depuis le panneau d'administration.
 - **Bibliothèque de médias :** Un ensemble réutilisable d'images de fond et d'affiches, indépendant de toute mise en page.
@@ -156,6 +156,6 @@ Les contributeurs doivent impérativement consulter [`.constitution/project/priv
 
 - **Licence du Code :** Distribué sous [Licence MIT](LICENSE).
 - **Attributions et Recueils :** Recueils de cantiques, traductions bibliques et composants tiers sont détaillés dans [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Polices Tierces :** Mentions de droits d'auteur et textes intégraux des licences SIL OFL 1.1 et Apache 2.0 pour les 35 familles de polices disponibles dans [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+- **Polices Tierces :** Mentions de droits d'auteur et textes intégraux des licences SIL OFL 1.1 et Apache 2.0 pour les 41 familles de polices disponibles dans [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
 - **Confidentialité et Sécurité :** 100% offline-first. Les données restent strictement sur votre machine; aucune télémétrie ni analyse (voir [PRIVACY.md](PRIVACY.md) et [SECURITY.md](SECURITY.md)).
 - **Nom et Logo :** La licence MIT couvre le code source, mais ne confère aucun droit sur les marques. Les appellations **WorshipDeck** et **Wira Delta Indonesia** ainsi que le logo sont la propriété exclusive de PT Wira Delta Indonesia.

@@ -36,7 +36,7 @@ Liedtexte werden anhand der Liednummer direkt aus der lokalen Datenbank geladen.
 - **Wählbare Übergangseffekte:** Schnitt, Überblenden, Auflösen und Schieben werden identisch in Web und PowerPoint umgesetzt.
 - **Schnellanzeige von Bibelstellen:** Bibeltexte (KJV) während des Gottesdienstes auf den Gemeindebildschirm einblenden und anschließend wieder entfernen.
 - **Gemeindeankündigungen:** Verwaltung von Ankündigungsfolien aus lokalem Speicher oder von freigegebenen Adressen.
-- **Schriftarten-Unterstützung:** 35 lokal gebündelte Offline-Schriftfamilien sowie ECMA-376-Schrifteinbettung für eigene Schriftarten.
+- **Schriftarten-Unterstützung:** 41 lokal gebündelte Offline-Schriftfamilien sowie ECMA-376-Schrifteinbettung für eigene Schriftarten.
 - **Benutzerrollen und Sicherheit:** Getrennte Konten für Administratoren und Bediener, Ratengrenzen gegen Angriffe und widerrufbare Sitzungen.
 - **Dynamisches Formularlayout und Parsing:** Konfigurieren Sie vordefinierte Felder mit benutzerdefinierten Regex-Regeln und ordnen Sie Formulargruppen direkt im Admin-Panel an.
 - **Medienbibliothek:** Ein wiederverwendbarer Pool aus Hintergrund- und Ankündigungsbildern, unabhängig von einem einzelnen Layout.
@@ -156,6 +156,6 @@ Mitwirkende: Bitte lesen Sie [`.constitution/project/private-data.md`](.constitu
 
 - **Code-Lizenz:** Veröffentlicht unter der [MIT-Lizenz](LICENSE).
 - **Liedkorpus und Danksagungen:** Gesangbücher, Bibelübersetzungen und Lizenzen Dritter sind in [ATTRIBUTIONS.md](ATTRIBUTIONS.md) aufgeführt.
-- **Drittanbieter-Schriftarten:** Detaillierte Urheberrechtshinweise und vollständige Lizenztexte (SIL OFL 1.1 und Apache 2.0) für 35 Schriftfamilien finden sich in [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+- **Drittanbieter-Schriftarten:** Detaillierte Urheberrechtshinweise und vollständige Lizenztexte (SIL OFL 1.1 und Apache 2.0) für 41 Schriftfamilien finden sich in [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
 - **Datenschutz und Sicherheit:** 100% Offline-first. Daten verbleiben vollständig auf Ihrem lokalen Rechner; null Telemetrie, null Analyse (siehe [PRIVACY.md](PRIVACY.md) und [SECURITY.md](SECURITY.md)).
 - **Markenhinweis:** Die MIT-Lizenz gewährt Rechte am Code, nicht an Namen oder Logos. Die Namen **WorshipDeck** und **Wira Delta Indonesia** sowie das Produktlogo sind Eigentum der PT Wira Delta Indonesia.

@@ -186,3 +186,56 @@ test('anonymous GET pptx is 401', async () => {
   const res = await fetchRaw(`${base}/api/services/${serviceId}/pptx`);
   assert.equal(res.status, 401);
 });
+
+test('SPEC-78: GET /api/services/{id}/pptx defaults to word wrap enabled (wrap="square")', async () => {
+  const res = await fetchRaw(`${base}/api/services/${serviceId}/pptx`, {
+    cookie: `${SESSION_COOKIE}=${cookie}`,
+  });
+  assert.equal(res.status, 200);
+  const { default: JSZip } = await import(
+    pathToFileURL(path.join(root, 'node_modules', 'jszip', 'lib', 'index.js')).href
+  );
+  const zip = await JSZip.loadAsync(res.body);
+  const slide1Xml = await zip.file('ppt/slides/slide1.xml').async('string');
+  const bodyPrMatches = slide1Xml.match(/<a:bodyPr[^>]*>/g) || [];
+  assert.ok(bodyPrMatches.length > 0, 'expected slide 1 text bodyPr elements');
+  for (const b of bodyPrMatches) {
+    assert.match(b, /wrap="square"/);
+    assert.doesNotMatch(b, /wrap="none"/);
+  }
+});
+
+test('SPEC-78: GET /api/services/{id}/pptx?wrap=false disables word wrap (wrap="none")', async () => {
+  const res = await fetchRaw(`${base}/api/services/${serviceId}/pptx?wrap=false`, {
+    cookie: `${SESSION_COOKIE}=${cookie}`,
+  });
+  assert.equal(res.status, 200);
+  const { default: JSZip } = await import(
+    pathToFileURL(path.join(root, 'node_modules', 'jszip', 'lib', 'index.js')).href
+  );
+  const zip = await JSZip.loadAsync(res.body);
+  const slide1Xml = await zip.file('ppt/slides/slide1.xml').async('string');
+  const bodyPrMatches = slide1Xml.match(/<a:bodyPr[^>]*>/g) || [];
+  assert.ok(bodyPrMatches.length > 0, 'expected slide 1 text bodyPr elements');
+  for (const b of bodyPrMatches) {
+    assert.match(b, /wrap="none"/);
+    assert.doesNotMatch(b, /wrap="square"/);
+  }
+});
+
+test('SPEC-78: GET /api/services/{id}/pptx?wrap=0 disables word wrap (wrap="none")', async () => {
+  const res = await fetchRaw(`${base}/api/services/${serviceId}/pptx?wrap=0`, {
+    cookie: `${SESSION_COOKIE}=${cookie}`,
+  });
+  assert.equal(res.status, 200);
+  const { default: JSZip } = await import(
+    pathToFileURL(path.join(root, 'node_modules', 'jszip', 'lib', 'index.js')).href
+  );
+  const zip = await JSZip.loadAsync(res.body);
+  const slide1Xml = await zip.file('ppt/slides/slide1.xml').async('string');
+  const bodyPrMatches = slide1Xml.match(/<a:bodyPr[^>]*>/g) || [];
+  assert.ok(bodyPrMatches.length > 0, 'expected slide 1 text bodyPr elements');
+  for (const b of bodyPrMatches) {
+    assert.match(b, /wrap="none"/);
+  }
+});

@@ -1,6 +1,6 @@
 /* Presentation Font Catalog — Local Bundled Fonts (WSD-H-06) */
 
-/* 1. Sans-Serif (12) */
+/* 1. Sans-Serif (13) */
 @import "@fontsource/inter";
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
@@ -49,7 +49,11 @@
 @import "@fontsource/work-sans/600.css";
 @import "@fontsource/work-sans/700.css";
 
-/* 2. Serif (8) */
+@import "@fontsource/plus-jakarta-sans";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+
+/* 2. Serif (10) */
 @import "@fontsource/merriweather";
 @import "@fontsource/merriweather/700.css";
 
@@ -79,7 +83,14 @@
 @import "@fontsource/baskervville";
 @import "@fontsource/baskervville/400-italic.css";
 
-/* 3. Display (8) */
+@import "@fontsource/source-serif-4";
+@import "@fontsource/source-serif-4/600.css";
+@import "@fontsource/source-serif-4/700.css";
+
+@import "@fontsource/cinzel-decorative";
+@import "@fontsource/cinzel-decorative/700.css";
+
+/* 3. Display (11) */
 @import "@fontsource/bebas-neue";
 @import "@fontsource/anton";
 
@@ -98,6 +109,16 @@
 @import "@fontsource/abril-fatface";
 @import "@fontsource/alfa-slab-one";
 @import "@fontsource/russo-one";
+
+@import "@fontsource/fraunces";
+@import "@fontsource/fraunces/600.css";
+@import "@fontsource/fraunces/700.css";
+
+@import "@fontsource/calistoga";
+
+@import "@fontsource/syne";
+@import "@fontsource/syne/700.css";
+@import "@fontsource/syne/800.css";
 
 /* 4. Script & Handwriting (7) */
 @import "@fontsource/great-vibes";

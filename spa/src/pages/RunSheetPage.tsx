@@ -4,6 +4,12 @@ import Link from '@/components/Link';
 import EditForm from '@/operator/EditForm';
 import SyncArtifactButton from '@/operator/SyncArtifactButton';
 import { buttonVariants } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/operator';
 import { useSession } from '../lib/auth/SessionProvider';
@@ -101,14 +107,52 @@ export default function RunSheetPage() {
               onSuccess={reloadService}
             />
           ) : null}
-          <a
-            href={`/api/services/${svc.id}/pptx`}
-            download
-            aria-label={t('edit.actions.downloadPptx')}
-            className={cn(buttonVariants({ variant: 'default' }), 'h-auto px-3 py-2')}
-          >
-            {t('edit.actions.downloadPptx')}
-          </a>
+          <div className="inline-flex rounded-md shadow-xs">
+            <a
+              href={`/api/services/${svc.id}/pptx`}
+              download
+              aria-label={t('edit.actions.downloadPptx')}
+              className={cn(buttonVariants({ variant: 'default' }), 'rounded-r-none h-auto px-3 py-2 border-r border-primary-foreground/20')}
+            >
+              {t('edit.actions.downloadPptx')}
+            </a>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="PPTX Export Options"
+                className={cn(buttonVariants({ variant: 'default' }), 'rounded-l-none h-auto px-2 py-2')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = `/api/services/${svc.id}/pptx`;
+                    a.download = '';
+                    a.click();
+                  }}
+                  className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                >
+                  <span className="font-medium text-xs">Word Wrap in PowerPoint (Default)</span>
+                  <span className="text-muted-foreground text-[10px]">Text reflows in PowerPoint when edited</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = `/api/services/${svc.id}/pptx?wrap=false`;
+                    a.download = '';
+                    a.click();
+                  }}
+                  className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                >
+                  <span className="font-medium text-xs">Disable PowerPoint Word Wrap</span>
+                  <span className="text-muted-foreground text-[10px]">Preserves fixed unwrapped shape boundaries</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
       <EditForm

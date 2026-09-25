@@ -63,6 +63,7 @@ type SlideCtx = {
   /** 1-based slide numbers that opted in to the deck's transition. */
   transitionIndexes: Set<number>;
   count: number;
+  wordWrap?: boolean;
 };
 
 type PptxSlide = PptxGenJS.Slide;
@@ -232,7 +233,11 @@ function addImageUnavailable(slide: PptxSlide, box: PptxBox): void {
   });
 }
 
-function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
+function renderTextElement(
+  slide: PptxSlide,
+  element: ResolvedElement,
+  wordWrap = true
+): void {
   const text = resolveElementText(element);
   if (text === undefined) return;
 
@@ -304,13 +309,12 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
       ? Math.max(targetY, minTopInches)
       : targetY;
 
-  // When Canvas has already authoritatively partitioned lines (hasAuthoritativeWrap)
-  // or when runs contain explicit soft breaks, PowerPoint must respect those breaks
-  // and NOT perform mid-word wrapping.
-  const hasSoftBreaks =
-    Array.isArray(textRuns) &&
-    textRuns.some((r) => Boolean(r.options?.softBreakBefore) || Boolean(r.options?.breakLine));
-  const shouldWrap = !hasAuthoritativeWrap && !hasSoftBreaks;
+  // SPEC-78: Decouple DrawingML shape text wrapping from canvas line-partitioning.
+  // When wordWrap is true (default), enable native shape wrapping in PowerPoint (wrap: true)
+  // so text wraps within its bounding box when edited. Explicit soft breaks (<a:br/>) and
+  // paragraphs (<a:p>) authored from canvas partitions remain preserved in textRuns.
+  // When wordWrap is false, native shape wrapping is disabled (wrap: false -> wrap="none").
+  const wrap = wordWrap;
 
   // Line spacing normalization:
   // In PowerPoint DrawingML, single line spacing (val="100000") corresponds to 1.2x font size.
@@ -327,7 +331,7 @@ function renderTextElement(slide: PptxSlide, element: ResolvedElement): void {
     margin: 0, // SPEC-22: eliminate PowerPoint 0.2" default insets for Canvas/Presenter wrap width parity
     fontSize,
     fit: 'shrink',
-    wrap: shouldWrap,
+    wrap,
     fontFace: resolveFontFamily(style),
     color: toPptxColor(style.fontColor) ?? 'FFFFFF',
     bold: style?.pptxTypeface ? false : resolveBold(style),
@@ -486,7 +490,7 @@ function renderArtifactSlide(
   for (const element of layout.elements ?? []) {
     switch (element.type) {
       case 'text':
-        renderTextElement(slide, element);
+        renderTextElement(slide, element, ctx.wordWrap);
         break;
       case 'image':
       case 'image-placeholder':
@@ -795,11 +799,16 @@ async function postProcessArchive(
   }
 }
 
+export interface GeneratePptxOptions {
+  wordWrap?: boolean;
+}
+
 export async function generatePptxFromPlan(
   serviceDate: string,
   plan: DrawPlanItem[],
   transition: SlideTransition,
-  fontManifest?: Array<{ family: string; sourceTypeface?: string; weight?: string; style?: string; path: string; restricted?: boolean }>
+  fontManifest?: Array<{ family: string; sourceTypeface?: string; weight?: string; style?: string; path: string; restricted?: boolean }>,
+  options?: GeneratePptxOptions
 ): Promise<Buffer> {
   const style = transition;
   const embedded = await embedPlanImages(plan);
@@ -815,6 +824,7 @@ export async function generatePptxFromPlan(
     images: embedded,
     transitionIndexes: new Set<number>(),
     count: 0,
+    wordWrap: options?.wordWrap !== undefined ? options.wordWrap : true,
   };
 
   const usedFonts = new Map<string, FontUsageItem>();

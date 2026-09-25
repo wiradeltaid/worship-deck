@@ -8,9 +8,10 @@ import {
 import {
   generatePptxFromPlan,
   type DrawPlanItem,
+  type GeneratePptxOptions,
 } from './pptx-draw';
 
-export { generatePptxFromPlan, type DrawPlanItem } from './pptx-draw';
+export { generatePptxFromPlan, type DrawPlanItem, type GeneratePptxOptions } from './pptx-draw';
 
 /**
  * The configured style, or the default if the settings row cannot be read at
@@ -34,9 +35,10 @@ export async function generatePptx(
   parsedData: ParsedRundown,
   images: string[] | SlidePlanMedia = [],
   transition?: SlideTransition,
-  source?: { serviceId?: number }
+  source?: { serviceId?: number },
+  options?: GeneratePptxOptions
 ): Promise<Buffer> {
   const style = transition ?? configuredTransition();
   const plan = buildSlidePlan(serviceDate, parsedData, images, source);
-  return generatePptxFromPlan(serviceDate, plan as DrawPlanItem[], style);
+  return generatePptxFromPlan(serviceDate, plan as DrawPlanItem[], style, undefined, options);
 }

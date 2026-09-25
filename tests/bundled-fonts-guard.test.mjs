@@ -104,7 +104,7 @@ test('WSD-H-06: guard proof — injected Google Font URL in src/lib/registry/fon
   }
 });
 
-test('WSD-H-06: all 35 font families are bundled locally in spa/src/fonts.css', () => {
+test('WSD-H-06 / SPEC-79: all 41 font families are bundled locally in spa/src/fonts.css and data/fonts/', () => {
   const fontsCssPath = path.join(root, 'spa', 'src', 'fonts.css');
   assert.ok(fs.existsSync(fontsCssPath), 'spa/src/fonts.css must exist');
   const content = fs.readFileSync(fontsCssPath, 'utf8');
@@ -122,6 +122,7 @@ test('WSD-H-06: all 35 font families are bundled locally in spa/src/fonts.css', 
     'barlow-condensed',
     'dm-sans',
     'work-sans',
+    'plus-jakarta-sans',
     'merriweather',
     'playfair-display',
     'lora',
@@ -130,6 +131,8 @@ test('WSD-H-06: all 35 font families are bundled locally in spa/src/fonts.css', 
     'pt-serif',
     'eb-garamond',
     'baskervville',
+    'source-serif-4',
+    'cinzel-decorative',
     'bebas-neue',
     'anton',
     'league-spartan',
@@ -138,6 +141,9 @@ test('WSD-H-06: all 35 font families are bundled locally in spa/src/fonts.css', 
     'abril-fatface',
     'alfa-slab-one',
     'russo-one',
+    'fraunces',
+    'calistoga',
+    'syne',
     'great-vibes',
     'pacifico',
     'caveat',
@@ -147,10 +153,29 @@ test('WSD-H-06: all 35 font families are bundled locally in spa/src/fonts.css', 
     'satisfy',
   ];
 
+  assert.equal(expectedFamilies.length, 41, 'Expected exactly 41 bundled font families');
+
   for (const family of expectedFamilies) {
     assert.ok(
       content.includes(`@fontsource/${family}`),
       `spa/src/fonts.css must import @fontsource/${family}`
     );
+  }
+
+  // Verify all 46 TrueType font files (41 families + 5 bold variants) exist in data/fonts/
+  const fontsDir = path.join(root, 'data', 'fonts');
+  assert.ok(fs.existsSync(fontsDir), 'data/fonts directory must exist');
+  const ttfFiles = fs.readdirSync(fontsDir).filter((f) => f.endsWith('.ttf'));
+  assert.equal(ttfFiles.length, 46, `data/fonts must contain 46 TTF font files, got ${ttfFiles.length}`);
+
+  const requiredBoldFiles = [
+    'Plus Jakarta Sans-bold.ttf',
+    'Fraunces-bold.ttf',
+    'Source Serif 4-bold.ttf',
+    'Cinzel Decorative-bold.ttf',
+    'Syne-bold.ttf',
+  ];
+  for (const boldFile of requiredBoldFiles) {
+    assert.ok(fs.existsSync(path.join(fontsDir, boldFile)), `data/fonts/${boldFile} must exist`);
   }
 });

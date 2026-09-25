@@ -1,5 +1,5 @@
 /**
- * SPEC-17-01: 45-Font Catalog Verification, Fallback Stacks, and Constant Deduplication
+ * SPEC-17-01 / SPEC-79: 51-Font Catalog Verification, Fallback Stacks, and Constant Deduplication
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,11 +30,11 @@ const { DEFAULT_FONT_FAMILY: RENDER_DEFAULT_FONT } = await import(
   srcUrl('lib', 'artifacts', 'render-model.ts')
 );
 
-test('FONT_CATALOG contains exactly 45 unique font definitions', () => {
-  assert.equal(FONT_CATALOG.length, 45, 'Font catalog must contain exactly 45 fonts');
+test('FONT_CATALOG contains exactly 51 unique font definitions', () => {
+  assert.equal(FONT_CATALOG.length, 51, 'Font catalog must contain exactly 51 fonts');
 
   const families = new Set(FONT_CATALOG.map((f) => f.family.toLowerCase()));
-  assert.equal(families.size, 45, 'All font family names must be unique');
+  assert.equal(families.size, 51, 'All font family names must be unique');
 });
 
 test('FONT_CATALOG is distributed across exactly 5 distinct categories', () => {
@@ -52,9 +52,9 @@ test('FONT_CATALOG is distributed across exactly 5 distinct categories', () => {
   }
 
   assert.equal(counts.system, 10, 'Must have 10 system/PowerPoint safe fonts');
-  assert.equal(counts.sans, 12, 'Must have 12 modern sans-serif fonts');
-  assert.equal(counts.serif, 8, 'Must have 8 dignified serif fonts');
-  assert.equal(counts.display, 8, 'Must have 8 bold display & title fonts');
+  assert.equal(counts.sans, 13, 'Must have 13 modern sans-serif fonts');
+  assert.equal(counts.serif, 10, 'Must have 10 dignified serif fonts');
+  assert.equal(counts.display, 11, 'Must have 11 bold display & title fonts');
   assert.equal(counts.script, 7, 'Must have 7 script & handwriting fonts');
 
   const categories = Object.keys(FONT_CATEGORY_LABELS);

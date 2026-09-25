@@ -3391,7 +3391,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # PPTX text box word wrap option on export.
   - id: SPEC-78
-    status: open
+    status: closed
     release: pptx-word-wrap-option
     prd: [offline-deck]
     fr: [FR-14]
@@ -3415,7 +3415,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Curated free presentation fonts expansion (6 OFL fonts).
   - id: SPEC-79
-    status: open
+    status: closed
     release: curated-presentation-fonts-expansion
     prd: [offline-deck]
     fr: [FR-39]
@@ -3447,7 +3447,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Image crop aspect ratio presets and original/custom aspect handling.
   - id: SPEC-80
-    status: open
+    status: closed
     release: image-crop-presets-and-aspect-handling
     prd: [operator-turn]
     fr: [FR-1, FR-2, FR-3]

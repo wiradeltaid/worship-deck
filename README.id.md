@@ -36,7 +36,7 @@ Lirik lagu diambil dari korpus database lokal berdasarkan nomor lagu. Tata letak
 - **Pilihan Efek Transisi:** Dukungan transisi none, cut, fade, dissolve, atau push, diterapkan identik pada tayangan web maupun file PowerPoint.
 - **Pencarian Ayat Alkitab Cepat:** Tampilkan perikop Alkitab (KJV) ke layar jemaat di tengah ibadah secara cepat dan bersihkan kembali setelah selesai dibaca.
 - **Warta dan Flyer Pengumuman:** Daftar flyer terkelola dengan gambar yang diunggah langsung atau diambil dari URL yang diizinkan.
-- **Tipografi Kustom:** 35 keluarga font lokal yang dibundel luring, serta dukungan impor berkas font kustom dengan pengelompokan varian otomatis dan enkapsulasi ECMA-376 PowerPoint.
+- **Tipografi Kustom:** 41 keluarga font lokal yang dibundel luring, serta dukungan impor berkas font kustom dengan pengelompokan varian otomatis dan enkapsulasi ECMA-376 PowerPoint.
 - **Manajemen Akun dan Sesi:** Akun admin dan operator terpisah, pembatasan laju login, serta token sesi kriptografis yang dapat dicabut seketika.
 - **Tata Letak Formulir dan Parsing Dinamis:** Konfigurasi Predefined Fields dengan aturan regex ekstraksi kustom dan susun pengelompokan formulir Layanan langsung dari panel admin, tanpa perlu mengubah kode.
 - **Pustaka Media (Media Library):** Kumpulan gambar latar dan flyer yang dapat dipakai ulang lintas tata letak, terpisah dari tata letak mana pun.
@@ -158,6 +158,6 @@ Kontributor diwajibkan membaca [`.constitution/project/private-data.md`](.consti
 
 - **Lisensi Kode:** Didistribusikan di bawah [Lisensi MIT](LICENSE).
 - **Atribusi dan Korpus Himne:** Buku lagu gereja, terjemahan Alkitab, dan lisensi komponen pihak ketiga dicatat lengkap di [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
-- **Pemberitahuan Font Pihak Ketiga:** Rincian hak cipta dan lisensi lengkap SIL OFL 1.1 serta Apache 2.0 untuk 35 keluarga font disediakan di [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
+- **Pemberitahuan Font Pihak Ketiga:** Rincian hak cipta dan lisensi lengkap SIL OFL 1.1 serta Apache 2.0 untuk 41 keluarga font disediakan di [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
 - **Privasi dan Keamanan:** 100% offline-first. Data jemaat tetap sepenuhnya di mesin lokal Anda; nol telemetri, nol analitik (lihat [PRIVACY.md](PRIVACY.md) dan [SECURITY.md](SECURITY.md)).
 - **Nama dan Ikon:** Lisensi MIT memberikan hak atas kode sumber aplikasi. Lisensi ini tidak memberikan hak merek dagang atas nama atau logo: hak atas nama **WorshipDeck**, **Wira Delta Indonesia**, dan logo produk tetap merupakan hak milik eksklusif PT Wira Delta Indonesia.

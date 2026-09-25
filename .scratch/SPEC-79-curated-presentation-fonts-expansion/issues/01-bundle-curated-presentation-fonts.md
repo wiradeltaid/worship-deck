@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/registry/font-catalog.ts`, `spa/src/fonts.css`, and `src/lib/fonts/embed-fonts.ts` first.
-- [ ] Install `@fontsource` packages for the 6 curated fonts:
+- [x] Read `src/lib/registry/font-catalog.ts`, `spa/src/fonts.css`, and `src/lib/fonts/embed-fonts.ts` first.
+- [x] Install `@fontsource` packages for the 6 curated fonts:
       `npm install @fontsource/plus-jakarta-sans @fontsource/fraunces @fontsource/source-serif-4 @fontsource/calistoga @fontsource/cinzel-decorative @fontsource/syne`
-- [ ] Import the font stylesheets into `spa/src/fonts.css`.
-- [ ] In `src/lib/registry/font-catalog.ts`:
+- [x] Import the font stylesheets into `spa/src/fonts.css`.
+- [x] In `src/lib/registry/font-catalog.ts`:
       - Add font definitions for:
         - `Plus Jakarta Sans` (`category: 'sans'`, `fallback: 'sans-serif'`, `pptxSubstitute: 'Arial'`, `embeddable: true`)
         - `Fraunces` (`category: 'display'`, `fallback: 'serif'`, `pptxSubstitute: 'Georgia'`, `embeddable: true`)
@@ -18,5 +18,5 @@
         - `Calistoga` (`category: 'display'`, `fallback: 'serif'`, `pptxSubstitute: 'Georgia'`, `embeddable: true`)
         - `Cinzel Decorative` (`category: 'serif'`, `fallback: 'serif'`, `pptxSubstitute: 'Times New Roman'`, `embeddable: true`)
         - `Syne` (`category: 'display'`, `fallback: 'sans-serif'`, `pptxSubstitute: 'Arial'`, `embeddable: true`)
-- [ ] Stage required TrueType `.ttf` files in `data/fonts/` for offline PPTX embedding.
-- [ ] Run `tests/bundled-fonts-guard.test.mjs` and `npm run typecheck` to verify clean offline bundling.
+- [x] Stage required TrueType `.ttf` files in `data/fonts/` for offline PPTX embedding.
+- [x] Run `tests/bundled-fonts-guard.test.mjs` and `npm run typecheck` to verify clean offline bundling.
