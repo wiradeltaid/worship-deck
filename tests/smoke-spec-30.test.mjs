@@ -362,7 +362,8 @@ test('T-30-05: Real Microsoft PowerPoint COM Automated Open & Slide Export Verif
       },
     };
 
-    const buffer = await generatePptxFromPlan('2026-09-14', [planItem], 'none');
+    // SPEC-78: pass wordWrap: false to verify complete-word line preservation without PowerPoint shape re-wrapping
+    const buffer = await generatePptxFromPlan('2026-09-14', [planItem], 'none', undefined, { wordWrap: false });
     fs.writeFileSync(tempPptx, buffer);
 
     const comScript = `
