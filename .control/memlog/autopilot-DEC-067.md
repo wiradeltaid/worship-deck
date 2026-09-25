@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 17 (commit bbeddc7)
+- Iteration: 18
 - Run branch: autopilot/DEC-067 (Draft PR #112)
-- Stopped at: Capacity — SPEC-75 closed and pushed to draft PR #112; handing off cleanly at iteration boundary
+- Stopped at: In progress — SPEC-76 completed, tested, peer-reviewed, and closed; proceeding to SPEC-77
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
-- Next: SPEC-76 Ticket 01 (SPEC-76-01) — song set background thumbnail dropdowns and canvas image fit modes
+- Next: SPEC-77 Ticket 01 (SPEC-77-01) — client-side image cropping and resizing helper
 
 ## Decisions
 
@@ -35,6 +35,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-15 (WSD-H-14) | PRIVACY.md, PRIVACY.id.md, SECURITY.md, SECURITY.id.md, docs/threat-model.md, tests/legal-copy-guard.test.mjs, package.json | Synchronize legal documents verbatim from ops SSOT with English copy stamps on line 2, cross-language links, finalized go-live effective date (2026-09-24), align threat model data deletion semantics and WorshipDeck naming, and enforce absence guards with tests/legal-copy-guard.test.mjs | legal text drift, unaligned threat model, or broken legal citations | high | PRIVACY.md, PRIVACY.id.md, SECURITY.md, SECURITY.id.md, docs/threat-model.md, tests/legal-copy-guard.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/14-wsd-h-14-legal-copies-ops-threat-model-aligned.md |
 | I-16 (SPEC-74-01) | CONTRIBUTING.md, .github/ISSUE_TEMPLATE/bug_report.md, tests/vulnerability-reporting-channel-guard.test.mjs, package.json | Align vulnerability reporting channel strictly to GitHub Security Advisories, update bug_report template to WorshipDeck, establish automated absence guard test with dynamic token assembly and 4-surface real-file defect injection proofs, additively wire into package.json, and align presenter acceptance test button locator with congregation screen nomenclature, verified by Terra peer review | keeping residual security email mailbox in public docs | medium | CONTRIBUTING.md, .github/ISSUE_TEMPLATE/bug_report.md, package.json, tests/acceptance-fr16-fr19-fr28.test.mjs, tests/vulnerability-reporting-channel-guard.test.mjs, .scratch/SPEC-74-align-security-vulnerability-reporting-to-github-advisories/issues/01-wsd-w1-align-vulnerability-reporting-channel-to-github-advisories.md |
 | I-17 (SPEC-75-01) | src/operator/present/presenter-model.ts, PresenterOperator.tsx, tests/presenter-container-scroll.test.mjs, package.json | Replace activeRowRef scrollIntoView with container-scoped scrollChildIntoContainerView on slideListContainerRef and filmstripContainerRef to eliminate browser window scroll displacement on slide navigation, enforce with geometry matrix, behavior check, and absence/presence guards with defect injection, verified by Terra peer review | keeping standard Element.scrollIntoView that scrolls ancestor window | medium | src/operator/present/presenter-model.ts, src/operator/present/PresenterOperator.tsx, tests/presenter-container-scroll.test.mjs, package.json, .scratch/SPEC-75-isolate-presenter-slide-list-scroll-from-window/issues/01-isolate-presenter-slide-list-scroll-from-window.md |
+| I-18 (SPEC-76) | src/operator/DynamicFormBody.tsx, PresenterOperator.tsx, CreateForm.tsx, EditForm.tsx, RemoteOperator.tsx, src/components/admin/ArtifactEditor.tsx, src/lib/artifacts/render-model.ts, tests/background-thumbnail-picker.test.mjs, tests/canvas-image-fit-modes.test.mjs, package.json | Upgrade song set background selectors to visual thumbnail dropdowns with clean labels across all operator surfaces eliminating raw hash strings, implement standard 3-way image fit controls (Fit/Cover/Stretch) in canvas editor with placeholder support and removal of resize coercion, verified by Terra peer review | keeping raw hash filenames and 2-way fit toggle with forced fill resize coercion | medium | src/operator/DynamicFormBody.tsx, src/operator/present/PresenterOperator.tsx, src/operator/CreateForm.tsx, src/operator/EditForm.tsx, src/operator/present/RemoteOperator.tsx, src/components/admin/ArtifactEditor.tsx, src/lib/artifacts/render-model.ts, tests/background-thumbnail-picker.test.mjs, tests/canvas-image-fit-modes.test.mjs, package.json, .scratch/SPEC-76-background-thumbnails-and-canvas-image-fit-modes/issues/01-song-set-background-thumbnail-dropdown.md, .scratch/SPEC-76-background-thumbnails-and-canvas-image-fit-modes/issues/02-canvas-image-and-placeholder-fit-modes.md |
 
 ## Smoke Test Results
 

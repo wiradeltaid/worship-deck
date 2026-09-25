@@ -3698,10 +3698,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/canvas-image-fit-modes.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6723,10 +6723,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/canvas-image-fit-modes.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -6948,10 +6948,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/background-thumbnail-picker.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-33
@@ -9029,10 +9029,10 @@ rtm:
   release: background-thumbnails-and-canvas-image-fit-modes
   test:
   - tests/canvas-image-fit-modes.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

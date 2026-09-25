@@ -1097,10 +1097,21 @@ export default function EditForm({
                                 <SelectValue placeholder={t('form.songSets.globalDefault')} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="default">{t('form.songSets.globalDefault')}</SelectItem>
+                                <SelectItem value="default">
+                                  <span className="truncate text-xs text-muted-foreground">{t('form.songSets.globalDefault')}</span>
+                                </SelectItem>
                                 {backgroundLibrary.map((img) => (
                                   <SelectItem key={img.id} value={img.url}>
-                                    {img.url.split('/').pop() || `Image ${img.id}`} {img.isDefault ? `(${t('form.songSets.globalDefault')})` : ''}
+                                    <div className="flex items-center gap-2 py-0.5">
+                                      <img
+                                        src={img.url}
+                                        alt=""
+                                        className="h-6 w-9 shrink-0 rounded border border-border object-cover bg-muted"
+                                      />
+                                      <span className="truncate text-xs">
+                                        Image {img.id} {img.isDefault ? `(${t('form.songSets.globalDefault')})` : ''}
+                                      </span>
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>

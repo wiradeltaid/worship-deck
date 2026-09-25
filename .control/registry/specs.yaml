@@ -3322,7 +3322,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Song set background thumbnail dropdowns and canvas image fit modes.
   - id: SPEC-76
-    status: open
+    status: closed
     release: background-thumbnails-and-canvas-image-fit-modes
     prd: [operator-turn]
     fr: [FR-16, FR-1]

@@ -480,11 +480,21 @@ export default function RemoteOperator({
                       <SelectValue placeholder={t('remote.deckDefault')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">{t('remote.deckDefault')}</SelectItem>
+                      <SelectItem value="default">
+                        <span className="truncate text-xs text-muted-foreground">{t('remote.deckDefault')}</span>
+                      </SelectItem>
                       {backgroundLibrary.map((bg) => (
                         <SelectItem key={bg.id} value={bg.url}>
-                          {bg.url.split('/').pop() || `Image ${bg.id}`}{' '}
-                          {bg.isDefault ? '(Default)' : ''}
+                          <div className="flex items-center gap-2 py-0.5">
+                            <img
+                              src={bg.url}
+                              alt=""
+                              className="h-6 w-9 shrink-0 rounded border border-border object-cover bg-muted"
+                            />
+                            <span className="truncate text-xs">
+                              Image {bg.id}{bg.isDefault ? ' (Default)' : ''}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

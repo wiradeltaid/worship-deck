@@ -329,6 +329,7 @@ function SongSetSlotRenderer({
   const defaultBook = songBooks.find((b) => b.isDefault);
   const selectedBookCode = values.songBookCode || defaultBook?.bookCode || 'SDAH';
   const hasValidNum = /^\d+$/.test(values.songNumber.trim());
+  const selectedFormBg = backgroundLibrary.find((b) => b.url === values.background);
 
   return (
     <div
@@ -392,7 +393,7 @@ function SongSetSlotRenderer({
         </div>
 
         {/* Background Selector */}
-        <div className="w-36 shrink-0">
+        <div className="w-48 shrink-0">
           <Select
             value={values.background || 'default'}
             onValueChange={(val) =>
@@ -401,13 +402,37 @@ function SongSetSlotRenderer({
             disabled={disabled}
           >
             <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Background" />
+              {selectedFormBg ? (
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <img
+                    src={selectedFormBg.url}
+                    alt=""
+                    className="h-4 w-6 shrink-0 rounded border border-border object-cover bg-muted"
+                  />
+                  <span className="truncate text-xs">
+                    Image {selectedFormBg.id}{selectedFormBg.isDefault ? ' (Default)' : ''}
+                  </span>
+                </div>
+              ) : (
+                <SelectValue placeholder="Default Background" />
+              )}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Default Background</SelectItem>
+              <SelectItem value="default">
+                <span className="truncate text-xs text-muted-foreground">Default Background</span>
+              </SelectItem>
               {backgroundLibrary.map((img) => (
                 <SelectItem key={img.id} value={img.url}>
-                  {img.url.split('/').pop() || `Image ${img.id}`}
+                  <div className="flex items-center gap-2 py-0.5">
+                    <img
+                      src={img.url}
+                      alt=""
+                      className="h-6 w-9 shrink-0 rounded border border-border object-cover bg-muted"
+                    />
+                    <span className="truncate text-xs">
+                      Image {img.id}{img.isDefault ? ' (Default)' : ''}
+                    </span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

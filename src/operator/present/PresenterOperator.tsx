@@ -313,6 +313,7 @@ export default function PresenterOperator({
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
+  const selectedLiveBg = backgroundLibrary.find((b) => b.url === liveBackground);
   const [scriptureRef, setScriptureRef] = useState('');
   const [scriptureBusy, setScriptureBusy] = useState(false);
   const [scriptureError, setScriptureError] = useState<string | null>(null);
@@ -1095,14 +1096,38 @@ export default function PresenterOperator({
                   blurFocusedControl();
                 }}
               >
-                <SelectTrigger id="live-background" size="sm" className="w-[9.5rem]">
-                  <SelectValue placeholder="Deck default" />
+                <SelectTrigger id="live-background" size="sm" className="w-[12rem]">
+                  {selectedLiveBg ? (
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <img
+                        src={selectedLiveBg.url}
+                        alt=""
+                        className="h-4 w-6 shrink-0 rounded border border-border object-cover bg-muted"
+                      />
+                      <span className="truncate text-xs">
+                        Image {selectedLiveBg.id}{selectedLiveBg.isDefault ? ' (Default)' : ''}
+                      </span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="Deck default" />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">Deck default</SelectItem>
+                  <SelectItem value="default">
+                    <span className="truncate text-xs text-muted-foreground">Deck default</span>
+                  </SelectItem>
                   {backgroundLibrary.map((bg) => (
                     <SelectItem key={bg.id} value={bg.url}>
-                      {bg.url.split('/').pop() || `Image ${bg.id}`} {bg.isDefault ? '(Default)' : ''}
+                      <div className="flex items-center gap-2 py-0.5">
+                        <img
+                          src={bg.url}
+                          alt=""
+                          className="h-6 w-9 shrink-0 rounded border border-border object-cover bg-muted"
+                        />
+                        <span className="truncate text-xs">
+                          Image {bg.id}{bg.isDefault ? ' (Default)' : ''}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
