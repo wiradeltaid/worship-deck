@@ -954,6 +954,20 @@ rtm:
   FR: FR-14
   DEC: []
   UC: UC-18
+  ticket: SPEC-81-03
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/song-set-background-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
   ticket: W2-2-1
   spec: W2
   release: go-spa-cutover
@@ -3787,6 +3801,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-81-03
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/song-set-background-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6860,6 +6888,20 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-81-03
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/song-set-background-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -6984,6 +7026,20 @@ rtm:
   FR: FR-31
   DEC: []
   UC: UC-25
+  ticket: SPEC-81-02
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/background-dual-defaults.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-31
+  DEC: []
+  UC: UC-25
   ticket: W6-02
   spec: W6
   release: registry-extensions
@@ -7052,6 +7108,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-33
+  DEC: []
+  UC: UC-27
+  ticket: SPEC-81-01
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/presenter-live-background-preview.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-33
@@ -7287,6 +7357,20 @@ rtm:
   - tests/webhook-auth.test.mjs
   - internal/httpapi/webhook_test.go
   status: closed
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-38
+  DEC: []
+  UC: UC-25
+  ticket: SPEC-81-02
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/background-dual-defaults.test.mjs
+  status: open
   exempt: false
   green: false
   broken_at: status
@@ -9204,6 +9288,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-81-03
+  spec: SPEC-81
+  release: dual-default-backgrounds-and-presenter-pptx-parity
+  test:
+  - tests/song-set-background-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

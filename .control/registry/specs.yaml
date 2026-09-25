@@ -3468,6 +3468,45 @@ waves:
         tests:
           - tests/crop-aspect-presets.test.mjs
 
+  # Opened 2026-09-25 from user triage notes.
+  # Dual default backgrounds, song-set resolution, and presenter/pptx parity.
+  - id: SPEC-81
+    status: open
+    release: dual-default-backgrounds-and-presenter-pptx-parity
+    prd: [operator-turn, offline-deck]
+    fr: [FR-14, FR-16, FR-31, FR-32]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-81-dual-default-backgrounds-and-presenter-pptx-parity/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: '2c6367ffba5e2746f8e372c99798ffd577f2217f'
+      lenses: [structure, prose, edge-case-hunter, requirements-traceability, data-migration, pptx-inspection]
+      note: "Terra (kiro-agent). Verdict accept-with-changes folded in: reconciled requirements with UC-25 by replacing ON DELETE RESTRICT with ON DELETE CASCADE to allow deletion and graceful fallback, scoped Presenter live background override strictly to lyric slides via isVerseOrReff boundary, defined authoritative precedence table per slide kind (Lyric, Title, Non-song), specified transparent compositing for contain/fit mode image placeholders, required observable ZIP-level media deduplication proofs for PPTX export, established deterministic migration for 0, 1, or multi-default legacy rows, and confirmed canonical UC-18 in usecases.yaml."
+    tickets:
+      - id: "SPEC-81-01"
+        component: presenter
+        satisfies: [UC-27, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-live-background-preview.test.mjs
+      - id: "SPEC-81-02"
+        component: hub
+        satisfies: [UC-25, FR-31]
+        blocked_by: []
+        touches: [settings, services]
+        tests:
+          - tests/background-dual-defaults.test.mjs
+      - id: "SPEC-81-03"
+        component: hub
+        satisfies: [UC-14, UC-18, FR-14, FR-31, FR-32]
+        blocked_by: ["SPEC-81-02"]
+        touches: [services, artifacts, pptx]
+        tests:
+          - tests/song-set-background-parity.test.mjs
+
+
 
 
 
