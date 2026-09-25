@@ -6,7 +6,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 19
+- Iteration: 19 (commit 0a0f533)
 - Run branch: autopilot/DEC-067 (Draft PR #112)
 - Stopped at: Done — SPEC-75, SPEC-76, and SPEC-77 all completed, tested, peer-reviewed, and closed; SPEC-73 Ticket 16 parked on external milestone prerequisite
 - Blocked: —
