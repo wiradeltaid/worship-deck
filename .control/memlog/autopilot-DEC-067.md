@@ -6,9 +6,9 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 17
-- Run branch: autopilot/DEC-067
-- Stopped at: In progress — SPEC-75 completed, tested, peer-reviewed, and closed; proceeding to SPEC-76
+- Iteration: 17 (commit bbeddc7)
+- Run branch: autopilot/DEC-067 (Draft PR #112)
+- Stopped at: Capacity — SPEC-75 closed and pushed to draft PR #112; handing off cleanly at iteration boundary
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
 - Next: SPEC-76 Ticket 01 (SPEC-76-01) — song set background thumbnail dropdowns and canvas image fit modes
