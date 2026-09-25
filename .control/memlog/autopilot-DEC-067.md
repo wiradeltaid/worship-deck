@@ -6,9 +6,9 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 18
+- Iteration: 18 (commit 1fde09b)
 - Run branch: autopilot/DEC-067 (Draft PR #112)
-- Stopped at: In progress — SPEC-76 completed, tested, peer-reviewed, and closed; proceeding to SPEC-77
+- Stopped at: Capacity — SPEC-76 closed and pushed to draft PR #112; handing off cleanly at iteration boundary
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
 - Next: SPEC-77 Ticket 01 (SPEC-77-01) — client-side image cropping and resizing helper
