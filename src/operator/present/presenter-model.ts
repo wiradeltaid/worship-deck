@@ -268,3 +268,66 @@ export function formatPresenterRunSheet(
   return { text: rundownText, isEmpty: false };
 }
 
+/**
+ * Container-scoped child scroll adjustment (SPEC-75).
+ *
+ * Keeps active slide elements visible inside their parent scrollable containers
+ * without triggering ancestor/window scroll side-effects caused by standard
+ * Element.prototype.scrollIntoView().
+ */
+export function scrollChildIntoContainerView(
+  container: HTMLElement | null | undefined,
+  child: HTMLElement | null | undefined,
+  axis: 'vertical' | 'horizontal' = 'vertical'
+): boolean {
+  if (!container || !child) return false;
+  if (
+    typeof container.getBoundingClientRect !== 'function' ||
+    typeof child.getBoundingClientRect !== 'function'
+  ) {
+    return false;
+  }
+
+  const cRect = container.getBoundingClientRect();
+  const rRect = child.getBoundingClientRect();
+
+  if (axis === 'horizontal') {
+    let delta = 0;
+    if (rRect.width > cRect.width) {
+      delta = rRect.left - cRect.left;
+    } else if (rRect.left < cRect.left) {
+      delta = rRect.left - cRect.left;
+    } else if (rRect.right > cRect.right) {
+      delta = rRect.right - cRect.right;
+    } else {
+      return false;
+    }
+
+    if (delta === 0) return false;
+    const initialScroll = container.scrollLeft ?? 0;
+    const nextScroll = Math.max(0, initialScroll + delta);
+    if (nextScroll === initialScroll) return false;
+    container.scrollLeft = nextScroll;
+    return true;
+  }
+
+  // Vertical axis (default)
+  let delta = 0;
+  if (rRect.height > cRect.height) {
+    delta = rRect.top - cRect.top;
+  } else if (rRect.top < cRect.top) {
+    delta = rRect.top - cRect.top;
+  } else if (rRect.bottom > cRect.bottom) {
+    delta = rRect.bottom - cRect.bottom;
+  } else {
+    return false;
+  }
+
+  if (delta === 0) return false;
+  const initialScroll = container.scrollTop ?? 0;
+  const nextScroll = Math.max(0, initialScroll + delta);
+  if (nextScroll === initialScroll) return false;
+  container.scrollTop = nextScroll;
+  return true;
+}
+

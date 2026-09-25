@@ -3298,7 +3298,7 @@ waves:
   # Opened 2026-09-25 from user triage notes.
   # Isolate presenter slide list scroll from window.
   - id: SPEC-75
-    status: open
+    status: closed
     release: isolate-presenter-slide-list-scroll-from-window
     prd: [operator-turn]
     fr: [FR-16]

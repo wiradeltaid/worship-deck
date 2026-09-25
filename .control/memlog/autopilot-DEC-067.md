@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 16
+- Iteration: 17
 - Run branch: autopilot/DEC-067
-- Stopped at: Done — SPEC-74 completed and verified; SPEC-73 Ticket 16 parked on external milestone
+- Stopped at: In progress — SPEC-75 completed, tested, peer-reviewed, and closed; proceeding to SPEC-76
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
-- Next: § Finish — open draft PR from autopilot/DEC-067 and execute final gate checks
+- Next: SPEC-76 Ticket 01 (SPEC-76-01) — song set background thumbnail dropdowns and canvas image fit modes
 
 ## Decisions
 
@@ -34,6 +34,7 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 | I-14 (WSD-H-10) | CHANGELOG.md, tests/changelog-guard.test.mjs, package.json | Rewrite CHANGELOG [0.1.0] section grounded strictly in release build reality without internal IDs (DEC-, SPEC-, FR-), dashes, or prohibited terms (template, parser profile, webhook, projector, updater), plainly state system boundaries and limitations, and add tests/changelog-guard.test.mjs | inaccurate changelog claims, broken release notes parser, or internal ID leak | medium | CHANGELOG.md, tests/changelog-guard.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/10-wsd-h-10-changelog-rewrite.md |
 | I-15 (WSD-H-14) | PRIVACY.md, PRIVACY.id.md, SECURITY.md, SECURITY.id.md, docs/threat-model.md, tests/legal-copy-guard.test.mjs, package.json | Synchronize legal documents verbatim from ops SSOT with English copy stamps on line 2, cross-language links, finalized go-live effective date (2026-09-24), align threat model data deletion semantics and WorshipDeck naming, and enforce absence guards with tests/legal-copy-guard.test.mjs | legal text drift, unaligned threat model, or broken legal citations | high | PRIVACY.md, PRIVACY.id.md, SECURITY.md, SECURITY.id.md, docs/threat-model.md, tests/legal-copy-guard.test.mjs, package.json, .scratch/SPEC-73-worship-deck-first-release-0-1-0-and-go-live/issues/14-wsd-h-14-legal-copies-ops-threat-model-aligned.md |
 | I-16 (SPEC-74-01) | CONTRIBUTING.md, .github/ISSUE_TEMPLATE/bug_report.md, tests/vulnerability-reporting-channel-guard.test.mjs, package.json | Align vulnerability reporting channel strictly to GitHub Security Advisories, update bug_report template to WorshipDeck, establish automated absence guard test with dynamic token assembly and 4-surface real-file defect injection proofs, additively wire into package.json, and align presenter acceptance test button locator with congregation screen nomenclature, verified by Terra peer review | keeping residual security email mailbox in public docs | medium | CONTRIBUTING.md, .github/ISSUE_TEMPLATE/bug_report.md, package.json, tests/acceptance-fr16-fr19-fr28.test.mjs, tests/vulnerability-reporting-channel-guard.test.mjs, .scratch/SPEC-74-align-security-vulnerability-reporting-to-github-advisories/issues/01-wsd-w1-align-vulnerability-reporting-channel-to-github-advisories.md |
+| I-17 (SPEC-75-01) | src/operator/present/presenter-model.ts, PresenterOperator.tsx, tests/presenter-container-scroll.test.mjs, package.json | Replace activeRowRef scrollIntoView with container-scoped scrollChildIntoContainerView on slideListContainerRef and filmstripContainerRef to eliminate browser window scroll displacement on slide navigation, enforce with geometry matrix, behavior check, and absence/presence guards with defect injection, verified by Terra peer review | keeping standard Element.scrollIntoView that scrolls ancestor window | medium | src/operator/present/presenter-model.ts, src/operator/present/PresenterOperator.tsx, tests/presenter-container-scroll.test.mjs, package.json, .scratch/SPEC-75-isolate-presenter-slide-list-scroll-from-window/issues/01-isolate-presenter-slide-list-scroll-from-window.md |
 
 ## Smoke Test Results
 

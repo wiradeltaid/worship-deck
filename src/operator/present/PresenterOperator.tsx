@@ -88,6 +88,7 @@ import {
   findAnnouncementSectionBounds,
   formatPresenterRunSheet,
   rowContainsIndex,
+  scrollChildIntoContainerView,
   type PresenterEntry,
 } from './presenter-model';
 
@@ -375,6 +376,8 @@ export default function PresenterOperator({
   planIdentityRef.current = planIdentity;
   const activeRowRef = useRef<HTMLButtonElement | null>(null);
   const activeFrameRef = useRef<HTMLButtonElement | null>(null);
+  const slideListContainerRef = useRef<HTMLDivElement | null>(null);
+  const filmstripContainerRef = useRef<HTMLDivElement | null>(null);
   const projectorRef = useRef<Window | null>(null);
   // Mirrors `liveness` for the same reason `indexRef`/`blankRef`/`transitionRef`
   // exist: the message listener and the poll below are installed once per
@@ -743,15 +746,24 @@ export default function PresenterOperator({
   }, [gridOpen, index, manualNavigate, toggleBlank]);
 
   // Keeps both slide indexes following the deck: the same mechanism for the
-  // filmstrip as for the list, one axis apart. Reads and scrolls the DOM only —
-  // nothing here belongs in state. `nearest` on both axes means neither call
-  // can scroll an ancestor that was already showing the target.
+  // filmstrip as for the list, one axis apart. Reads and scrolls container DOM
+  // only (SPEC-75) — container-scoped calculations prevent ancestor/window scroll
+  // displacement so the header and preview monitors stay anchored.
   useEffect(() => {
-    activeRowRef.current?.scrollIntoView({ block: 'nearest' });
-    activeFrameRef.current?.scrollIntoView({
-      block: 'nearest',
-      inline: 'nearest',
-    });
+    if (slideListContainerRef.current && activeRowRef.current) {
+      scrollChildIntoContainerView(
+        slideListContainerRef.current,
+        activeRowRef.current,
+        'vertical'
+      );
+    }
+    if (filmstripContainerRef.current && activeFrameRef.current) {
+      scrollChildIntoContainerView(
+        filmstripContainerRef.current,
+        activeFrameRef.current,
+        'horizontal'
+      );
+    }
   }, [index]);
 
   const current = slides[index];
@@ -1114,7 +1126,10 @@ export default function PresenterOperator({
             aria-label="Slide filmstrip"
             className={`min-w-0 shrink-0 overflow-hidden ${PANEL_CLASS}`}
           >
-            <div className="flex gap-2 overflow-x-auto p-1.5 [scrollbar-width:thin]">
+            <div
+              ref={filmstripContainerRef}
+              className="flex gap-2 overflow-x-auto p-1.5 [scrollbar-width:thin]"
+            >
               {entries.map((entry) => (
                 <FilmstripFrame
                   key={entry.instanceId}
@@ -1134,7 +1149,10 @@ export default function PresenterOperator({
             <h2 className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Slides
             </h2>
-            <div className="min-h-0 flex-1 overflow-y-auto p-1.5 max-lg:max-h-[45vh] lg:max-h-[36rem]">
+            <div
+              ref={slideListContainerRef}
+              className="min-h-0 flex-1 overflow-y-auto p-1.5 max-lg:max-h-[45vh] lg:max-h-[36rem]"
+            >
               {rows.map((row) =>
                 row.kind === 'slide' ? (
                   <SlideListRow
