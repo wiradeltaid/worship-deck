@@ -940,6 +940,20 @@ rtm:
   FR: FR-14
   DEC: []
   UC: UC-18
+  ticket: SPEC-78-01
+  spec: SPEC-78
+  release: pptx-word-wrap-option
+  test:
+  - tests/pptx-word-wrap-option.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
   ticket: W2-2-1
   spec: W2
   release: go-spa-cutover
@@ -3730,6 +3744,35 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-79-01
+  spec: SPEC-79
+  release: curated-presentation-fonts-expansion
+  test:
+  - tests/bundled-fonts-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-79-02
+  spec: SPEC-79
+  release: curated-presentation-fonts-expansion
+  test:
+  - tests/third-party-notices.test.mjs
+  - tests/public-facts.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6760,6 +6803,35 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-79-01
+  spec: SPEC-79
+  release: curated-presentation-fonts-expansion
+  test:
+  - tests/bundled-fonts-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-79-02
+  spec: SPEC-79
+  release: curated-presentation-fonts-expansion
+  test:
+  - tests/third-party-notices.test.mjs
+  - tests/public-facts.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -9061,6 +9133,35 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-79-01
+  spec: SPEC-79
+  release: curated-presentation-fonts-expansion
+  test:
+  - tests/bundled-fonts-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-79-02
+  spec: SPEC-79
+  release: curated-presentation-fonts-expansion
+  test:
+  - tests/third-party-notices.test.mjs
+  - tests/public-facts.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

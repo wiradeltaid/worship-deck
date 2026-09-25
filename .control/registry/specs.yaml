@@ -3388,6 +3388,63 @@ waves:
         tests:
           - tests/canvas-media-crop-integration.test.mjs
 
+  # Opened 2026-09-25 from user triage notes.
+  # PPTX text box word wrap option on export.
+  - id: SPEC-78
+    status: open
+    release: pptx-word-wrap-option
+    prd: [offline-deck]
+    fr: [FR-14]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-78-pptx-word-wrap-option/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: 'f684efb5202b2f78a29b093139d3960f33c55969'
+      lenses: [structure, prose, edge-case-hunter, requirement-traceability, api-contract, export-compatibility]
+      note: "Terra (kiro-agent). Verdict accept-with-changes folded in: corrected requirement traceability to offline-deck FR-14 and UC-18, narrowed PPTX wrapping claims from unrealistic canvas freeze to DrawingML wrap=square vs wrap=none shape properties, established explicit boolean query parameter semantics on /api/services/{id}/pptx?wrap=true|false defaulting to true when omitted, restricted UI export scope strictly to RunSheetPage.tsx, and added DrawingML XML body property verification."
+    tickets:
+      - id: "SPEC-78-01"
+        component: hub
+        satisfies: [UC-18, FR-14]
+        blocked_by: []
+        touches: [pptx]
+        tests:
+          - tests/pptx-word-wrap-option.test.mjs
+
+  # Opened 2026-09-25 from user triage notes.
+  # Curated free presentation fonts expansion (6 OFL fonts).
+  - id: SPEC-79
+    status: open
+    release: curated-presentation-fonts-expansion
+    prd: [offline-deck]
+    fr: [FR-39]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-79-curated-presentation-fonts-expansion/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: 'f684efb5202b2f78a29b093139d3960f33c55969'
+      lenses: [structure, prose, edge-case-hunter, requirement-traceability, font-provenance, asset-integrity]
+      note: "Terra (kiro-agent). Verdict accept-with-changes folded in: corrected requirement traceability to offline-deck FR-39 and UC-14, vetted 6-family selection against project licensing policy with explicit author provenance (Plus Jakarta Sans by Tokotype, Fraunces by Undercase Type, Source Serif 4 by Adobe, Calistoga by Sorkin Type, Cinzel Decorative by Natanael Gama, Syne by Synesthesie), explicitly documented exclusion of Cabinet Grotesk (non-OFL licensing blocker) and Libre Baskerville (redundancy), specified exact TrueType variant filenames in data/fonts/, and aligned test strategy with cross-pipeline integrity assertions across @fontsource, local TTFs, public facts manifest (41 bundled families), and third-party notices."
+    tickets:
+      - id: "SPEC-79-01"
+        component: registry
+        satisfies: [UC-14, FR-39]
+        blocked_by: []
+        touches: [artifacts, sync]
+        tests:
+          - tests/bundled-fonts-guard.test.mjs
+      - id: "SPEC-79-02"
+        component: hub
+        satisfies: [UC-14, FR-39]
+        blocked_by: ["SPEC-79-01"]
+        touches: [settings, sync]
+        tests:
+          - tests/third-party-notices.test.mjs
+          - tests/public-facts.test.mjs
+
+
 
 
 
