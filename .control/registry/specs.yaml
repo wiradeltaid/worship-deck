@@ -3444,6 +3444,31 @@ waves:
           - tests/third-party-notices.test.mjs
           - tests/public-facts.test.mjs
 
+  # Opened 2026-09-25 from user triage notes.
+  # Image crop aspect ratio presets and original/custom aspect handling.
+  - id: SPEC-80
+    status: open
+    release: image-crop-presets-and-aspect-handling
+    prd: [operator-turn]
+    fr: [FR-1, FR-2, FR-3]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-80-image-crop-presets-and-aspect-handling/
+    spec_reviewed:
+      date: '2026-09-25'
+      sha: 'f684efb5202b2f78a29b093139d3960f33c55969'
+      lenses: [structure, prose, edge-case-hunter, requirements-traceability, regression-compatibility]
+      note: "Terra (kiro-agent). Verdict accept-with-changes folded in: defined explicit migration contract for existing defaultAspect null callers mapping to 'original' aspect, distinguished aspect 'Original Ratio' from resize profile 'Original Size', replaced raw custom ratio math with finite positive number validation and clamping between 0.1 and 10.0, aligned test assertions with runtime resolver behavior and real-source defect injections, grounded interaction guidance on guaranteed zoom slider controls, and established explicit requirement links to UC-14 and FR-1."
+    tickets:
+      - id: "SPEC-80-01"
+        component: registry
+        satisfies: [UC-14, FR-1]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/crop-aspect-presets.test.mjs
+
+
 
 
 

@@ -3778,6 +3778,20 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-80-01
+  spec: SPEC-80
+  release: image-crop-presets-and-aspect-handling
+  test:
+  - tests/crop-aspect-presets.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -6832,6 +6846,20 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-80-01
+  spec: SPEC-80
+  release: image-crop-presets-and-aspect-handling
+  test:
+  - tests/crop-aspect-presets.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -9158,6 +9186,20 @@ rtm:
   test:
   - tests/third-party-notices.test.mjs
   - tests/public-facts.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-80-01
+  spec: SPEC-80
+  release: image-crop-presets-and-aspect-handling
+  test:
+  - tests/crop-aspect-presets.test.mjs
   status: open
   exempt: false
   green: false
