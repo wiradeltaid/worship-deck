@@ -3778,10 +3778,10 @@ rtm:
   release: image-crop-presets-and-aspect-handling
   test:
   - tests/crop-aspect-presets.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -6846,10 +6846,10 @@ rtm:
   release: image-crop-presets-and-aspect-handling
   test:
   - tests/crop-aspect-presets.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -9195,10 +9195,10 @@ rtm:
   release: image-crop-presets-and-aspect-handling
   test:
   - tests/crop-aspect-presets.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

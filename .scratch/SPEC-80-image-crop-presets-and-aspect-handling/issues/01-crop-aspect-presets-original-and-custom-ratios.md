@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/components/media/ImageCropDialog.tsx` and `src/lib/images/crop-image.ts` first.
-- [ ] In `src/components/media/ImageCropDialog.tsx`:
+- [x] Read `src/components/media/ImageCropDialog.tsx` and `src/lib/images/crop-image.ts` first.
+- [x] In `src/components/media/ImageCropDialog.tsx`:
       - Define structured preset IDs:
         `type AspectPresetId = 'original' | '16:9' | '4:3' | '1:1' | '3:4' | '2:3' | '9:16' | 'a4' | 'custom'`
       - Map legacy `defaultAspect: null` callers directly to `'original'`.
@@ -17,12 +17,12 @@
       - For `'custom'`, render `W : H` inputs with positive finite validation (`w > 0 && h > 0`), clamp between `0.1` and `10.0`, and disable Apply button on invalid inputs with error text.
       - Ensure `Cropper` receives an explicit positive numerical `aspect` at all times (never `undefined` or `null`).
       - Add on-screen pan/zoom interaction hint text below the viewport.
-- [ ] Author `tests/crop-aspect-presets.test.mjs`:
+- [x] Author `tests/crop-aspect-presets.test.mjs`:
       - Unit test all ratio preset calculations: 16:9, 4:3, 1:1, 3:4, 2:3, 9:16, A4.
       - Unit test original aspect ratio computation with various image dimensions (e.g. 5000x2000, 1080x1920, 1200x1200).
       - Unit test custom ratio calculation and safety clamping against 0, negative numbers, and extreme bounds.
       - Unit test legacy `defaultAspect: null` mapping to `'original'`.
       - Source absence guard ensuring `ImageCropDialog.tsx` does not pass `undefined` aspect or fallback to 4:3.
       - Source presence guard verifying the pan/zoom guidance hint is present.
-- [ ] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/crop-aspect-presets.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
-- [ ] Run test suite and `npm run typecheck` to verify 100% green execution.
+- [x] Wire `node --import ./tests/register-ts-resolve.mjs --test tests/crop-aspect-presets.test.mjs` into `package.json` test script additively preserving `--test-concurrency=1`.
+- [x] Run test suite and `npm run typecheck` to verify 100% green execution.
