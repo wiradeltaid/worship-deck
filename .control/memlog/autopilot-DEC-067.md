@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-
 
 ## Resume
 
-- Iteration: 19 (commit 0a0f533)
+- State: Applied — mandate completed; all open runnable specs (SPEC-74, SPEC-75, SPEC-76, SPEC-77) implemented, verified, peer-reviewed, and closed
 - Run branch: autopilot/DEC-067 (Draft PR #112)
-- Stopped at: Done — SPEC-75, SPEC-76, and SPEC-77 all completed, tested, peer-reviewed, and closed; SPEC-73 Ticket 16 parked on external milestone prerequisite
+- Stopped at: Done
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite (Owner B-06 clean-VM test & Owner B-07 v0.1.0 release publication)
-- Next: § Finish — open draft PR from autopilot/DEC-067 and execute final gate checks
+- Next: Owner final review and merge of Draft PR #112
 
 ## Decisions
 
