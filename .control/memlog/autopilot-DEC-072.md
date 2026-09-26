@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-072-daily-autopilot-mandate-presentation-fideli
 
 ## Resume
 
-- State: Complete — All SPEC-85 tickets (01, 02, 03, 04, 05) closed, verified, and peer-reviewed (APPROVED by Terra)
+- State: Applied / Finished — All SPEC-85 tickets (SPEC-85-01 through SPEC-85-05) closed, verified, and peer-reviewed (APPROVED by Terra)
 - Run branch: autopilot/DEC-072
-- Stopped at: —
+- Stopped at: Done — all FRs in mandate scope completed and verified
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite
-- Next: SPEC-85 reconciliation and spec close
+- Next: Ready for maintainer PR merge into main
 
 ## Decisions
 

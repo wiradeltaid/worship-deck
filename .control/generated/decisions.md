@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**72 decisions** — accepted: 1 · applied: 71.
+**72 decisions** — applied: 72.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -79,4 +79,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-069` | Daily Autopilot mandate for Dual Default Backgrounds, Song-Set Resolution, and Presenter/PPTX Parity (SPEC-81) | `applied` | mandate | `.control/memlog/autopilot-DEC-069.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-069-daily-autopilot-mandate-dual-default-backgrounds-presenter-pptx-parity.md` |
 | `DEC-070` | Daily Autopilot mandate for Song-Set Dropdown Containment and PPTX Dynamic Text Word Wrap Parity (SPEC-82, SP… | `applied` | mandate | `.control/memlog/autopilot-DEC-070.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-070-daily-autopilot-mandate-dropdown-containment-and-pptx-wrap.md` |
 | `DEC-071` | Daily Autopilot mandate for Offline Presentation Resilience and Emergency Local Edit (SPEC-84) | `applied` | mandate | `.control/memlog/autopilot-DEC-071.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-071-daily-autopilot-mandate-offline-presentation-resilience.md` |
-| `DEC-072` | Daily Autopilot mandate for Presentation Fidelity, Slide Visibility Control, and Operator Polish (SPEC-85) | `accepted` | mandate | `.control/memlog/autopilot-DEC-072.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-072-daily-autopilot-mandate-presentation-fidelity-slide-visibility.md` |
+| `DEC-072` | Daily Autopilot mandate for Presentation Fidelity, Slide Visibility Control, and Operator Polish (SPEC-85) | `applied` | mandate | `.control/memlog/autopilot-DEC-072.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-072-daily-autopilot-mandate-presentation-fidelity-slide-visibility.md` |
