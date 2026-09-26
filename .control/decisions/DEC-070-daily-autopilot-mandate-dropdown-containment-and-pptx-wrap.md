@@ -1,7 +1,8 @@
 ---
 type: mandate
 id: DEC-070
-status: accepted
+status: applied
+applied_at: '2026-09-26'
 accepted_by: 'kodesh87 (2026-09-26)'
 touches:
   - .control/memlog/autopilot-DEC-070.md

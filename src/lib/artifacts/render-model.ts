@@ -890,6 +890,41 @@ export type PptxTextRun = {
 };
 
 /**
+ * SPEC-83-01: Resolves explicit paragraph runs for PPTX export without heuristic soft breaks.
+ * - Extracts text using resolveElementText(element).
+ * - Returns undefined if text is undefined or empty string.
+ * - Normalizes line endings (replaces \r\n with \n).
+ * - If text contains no \n, returns undefined (caller emits plain string directly).
+ * - If text contains \n, splits into paragraphs and emits runs with breakLine: true
+ *   on intermediate paragraph boundaries, creating distinct <a:p> elements in DrawingML
+ *   without injecting synthetic <a:br/> soft breaks.
+ */
+export function resolveExplicitParagraphRunsForPptx(
+  element: ResolvedElement
+): PptxTextRun[] | undefined {
+  if (element.type !== 'text') return undefined;
+  const text = resolveElementText(element);
+  if (text === undefined || text === '') return undefined;
+
+  const normalized = text.replace(/\r\n/g, '\n');
+  if (!normalized.includes('\n')) return undefined;
+
+  const paragraphs = normalized.split('\n');
+  const runs: PptxTextRun[] = [];
+  const numParas = paragraphs.length;
+
+  for (let i = 0; i < numParas; i++) {
+    const isLast = i === numParas - 1;
+    runs.push({
+      text: paragraphs[i],
+      options: isLast ? undefined : { breakLine: true },
+    });
+  }
+
+  return runs;
+}
+
+/**
  * SPEC-23-04: Resolves text runs for PPTX export.
  * - When `wrapLines` is present, non-empty and coherent with resolved text:
  *   Splits `text` on operator newlines into paragraphs, and within each paragraph,

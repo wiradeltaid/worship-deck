@@ -28,6 +28,7 @@ import {
   resolveElementText,
   resolveElementTextForPptx,
   resolveTextRunsForPptx,
+  resolveExplicitParagraphRunsForPptx,
   resolveFontFamily,
   resolveItalic,
   resolveUnderline,
@@ -253,7 +254,14 @@ function renderTextElement(
   let scale: number;
   let valign: 'top' | 'middle' | 'bottom';
 
-  if (!hasAuthoritativeWrap) {
+  const isDynamicText = Boolean(element.placeholderKey);
+
+  if (isDynamicText && !hasAuthoritativeWrap) {
+    const fallbackLayout = resolveFallbackTextLayout(element);
+    textRuns = resolveExplicitParagraphRunsForPptx(element) ?? text;
+    scale = fallbackLayout.scale;
+    valign = resolveVerticalAlign(style ?? {});
+  } else if (!hasAuthoritativeWrap) {
     const fallbackLayout = resolveFallbackTextLayout(element);
     textRuns =
       fallbackLayout.runs.length > 1 ||

@@ -5,7 +5,7 @@
 ```yaml
 promise_progress: 97%
 rtm_rows:
-  green: 635
+  green: 636
   counted: 657
   excluded_no_uc: 1
 work_progress:
@@ -365,10 +365,10 @@ work_progress:
   tickets_total: 2
   work_progress: 100%
 - spec: SPEC-83
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 1
   tickets_total: 1
-  work_progress: 0%
+  work_progress: 100%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -447,12 +447,7 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: one
-  active_ids:
-  - DEC-070
-  active_mandate:
-    id: DEC-070
-    status: accepted
-    expires: '2026-10-03'
-    scope: all
+  resolution: none
+  active_ids: []
+  active_mandate: null
 ```

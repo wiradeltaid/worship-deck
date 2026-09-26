@@ -3540,7 +3540,7 @@ waves:
   # Opened 2026-09-26 from user triage notes.
   # PPTX dynamic text native word wrap and break parity.
   - id: SPEC-83
-    status: open
+    status: closed
     release: pptx-dynamic-text-native-word-wrap
     prd: [offline-deck]
     fr: [FR-14]

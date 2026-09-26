@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**70 decisions** — accepted: 1 · applied: 69.
+**70 decisions** — applied: 70.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -77,4 +77,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-067` | Daily Autopilot mandate for WorshipDeck first release 0.1.0 and go-live work (SPEC-73) | `applied` | mandate | `.control/memlog/autopilot-DEC-067.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-067-daily-autopilot-mandate-worship-deck-first-release-0-1-0-and-go-live.md` |
 | `DEC-068` | Daily Autopilot mandate for PPTX Word Wrap Option, Curated Presentation Fonts Expansion, and Image Crop Aspec… | `applied` | mandate | `.control/memlog/autopilot-DEC-068.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-068-daily-autopilot-mandate-pptx-wrap-fonts-expansion-image-crop-aspect.md` |
 | `DEC-069` | Daily Autopilot mandate for Dual Default Backgrounds, Song-Set Resolution, and Presenter/PPTX Parity (SPEC-81) | `applied` | mandate | `.control/memlog/autopilot-DEC-069.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-069-daily-autopilot-mandate-dual-default-backgrounds-presenter-pptx-parity.md` |
-| `DEC-070` | Daily Autopilot mandate for Song-Set Dropdown Containment and PPTX Dynamic Text Word Wrap Parity (SPEC-82, SP… | `accepted` | mandate | `.control/memlog/autopilot-DEC-070.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-070-daily-autopilot-mandate-dropdown-containment-and-pptx-wrap.md` |
+| `DEC-070` | Daily Autopilot mandate for Song-Set Dropdown Containment and PPTX Dynamic Text Word Wrap Parity (SPEC-82, SP… | `applied` | mandate | `.control/memlog/autopilot-DEC-070.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-070-daily-autopilot-mandate-dropdown-containment-and-pptx-wrap.md` |

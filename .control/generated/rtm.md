@@ -973,10 +973,10 @@ rtm:
   release: pptx-dynamic-text-native-word-wrap
   test:
   - tests/pptx-dynamic-text-native-word-wrap.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14
