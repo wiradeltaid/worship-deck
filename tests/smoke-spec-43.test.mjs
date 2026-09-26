@@ -461,9 +461,6 @@ function scanPresenterPanelContainment(source) {
     if (!scrollerClasses.includes('max-lg:max-h-[45vh]')) {
       findings.push('Run-Sheet panel scroller missing max-lg:max-h-[45vh] mobile containment');
     }
-    if (!scrollerClasses.includes('lg:max-h-[30rem]')) {
-      findings.push('Run-Sheet panel scroller missing lg:max-h-[30rem] desktop containment');
-    }
   }
 
   return findings;
@@ -580,17 +577,9 @@ test('SPEC-43-02: 13. Defect injection proof for panel scroll containment guard 
       expectedSnippet: 'Run-Sheet panel scroller missing overflow-y-auto',
     },
     {
-      name: 'Run-Sheet desktop cap removed',
-      mutate: (src) => src.replace('lg:max-h-[30rem]', 'lg:max-h-none'),
-      expectedSnippet: 'Run-Sheet panel scroller missing lg:max-h-[30rem]',
-    },
-    {
       name: 'Run-Sheet mobile cap removed',
       mutate: (src) =>
-        src.replace(
-          'max-lg:max-h-[45vh] lg:max-h-[30rem]',
-          'max-lg:max-h-none lg:max-h-[30rem]'
-        ),
+        src.replace('text-sm max-lg:max-h-[45vh]', 'text-sm max-lg:max-h-none'),
       expectedSnippet: 'Run-Sheet panel scroller missing max-lg:max-h-[45vh]',
     },
   ];
@@ -613,37 +602,33 @@ test('SPEC-43-03: 14. getScriptureScaling dynamically scales font size across ex
 
   // Exact boundary 59 chars (< 60)
   const b59 = getScriptureScaling('A'.repeat(59));
-  assert.equal(b59.fontSizeStyle, 'clamp(2.5rem, 8.5cqh, 6rem)');
+  assert.equal(b59.fontSizeStyle, '8.5cqh');
   assert.equal(b59.minHeightStyle, '38cqh');
-  assert.ok(b59.tailwindClass.includes('text-8xl'));
 
   // Exact boundary 60 chars (60-120)
   const b60 = getScriptureScaling('A'.repeat(60));
-  assert.equal(b60.fontSizeStyle, 'clamp(2rem, 6.5cqh, 4.5rem)');
+  assert.equal(b60.fontSizeStyle, '6.5cqh');
   assert.equal(b60.minHeightStyle, '28cqh');
-  assert.ok(b60.tailwindClass.includes('text-7xl'));
 
   // Exact boundary 119 chars (60-120)
   const b119 = getScriptureScaling('A'.repeat(119));
-  assert.equal(b119.fontSizeStyle, 'clamp(2rem, 6.5cqh, 4.5rem)');
+  assert.equal(b119.fontSizeStyle, '6.5cqh');
   assert.equal(b119.minHeightStyle, '28cqh');
 
   // Exact boundary 120 chars (120-200)
   const b120 = getScriptureScaling('A'.repeat(120));
-  assert.equal(b120.fontSizeStyle, 'clamp(1.5rem, 4.8cqh, 3.5rem)');
+  assert.equal(b120.fontSizeStyle, '4.8cqh');
   assert.equal(b120.minHeightStyle, '20cqh');
-  assert.ok(b120.tailwindClass.includes('text-5xl'));
 
   // Exact boundary 199 chars (120-200)
   const b199 = getScriptureScaling('A'.repeat(199));
-  assert.equal(b199.fontSizeStyle, 'clamp(1.5rem, 4.8cqh, 3.5rem)');
+  assert.equal(b199.fontSizeStyle, '4.8cqh');
   assert.equal(b199.minHeightStyle, '20cqh');
 
   // Exact boundary 200 chars (> 200)
   const b200 = getScriptureScaling('A'.repeat(200));
-  assert.equal(b200.fontSizeStyle, 'clamp(1.25rem, 3.5cqh, 2.5rem)');
+  assert.equal(b200.fontSizeStyle, '3.5cqh');
   assert.equal(b200.minHeightStyle, 'auto');
-  assert.ok(b200.tailwindClass.includes('text-4xl'));
 });
 
 function scanScriptureMirroring(source) {

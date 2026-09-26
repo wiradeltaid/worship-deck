@@ -243,6 +243,35 @@ test('a mismatched songBookCode also refuses with 409', async () => {
   assert.equal(res.status, 409);
 });
 
+test('empty or whitespace-only lyrics are refused with 400 and leave the book untouched', async () => {
+  const before = storedLyrics(447);
+  // Empty string
+  const emptyRes = await json(ROUTE(serviceId, 'opening_song_bt'), 'POST', {
+    text: '',
+    songNumber: 447,
+  });
+  assert.equal(emptyRes.status, 400);
+  assert.match(String(emptyRes.body.error), /text is required and cannot be empty/);
+  assert.equal(storedLyrics(447), before);
+
+  // Whitespace-only string
+  const wsRes = await json(ROUTE(serviceId, 'opening_song_bt'), 'POST', {
+    text: '   \n\t  ',
+    songNumber: 447,
+  });
+  assert.equal(wsRes.status, 400);
+  assert.match(String(wsRes.body.error), /text is required and cannot be empty/);
+  assert.equal(storedLyrics(447), before);
+
+  // Missing text property
+  const missingRes = await json(ROUTE(serviceId, 'opening_song_bt'), 'POST', {
+    songNumber: 447,
+  });
+  assert.equal(missingRes.status, 400);
+  assert.match(String(missingRes.body.error), /text is required and cannot be empty/);
+  assert.equal(storedLyrics(447), before);
+});
+
 test('an unknown variable_name is 400; a null song number is 400', async () => {
   const missingEntry = await json(ROUTE(serviceId, 'no_such_entry'), 'POST', {
     text: 'x',

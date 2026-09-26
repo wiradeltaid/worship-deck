@@ -189,6 +189,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'form.songSets.savingToBook': 'Saving to Song Book...',
   'form.songSets.savedToBook': 'Saved to Song Book',
   'form.songSets.saveToBookFailed': 'Failed to save to Song Book',
+  'form.songSets.emptyLyricsError': 'Cannot save empty lyrics to song book',
   'form.songSets.songChangedConflict': 'Song changed under you. Please re-open lyrics editor.',
   'form.verseRef': 'Verse Reading Reference',
   'form.verseText': 'Verse Reading Text',

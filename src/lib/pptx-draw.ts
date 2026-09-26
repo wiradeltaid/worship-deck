@@ -54,6 +54,7 @@ import {
 export type DrawPlanItem = {
   artifact: ArtifactInstance;
   fade?: boolean;
+  hidden?: boolean;
 };
 
 type EmbeddedImages = ReadonlyMap<string, string>;
@@ -63,6 +64,8 @@ type SlideCtx = {
   images: EmbeddedImages;
   /** 1-based slide numbers that opted in to the deck's transition. */
   transitionIndexes: Set<number>;
+  /** 1-based slide numbers that are marked hidden in PowerPoint. */
+  hiddenIndexes: Set<number>;
   count: number;
   wordWrap?: boolean;
 };
@@ -80,10 +83,14 @@ const FULL_BLEED: PptxBox = {
 
 // `fade` is the plan's own per-slide opt-out flag (`SlidePlanItem.fade`); a
 // slide that opts out carries no transition whatever style is configured.
-function addSlide(ctx: SlideCtx, fade = true): PptxSlide {
+function addSlide(ctx: SlideCtx, fade = true, hidden = false): PptxSlide {
   const slide = ctx.pres.addSlide();
   ctx.count += 1;
   if (fade) ctx.transitionIndexes.add(ctx.count);
+  if (hidden) {
+    ctx.hiddenIndexes.add(ctx.count);
+    (slide as any).hidden = true;
+  }
   return slide;
 }
 
@@ -470,12 +477,13 @@ function renderLineElement(slide: PptxSlide, element: ResolvedElement): void {
 function renderArtifactSlide(
   ctx: SlideCtx,
   instance: ArtifactInstance,
-  fade = true
+  fade = true,
+  hidden = false
 ): void {
   assertRuntimeVersion(instance);
 
   const { layout } = instance;
-  const slide = addSlide(ctx, fade);
+  const slide = addSlide(ctx, fade, hidden);
   slide.background = { color: toPptxColor(layout.backgroundColor) ?? '000000' };
 
   if (layout.backgroundImage) {
@@ -741,9 +749,32 @@ async function patchCharacterSpacing(zip: JSZip, plan: DrawPlanItem[]): Promise<
 }
 
 /**
+ * SPEC-85-04: Mark hidden slides in PowerPoint OOXML with show="0".
+ * Generates native PowerPoint hidden slide attribute <p:sld show="0" ...>
+ * so hidden slides are visibly marked with strikethrough and skipped during slide show.
+ */
+async function patchHiddenSlides(
+  zip: JSZip,
+  hiddenIndexes?: Set<number>
+): Promise<void> {
+  if (!hiddenIndexes || hiddenIndexes.size === 0) return;
+
+  for (const index of hiddenIndexes) {
+    const name = `ppt/slides/slide${index}.xml`;
+    const file = zip.file(name);
+    if (!file) continue;
+    let xml = await file.async('string');
+    if (xml.includes('<p:sld') && !xml.includes('show="0"')) {
+      xml = xml.replace('<p:sld', '<p:sld show="0"');
+      zip.file(name, xml);
+    }
+  }
+}
+
+/**
  * Single post-processing pass over the written archive.
  *
- * Dedup, transition injection, autofit patch, font embedding, and character tracking
+ * Dedup, transition injection, autofit patch, font embedding, character tracking, and hidden slides
  * share one JSZip instance and one re-emit.
  *
  * Every stage is defensive: a failure anywhere returns the buffer we already
@@ -755,7 +786,8 @@ async function postProcessArchive(
   transition: SlideTransition,
   usedFonts?: Iterable<string | FontUsageItem>,
   fontManifest?: Array<{ family: string; sourceTypeface?: string; weight?: string; style?: string; path: string; restricted?: boolean }>,
-  plan?: DrawPlanItem[]
+  plan?: DrawPlanItem[],
+  hiddenIndexes?: Set<number>
 ): Promise<Buffer> {
   try {
     const zip = await JSZip.loadAsync(buffer);
@@ -771,6 +803,12 @@ async function postProcessArchive(
       await injectSlideTransitions(zip, slideIndexes, transition);
     } catch (error) {
       console.error('[pptx] slide transition injection skipped:', error);
+    }
+
+    try {
+      await patchHiddenSlides(zip, hiddenIndexes);
+    } catch (error) {
+      console.error('[pptx] hidden slide patch skipped:', error);
     }
 
     try {
@@ -831,13 +869,14 @@ export async function generatePptxFromPlan(
     pres,
     images: embedded,
     transitionIndexes: new Set<number>(),
+    hiddenIndexes: new Set<number>(),
     count: 0,
     wordWrap: options?.wordWrap !== undefined ? options.wordWrap : true,
   };
 
   const usedFonts = new Map<string, FontUsageItem>();
   for (const item of plan) {
-    renderArtifactSlide(ctx, item.artifact, item.fade !== false);
+    renderArtifactSlide(ctx, item.artifact, item.fade !== false, item.hidden === true);
     for (const el of item.artifact.layout.elements ?? []) {
       if (el.type === 'text') {
         const fam = resolveFontFamily(el.style);
@@ -854,5 +893,5 @@ export async function generatePptxFromPlan(
   }
 
   const buffer = (await pres.write({ outputType: 'nodebuffer' })) as Buffer;
-  return postProcessArchive(buffer, ctx.transitionIndexes, style, Array.from(usedFonts.values()), fontManifest, plan);
+  return postProcessArchive(buffer, ctx.transitionIndexes, style, Array.from(usedFonts.values()), fontManifest, plan, ctx.hiddenIndexes);
 }

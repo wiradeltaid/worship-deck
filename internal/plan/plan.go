@@ -739,15 +739,16 @@ type ServiceRow struct {
 	ParsedData       sql.NullString
 	ImagesPayload    sql.NullString
 	EmergencyPatches sql.NullString
+	HiddenSlideIDs   sql.NullString
 }
 
 func LoadService(db *sql.DB, id int) (*ServiceRow, error) {
 	row := db.QueryRow(
-		`SELECT id, date, parsed_data, images_payload, COALESCE(emergency_patches, '[]') FROM services WHERE id = ?`,
+		`SELECT id, date, parsed_data, images_payload, COALESCE(emergency_patches, '[]'), COALESCE(hidden_slide_ids, '[]') FROM services WHERE id = ?`,
 		id,
 	)
 	var s ServiceRow
-	if err := row.Scan(&s.ID, &s.Date, &s.ParsedData, &s.ImagesPayload, &s.EmergencyPatches); err != nil {
+	if err := row.Scan(&s.ID, &s.Date, &s.ParsedData, &s.ImagesPayload, &s.EmergencyPatches, &s.HiddenSlideIDs); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -809,6 +810,23 @@ func PlanForServiceWithIdentity(db *sql.DB, serviceID int) (date string, items [
 				}
 				if p.SlideIndex >= 0 && p.SlideIndex < len(items) && p.PatchedArtifact != nil {
 					items[p.SlideIndex].Artifact = *p.PatchedArtifact
+				}
+			}
+		}
+	}
+
+	// Apply persisted hidden slide flags (SPEC-85)
+	if svc.HiddenSlideIDs.Valid && svc.HiddenSlideIDs.String != "" && svc.HiddenSlideIDs.String != "[]" {
+		var hiddenIDs []string
+		if err := json.Unmarshal([]byte(svc.HiddenSlideIDs.String), &hiddenIDs); err == nil && len(hiddenIDs) > 0 {
+			hiddenSet := make(map[string]bool, len(hiddenIDs))
+			for _, hid := range hiddenIDs {
+				hiddenSet[hid] = true
+			}
+			tTrue := true
+			for i := range items {
+				if hiddenSet[items[i].Artifact.InstanceID] {
+					items[i].Hidden = &tTrue
 				}
 			}
 		}

@@ -29,15 +29,15 @@ Satisfies `FR-31`, `FR-33`, and `UC-20`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/DynamicFormBody.tsx` and related song-set form handlers.
-- [ ] In `src/operator/DynamicFormBody.tsx`:
+- [x] Read `src/operator/DynamicFormBody.tsx` and related song-set form handlers.
+- [x] In `src/operator/DynamicFormBody.tsx`:
       - Implement dirty state comparison against baseline hymn lyrics in `SongSetSlotRenderer`.
       - Only render "Save to Book" button when `isLyricOpen` is true and `isLyricsDirty` is true.
       - Add fail-safe validation against empty-string lyrics in `onSaveToBook`.
-- [ ] In `tests/song-set-save-to-book-guard.test.mjs`:
+- [x] In `tests/song-set-save-to-book-guard.test.mjs`:
       - Test dirty check visibility logic and baseline reset lifecycle.
       - Test empty-string rejection guard.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/song-set-save-to-book-guard.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/song-set-save-to-book-guard.test.mjs` and `npm run typecheck`.

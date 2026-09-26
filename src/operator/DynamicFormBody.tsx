@@ -28,6 +28,16 @@ import type {
   FormLayoutData,
 } from '@/lib/form-layout';
 
+import {
+  computeSongSetLyricsDirtyState,
+  validateSaveToBookLyrics,
+} from '@/lib/song-set-dirty-guard';
+
+export {
+  computeSongSetLyricsDirtyState,
+  validateSaveToBookLyrics,
+};
+
 export type {
   PredefinedFieldDef,
   FormGroupSlotDef,
@@ -56,7 +66,7 @@ export interface DynamicFormBodyProps {
   openLyricEditors: Record<string, boolean>;
   onToggleLyricEditor: (variableName: string) => void;
   savingBookStatus?: Record<string, boolean>;
-  onSaveToBook?: (variableName: string) => void;
+  onSaveToBook?: (variableName: string) => Promise<boolean | void> | boolean | void;
   fieldSuggestions?: Record<string, string>;
   onAcceptFieldSuggestion?: (variableName: string, value: string) => void;
   songSetSuggestions?: Record<string, any>;
@@ -323,7 +333,7 @@ function SongSetSlotRenderer({
   isLyricOpen: boolean;
   onToggleLyricEditor: () => void;
   isSavingBook?: boolean;
-  onSaveToBook?: () => void;
+  onSaveToBook?: () => Promise<boolean | void> | boolean | void;
   suggestion?: any;
   onAcceptSuggestion?: () => void;
   disabled?: boolean;
@@ -338,6 +348,52 @@ function SongSetSlotRenderer({
   const songSetDefaultBg = backgroundLibrary.find(
     (b) => b.defaultRoles?.includes('song_set') || (b.isDefault && (!b.defaultRoles || b.defaultRoles.length === 0))
   );
+
+  // Baseline lyric text tracking for dirty detection
+  const [initialLyricText, setInitialLyricText] = React.useState<string>(values.lyricText || '');
+  const lastIdentityRef = React.useRef(`${refKey}:${selectedBookCode}:${values.songNumber}`);
+  const hasUserEditedRef = React.useRef(false);
+
+  // Reset baseline when slot identity (refKey, book, number) changes
+  React.useEffect(() => {
+    const currentIdentity = `${refKey}:${selectedBookCode}:${values.songNumber}`;
+    if (lastIdentityRef.current !== currentIdentity) {
+      lastIdentityRef.current = currentIdentity;
+      hasUserEditedRef.current = false;
+      setInitialLyricText(values.lyricText || '');
+    }
+  }, [refKey, selectedBookCode, values.songNumber, values.lyricText]);
+
+  // Synchronize initial baseline upon external hydration before user edits
+  React.useEffect(() => {
+    if (!hasUserEditedRef.current && values.lyricText !== initialLyricText) {
+      setInitialLyricText(values.lyricText || '');
+    }
+  }, [values.lyricText, initialLyricText]);
+
+  const isLyricsDirty = computeSongSetLyricsDirtyState({
+    isLyricOpen,
+    currentLyricText: values.lyricText,
+    baselineLyricText: initialLyricText,
+  });
+
+  const handleSaveToBook = async () => {
+    const validation = validateSaveToBookLyrics(values.lyricText);
+    if (!validation.valid) {
+      return;
+    }
+    if (onSaveToBook) {
+      try {
+        const ok = await onSaveToBook();
+        if (ok !== false) {
+          hasUserEditedRef.current = false;
+          setInitialLyricText(values.lyricText);
+        }
+      } catch {
+        // preserve dirty state on error
+      }
+    }
+  };
 
   return (
     <div
@@ -486,14 +542,15 @@ function SongSetSlotRenderer({
               {isLyricOpen ? 'Close Lyrics' : 'Edit Lyrics'}
             </Button>
           )}
-          {hasValidNum && onSaveToBook && (
+          {hasValidNum && onSaveToBook && isLyricOpen && isLyricsDirty && (
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="h-9 px-2.5 text-xs text-primary"
-              onClick={onSaveToBook}
+              onClick={handleSaveToBook}
               disabled={disabled || isSavingBook}
+              data-testid="save-to-book-button"
             >
               {isSavingBook ? 'Saving...' : 'Save to Book'}
             </Button>
@@ -507,9 +564,13 @@ function SongSetSlotRenderer({
           <Textarea
             className="text-xs font-mono w-full h-32"
             value={values.lyricText}
-            onChange={(e) => onChange('lyricText', e.target.value)}
+            onChange={(e) => {
+              hasUserEditedRef.current = true;
+              onChange('lyricText', e.target.value);
+            }}
             placeholder="Ketik atau edit bait lirik di sini..."
             disabled={disabled}
+            data-testid="song-set-lyric-textarea"
           />
         </div>
       )}

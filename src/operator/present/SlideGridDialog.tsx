@@ -52,7 +52,7 @@ function SlideGrid({
   slides: SlidePlanItem[];
   entries: PresenterEntry[];
   currentIndex: number;
-  onPick: (index: number) => void;
+  onPick: (index: number) => Promise<boolean | void> | boolean | void;
 }) {
   // Mounted fresh each time the dialog opens, so the selection always starts on
   // the slide the operator is actually showing without an effect to reset it.
@@ -118,6 +118,8 @@ function SlideGrid({
               onFocus={() => setSelected(entry.index)}
               onClick={() => onPick(entry.index)}
               className={`h-auto flex-col items-stretch gap-1 rounded-lg border p-1.5 text-left font-normal ${
+                slide?.hidden ? 'opacity-50 bg-muted/20' : ''
+              } ${
                 isSelected
                   ? 'border-primary bg-muted ring-2 ring-primary hover:bg-muted'
                   : 'border-border hover:bg-muted'
@@ -128,6 +130,14 @@ function SlideGrid({
                 {isCurrent ? (
                   <span className="absolute top-1 left-1 rounded bg-primary px-1 py-px text-[9px] font-bold uppercase text-primary-foreground">
                     Now
+                  </span>
+                ) : null}
+                {slide?.hidden ? (
+                  <span
+                    data-testid="grid-hidden-badge"
+                    className="absolute top-1 right-1 rounded border border-zinc-700 bg-zinc-900/90 px-1 py-px text-[9px] font-bold uppercase text-zinc-300"
+                  >
+                    Hidden
                   </span>
                 ) : null}
               </span>
@@ -165,7 +175,7 @@ export default function SlideGridDialog({
   slides: SlidePlanItem[];
   entries: PresenterEntry[];
   currentIndex: number;
-  onPick: (index: number) => void;
+  onPick: (index: number) => Promise<boolean | void> | boolean | void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

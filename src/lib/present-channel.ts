@@ -136,10 +136,29 @@ export function liveBackgroundOf(msg: PresentMessage): string | null | undefined
 
 /**
  * Returns the slide patch from a slide-patch message, or null if invalid/irrelevant.
+ * Enforces strict integer indexing, finite positive monotonic revisions, and structured layout.
  */
 export function slidePatchOf(msg: PresentMessage): SlidePatch | null {
+  if (!msg || typeof msg !== 'object') return null;
   if (msg.type !== 'slide-patch') return null;
-  if (typeof msg.index !== 'number' || !msg.artifact || typeof msg.patchRevision !== 'number') {
+  if (typeof msg.index !== 'number' || !Number.isInteger(msg.index) || msg.index < 0) {
+    return null;
+  }
+  if (
+    typeof msg.patchRevision !== 'number' ||
+    !Number.isFinite(msg.patchRevision) ||
+    !Number.isInteger(msg.patchRevision) ||
+    msg.patchRevision <= 0
+  ) {
+    return null;
+  }
+  if (
+    !msg.artifact ||
+    typeof msg.artifact !== 'object' ||
+    !msg.artifact.layout ||
+    typeof msg.artifact.layout !== 'object' ||
+    !Array.isArray(msg.artifact.layout.elements)
+  ) {
     return null;
   }
   return {
@@ -155,7 +174,19 @@ export function slidePatchOf(msg: PresentMessage): SlidePatch | null {
 export function syncPatchesOf(msg: PresentMessage): SlidePatch[] | null {
   if (msg.type !== 'sync' || !Array.isArray(msg.patches)) return null;
   return msg.patches.filter(
-    (p) => typeof p.index === 'number' && p.artifact && typeof p.patchRevision === 'number'
+    (p) =>
+      typeof p.index === 'number' &&
+      Number.isInteger(p.index) &&
+      p.index >= 0 &&
+      typeof p.patchRevision === 'number' &&
+      Number.isFinite(p.patchRevision) &&
+      Number.isInteger(p.patchRevision) &&
+      p.patchRevision > 0 &&
+      p.artifact &&
+      typeof p.artifact === 'object' &&
+      p.artifact.layout &&
+      typeof p.artifact.layout === 'object' &&
+      Array.isArray(p.artifact.layout.elements)
   );
 }
 

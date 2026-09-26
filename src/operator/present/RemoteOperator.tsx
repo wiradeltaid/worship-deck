@@ -37,6 +37,7 @@ import {
   buildPresenterEntries,
   clampSlideIndex,
 } from '@/operator/present/presenter-model';
+import { findNextVisibleIndex } from '@/lib/slide-visibility';
 
 export default function RemoteOperator({
   serviceId,
@@ -553,8 +554,11 @@ export default function RemoteOperator({
             size="lg"
             variant="outline"
             className="flex-1 text-base h-14"
-            disabled={index <= 0}
-            onClick={() => setIndexIntent(index - 1)}
+            disabled={findNextVisibleIndex(slides, index, -1) === index}
+            onClick={() => {
+              const prev = findNextVisibleIndex(slides, index, -1);
+              if (prev !== index) setIndexIntent(prev);
+            }}
           >
             ← {t('remote.prev')}
           </Button>
@@ -570,8 +574,11 @@ export default function RemoteOperator({
           <Button
             size="lg"
             className="flex-1 text-base h-14"
-            disabled={atEnd}
-            onClick={() => setIndexIntent(index + 1)}
+            disabled={findNextVisibleIndex(slides, index, 1) === index}
+            onClick={() => {
+              const next = findNextVisibleIndex(slides, index, 1);
+              if (next !== index) setIndexIntent(next);
+            }}
           >
             {t('remote.next')} →
           </Button>

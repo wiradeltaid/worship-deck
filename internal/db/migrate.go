@@ -54,7 +54,35 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureServicesEmergencyPatches(handle); err != nil {
 		return err
 	}
+	if err := ensureServicesHiddenSlideIds(handle); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ensureServicesHiddenSlideIds ensures the hidden_slide_ids column exists on services table (SPEC-85).
+func ensureServicesHiddenSlideIds(handle *sql.DB) error {
+	rows, err := handle.Query(`PRAGMA table_info(services)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, ctype string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == "hidden_slide_ids" {
+			return rows.Err()
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = handle.Exec(`ALTER TABLE services ADD COLUMN hidden_slide_ids TEXT DEFAULT '[]'`)
+	return err
 }
 
 // ensureServicesEmergencyPatches ensures the emergency_patches column exists on services table (SPEC-84).

@@ -23,17 +23,17 @@ Satisfies `FR-16`, `UC-20`, and `UC-21`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `spa/src/pages/RunSheetPage.tsx` and `src/operator/present/PresenterOperator.tsx`.
-- [ ] In `spa/src/pages/RunSheetPage.tsx`:
+- [x] Read `spa/src/pages/RunSheetPage.tsx` and `src/operator/present/PresenterOperator.tsx`.
+- [x] In `spa/src/pages/RunSheetPage.tsx`:
       - Reorganize header action bar into semantic groups (Meta, Primary Actions, Utility Actions).
       - Style Download PPTX and action buttons to remain inline and legible without awkward wrapping.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Remove `lg:max-h-[30rem]` from Run-Sheet panel.
       - Configure flexbox container to occupy full vertical panel height.
-- [ ] In `tests/run-sheet-header-redesign.test.mjs`:
+- [x] In `tests/run-sheet-header-redesign.test.mjs`:
       - Verify DOM structure and layout styling of header action bar.
       - Verify height fill styling of Presenter rundown panel.
       - Inject defect and prove guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/run-sheet-header-redesign.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/run-sheet-header-redesign.test.mjs` and `npm run typecheck`.

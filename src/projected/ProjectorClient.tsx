@@ -12,6 +12,7 @@ import {
   syncPatchesOf,
   type PresentMessage,
 } from '@/lib/present-channel';
+import { validateProjectorSlidePatchAdmission } from '@/lib/emergency-canvas';
 import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
 import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
@@ -122,13 +123,21 @@ export default function ProjectorClient({
         const patches = syncPatchesOf(msg);
         if (patches !== null) {
           patchRevisionsRef.current.clear();
+          // Normalize per slide: retain strictly the highest revision per slideIndex
+          const highestBySlide = new Map<number, (typeof patches)[number]>();
+          for (const p of patches) {
+            const existing = highestBySlide.get(p.index);
+            if (!existing || p.patchRevision > existing.patchRevision) {
+              highestBySlide.set(p.index, p);
+            }
+          }
           setActiveSlides(() => {
             const next = [...slides];
-            for (const p of patches) {
-              patchRevisionsRef.current.set(p.index, p.patchRevision);
-              if (p.index >= 0 && p.index < next.length && p.artifact) {
-                next[p.index] = {
-                  ...next[p.index],
+            for (const [idx, p] of highestBySlide.entries()) {
+              patchRevisionsRef.current.set(idx, p.patchRevision);
+              if (idx >= 0 && idx < next.length && p.artifact) {
+                next[idx] = {
+                  ...next[idx],
                   artifact: p.artifact,
                 };
               }
@@ -137,10 +146,15 @@ export default function ProjectorClient({
           });
         }
       } else if (msg.type === 'slide-patch') {
-        const patch = slidePatchOf(msg);
-        if (patch) {
-          const lastRev = patchRevisionsRef.current.get(patch.index) || 0;
-          if (patch.patchRevision > lastRev) {
+        const lastRev = patchRevisionsRef.current.get((msg as any)?.index) || 0;
+        const admission = validateProjectorSlidePatchAdmission({
+          msg,
+          activePlanIdentity: planIdentityRef.current,
+          lastRevision: lastRev,
+        });
+        if (admission.admit) {
+          const patch = slidePatchOf(msg);
+          if (patch && patch.patchRevision > lastRev) {
             patchRevisionsRef.current.set(patch.index, patch.patchRevision);
             setActiveSlides((prev) => {
               if (patch.index < 0 || patch.index >= prev.length) return prev;

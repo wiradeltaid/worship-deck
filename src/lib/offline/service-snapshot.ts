@@ -88,6 +88,7 @@ export function getCacheEpoch(): number {
 
 export type EmergencyPatchRecord = {
   id?: number;
+  clientOpId?: string;
   serviceId: string;
   basePlanIdentity: string;
   patchRevision: number;
@@ -935,6 +936,8 @@ export async function saveEmergencyPatch(
   };
 
   let id = Date.now();
+  let durableSaved = false;
+  let isDurableDuplicate = false;
 
   if (isIndexedDBAvailable()) {
     try {
@@ -944,42 +947,145 @@ export async function saveEmergencyPatch(
         const outboxStore = tx.objectStore(OUTBOX_STORE);
         const snapStore = tx.objectStore(SNAPSHOT_STORE);
 
-        const addReq = outboxStore.add(record);
-        addReq.onsuccess = () => {
-          const snapReq = snapStore.get(normId);
-          snapReq.onsuccess = () => {
-            const snap = snapReq.result as OfflineServiceSnapshot | undefined;
-            if (snap && Array.isArray(snap.plan) && snap.plan[record.slideIndex]) {
-              const updatedPlan = [...snap.plan];
-              updatedPlan[record.slideIndex] = {
-                ...updatedPlan[record.slideIndex],
-                artifact: record.patchedArtifact,
-              };
-              snap.plan = updatedPlan;
-              snap.cached_at = Date.now();
-              snapStore.put(snap);
+        // Atomic revision allocation: ensure patchRevision strictly exceeds
+        // any existing revision for this slideIndex in outbox to eliminate cross-tab collision
+        const allReq = outboxStore.getAll();
+        allReq.onsuccess = () => {
+          const allOutbox = (allReq.result || []) as EmergencyPatchRecord[];
+
+          // Idempotency: return existing record if identical clientOpId already committed
+          if (record.clientOpId) {
+            const existingOp = allOutbox.find(
+              (r) => r.serviceId === normId && r.clientOpId === record.clientOpId
+            );
+            if (existingOp) {
+              isDurableDuplicate = true;
+              if (patch) {
+                (patch as any).patchRevision = existingOp.patchRevision;
+              }
+              resolve(Number(existingOp.id) || id);
+              return;
             }
+          }
+
+          let highestRev = 0;
+          for (const item of allOutbox) {
+            if (
+              item.serviceId === normId &&
+              item.slideIndex === record.slideIndex &&
+              typeof item.patchRevision === 'number' &&
+              item.patchRevision > highestRev
+            ) {
+              highestRev = item.patchRevision;
+            }
+          }
+          if (record.patchRevision <= highestRev) {
+            record.patchRevision = highestRev + 1;
+          }
+          if (patch) {
+            (patch as any).patchRevision = record.patchRevision;
+          }
+
+          let insertedId = id;
+          const addReq = outboxStore.add(record);
+          addReq.onsuccess = () => {
+            if (typeof addReq.result === 'number') {
+              insertedId = addReq.result;
+            }
+            const snapReq = snapStore.get(normId);
+            snapReq.onsuccess = () => {
+              const snap = snapReq.result as OfflineServiceSnapshot | undefined;
+              if (snap && Array.isArray(snap.plan) && snap.plan[record.slideIndex]) {
+                const updatedPlan = [...snap.plan];
+                const lines = record.updatedText ? record.updatedText.split('\n') : [];
+                updatedPlan[record.slideIndex] = {
+                  ...updatedPlan[record.slideIndex],
+                  artifact: record.patchedArtifact,
+                  body: record.updatedText,
+                  lines,
+                };
+                snap.plan = updatedPlan;
+                snap.cached_at = Date.now();
+                snapStore.put(snap);
+              }
+            };
           };
+
+          addReq.onerror = () => reject(addReq.error);
+          tx.oncomplete = () => resolve(insertedId);
         };
 
-        tx.oncomplete = () => resolve(addReq.result as number || id);
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error);
       });
+      durableSaved = true;
     } catch {
       // fallback
     }
   }
 
-  // Update in-memory fallback stores
+  // If this was an idempotent duplicate already committed to IndexedDB, return immediately without polluting inMemoryOutbox
+  if (isDurableDuplicate) {
+    return id;
+  }
+
+  // Update in-memory fallback stores:
+  // If durable write already finalized the revision, mirror it directly without re-allocating.
+  // If IndexedDB was unavailable, run atomic in-memory revision allocation and idempotency.
+  if (!durableSaved) {
+    if (record.clientOpId) {
+      const existingOp = inMemoryOutbox.find(
+        (r) => r.serviceId === normId && r.clientOpId === record.clientOpId
+      );
+      if (existingOp) {
+        if (patch) {
+          (patch as any).patchRevision = existingOp.patchRevision;
+        }
+        return existingOp.id || id;
+      }
+    }
+
+    let highestMemRev = 0;
+    for (const item of inMemoryOutbox) {
+      if (
+        item.serviceId === normId &&
+        item.slideIndex === record.slideIndex &&
+        typeof item.patchRevision === 'number' &&
+        item.patchRevision > highestMemRev
+      ) {
+        highestMemRev = item.patchRevision;
+      }
+    }
+    if (record.patchRevision <= highestMemRev) {
+      record.patchRevision = highestMemRev + 1;
+    }
+    if (patch) {
+      (patch as any).patchRevision = record.patchRevision;
+    }
+  }
+
   record.id = id;
-  inMemoryOutbox.push(record);
+  if (record.clientOpId) {
+    const memIdx = inMemoryOutbox.findIndex(
+      (r) => r.serviceId === normId && r.clientOpId === record.clientOpId
+    );
+    if (memIdx >= 0) {
+      inMemoryOutbox[memIdx] = record;
+    } else {
+      inMemoryOutbox.push(record);
+    }
+  } else {
+    inMemoryOutbox.push(record);
+  }
   const memSnap = inMemorySnapshots.get(normId);
   if (memSnap && Array.isArray(memSnap.plan) && memSnap.plan[record.slideIndex]) {
     const updatedPlan = [...memSnap.plan];
+    const lines = record.updatedText ? record.updatedText.split('\n') : [];
     updatedPlan[record.slideIndex] = {
       ...updatedPlan[record.slideIndex],
       artifact: record.patchedArtifact,
+      body: record.updatedText,
+      lines,
     };
     memSnap.plan = updatedPlan;
     memSnap.cached_at = Date.now();

@@ -1,11 +1,13 @@
 /**
  * Shared dynamic font scaling formula for scripture overlays.
  *
- * Sizing criteria (SPEC-43):
- * - Short verses (< 60 chars): renders prominently with 4.5rem-5.5rem (text-7xl / ~7.5cqh), filling 40-50% vertical screen presence.
- * - Medium verses (60-120 chars): 3.5rem-4.25rem (text-5xl-6xl / ~6cqh).
- * - Standard passages (120-200 chars): 2.5rem-3.25rem (text-4xl-5xl / ~4.5cqh).
- * - Longer passages (> 200 chars): graceful scale down to floor (1.75rem-2.5rem / ~3.5cqh) with bounded max-height to ensure containment.
+ * Sizing criteria (SPEC-85 superseding SPEC-43):
+ * Returns pure container query sizes (cqh) ensuring proportional scaling with stage
+ * dimensions across any screen resolution (720p to 4K) without root font size deformation:
+ * - Short verses (< 60 chars): 8.5cqh (~ filling 40-50% vertical screen presence)
+ * - Medium verses (60-120 chars): 6.5cqh
+ * - Standard passages (120-200 chars): 4.8cqh
+ * - Longer passages (> 200 chars): 3.5cqh with bounded max-height to ensure containment.
  */
 export function getScriptureScaling(text: string): {
   fontSizeStyle: string;
@@ -16,32 +18,73 @@ export function getScriptureScaling(text: string): {
   const len = text.trim().length;
   if (len < 60) {
     return {
-      fontSizeStyle: 'clamp(2.5rem, 8.5cqh, 6rem)',
-      tailwindClass: 'text-6xl sm:text-7xl md:text-8xl font-medium tracking-tight',
+      fontSizeStyle: '8.5cqh',
+      tailwindClass: 'font-medium tracking-tight',
       minHeightStyle: '38cqh',
       charCount: len,
     };
   }
   if (len < 120) {
     return {
-      fontSizeStyle: 'clamp(2rem, 6.5cqh, 4.5rem)',
-      tailwindClass: 'text-5xl sm:text-6xl md:text-7xl',
+      fontSizeStyle: '6.5cqh',
+      tailwindClass: 'font-normal',
       minHeightStyle: '28cqh',
       charCount: len,
     };
   }
   if (len < 200) {
     return {
-      fontSizeStyle: 'clamp(1.5rem, 4.8cqh, 3.5rem)',
-      tailwindClass: 'text-3xl sm:text-4xl md:text-5xl',
+      fontSizeStyle: '4.8cqh',
+      tailwindClass: 'font-normal',
       minHeightStyle: '20cqh',
       charCount: len,
     };
   }
   return {
-    fontSizeStyle: 'clamp(1.25rem, 3.5cqh, 2.5rem)',
-    tailwindClass: 'text-2xl sm:text-3xl md:text-4xl',
+    fontSizeStyle: '3.5cqh',
+    tailwindClass: 'font-normal',
     minHeightStyle: 'auto',
     charCount: len,
   };
+}
+
+/**
+ * Calculates shrink-to-fit scale factor for scripture text within fixed stage-anchored bounds.
+ * Prevents text clipping and guarantees strict containment within the 78cqh verse budget
+ * and net content box width, supporting exact container content-box measurements and pillarbox geometries.
+ */
+export function computeScriptureFitScale({
+  stageHeight,
+  stageWidth,
+  naturalHeight,
+  naturalWidth,
+  containerHeight,
+  containerWidth,
+}: {
+  stageHeight: number;
+  stageWidth: number;
+  naturalHeight: number;
+  naturalWidth: number;
+  containerHeight?: number;
+  containerWidth?: number;
+}): number {
+  if (stageHeight <= 0 || stageWidth <= 0 || naturalHeight <= 0 || naturalWidth <= 0) return 1;
+
+  const maxAllowedHeight =
+    typeof containerHeight === 'number'
+      ? Math.min(containerHeight, stageHeight * 0.78)
+      : stageHeight * 0.78;
+  const maxAllowedWidth =
+    typeof containerWidth === 'number'
+      ? containerWidth
+      : stageWidth * 0.85;
+
+  if (maxAllowedHeight <= 0 || maxAllowedWidth <= 0) return 0;
+
+  if (naturalHeight > maxAllowedHeight || naturalWidth > maxAllowedWidth) {
+    const heightRatio = maxAllowedHeight / naturalHeight;
+    const widthRatio = maxAllowedWidth / naturalWidth;
+    return Math.min(1, Math.min(heightRatio, widthRatio) * 0.98);
+  }
+  return 1;
 }

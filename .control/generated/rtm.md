@@ -987,10 +987,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/slide-visibility-hide-show.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14
@@ -4232,10 +4232,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/scripture-aspect-containment.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-23
@@ -4261,10 +4261,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/scripture-aspect-containment.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-24
@@ -5048,10 +5048,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -5062,10 +5062,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/slide-visibility-hide-show.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -5076,10 +5076,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/emergency-canvas-edit.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -9557,10 +9557,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/song-set-save-to-book-guard.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -9571,10 +9571,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -9585,10 +9585,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/slide-visibility-hide-show.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -9700,10 +9700,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/song-set-save-to-book-guard.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -9714,10 +9714,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -9728,10 +9728,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/slide-visibility-hide-show.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -9829,10 +9829,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/song-set-save-to-book-guard.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6
@@ -9843,10 +9843,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6
@@ -9857,10 +9857,10 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/slide-visibility-hide-show.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6

@@ -36,22 +36,22 @@ Satisfies `FR-14`, `FR-16`, `UC-18`, `UC-20`, and `UC-21`.
 
 **Blocked by:** `SPEC-85-01`, `SPEC-85-03`
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/slide-plan.ts`, `spa/src/pages/RunSheetPage.tsx`, `src/operator/present/PresenterOperator.tsx`, and `src/lib/pptx-draw.ts`.
-- [ ] In `src/lib/slide-plan.ts` and `internal/httpapi/services.go`:
+- [x] Read `src/lib/slide-plan.ts`, `spa/src/pages/RunSheetPage.tsx`, `src/operator/present/PresenterOperator.tsx`, and `src/lib/pptx-draw.ts`.
+- [x] In `src/lib/slide-plan.ts` and `internal/httpapi/services.go`:
       - Add `hidden?: boolean` to `SlidePlanItem` and support `hidden_slide_ids` persistence.
-- [ ] In `spa/src/pages/RunSheetPage.tsx`:
+- [x] In `spa/src/pages/RunSheetPage.tsx`:
       - Add hover visibility toggle and `Hidden` badge on slide preview thumbnails.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Add visibility toggle to filmstrip and console.
       - Update keyboard/button navigation to skip hidden slides.
       - Handle active-slide hide transition and all-hidden boundary.
-- [ ] In `src/lib/pptx-draw.ts`:
+- [x] In `src/lib/pptx-draw.ts`:
       - Set `slide.hidden = true` on hidden slides during PPTX generation.
-- [ ] In `tests/slide-visibility-hide-show.test.mjs`:
+- [x] In `tests/slide-visibility-hide-show.test.mjs`:
       - Test slide visibility persistence with stable IDs and badge rendering.
       - Test linear advance skips hidden slides.
       - Test PPTX hidden slide generation.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/slide-visibility-hide-show.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/slide-visibility-hide-show.test.mjs` and `npm run typecheck`.

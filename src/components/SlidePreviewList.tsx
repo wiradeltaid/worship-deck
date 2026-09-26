@@ -16,6 +16,8 @@ import {
   type PreviewEntry,
 } from '@/lib/artifacts/preview-model';
 import { useT } from '@/lib/i18n/operator';
+import { isSlideHidden } from '@/lib/slide-visibility';
+import { Button } from '@/components/ui/button';
 
 /** Legacy slide payload the API still returns; used for the visible content. */
 export type SlidePreviewItem = {
@@ -166,13 +168,19 @@ function SlideRow({
   slide,
   index,
   groupOrdinal,
+  hiddenSlideIds,
+  onToggleSlideVisibility,
 }: {
   entry?: PreviewEntry;
   slide?: SlidePreviewItem;
   index: number;
   groupOrdinal?: number;
+  hiddenSlideIds?: string[];
+  onToggleSlideVisibility?: (slideId: string) => void;
 }) {
   const { t } = useT();
+  const slideId = entry?.instanceId || slide?.id || `slide-${index}`;
+  const isHidden = isSlideHidden(hiddenSlideIds, slideId);
   const toneClass = entry
     ? TONE_CLASS[previewBadgeTone(entry)]
     : legacyToneClass(slide?.kind);
@@ -185,13 +193,26 @@ function SlideRow({
   );
 
   return (
-    <div className="p-3 flex items-start gap-3 hover:bg-muted/30 transition-all">
+    <div
+      data-testid="slide-preview-row"
+      className={`p-3 flex items-start gap-3 hover:bg-muted/30 transition-all ${
+        isHidden ? 'opacity-60 bg-muted/20' : ''
+      }`}
+    >
       <span className="text-[10px] text-muted-foreground font-bold font-mono pt-1">
         #{index + 1}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className={`${BADGE_CLASS} ${toneClass}`}>{badge}</span>
+          {isHidden && (
+            <span
+              data-testid="slide-hidden-badge"
+              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.25 border rounded bg-zinc-800 text-zinc-300 border-zinc-700"
+            >
+              Hidden
+            </span>
+          )}
           {title ? (
             <span className="font-bold text-xs truncate text-foreground">
               {title}
@@ -209,6 +230,33 @@ function SlideRow({
           </p>
         )}
       </div>
+      {onToggleSlideVisibility && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          data-testid="slide-visibility-toggle"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSlideVisibility(slideId);
+          }}
+          title={isHidden ? 'Show slide' : 'Hide slide'}
+          className="shrink-0 h-7 w-7 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={isHidden ? 'Show slide' : 'Hide slide'}
+        >
+          {isHidden ? (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-4.38 1.651 1.651 0 000-1.185A10.004 10.004 0 009.999 3a9.956 9.956 0 00-4.744 1.194L3.28 2.22zM7.752 6.69l1.092 1.092a2.5 2.5 0 013.374 3.375l1.091 1.091a4 4 0 00-5.557-5.557z" clipRule="evenodd" />
+              <path d="M10.748 13.93l2.523 2.523a9.987 9.987 0 01-3.27.547c-4.258 0-7.894-2.66-9.337-6.41a1.651 1.651 0 010-1.186A10.007 10.007 0 014.168 5.608L6.802 8.242a4 4 0 003.946 5.688z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+              <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+            </svg>
+          )}
+        </Button>
+      )}
     </div>
   );
 }
@@ -216,9 +264,13 @@ function SlideRow({
 export function SlidePreviewList({
   entries,
   slides,
+  hiddenSlideIds,
+  onToggleSlideVisibility,
 }: {
   entries: PreviewEntry[];
   slides: SlidePreviewItem[];
+  hiddenSlideIds?: string[];
+  onToggleSlideVisibility?: (slideId: string) => void;
 }) {
   if (slides.length === 0 && entries.length === 0) {
     return (
@@ -239,6 +291,8 @@ export function SlidePreviewList({
             slide={row.slide}
             index={row.index}
             groupOrdinal={row.groupOrdinal}
+            hiddenSlideIds={hiddenSlideIds}
+            onToggleSlideVisibility={onToggleSlideVisibility}
           />
         ) : (
           <div key={row.key} className="bg-muted/20">
@@ -273,6 +327,8 @@ export function SlidePreviewList({
                   entry={child.entry}
                   slide={child.slide}
                   index={child.index}
+                  hiddenSlideIds={hiddenSlideIds}
+                  onToggleSlideVisibility={onToggleSlideVisibility}
                 />
               ))}
             </div>
