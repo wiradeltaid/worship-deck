@@ -963,10 +963,11 @@ test('SPEC-47-06: Admin Sync UI structure, routes, and on-demand trigger control
   assert.match(appSource, /path="\/admin\/sync"/);
   assert.match(appSource, /<AdminSyncPage/);
 
-  // Verify nav link in Header.tsx
+  // Verify nav link in Header.tsx (with offline-disabled guarantee)
   const headerPath = path.join(root, 'src', 'components', 'Header.tsx');
   const headerSource = fs.readFileSync(headerPath, 'utf8');
   assert.match(headerSource, /href="\/admin\/sync"/);
+  assert.match(headerSource, /isOffline\s*\?\s*\(\s*<DropdownMenuItem\s+disabled>/);
 });
 
 test('SPEC-47-06: Executable Absence Guard & Physical Real-File Defect Injection for No Background Timers & Conflict Modal Options', () => {

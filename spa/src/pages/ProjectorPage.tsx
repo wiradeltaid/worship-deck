@@ -6,6 +6,7 @@ import ProjectedError from '../projected/ProjectedError';
 import {
   clearCachedSession,
   getCachedSession,
+  invalidateAuthAndPurgeOffline,
   setCachedSession,
   type StoredSession,
 } from '@/lib/auth-session';
@@ -41,7 +42,7 @@ export default function ProjectorPage() {
         clearTimeout(sessionTimer);
         if (cancelled) return;
         if (me.status === 401 || me.status === 403) {
-          clearCachedSession();
+          await invalidateAuthAndPurgeOffline().catch(() => {});
           navigate('/login');
           return;
         }
@@ -101,7 +102,7 @@ export default function ProjectorPage() {
         clearTimeout(serviceTimer);
         if (cancelled) return;
         if (res.status === 401 || res.status === 403) {
-          clearCachedSession();
+          await invalidateAuthAndPurgeOffline().catch(() => {});
           navigate('/login');
           return;
         }

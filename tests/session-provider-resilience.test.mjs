@@ -180,7 +180,10 @@ export function scanSessionSecurityGuards(customSources = {}) {
   if (!projectorSrc.includes('setUnavailable(null)') || !projectorSrc.includes('setData(null)')) {
     findings.push('ProjectorPage.tsx missing state reset on effect execution');
   }
-  const clearMatches = projectorSrc.match(/clearCachedSession\(\)/g) || [];
+  const clearMatches =
+    projectorSrc.match(/invalidateAuthAndPurgeOffline\(\)/g) ||
+    projectorSrc.match(/clearCachedSession\(\)/g) ||
+    [];
   if (clearMatches.length < 2) {
     findings.push('ProjectorPage.tsx must clear session cache on both /api/session 401 and /api/services 401');
   }
@@ -915,7 +918,7 @@ test('SPEC-84-01: Defect injection proofs verify guards fail closed on defect', 
   // Defect 4: Strip double 401 purge in ProjectorPage
   const d4 = scanSessionSecurityGuards({
     projector: realProjectorSrc.replace(
-      /res\.status === 401[\s\S]*?clearCachedSession\(\);/,
+      /res\.status === 401[\s\S]*?(?:invalidateAuthAndPurgeOffline|clearCachedSession)\(\)/,
       'res.status === 401) {'
     ),
   });

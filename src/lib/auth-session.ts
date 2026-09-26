@@ -5,6 +5,8 @@
  * ensuring consistent cache removal across SessionProvider, ProjectorPage, and LogoutButton.
  */
 
+import { clearOfflineStorage } from '@/lib/offline/service-snapshot';
+
 export const LAST_SESSION_STORAGE_KEY = 'worship_deck_last_session';
 
 export type StoredSession = {
@@ -22,6 +24,19 @@ export function clearCachedSession(): void {
     }
   } catch {
     // ignore storage access issues
+  }
+}
+
+/**
+ * Invalidates authenticated session and purges all offline storage (snapshots, media blobs, outbox).
+ * Used across SessionProvider, RunSheetPage, PresentPage, and ProjectorPage upon 401/403 responses.
+ */
+export async function invalidateAuthAndPurgeOffline(): Promise<void> {
+  clearCachedSession();
+  try {
+    await clearOfflineStorage();
+  } catch {
+    // ignore offline purge errors
   }
 }
 

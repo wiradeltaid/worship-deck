@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import Link from '@/components/Link';
 import EditForm from '@/operator/EditForm';
 import SyncArtifactButton from '@/operator/SyncArtifactButton';
@@ -13,32 +13,87 @@ import {
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/operator';
 import { useSession } from '../lib/auth/SessionProvider';
+import {
+  clearCachedSession,
+  getCachedSession,
+  invalidateAuthAndPurgeOffline,
+} from '@/lib/auth-session';
+import { getServiceSnapshot, warmServiceSnapshot } from '@/lib/offline/service-snapshot';
+import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
 
 export default function RunSheetPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { session } = useSession();
   const { t } = useT();
   const [svc, setSvc] = useState<any>(null);
+  const [isOfflineData, setIsOfflineData] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     (async () => {
-      const res = await fetch(`/api/services/${id}`, { credentials: 'same-origin' });
-      if (cancelled) return;
-      if (res.status === 404) {
+      try {
+        const res = await fetch(`/api/services/${id}`, {
+          credentials: 'same-origin',
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (cancelled) return;
+        if (res.status === 401 || res.status === 403) {
+          await invalidateAuthAndPurgeOffline().catch(() => {});
+          navigate('/login', { replace: true });
+          return;
+        }
+        if (res.status === 404) {
+          setSvc('missing');
+          setLoading(false);
+          return;
+        }
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        if (data && data.id) {
+          warmServiceSnapshot(data.id, data).catch(() => {});
+        }
+        setSvc(data);
+        setIsOfflineData(false);
+        setLoading(false);
+      } catch {
+        clearTimeout(timeoutId);
+        if (cancelled) return;
+        if (id) {
+          const cachedSession = getCachedSession();
+          if (cachedSession && cachedSession.username) {
+            try {
+              const snapshot = await getServiceSnapshot(id);
+              if (cancelled) return;
+              if (snapshot && snapshot.id) {
+                setSvc(snapshot);
+                setIsOfflineData(true);
+                setLoading(false);
+                return;
+              }
+            } catch {
+              // fall through
+            }
+          }
+        }
         setSvc('missing');
         setLoading(false);
-        return;
       }
-      const data = await res.json();
-      if (cancelled) return;
-      setSvc(data);
-      setLoading(false);
     })();
+
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [id]);
 
@@ -60,9 +115,18 @@ export default function RunSheetPage() {
   const reloadService = async () => {
     try {
       const res = await fetch(`/api/services/${id}`, { credentials: 'same-origin' });
+      if (res.status === 401 || res.status === 403) {
+        await invalidateAuthAndPurgeOffline().catch(() => {});
+        navigate('/login', { replace: true });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
+        if (data && data.id) {
+          warmServiceSnapshot(data.id, data).catch(() => {});
+        }
         setSvc(data);
+        setIsOfflineData(false);
       }
     } catch {
       // non-blocking
@@ -78,6 +142,22 @@ export default function RunSheetPage() {
           {t('edit.actions.back')}
         </Link>
       </div>
+      {isOfflineData && (
+        <div
+          data-testid="offline-runsheet-banner"
+          role="status"
+          className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-medium text-amber-700 dark:text-amber-300 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span>Mode Offline — Membaca data tersimpan</span>
+          </div>
+          <span className="text-[11px] opacity-75">Tersimpan di perangkat lokal</span>
+        </div>
+      )}
       <header className="mb-8 flex flex-col gap-4 border-b border-border/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">
@@ -85,7 +165,8 @@ export default function RunSheetPage() {
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">Service ID: {svc.id}</p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
           <Link
             href={`/services/${svc.id}/slideshow`}
             target="_blank"

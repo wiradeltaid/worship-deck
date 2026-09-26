@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 import { submitPasswordChange } from '@/lib/auth-session';
 
@@ -175,16 +176,19 @@ export default function Header({
               {t('chrome.password.change')} {isOffline && '(Offline)'}
             </DropdownMenuItem>
             {isAdmin && (
-              <DropdownMenuItem
-                disabled={isOffline}
-                onClick={() => {
-                  if (isOffline) return;
-                  window.location.href = '/admin/sync';
-                }}
-              >
-                <RefreshCw className="size-4" />
-                <span>Sync {isOffline && '(Offline)'}</span>
-              </DropdownMenuItem>
+              isOffline ? (
+                <DropdownMenuItem disabled>
+                  <RefreshCw className="size-4" />
+                  <span>Sync (Offline)</span>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  render={<a href="/admin/sync" />}
+                >
+                  <RefreshCw className="size-4" />
+                  <span>Sync</span>
+                </DropdownMenuItem>
+              )
             )}
             <LogoutButton variant="menu" />
           </DropdownMenuContent>

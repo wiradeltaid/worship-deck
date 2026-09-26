@@ -77,6 +77,7 @@ import {
   type PresenterRemoteConnectionState,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
+import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
 import SlideGridDialog from './SlideGridDialog';
 import {
   PRESENTER_TONE_CLASS,
@@ -289,6 +290,8 @@ export default function PresenterOperator({
   rundownText = '',
   planIdentity,
   transition: deckTransition,
+  isOffline = false,
+  rawService,
 }: {
   serviceId: number;
   serviceDate: string;
@@ -303,6 +306,8 @@ export default function PresenterOperator({
    * written anywhere.
    */
   transition: SlideTransition;
+  isOffline?: boolean;
+  rawService?: any;
 }) {
   const { t } = useT();
   const [index, setIndex] = useState(0);
@@ -819,15 +824,28 @@ export default function PresenterOperator({
     <div className="dark flex min-h-dvh flex-col overflow-y-auto bg-background text-foreground">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">
-            Presenter · {serviceDate}
+          <h1 className="truncate text-lg font-semibold flex items-center gap-2">
+            <span>Presenter · {serviceDate}</span>
+            {isOffline && (
+              <span
+                data-testid="offline-presenter-badge"
+                className="rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 select-none"
+              >
+                Offline
+              </span>
+            )}
           </h1>
           <p className="truncate text-xs text-muted-foreground">
             Slide {slides.length === 0 ? 0 : index + 1} / {slides.length}
             {activeEntry ? ` · ${activeEntry.label}` : ''}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <OfflineReadinessBadge
+            serviceId={serviceId}
+            serviceData={rawService || { id: serviceId, plan: slides }}
+            className="mr-1"
+          />
           <Button
             variant="secondary"
             onClick={() => setGridOpen(true)}
