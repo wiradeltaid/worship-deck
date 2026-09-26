@@ -21,23 +21,24 @@ Satisfies `FR-18` and `UC-20`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `spa/src/lib/auth/SessionProvider.tsx`, `spa/src/pages/OperatorShell.tsx`, `src/components/LogoutButton.tsx`, and `spa/src/pages/ProjectorPage.tsx`.
-- [ ] In `spa/src/lib/auth/SessionProvider.tsx`:
+- [x] Read `spa/src/lib/auth/SessionProvider.tsx`, `spa/src/pages/OperatorShell.tsx`, `src/components/LogoutButton.tsx`, and `spa/src/pages/ProjectorPage.tsx`.
+- [x] In `spa/src/lib/auth/SessionProvider.tsx`:
       - Add `try / catch` around `fetch('/api/session')`.
       - Store successful session body into `sessionStorage.setItem('worship_deck_last_session', JSON.stringify(body))`.
-      - On 401: clear `sessionStorage.removeItem('worship_deck_last_session')`, set `unauthed`, navigate to `/login`.
+      - On 401/403: clear `sessionStorage.removeItem('worship_deck_last_session')`, set `unauthed`, navigate to `/login`.
       - On network error: read `sessionStorage.getItem('worship_deck_last_session')`. If valid, retain session with `isOffline: true`.
       - Expose `isOffline: boolean` in `SessionContextValue`.
-- [ ] In `src/components/LogoutButton.tsx`:
-      - Clear `sessionStorage.removeItem('worship_deck_last_session')` on logout click.
-- [ ] In `spa/src/pages/OperatorShell.tsx`:
-      - If `isOffline`, display a non-blocking alert banner: "Offline — Menjalankan sesi lokal tersimpan".
-- [ ] In `spa/src/pages/ProjectorPage.tsx`:
-      - Catch network errors on `/api/session` and proceed if offline presentation data is present.
-- [ ] In `tests/session-provider-resilience.test.mjs`:
+      - Add online/offline event listeners with fail-closed atomic API revalidation (`revalidateSessionOnline`).
+- [x] In `src/components/LogoutButton.tsx`:
+      - Clear `sessionStorage.removeItem('worship_deck_last_session')` and `clearOfflineStorage()` on logout.
+- [x] In `spa/src/pages/OperatorShell.tsx`:
+      - If `isOffline`, display a non-blocking alert banner: "Offline — Menjalankan sesi lokal tersimpan" and pass `isOffline` to `Header`.
+- [x] In `spa/src/pages/ProjectorPage.tsx`:
+      - Catch network errors on `/api/session`, verify cached session, and proceed with `resolvePlanMedia` from offline snapshot.
+- [x] In `tests/session-provider-resilience.test.mjs`:
       - Test 401 navigation vs network error recovery.
       - Test explicit logout clears cached storage.
       - Inject defect (remove catch) and verify guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/session-provider-resilience.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/session-provider-resilience.test.mjs` and `npm run typecheck`.
