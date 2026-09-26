@@ -28,4 +28,4 @@ A clear and concise description of what you expected to happen.
 **Additional context**
 Add any other context about the problem here (e.g., slide template kind, hymn number).
 
-> **Security Note:** If you have discovered a security vulnerability or sensitive data exposure issue, please **DO NOT** report it here publicly. Instead, please report it privately through [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) on this repository (see [SECURITY.md](SECURITY.md)). Questions that are not about security can go to support@wiradelta.id.
+> **Security Note:** If you have discovered a security vulnerability or sensitive data exposure issue, please **DO NOT** report it here publicly. Instead, please report it privately through [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) on this repository (see [SECURITY.md](SECURITY.md)). Questions that are not about security can go to support@wiradelta.com.

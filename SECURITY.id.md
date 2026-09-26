@@ -1,5 +1,5 @@
 # Kebijakan Keamanan
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.id.md) on 2026-09-24.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.id.md) on 2026-09-26.
      Edit the source, then copy it here again. -->
 
 Naskah ini adalah naskah resmi dalam bahasa Indonesia. Terjemahan bahasa Inggris tersedia di [SECURITY.md](SECURITY.md).
@@ -19,7 +19,7 @@ Di naskah ini, "Anda" berarti gereja atau organisasi yang memasang dan menjalank
 
 Jangan membuka issue publik untuk masalah keamanan.
 
-Laporkan secara tertutup lewat [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) di repositori WorshipDeck. Kode sumber WorshipDeck terbuka, jadi jalur ini bisa dijangkau pelapor dari luar, dan laporan tetap tertutup sampai ada perbaikan. Pertanyaan yang bukan soal keamanan bisa dikirim ke support@wiradelta.id.
+Laporkan secara tertutup lewat [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) di repositori WorshipDeck. Kode sumber WorshipDeck terbuka, jadi jalur ini bisa dijangkau pelapor dari luar, dan laporan tetap tertutup sampai ada perbaikan. Pertanyaan yang bukan soal keamanan bisa dikirim ke support@wiradelta.com.
 
 Anda akan menerima tanda terima, lalu perbaikan atau penjelasan mengapa laporan itu bukan celah. Tidak ada program bug bounty dan tidak ada jaminan waktu tanggap. Ini proyek kecil, dan jujur soal itu lebih berguna daripada janji yang tidak bisa ditepati. Hanya rilis terbaru yang menerima perbaikan. Tidak ada cabang dukungan jangka panjang.
 

@@ -1,5 +1,5 @@
 # Security Policy
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.en.md) on 2026-09-24.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.en.md) on 2026-09-26.
      Edit the source, then copy it here again. -->
 
 This is an English translation of the Indonesian original ([SECURITY.id.md](SECURITY.id.md)). If the two differ in interpretation, the Indonesian text prevails.
@@ -19,7 +19,7 @@ In this document, "you" means the church or organization that installs and runs 
 
 Please do not open a public issue for a security problem.
 
-Report it privately through [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) on the WorshipDeck repository. WorshipDeck's source code is public, so an outside reporter can reach this path, and the report stays private until a fix exists. Questions that are not about security can go to support@wiradelta.id.
+Report it privately through [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) on the WorshipDeck repository. WorshipDeck's source code is public, so an outside reporter can reach this path, and the report stays private until a fix exists. Questions that are not about security can go to support@wiradelta.com.
 
 You will get an acknowledgement, then a fix or an explanation of why the report is not a vulnerability. There is no bug bounty program and no guaranteed response time. This is a small project, and honesty about that is more useful than a promise it cannot keep. Only the latest release receives fixes. There is no long-term support branch.
 
