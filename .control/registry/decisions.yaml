@@ -1568,6 +1568,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-071
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-26)"
+    title: Daily Autopilot mandate for Offline Presentation Resilience and Emergency Local Edit (SPEC-84)
+    file: .control/decisions/DEC-071-daily-autopilot-mandate-offline-presentation-resilience.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-03'
+    touches:
+      - .control/memlog/autopilot-DEC-071.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 
