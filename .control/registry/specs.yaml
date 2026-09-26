@@ -3602,7 +3602,7 @@ waves:
   # Opened 2026-09-26 from user triage notes.
   # Presentation fidelity, slide visibility control, and operator polish.
   - id: SPEC-85
-    status: open
+    status: closed
     release: presentation-fidelity-slide-visibility-and-operator-polish
     prd: [operator-turn, offline-deck]
     fr: [FR-14, FR-16, FR-19, FR-31, FR-33]
@@ -3625,28 +3625,28 @@ waves:
         component: presenter
         satisfies: [FR-19, UC-22]
         blocked_by: []
-        touches: [projector]
+        touches: [scripture]
         tests:
           - tests/scripture-aspect-containment.test.mjs
       - id: "SPEC-85-03"
         component: hub
         satisfies: [FR-16, UC-20, UC-21]
-        blocked_by: []
-        touches: [spa]
+        blocked_by: ["SPEC-85-01"]
+        touches: [services]
         tests:
           - tests/run-sheet-header-redesign.test.mjs
       - id: "SPEC-85-04"
         component: hub
         satisfies: [FR-14, FR-16, UC-18, UC-20, UC-21]
-        blocked_by: ["SPEC-85-01", "SPEC-85-03"]
-        touches: [services, presenter, pptx]
+        blocked_by: ["SPEC-85-01", "SPEC-85-02", "SPEC-85-03"]
+        touches: [services, present-channel, pptx]
         tests:
           - tests/slide-visibility-hide-show.test.mjs
       - id: "SPEC-85-05"
         component: presenter
         satisfies: [FR-16, FR-19, UC-21]
         blocked_by: ["SPEC-85-04"]
-        touches: [presenter, present-channel, artifacts]
+        touches: [present-channel, artifacts]
         tests:
           - tests/emergency-canvas-edit.test.mjs
 
