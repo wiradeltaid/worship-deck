@@ -1570,7 +1570,7 @@ decisions:
       - .scratch/
   - id: DEC-071
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-26)"
     title: Daily Autopilot mandate for Offline Presentation Resilience and Emergency Local Edit (SPEC-84)
     file: .control/decisions/DEC-071-daily-autopilot-mandate-offline-presentation-resilience.md
