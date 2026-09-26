@@ -49,6 +49,7 @@ import {
 } from '@/lib/worship-form-fields';
 import { DynamicFormBody, type FormGroupingDef, type FormLayoutData } from './DynamicFormBody';
 import { buildHistoricalGrouping } from '@/lib/form-layout';
+import { computeSongSetLyricsDirtyState } from '@/lib/song-set-dirty-guard';
 
 export { buildHistoricalGrouping };
 
@@ -182,6 +183,8 @@ export default function EditForm({
   >([]);
   const [openLyricEditors, setOpenLyricEditors] = useState<Record<string, boolean>>({});
   const [savingBookStatus, setSavingBookStatus] = useState<Record<string, boolean>>({});
+  const [fallbackBaselineLyrics, setFallbackBaselineLyrics] = useState<Record<string, string>>({});
+  const hymnFetchTokensRef = useRef<Record<string, number>>({});
 
   const toggleLyricEditor = async (variableName: string) => {
     const isOpening = !openLyricEditors[variableName];
@@ -189,17 +192,33 @@ export default function EditForm({
 
     if (isOpening) {
       const current = fieldsRef.current.songSets[variableName];
+      if (fallbackBaselineLyrics[variableName] === undefined) {
+        setFallbackBaselineLyrics((prev) => ({ ...prev, [variableName]: current?.lyricText || '' }));
+      }
       // If lyrics are not already filled, fetch from hymn number if valid
       if (!current?.lyricText && current?.songNumber && /^\d+$/.test(current.songNumber.trim())) {
         const num = Number(current.songNumber.trim());
-        const bookParam = current.songBookCode ? `&book_code=${encodeURIComponent(current.songBookCode)}` : '';
+        const originalNumStr = current.songNumber;
+        const originalBookStr = current.songBookCode || '';
+        const bookParam = originalBookStr ? `&book_code=${encodeURIComponent(originalBookStr)}` : '';
+        const token = Date.now() + Math.random();
+        hymnFetchTokensRef.current[variableName] = token;
         try {
           const res = await fetch(`/api/hymns?numbers=${num}${bookParam}`);
-          if (res.ok) {
+          if (res.ok && hymnFetchTokensRef.current[variableName] === token) {
             const data = (await res.json()) as { hymns?: Array<{ number: number; lyrics?: string }> };
             const hymn = data.hymns?.find((h) => h.number === num);
-            if (hymn?.lyrics) {
-              setSongSetField(variableName, 'lyricText', hymn.lyrics);
+            if (hymn?.lyrics && hymnFetchTokensRef.current[variableName] === token) {
+              const live = fieldsRef.current.songSets[variableName];
+              if (
+                live &&
+                live.songNumber === originalNumStr &&
+                (live.songBookCode || '').trim().toUpperCase() === originalBookStr.trim().toUpperCase() &&
+                (!live.lyricText || live.lyricText.trim() === '')
+              ) {
+                setSongSetField(variableName, 'lyricText', hymn.lyrics);
+                setFallbackBaselineLyrics((prev) => ({ ...prev, [variableName]: hymn.lyrics ?? '' }));
+              }
             }
           }
         } catch {
@@ -209,9 +228,14 @@ export default function EditForm({
     }
   };
 
-  const handleSaveToBook = async (variableName: string) => {
+  const handleSaveToBook = async (variableName: string): Promise<boolean> => {
     const current = fieldsRef.current.songSets[variableName];
-    if (!current?.songNumber || !/^\d+$/.test(current.songNumber.trim())) return;
+    if (!current?.songNumber || !/^\d+$/.test(current.songNumber.trim())) return false;
+
+    if (!current.lyricText || current.lyricText.trim().length === 0) {
+      setError(t('form.songSets.emptyLyricsError') || 'Cannot save empty lyrics to song book');
+      return false;
+    }
 
     setSavingBookStatus((prev) => ({ ...prev, [variableName]: true }));
     setError(null);
@@ -228,15 +252,22 @@ export default function EditForm({
 
       if (res.status === 409) {
         setError(t('form.songSets.songChangedConflict'));
-        return;
+        return false;
       }
 
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error || t('form.songSets.saveToBookFailed'));
       }
+
+      setFallbackBaselineLyrics((prev) => ({
+        ...prev,
+        [variableName]: current.lyricText ?? '',
+      }));
+      return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('form.songSets.saveToBookFailed'));
+      return false;
     } finally {
       setSavingBookStatus((prev) => ({ ...prev, [variableName]: false }));
     }
@@ -468,20 +499,77 @@ export default function EditForm({
     subField: 'songNumber' | 'songBookCode' | 'background' | 'lyricText',
     value: string
   ) => {
-    setFields((prev) => {
-      const current = prev.songSets[variableName] || {
-        songNumber: '',
-        songBookCode: '',
-        background: '',
-        lyricText: '',
-      };
-      const updated = {
-        ...prev.songSets,
-        [variableName]: { ...current, [subField]: value },
-      };
-      fieldsRef.current = { ...fieldsRef.current, songSets: updated };
-      return { ...prev, songSets: updated };
-    });
+    const current = fieldsRef.current.songSets[variableName] || {
+      songNumber: '',
+      songBookCode: '',
+      background: '',
+      lyricText: '',
+    };
+
+    const identityChanged =
+      (subField === 'songNumber' && current.songNumber !== value) ||
+      (subField === 'songBookCode' && current.songBookCode !== value);
+    const targetNum = subField === 'songNumber' ? value : current.songNumber;
+    const targetBook = subField === 'songBookCode' ? value : current.songBookCode;
+
+    const updated = {
+      ...fieldsRef.current.songSets,
+      [variableName]: {
+        ...current,
+        [subField]: value,
+        ...(identityChanged ? { lyricText: '' } : {}),
+      },
+    };
+
+    // Synchronously update ref FIRST
+    fieldsRef.current = { ...fieldsRef.current, songSets: updated };
+    // Schedule React state update
+    setFields((prev) => ({ ...prev, songSets: updated }));
+
+    if (identityChanged) {
+      // Invalidate any in-flight lookup immediately on hymn identity change
+      hymnFetchTokensRef.current[variableName] = Date.now() + Math.random();
+
+      setFallbackBaselineLyrics((prev) => ({
+        ...prev,
+        [variableName]: '',
+      }));
+
+      if (openLyricEditors[variableName] && targetNum && /^\d+$/.test(targetNum.trim())) {
+        const num = Number(targetNum.trim());
+        const bookParam = targetBook ? `&book_code=${encodeURIComponent(targetBook)}` : '';
+        const token = Date.now() + Math.random();
+        hymnFetchTokensRef.current[variableName] = token;
+
+        fetch(`/api/hymns?numbers=${num}${bookParam}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (hymnFetchTokensRef.current[variableName] !== token) return;
+            const hymn = data?.hymns?.find((h: any) => h.number === num);
+            if (hymn?.lyrics) {
+              const live = fieldsRef.current.songSets[variableName];
+              if (
+                live &&
+                live.songNumber === targetNum &&
+                (live.songBookCode || '').trim().toUpperCase() === (targetBook || '').trim().toUpperCase() &&
+                (!live.lyricText || live.lyricText.trim() === '')
+              ) {
+                const withLyrics = {
+                  ...fieldsRef.current.songSets,
+                  [variableName]: { ...live, lyricText: hymn.lyrics },
+                };
+                fieldsRef.current = { ...fieldsRef.current, songSets: withLyrics };
+                setFields((prev) => ({ ...prev, songSets: withLyrics }));
+                setFallbackBaselineLyrics((prev) => ({
+                  ...prev,
+                  [variableName]: hymn.lyrics ?? '',
+                }));
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    }
   };
 
   const setField = <K extends keyof WorshipFormFields>(
@@ -1143,16 +1231,23 @@ export default function EditForm({
                               <Label className="text-[11px] font-medium text-muted-foreground">
                                 {t('form.songSets.lyricsLabel')}
                               </Label>
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="xs"
-                                className="h-6 text-[11px] px-2"
-                                disabled={isSaving || isSavingBook || !hasValidNum}
-                                onClick={() => void handleSaveToBook(entry.variableName)}
-                              >
-                                {isSavingBook ? t('form.songSets.savingToBook') : t('form.songSets.saveToBook')}
-                              </Button>
+                              {computeSongSetLyricsDirtyState({
+                                isLyricOpen,
+                                currentLyricText: current.lyricText,
+                                baselineLyricText: fallbackBaselineLyrics[entry.variableName] || '',
+                              }) && (
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="xs"
+                                  className="h-6 text-[11px] px-2"
+                                  disabled={isSaving || isSavingBook || !hasValidNum}
+                                  onClick={() => void handleSaveToBook(entry.variableName)}
+                                  data-testid="fallback-save-to-book-button"
+                                >
+                                  {isSavingBook ? t('form.songSets.savingToBook') : t('form.songSets.saveToBook')}
+                                </Button>
+                              )}
                             </div>
                             <Textarea
                               rows={6}
