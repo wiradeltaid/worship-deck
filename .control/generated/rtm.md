@@ -4987,6 +4987,20 @@ rtm:
   FR: FR-3
   DEC: []
   UC: UC-21
+  ticket: SPEC-84-03
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/emergency-local-edit.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
   ticket: W9-04
   spec: W9
   release: hub-admin-mgmt
@@ -9426,6 +9440,34 @@ rtm:
   FR: FR-4
   DEC: []
   UC: UC-20
+  ticket: SPEC-84-01
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/session-provider-resilience.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-84-02
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/offline-service-snapshot.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
   ticket: W3-2
   spec: W3
   release: dec004-completion
@@ -9499,6 +9541,34 @@ rtm:
   FR: FR-5
   DEC: []
   UC: UC-20
+  ticket: SPEC-84-01
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/session-provider-resilience.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-84-02
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/offline-service-snapshot.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
   ticket: W3-2
   spec: W3
   release: dec004-completion
@@ -9553,6 +9623,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-84-01
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/session-provider-resilience.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-84-02
+  spec: SPEC-84
+  release: offline-presentation-resilience
+  test:
+  - tests/offline-service-snapshot.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6

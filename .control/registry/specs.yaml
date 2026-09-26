@@ -3561,6 +3561,44 @@ waves:
         tests:
           - tests/pptx-dynamic-text-native-word-wrap.test.mjs
 
+  # Opened 2026-09-26 from user triage notes.
+  # Offline presentation resilience and emergency local edit.
+  - id: SPEC-84
+    status: open
+    release: offline-presentation-resilience
+    prd: [offline-deck, operator-turn]
+    fr: [FR-14, FR-16, FR-18, FR-19]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-84-offline-presentation-resilience/
+    spec_reviewed:
+      date: '2026-09-26'
+      sha: '7422a95d5f216e9f204fa8d3baadab9afd659c0a'
+      lenses: [structure, prose, edge-case-hunter]
+      note: "Terra (kiro-agent) advisory review folded in: resolved ProjectorPage independent session and route fallback, formalized deep asset traversal and zero-media readiness semantics, designed monotonic patchRevision extension to BroadcastChannel preserving fail-closed basePlanIdentity invariants with mount-time sync replay, detailed online reconciliation with optimistic concurrency (PUT /api/services/:id) and rollback discard, standardized isOffline session context contract, mandated readiness indicator across both Run Sheet and Presenter headers, and explicitly cited AD-1 (PPTX Plan A, browser Plan B)."
+    tickets:
+      - id: "SPEC-84-01"
+        component: hub
+        satisfies: [FR-18, UC-20]
+        blocked_by: []
+        touches: [auth]
+        tests:
+          - tests/session-provider-resilience.test.mjs
+      - id: "SPEC-84-02"
+        component: presenter
+        satisfies: [FR-14, FR-16, FR-19, UC-20]
+        blocked_by: ["SPEC-84-01"]
+        touches: [services]
+        tests:
+          - tests/offline-service-snapshot.test.mjs
+      - id: "SPEC-84-03"
+        component: presenter
+        satisfies: [FR-16, FR-19, UC-21]
+        blocked_by: ["SPEC-84-02"]
+        touches: [present-channel]
+        tests:
+          - tests/emergency-local-edit.test.mjs
+
 
 
 

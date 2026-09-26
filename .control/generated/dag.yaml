@@ -611,6 +611,14 @@ dag:
   order:
   - parallel:
     - SPEC-83-01
+- spec: SPEC-84
+  order:
+  - parallel:
+    - SPEC-84-01
+  - parallel:
+    - SPEC-84-02
+  - parallel:
+    - SPEC-84-03
 - spec: W1
   order:
   - parallel:
