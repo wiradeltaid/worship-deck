@@ -330,81 +330,101 @@ export default function RunSheetPage() {
           </div>
         </div>
       )}
-      <header className="mb-8 flex flex-col gap-4 border-b border-border/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">
-            Run-Sheet: {svc.date || svc.id}
-          </h1>
-          <p className="mt-1 text-xs text-muted-foreground">Service ID: {svc.id}</p>
+      <header
+        data-testid="run-sheet-header"
+        className="mb-8 flex flex-col gap-4 border-b border-border/80 pb-4 lg:flex-row lg:items-center lg:justify-between"
+      >
+        {/* Meta Cluster (Left) */}
+        <div data-testid="header-meta-cluster" className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              Run-Sheet: {svc.date || svc.id}
+            </h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>
+          </div>
+          <div className="pt-0.5 sm:pt-0">
+            <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
-          <Link
-            href={`/services/${svc.id}/slideshow`}
-            target="_blank"
-            rel="noreferrer"
-            className={actionClass}
-          >
-            {t('edit.actions.preview')}
-          </Link>
-          <Link href={`/services/${svc.id}/present`} className={actionClass}>
-            {t('edit.actions.present')}
-          </Link>
-          <Link href={`/services/${svc.id}/remote`} className={actionClass}>
-            {t('edit.actions.remote')}
-          </Link>
-          {isAdmin ? (
-            <SyncArtifactButton
-              serviceId={svc.id}
-              updatedAt={svc.updated_at}
-              onSuccess={reloadService}
-            />
-          ) : null}
-          <div className="inline-flex rounded-md shadow-xs">
-            <a
-              href={`/api/services/${svc.id}/pptx`}
-              download
-              aria-label={t('edit.actions.downloadPptx')}
-              className={cn(buttonVariants({ variant: 'default' }), 'rounded-r-none h-auto px-3 py-2 border-r border-primary-foreground/20')}
+
+        {/* Action Clusters (Right) */}
+        <div data-testid="header-actions-wrapper" className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          {/* Primary Controls (Present with primary visual prominence, Preview, Remote) */}
+          <div data-testid="header-primary-controls" className="flex items-center gap-2">
+            <Link
+              href={`/services/${svc.id}/present`}
+              className={cn(buttonVariants({ variant: 'default' }), 'h-9 px-4 font-bold shadow-xs')}
             >
-              {t('edit.actions.downloadPptx')}
-            </a>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label="PPTX Export Options"
-                className={cn(buttonVariants({ variant: 'default' }), 'rounded-l-none h-auto px-2 py-2')}
+              {t('edit.actions.present')}
+            </Link>
+            <Link
+              href={`/services/${svc.id}/slideshow`}
+              target="_blank"
+              rel="noreferrer"
+              className={actionClass}
+            >
+              {t('edit.actions.preview')}
+            </Link>
+            <Link href={`/services/${svc.id}/remote`} className={actionClass}>
+              {t('edit.actions.remote')}
+            </Link>
+          </div>
+
+          {/* Utility Controls (Sync Artifact, Download PPTX split button) */}
+          <div data-testid="header-utility-controls" className="flex items-center gap-2">
+            {isAdmin ? (
+              <SyncArtifactButton
+                serviceId={svc.id}
+                updatedAt={svc.updated_at}
+                onSuccess={reloadService}
+              />
+            ) : null}
+            <div className="inline-flex rounded-md shadow-xs">
+              <a
+                href={`/api/services/${svc.id}/pptx`}
+                download
+                aria-label={t('edit.actions.downloadPptx')}
+                className={cn(buttonVariants({ variant: 'outline' }), 'rounded-r-none h-auto px-3 py-2 border-r-0 text-xs font-medium')}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                </svg>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuItem
-                  onClick={() => {
-                    const a = document.createElement('a');
-                    a.href = `/api/services/${svc.id}/pptx`;
-                    a.download = '';
-                    a.click();
-                  }}
-                  className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                {t('edit.actions.downloadPptx')}
+              </a>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="PPTX Export Options"
+                  className={cn(buttonVariants({ variant: 'outline' }), 'rounded-l-none h-auto px-2 py-2')}
                 >
-                  <span className="font-medium text-xs">Word Wrap in PowerPoint (Default)</span>
-                  <span className="text-muted-foreground text-[10px]">Text reflows in PowerPoint when edited</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    const a = document.createElement('a');
-                    a.href = `/api/services/${svc.id}/pptx?wrap=false`;
-                    a.download = '';
-                    a.click();
-                  }}
-                  className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
-                >
-                  <span className="font-medium text-xs">Disable PowerPoint Word Wrap</span>
-                  <span className="text-muted-foreground text-[10px]">Preserves fixed unwrapped shape boundaries</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = `/api/services/${svc.id}/pptx`;
+                      a.download = '';
+                      a.click();
+                    }}
+                    className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                  >
+                    <span className="font-medium text-xs">Word Wrap in PowerPoint (Default)</span>
+                    <span className="text-muted-foreground text-[10px]">Text reflows in PowerPoint when edited</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = `/api/services/${svc.id}/pptx?wrap=false`;
+                      a.download = '';
+                      a.click();
+                    }}
+                    className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+                  >
+                    <span className="font-medium text-xs">Disable PowerPoint Word Wrap</span>
+                    <span className="text-muted-foreground text-[10px]">Preserves fixed unwrapped shape boundaries</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>

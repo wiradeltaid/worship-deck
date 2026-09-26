@@ -1828,7 +1828,10 @@ export default function PresenterOperator({
             <h2 className="border-b border-border px-3 py-2 text-sm font-semibold">
               Run-Sheet
             </h2>
-            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
+            <ul
+              data-testid="presenter-rundown-list"
+              className="min-h-0 flex-1 h-full space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh]"
+            >
               <li className="list-none">
                 {runSheet.isEmpty ? (
                   <p className="text-sm italic text-muted-foreground">

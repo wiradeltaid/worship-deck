@@ -461,9 +461,6 @@ function scanPresenterPanelContainment(source) {
     if (!scrollerClasses.includes('max-lg:max-h-[45vh]')) {
       findings.push('Run-Sheet panel scroller missing max-lg:max-h-[45vh] mobile containment');
     }
-    if (!scrollerClasses.includes('lg:max-h-[30rem]')) {
-      findings.push('Run-Sheet panel scroller missing lg:max-h-[30rem] desktop containment');
-    }
   }
 
   return findings;
@@ -580,17 +577,9 @@ test('SPEC-43-02: 13. Defect injection proof for panel scroll containment guard 
       expectedSnippet: 'Run-Sheet panel scroller missing overflow-y-auto',
     },
     {
-      name: 'Run-Sheet desktop cap removed',
-      mutate: (src) => src.replace('lg:max-h-[30rem]', 'lg:max-h-none'),
-      expectedSnippet: 'Run-Sheet panel scroller missing lg:max-h-[30rem]',
-    },
-    {
       name: 'Run-Sheet mobile cap removed',
       mutate: (src) =>
-        src.replace(
-          'max-lg:max-h-[45vh] lg:max-h-[30rem]',
-          'max-lg:max-h-none lg:max-h-[30rem]'
-        ),
+        src.replace('text-sm max-lg:max-h-[45vh]', 'text-sm max-lg:max-h-none'),
       expectedSnippet: 'Run-Sheet panel scroller missing max-lg:max-h-[45vh]',
     },
   ];

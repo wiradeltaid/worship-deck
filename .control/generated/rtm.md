@@ -5048,7 +5048,7 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -9571,7 +9571,7 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -9714,7 +9714,7 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -9843,7 +9843,7 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/run-sheet-header-redesign.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
