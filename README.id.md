@@ -3,7 +3,7 @@
 > Aplikasi penampil dan staging ibadah gereja mandiri (*local-first church presentation and staging suite*) yang mengubah susunan acara ibadah menjadi slide presentasi siap pakai: menghasilkan file PowerPoint (.pptx) dengan font tertanam untuk kebutuhan luring (*offline*), konsol presenter dua layar untuk layar jemaat, dan remote smartphone Wi-Fi lokal.
 
 [English](README.md) | [Bahasa Indonesia](README.id.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Português (Brasil)](README.pt-BR.md) | [Русский](README.ru.md)  
-[Website](https://wiradelta.id/worship-deck) | [Unduh untuk Windows](https://github.com/wiradeltaid/worship-deck/releases) | [Changelog](CHANGELOG.md) | [Contributing](CONTRIBUTING.md) | [License](LICENSE) | [Security](SECURITY.md) | [Privacy](PRIVACY.md) | [Attributions](ATTRIBUTIONS.md)
+[Website](https://wiradelta.com/worship-deck) | [Unduh untuk Windows](https://github.com/wiradeltaid/worship-deck/releases) | [Changelog](CHANGELOG.md) | [Contributing](CONTRIBUTING.md) | [License](LICENSE) | [Security](SECURITY.md) | [Privacy](PRIVACY.md) | [Attributions](ATTRIBUTIONS.md)
 
 ---
 

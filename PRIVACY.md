@@ -1,5 +1,5 @@
 # Privacy Policy
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.en.md) on 2026-09-24.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.en.md) on 2026-09-26.
      Edit the source, then copy it here again. -->
 
 This is an English translation of the Indonesian original ([PRIVACY.id.md](PRIVACY.id.md)). If the two differ in interpretation, the Indonesian text prevails.
@@ -136,7 +136,7 @@ Software that respects privacy does not make your installation compliant by itse
 
 ## Questions
 
-About this software: **support@wiradelta.id**. About the data in a particular installation, ask whoever runs it. Wira Delta Indonesia cannot see that data and cannot answer for it.
+About this software: **support@wiradelta.com**. About the data in a particular installation, ask whoever runs it. Wira Delta Indonesia cannot see that data and cannot answer for it.
 
 ## Language
 

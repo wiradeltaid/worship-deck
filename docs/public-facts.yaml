@@ -104,7 +104,7 @@ facts:
       - README.md
 
   - id: support_email
-    value: "support@wiradelta.id"
+    value: "support@wiradelta.com"
     source: .control/project-non-technical-log.md
     appears_in:
       - SECURITY.md

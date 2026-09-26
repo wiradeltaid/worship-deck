@@ -1,5 +1,5 @@
 # Kebijakan Privasi
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.id.md) on 2026-09-24.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.id.md) on 2026-09-26.
      Edit the source, then copy it here again. -->
 
 Naskah ini adalah naskah resmi dalam bahasa Indonesia. Terjemahan bahasa Inggris tersedia di [PRIVACY.md](PRIVACY.md).
@@ -136,7 +136,7 @@ Software yang menjaga privasi tidak membuat instalasi Anda otomatis patuh hukum.
 
 ## Pertanyaan
 
-Tentang software ini: **support@wiradelta.id**. Tentang data di satu instalasi tertentu, tanyakan kepada pihak yang menjalankannya. Wira Delta Indonesia tidak bisa melihat data itu dan tidak bisa menjawab untuknya.
+Tentang software ini: **support@wiradelta.com**. Tentang data di satu instalasi tertentu, tanyakan kepada pihak yang menjalankannya. Wira Delta Indonesia tidak bisa melihat data itu dan tidak bisa menjawab untuknya.
 
 ## Bahasa
 

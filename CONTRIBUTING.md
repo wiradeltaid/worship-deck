@@ -12,7 +12,7 @@ Read [`.constitution/project/private-data.md`](.constitution/project/private-dat
 ## 3. Reporting Bugs & Security Vulnerabilities
 - Search existing issues to avoid duplicates.
 - Provide a clear description and minimal reproduction steps.
-- **Security vulnerabilities:** DO NOT report security issues via public issues. Report them privately through [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) on this repository (see [SECURITY.md](SECURITY.md)). Questions that are not about security can go to support@wiradelta.id.
+- **Security vulnerabilities:** DO NOT report security issues via public issues. Report them privately through [GitHub Security Advisories](https://github.com/wiradeltaid/worship-deck/security/advisories/new) on this repository (see [SECURITY.md](SECURITY.md)). Questions that are not about security can go to support@wiradelta.com.
 
 ## 4. Local Development Setup
 
