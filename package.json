@@ -41,6 +41,7 @@
     "auth:unlock": "node scripts/auth-unlock.mjs",
     "auth:set-password": "node scripts/auth-set-password.mjs",
     "registry:doctor": "node scripts/registry-doctor.mjs",
+    "hymnal:reseed": "node scripts/reseed-hymns.mjs",
     "assets:extract": "node scripts/extract-pptx-assets.mjs",
     "corpus:verify": "node scripts/verify-corpora.mjs"
   },
