@@ -420,22 +420,24 @@ const FilmstripFrame = memo(function FilmstripFrame({
         </span>
       </Button>
       {onToggleVisibility && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           data-testid="filmstrip-visibility-toggle"
           onClick={(e) => {
             e.stopPropagation();
             onToggleVisibility(entry.index);
           }}
           title={isHidden ? 'Unhide slide' : 'Hide slide'}
-          className="absolute top-1.5 left-1.5 z-10 p-1 rounded bg-black/70 hover:bg-black text-white/70 hover:text-white transition-opacity opacity-0 group-hover:opacity-100"
+          className="absolute top-1.5 left-1.5 z-10 size-6 p-1 rounded bg-black/70 hover:bg-black text-white/70 hover:text-white transition-opacity opacity-0 group-hover:opacity-100"
         >
           {isHidden ? (
             <Eye className="size-3" />
           ) : (
             <EyeOff className="size-3" />
           )}
-        </button>
+        </Button>
       )}
     </span>
   );
@@ -2321,7 +2323,7 @@ export function EmergencyCanvasDesignerModal({
             <div>
               <DialogTitle className="text-base font-semibold flex items-center gap-2 text-zinc-100">
                 <span>🎨 Edit Kanvas Darurat (Slide {slideIndex + 1})</span>
-                <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                   Lokal / Panggung
                 </span>
               </DialogTitle>
@@ -2388,38 +2390,42 @@ export function EmergencyCanvasDesignerModal({
               {draftArtifact?.layout?.elements?.map((el, idx) => {
                 const isSelected = el.id === selectedElementId && activeTab === 'elements';
                 return (
-                  <button
+                  <Button
                     key={el.id}
                     type="button"
+                    variant={isSelected ? 'default' : 'secondary'}
+                    size="sm"
                     data-testid={`emergency-element-tab-${el.id}`}
                     onClick={() => {
                       setSelectedElementId(el.id);
                       setActiveTab('elements');
                     }}
-                    className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+                    className={`h-6 flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
                       isSelected
-                        ? 'bg-amber-500 text-black font-medium shadow-sm'
+                        ? 'bg-amber-500 text-black hover:bg-amber-400 font-medium shadow-sm'
                         : 'bg-zinc-800/70 text-zinc-300 hover:bg-zinc-800 hover:text-white'
                     }`}
                   >
                     {el.type === 'text' ? <Type className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
                     <span>{el.placeholderKey || `${el.type} ${idx + 1}`}</span>
-                  </button>
+                  </Button>
                 );
               })}
-              <button
+              <Button
                 type="button"
+                variant={activeTab === 'background' ? 'default' : 'secondary'}
+                size="sm"
                 data-testid="emergency-bg-tab"
                 onClick={() => setActiveTab('background')}
-                className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+                className={`h-6 flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
                   activeTab === 'background'
-                    ? 'bg-amber-500 text-black font-medium shadow-sm'
+                    ? 'bg-amber-500 text-black hover:bg-amber-400 font-medium shadow-sm'
                     : 'bg-zinc-800/70 text-zinc-300 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
                 <Palette className="h-3 w-3" />
                 <span>Latar (Background)</span>
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -2459,19 +2465,24 @@ export function EmergencyCanvasDesignerModal({
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-zinc-300">Tipografi & Penjajaran</Label>
                       <div className="flex flex-wrap items-center gap-2">
-                        <select
-                          data-testid="emergency-font-family"
+                        <Select
                           value={selectedElement.style?.fontFamily || 'Geist Sans'}
-                          onChange={(e) => handleUpdateStyle({ fontFamily: e.target.value })}
-                          className="h-8 rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                          onValueChange={(val) => {
+                            if (val) handleUpdateStyle({ fontFamily: val });
+                          }}
                         >
-                          <option value="Geist Sans">Geist Sans</option>
-                          <option value="Inter">Inter</option>
-                          <option value="Arial">Arial</option>
-                          <option value="Times New Roman">Times New Roman</option>
-                          <option value="Georgia">Georgia</option>
-                          <option value="Courier New">Courier New</option>
-                        </select>
+                          <SelectTrigger data-testid="emergency-font-family" className="h-8 w-[140px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Geist Sans">Geist Sans</SelectItem>
+                            <SelectItem value="Inter">Inter</SelectItem>
+                            <SelectItem value="Arial">Arial</SelectItem>
+                            <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                            <SelectItem value="Georgia">Georgia</SelectItem>
+                            <SelectItem value="Courier New">Courier New</SelectItem>
+                          </SelectContent>
+                        </Select>
 
                         <div className="flex items-center gap-1">
                           <input
@@ -2637,21 +2648,26 @@ export function EmergencyCanvasDesignerModal({
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs font-medium text-zinc-300">Penyesuaian (Fit Mode)</Label>
-                      <select
-                        data-testid="emergency-image-fit"
+                      <Select
                         value={selectedElement.style?.objectFit || 'contain'}
-                        onChange={(e) =>
-                          handleUpdateImage(
-                            selectedElement.imageUrl || '',
-                            e.target.value as 'contain' | 'cover' | 'fill'
-                          )
-                        }
-                        className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                        onValueChange={(val) => {
+                          if (val) {
+                            handleUpdateImage(
+                              selectedElement.imageUrl || '',
+                              val as 'contain' | 'cover' | 'fill'
+                            );
+                          }
+                        }}
                       >
-                        <option value="contain">Contain (Muat Utuh)</option>
-                        <option value="cover">Cover (Penuh / Potong)</option>
-                        <option value="fill">Fill (Regang Penuh)</option>
-                      </select>
+                        <SelectTrigger data-testid="emergency-image-fit" className="h-8 w-full text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="contain">Contain (Muat Utuh)</SelectItem>
+                          <SelectItem value="cover">Cover (Penuh / Potong)</SelectItem>
+                          <SelectItem value="fill">Fill (Regang Penuh)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     {/* Geometry Row for Image */}
                     <div className="space-y-1.5 pt-1">
@@ -2740,7 +2756,7 @@ export function EmergencyCanvasDesignerModal({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleUpdateBackground({ image: null })}
-                      className="text-xs text-red-400 hover:text-red-300 h-7 px-2"
+                      className="text-xs text-destructive hover:text-destructive/80 h-7 px-2"
                     >
                       Hapus Gambar Latar
                     </Button>

@@ -17,6 +17,7 @@ import {
 } from '@/lib/artifacts/preview-model';
 import { useT } from '@/lib/i18n/operator';
 import { isSlideHidden } from '@/lib/slide-visibility';
+import { Button } from '@/components/ui/button';
 
 /** Legacy slide payload the API still returns; used for the visible content. */
 export type SlidePreviewItem = {
@@ -230,15 +231,17 @@ function SlideRow({
         )}
       </div>
       {onToggleSlideVisibility && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           data-testid="slide-visibility-toggle"
           onClick={(e) => {
             e.stopPropagation();
             onToggleSlideVisibility(slideId);
           }}
           title={isHidden ? 'Show slide' : 'Hide slide'}
-          className="shrink-0 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          className="shrink-0 h-7 w-7 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           aria-label={isHidden ? 'Show slide' : 'Hide slide'}
         >
           {isHidden ? (
@@ -252,7 +255,7 @@ function SlideRow({
               <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
             </svg>
           )}
-        </button>
+        </Button>
       )}
     </div>
   );
