@@ -29,9 +29,14 @@ import {
   type RefObject,
 } from 'react';
 import { toast } from 'sonner';
-import { Lock, Unlock, Pencil, Repeat } from 'lucide-react';
+import { Lock, Unlock, Pencil, Repeat, Eye, EyeOff } from 'lucide-react';
 import Link from '@/components/Link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
+import {
+  findNextVisibleIndex,
+  findNearestVisibleIndex,
+  createSlideVisibilityController,
+} from '@/lib/slide-visibility';
 import SlideView from '@/components/SlideView';
 import {
   isProjectorMessage,
@@ -244,15 +249,18 @@ function projectorWindowName(serviceId: number): string {
 
 function SlideListRow({
   entry,
+  slide,
   active,
   activeRef,
   onSelect,
 }: {
   entry: PresenterEntry;
+  slide?: SlidePlanItem;
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
 }) {
+  const isHidden = Boolean(slide?.hidden);
   return (
     <Button
       ref={active ? activeRef : null}
@@ -261,6 +269,8 @@ function SlideListRow({
       aria-current={active ? 'true' : undefined}
       onClick={() => onSelect(entry.index)}
       className={`flex h-auto w-full justify-start gap-2 rounded px-2 py-1.5 text-left font-normal ${
+        isHidden ? 'opacity-50' : ''
+      } ${
         active
           ? 'bg-primary text-primary-foreground hover:bg-primary/90'
           : 'text-foreground hover:bg-muted'
@@ -282,6 +292,14 @@ function SlideListRow({
       >
         {entry.label}
       </span>
+      {isHidden && (
+        <span
+          data-testid="list-hidden-badge"
+          className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.25 rounded border border-zinc-700 bg-zinc-900/90 text-zinc-300"
+        >
+          Hidden
+        </span>
+      )}
       <span className="truncate text-xs">{entry.title ?? ''}</span>
     </Button>
   );
@@ -304,6 +322,7 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active,
   activeRef,
   onSelect,
+  onToggleVisibility,
   backgroundOverride,
 }: {
   slide: SlidePlanItem | undefined;
@@ -311,46 +330,78 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
+  onToggleVisibility?: (index: number) => void;
   backgroundOverride?: string | null;
 }) {
+  const isHidden = Boolean(slide?.hidden);
   // The caption is clipped at 8rem, so the full text lives in the tooltip —
   // minus the headline when it only repeats the label ("Thank You · Thank You").
   const detail =
     entry.title && entry.title !== entry.label ? ` · ${entry.title}` : '';
   return (
-    <Button
-      ref={active ? activeRef : null}
-      type="button"
-      variant="ghost"
-      aria-current={active ? 'true' : undefined}
-      title={`${entry.index + 1} · ${entry.label}${detail}`}
-      onClick={() => onSelect(entry.index)}
-      className={`h-auto w-32 shrink-0 flex-col items-stretch rounded-md border p-1 text-left font-normal ${
-        active
-          ? 'border-primary bg-primary/15 ring-2 ring-primary hover:bg-primary/15'
-          : 'border-border hover:bg-muted'
-      }`}
-    >
-      <span className="block aspect-video overflow-hidden rounded-sm bg-black">
-        {slide ? (
-          <SlideView slide={slide} backgroundOverride={backgroundOverride} />
-        ) : null}
-      </span>
-      <span className="mt-1 flex items-center gap-1 overflow-hidden">
-        <span
-          className={`shrink-0 font-mono text-[10px] ${
-            active ? 'text-foreground' : 'text-muted-foreground'
-          }`}
-        >
-          {entry.index + 1}
+    <div className="relative group shrink-0">
+      <Button
+        ref={active ? activeRef : null}
+        type="button"
+        variant="ghost"
+        aria-current={active ? 'true' : undefined}
+        title={`${entry.index + 1} · ${entry.label}${detail}${isHidden ? ' (Hidden)' : ''}`}
+        onClick={() => onSelect(entry.index)}
+        className={`h-auto w-32 flex-col items-stretch rounded-md border p-1 text-left font-normal ${
+          isHidden ? 'opacity-50 bg-muted/20' : ''
+        } ${
+          active
+            ? 'border-primary bg-primary/15 ring-2 ring-primary hover:bg-primary/15'
+            : 'border-border hover:bg-muted'
+        }`}
+      >
+        <span className="relative block aspect-video overflow-hidden rounded-sm bg-black">
+          {slide ? (
+            <SlideView slide={slide} backgroundOverride={backgroundOverride} />
+          ) : null}
+          {isHidden && (
+            <span
+              data-testid="filmstrip-hidden-badge"
+              className="absolute top-1 right-1 text-[8px] font-bold uppercase bg-zinc-900/90 text-zinc-300 px-1 py-0.5 rounded border border-zinc-700"
+            >
+              Hidden
+            </span>
+          )}
         </span>
-        <span
-          className={`${BADGE_BASE} truncate ${PRESENTER_TONE_CLASS[entry.tone]}`}
-        >
-          {entry.label}
+        <span className="mt-1 flex items-center gap-1 overflow-hidden">
+          <span
+            className={`shrink-0 font-mono text-[10px] ${
+              active ? 'text-foreground' : 'text-muted-foreground'
+            }`}
+          >
+            {entry.index + 1}
+          </span>
+          <span
+            className={`${BADGE_BASE} truncate ${PRESENTER_TONE_CLASS[entry.tone]}`}
+          >
+            {entry.label}
+          </span>
         </span>
-      </span>
-    </Button>
+      </Button>
+      {onToggleVisibility && (
+        <button
+          type="button"
+          data-testid="filmstrip-visibility-toggle"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisibility(entry.index);
+          }}
+          title={isHidden ? 'Unhide slide' : 'Hide slide'}
+          className="absolute top-1.5 left-1.5 z-10 p-1 rounded bg-black/70 hover:bg-black text-white/70 hover:text-white transition-opacity opacity-0 group-hover:opacity-100"
+        >
+          {isHidden ? (
+            <Eye className="size-3" />
+          ) : (
+            <EyeOff className="size-3" />
+          )}
+        </button>
+      )}
+    </div>
   );
 });
 
@@ -382,9 +433,12 @@ export default function PresenterOperator({
 }) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
+  const activeSlidesRef = useRef(activeSlides);
+  activeSlidesRef.current = activeSlides;
 
   useEffect(() => {
     setActiveSlides(slides);
+    activeSlidesRef.current = slides;
   }, [slides]);
 
   const [presentationLock, setPresentationLock] = useState(true);
@@ -634,34 +688,6 @@ export default function PresenterOperator({
     [setIndexAndSync]
   );
 
-  useEffect(() => {
-    if (!isLooping) return;
-
-    const bounds = findAnnouncementSectionBounds(activeSlides, indexRef.current);
-    if (!bounds) {
-      isLoopingRef.current = false;
-      setIsLooping(false);
-      return;
-    }
-
-    const timer = setInterval(() => {
-      if (!isLoopingRef.current) return;
-      const currentIdx = indexRef.current;
-      const curBounds = findAnnouncementSectionBounds(activeSlides, currentIdx);
-      if (!curBounds) {
-        isLoopingRef.current = false;
-        setIsLooping(false);
-        return;
-      }
-      const nextIdx = computeNextLoopIndex(currentIdx, curBounds);
-      setIndexAndSync(nextIdx);
-    }, loopInterval * 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [isLooping, loopInterval, activeSlides, setIndexAndSync]);
-
   /**
    * Blanks or restores the projector. Takes the state it wants rather than
    * flipping whatever the receiver happens to hold, so a projector that missed
@@ -684,6 +710,77 @@ export default function PresenterOperator({
   const toggleBlank = useCallback(() => {
     setBlankAndSync(!blankRef.current);
   }, [setBlankAndSync]);
+
+  const visibilityController = useMemo(() => {
+    return createSlideVisibilityController({
+      getSlides: () => activeSlidesRef.current,
+      setSlides: (updated) => {
+        activeSlidesRef.current = updated as SlidePlanItem[];
+        setActiveSlides(updated as SlidePlanItem[]);
+      },
+      getCurrentIndex: () => indexRef.current,
+      setCurrentIndex: setIndexAndSync,
+      getIsBlank: () => blankRef.current,
+      setIsBlank: setBlankAndSync,
+      serviceId,
+      onError: (msg) => toast.error(msg),
+    });
+  }, [serviceId, setBlankAndSync, setIndexAndSync]);
+
+  const toggleSlideVisibility = visibilityController.toggleSlideVisibility;
+
+  const safeNavigate = useCallback(
+    async (targetIdx: number): Promise<boolean> => {
+      isLoopingRef.current = false;
+      setIsLooping(false);
+      return visibilityController.safeNavigate(targetIdx);
+    },
+    [visibilityController]
+  );
+
+  useEffect(() => {
+    visibilityController.checkInitialAllHidden();
+  }, [visibilityController]);
+
+  useEffect(() => {
+    if (!isLooping) return;
+
+    const bounds = findAnnouncementSectionBounds(activeSlides, indexRef.current);
+    if (!bounds) {
+      isLoopingRef.current = false;
+      setIsLooping(false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      if (!isLoopingRef.current) return;
+      const currentIdx = indexRef.current;
+      const curBounds = findAnnouncementSectionBounds(activeSlides, currentIdx);
+      if (!curBounds) {
+        isLoopingRef.current = false;
+        setIsLooping(false);
+        return;
+      }
+      let nextIdx = computeNextLoopIndex(currentIdx, curBounds);
+      let attempts = 0;
+      const [start, end] = curBounds;
+      const sectionLength = end - start + 1;
+      while (activeSlides[nextIdx]?.hidden && attempts < sectionLength) {
+        nextIdx = computeNextLoopIndex(nextIdx, curBounds);
+        attempts++;
+      }
+      if (attempts >= sectionLength && activeSlides[nextIdx]?.hidden) {
+        isLoopingRef.current = false;
+        setIsLooping(false);
+        return;
+      }
+      setIndexAndSync(nextIdx);
+    }, loopInterval * 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isLooping, loopInterval, activeSlides, setIndexAndSync]);
 
   /**
    * Redirects the projector to another style for the rest of this session and
@@ -809,7 +906,7 @@ export default function PresenterOperator({
       serviceId,
       getPlanIdentity: () => planIdentityRef.current,
       handlers: {
-        setIndexAndSync: manualNavigate,
+        setIndexAndSync: safeNavigate,
         setBlankAndSync,
         setTransitionAndSync,
         setBackgroundAndSync,
@@ -830,7 +927,7 @@ export default function PresenterOperator({
     };
   }, [
     serviceId,
-    manualNavigate,
+    safeNavigate,
     setBlankAndSync,
     setTransitionAndSync,
     setBackgroundAndSync,
@@ -861,10 +958,16 @@ export default function PresenterOperator({
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
         e.preventDefault();
-        manualNavigate(index + 1);
+        const next = findNextVisibleIndex(activeSlides, index, 1);
+        if (next !== index) {
+          manualNavigate(next);
+        }
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault();
-        manualNavigate(index - 1);
+        const prev = findNextVisibleIndex(activeSlides, index, -1);
+        if (prev !== index) {
+          manualNavigate(prev);
+        }
       } else if (e.key === 'b' || e.key === 'B' || e.key === '.') {
         // PowerPoint's own black-screen keys, so an operator who already runs
         // slides does not have to learn a second habit. Modifier chords are
@@ -1283,6 +1386,28 @@ export default function PresenterOperator({
             <Pencil className="size-3.5" />
             <span>Edit Darurat (Lokal)</span>
           </Button>
+          <Button
+            type="button"
+            variant={current?.hidden ? 'destructive' : 'outline'}
+            size="sm"
+            data-testid="toggle-current-slide-visibility"
+            disabled={activeSlides.length === 0}
+            onClick={() => void toggleSlideVisibility(index)}
+            className="h-8 gap-1.5 text-xs select-none"
+            title={current?.hidden ? 'Unhide current slide' : 'Hide current slide'}
+          >
+            {current?.hidden ? (
+              <>
+                <Eye className="size-3.5" />
+                <span>Unhide Slide</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="size-3.5" />
+                <span>Hide Slide</span>
+              </>
+            )}
+          </Button>
           <OfflineReadinessBadge
             serviceId={serviceId}
             serviceData={rawService || { id: serviceId, plan: activeSlides }}
@@ -1467,14 +1592,22 @@ export default function PresenterOperator({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => manualNavigate(index - 1)}
-              disabled={index <= 0}
+              data-testid="presenter-prev-button"
+              onClick={() => {
+                const prev = findNextVisibleIndex(activeSlides, index, -1);
+                if (prev !== index) manualNavigate(prev);
+              }}
+              disabled={findNextVisibleIndex(activeSlides, index, -1) === index}
             >
               ← Prev
             </Button>
             <Button
-              onClick={() => manualNavigate(index + 1)}
-              disabled={atEnd}
+              data-testid="presenter-next-button"
+              onClick={() => {
+                const next = findNextVisibleIndex(activeSlides, index, 1);
+                if (next !== index) manualNavigate(next);
+              }}
+              disabled={findNextVisibleIndex(activeSlides, index, 1) === index}
             >
               Next →
             </Button>
@@ -1671,7 +1804,8 @@ export default function PresenterOperator({
                   entry={entry}
                   active={entry.index === index}
                   activeRef={activeFrameRef}
-                  onSelect={manualNavigate}
+                  onSelect={safeNavigate}
+                  onToggleVisibility={toggleSlideVisibility}
                   backgroundOverride={liveBackground}
                 />
               ))}
@@ -1693,9 +1827,10 @@ export default function PresenterOperator({
                   <SlideListRow
                     key={row.key}
                     entry={row.entry}
+                    slide={activeSlides[row.entry.index]}
                     active={row.entry.index === index}
                     activeRef={activeRowRef}
-                    onSelect={manualNavigate}
+                    onSelect={safeNavigate}
                   />
                 ) : (
                   <div
@@ -1721,9 +1856,10 @@ export default function PresenterOperator({
                         <SlideListRow
                           key={entry.instanceId}
                           entry={entry}
+                          slide={activeSlides[entry.index]}
                           active={entry.index === index}
                           activeRef={activeRowRef}
-                          onSelect={manualNavigate}
+                          onSelect={safeNavigate}
                         />
                       ))}
                     </div>
@@ -1854,9 +1990,11 @@ export default function PresenterOperator({
         slides={activeSlides}
         entries={entries}
         currentIndex={index}
-        onPick={(picked) => {
-          manualNavigate(picked);
-          setGridOpen(false);
+        onPick={async (picked) => {
+          const ok = await safeNavigate(picked);
+          if (ok) {
+            setGridOpen(false);
+          }
         }}
       />
 

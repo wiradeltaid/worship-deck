@@ -58,6 +58,8 @@ export type SlidePlanItem = {
   secondaryImageUrl?: string;
   /** When false, skip fade (e.g. flyer images). Default true. */
   fade?: boolean;
+  /** When true, slide is hidden from live playback and marked with hidden badge. */
+  hidden?: boolean;
   /** Hydrated registry artifact this slide renders. */
   artifact: ArtifactInstance;
 };
@@ -1068,7 +1070,8 @@ export function buildSlidePlan(
   serviceDate: string,
   parsedData: ParsedRundown,
   images: string[] | SlidePlanMedia = [],
-  source?: SlidePlanSource
+  source?: SlidePlanSource,
+  hiddenSlideIds?: string[] | Set<string>
 ): SlidePlanItem[] {
   const snapshot = registryInput(source);
   const orderedIds = [...snapshot.keys()];
@@ -1076,11 +1079,22 @@ export function buildSlidePlan(
   const requests = buildRequestPlan(orderedIds, ctx, snapshot);
   const { plan, legacyById } = hydrateRequestPlan(requests, snapshot, ctx);
 
+  const hiddenSet =
+    hiddenSlideIds instanceof Set
+      ? hiddenSlideIds
+      : new Set(hiddenSlideIds || []);
+
   return flattenArtifactPlan(plan).map((instance) => {
     const legacy = legacyById.get(instance.instanceId);
     if (!legacy) {
       throw new Error(`Missing legacy projection for slide ${instance.instanceId}`);
     }
-    return { id: instance.instanceId, ...legacy, artifact: instance };
+    const isHidden = hiddenSet.has(instance.instanceId);
+    return {
+      id: instance.instanceId,
+      ...legacy,
+      hidden: isHidden ? true : undefined,
+      artifact: instance,
+    };
   });
 }

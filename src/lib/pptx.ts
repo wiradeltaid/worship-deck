@@ -36,9 +36,10 @@ export async function generatePptx(
   images: string[] | SlidePlanMedia = [],
   transition?: SlideTransition,
   source?: { serviceId?: number },
-  options?: GeneratePptxOptions
+  options?: GeneratePptxOptions,
+  hiddenSlideIds?: string[] | Set<string>
 ): Promise<Buffer> {
   const style = transition ?? configuredTransition();
-  const plan = buildSlidePlan(serviceDate, parsedData, images, source);
+  const plan = buildSlidePlan(serviceDate, parsedData, images, source, hiddenSlideIds);
   return generatePptxFromPlan(serviceDate, plan as DrawPlanItem[], style, undefined, options);
 }

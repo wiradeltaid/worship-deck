@@ -50,6 +50,7 @@ import {
 import { DynamicFormBody, type FormGroupingDef, type FormLayoutData } from './DynamicFormBody';
 import { buildHistoricalGrouping } from '@/lib/form-layout';
 import { computeSongSetLyricsDirtyState } from '@/lib/song-set-dirty-guard';
+import { toggleHiddenSlideId } from '@/lib/slide-visibility';
 
 export { buildHistoricalGrouping };
 
@@ -68,6 +69,7 @@ export default function EditForm({
   initialFieldValues,
   initialLayoutSnapshot,
   initialUpdatedAt,
+  initialHiddenSlideIds = [],
   hymnIndex = EMPTY_HYMN_INDEX,
 }: {
   id: number;
@@ -84,10 +86,14 @@ export default function EditForm({
   /** Accepted for page compat; edit no longer mutates participants_payload. */
   initialParticipantsRaw?: string;
   initialUpdatedAt: string;
+  initialHiddenSlideIds?: string[];
   hymnIndex: HymnIndexEntry[];
 }) {
   const { t } = useT();
   const [payload, setPayload] = useState(initialPayload);
+  const [hiddenSlideIds, setHiddenSlideIds] = useState<string[]>(
+    Array.isArray(initialHiddenSlideIds) ? initialHiddenSlideIds : []
+  );
   const [sermonGraphicUrl, setSermonGraphicUrl] = useState(
     initialSermonGraphicUrl
   );
@@ -270,6 +276,22 @@ export default function EditForm({
       return false;
     } finally {
       setSavingBookStatus((prev) => ({ ...prev, [variableName]: false }));
+    }
+  };
+
+  const handleToggleSlideVisibility = async (slideId: string) => {
+    const updated = toggleHiddenSlideId(hiddenSlideIds, slideId);
+    setHiddenSlideIds(updated);
+    if (id) {
+      try {
+        await fetch(`/api/services/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hidden_slide_ids: updated }),
+        });
+      } catch {
+        // preserve local toggle
+      }
     }
   };
 
@@ -1600,7 +1622,12 @@ export default function EditForm({
             </CardHeader>
             <CardContent className="p-0 border-t border-border/50">
               <div className="max-h-[600px] lg:max-h-[calc(100vh-14rem)] overflow-y-auto divide-y divide-border/60">
-                <SlidePreviewList entries={previewEntries} slides={slidePlan} />
+                <SlidePreviewList
+                  entries={previewEntries}
+                  slides={slidePlan}
+                  hiddenSlideIds={hiddenSlideIds}
+                  onToggleSlideVisibility={handleToggleSlideVisibility}
+                />
               </div>
             </CardContent>
           </Card>

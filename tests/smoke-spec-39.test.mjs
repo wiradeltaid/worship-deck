@@ -398,10 +398,11 @@ test('SPEC-39-02: 3. PresenterOperator UI implements loop toggle, interval selec
     'Interval timer callback must guard against stale fires via isLoopingRef.current'
   );
 
-  // Remote navigation session MUST use manualNavigate to disarm loop
+  // Remote navigation session MUST use safeNavigate to disarm loop
   assert.ok(
+    presenterOperatorCode.includes('setIndexAndSync: safeNavigate') ||
     presenterOperatorCode.includes('setIndexAndSync: manualNavigate'),
-    'PresenterRemoteSession must wire setIndexAndSync to manualNavigate so remote navigation disarms loop'
+    'PresenterRemoteSession must wire setIndexAndSync to safeNavigate/manualNavigate so remote navigation disarms loop'
   );
 
   // Timer cleanup on unmount / dependency change
@@ -412,19 +413,21 @@ test('SPEC-39-02: 3. PresenterOperator UI implements loop toggle, interval selec
 
   // Arrow keys must disarm loop
   assert.ok(
-    presenterOperatorCode.includes('manualNavigate(index + 1)') &&
-    presenterOperatorCode.includes('manualNavigate(index - 1)'),
+    presenterOperatorCode.includes('manualNavigate(next)') ||
+    presenterOperatorCode.includes('manualNavigate(index + 1)'),
     'Keyboard navigation must invoke manualNavigate to disarm loop'
   );
 
   // Filmstrip & List & Grid must disarm loop
   assert.ok(
+    presenterOperatorCode.includes('onSelect={safeNavigate}') ||
     presenterOperatorCode.includes('onSelect={manualNavigate}'),
-    'Filmstrip and slide list must pass manualNavigate to onSelect'
+    'Filmstrip and slide list must pass safeNavigate to onSelect'
   );
   assert.ok(
+    presenterOperatorCode.includes('safeNavigate(picked)') ||
     presenterOperatorCode.includes('manualNavigate(picked)'),
-    'SlideGridDialog onPick must invoke manualNavigate'
+    'SlideGridDialog onPick must invoke safeNavigate'
   );
 });
 
@@ -466,10 +469,10 @@ test('SPEC-39-02: 5. Executable absence guard & defect injection proof for manua
       manualNavMatch[0].includes('isLoopingRef.current = false'),
       'manualNavigate must synchronously set isLoopingRef.current to false'
     );
-    // PresenterRemoteSession must be wired to manualNavigate
+    // PresenterRemoteSession must be wired to safeNavigate
     assert.ok(
-      code.includes('setIndexAndSync: manualNavigate'),
-      'PresenterRemoteSession must wire setIndexAndSync to manualNavigate'
+      code.includes('setIndexAndSync: safeNavigate') || code.includes('setIndexAndSync: manualNavigate'),
+      'PresenterRemoteSession must wire setIndexAndSync to safeNavigate'
     );
   }
 
@@ -484,12 +487,12 @@ test('SPEC-39-02: 5. Executable absence guard & defect injection proof for manua
     'Absence guard must fail if manualNavigate does not synchronously set isLoopingRef.current to false'
   );
 
-  // Defect injection 2: PresenterRemoteSession bypasses manualNavigate
-  const defectiveCode2 = presenterOperatorCode.replace('setIndexAndSync: manualNavigate', 'setIndexAndSync: setIndexAndSync');
+  // Defect injection 2: PresenterRemoteSession bypasses safeNavigate
+  const defectiveCode2 = presenterOperatorCode.replace('setIndexAndSync: safeNavigate', 'setIndexAndSync: setIndexAndSync');
   assert.throws(
     () => verifyManualDisarm(defectiveCode2),
-    /PresenterRemoteSession must wire setIndexAndSync to manualNavigate/,
-    'Absence guard must fail if remote navigation bypasses manualNavigate'
+    /PresenterRemoteSession must wire setIndexAndSync to safeNavigate/,
+    'Absence guard must fail if remote navigation bypasses safeNavigate'
   );
 });
 

@@ -445,6 +445,7 @@ export default function RunSheetPage() {
         initialFieldValues={svc.field_values}
         initialLayoutSnapshot={svc.form_layout_snapshot}
         initialUpdatedAt={svc.updated_at}
+        initialHiddenSlideIds={svc.hidden_slide_ids}
       />
     </>
   );

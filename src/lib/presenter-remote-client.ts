@@ -26,7 +26,7 @@ export type PresenterRemoteIntent =
   | { type: 'clear-scripture'; planIdentity: string };
 
 export interface PresenterActionHandlers {
-  setIndexAndSync: (index: number) => void;
+  setIndexAndSync: (index: number) => Promise<boolean | void> | boolean | void;
   setBlankAndSync: (blank: boolean) => void;
   setTransitionAndSync: (transition: SlideTransition) => void;
   setBackgroundAndSync: (background: string | null) => void;
@@ -46,7 +46,7 @@ export function applyRemoteIntent(
   rawIntent: unknown,
   currentPlanIdentity: string,
   handlers: PresenterActionHandlers
-): boolean {
+): Promise<boolean> | boolean {
   if (!rawIntent || typeof rawIntent !== 'object') {
     return false;
   }
@@ -59,8 +59,11 @@ export function applyRemoteIntent(
   switch (intent.type) {
     case 'sync': {
       if (typeof intent.index === 'number') {
-        handlers.setIndexAndSync(intent.index);
-        return true;
+        const res = handlers.setIndexAndSync(intent.index);
+        if (res instanceof Promise) {
+          return res.then((ok) => ok !== false);
+        }
+        return res !== false;
       }
       return false;
     }
@@ -223,11 +226,11 @@ export class PresenterRemoteSession {
       this.onStateChange?.('connected');
     };
 
-    es.onmessage = (event) => {
+    es.onmessage = async (event) => {
       if (this.stopped || this.generation !== gen || this.eventSource !== es) return;
       try {
         const data = JSON.parse(event.data);
-        applyRemoteIntent(data, this.getPlanIdentity(), this.handlers);
+        await applyRemoteIntent(data, this.getPlanIdentity(), this.handlers);
       } catch {
         // Ignore unparseable data
       }

@@ -107,6 +107,7 @@ type ArtifactInstance struct {
 type DrawItem struct {
 	Artifact ArtifactInstance `json:"artifact"`
 	Fade     *bool            `json:"fade,omitempty"`
+	Hidden   *bool            `json:"hidden,omitempty"`
 }
 
 type ParsedScripture struct {
