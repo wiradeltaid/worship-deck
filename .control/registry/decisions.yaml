@@ -1586,6 +1586,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-072
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-26)"
+    title: Daily Autopilot mandate for Presentation Fidelity, Slide Visibility Control, and Operator Polish (SPEC-85)
+    file: .control/decisions/DEC-072-daily-autopilot-mandate-presentation-fidelity-slide-visibility.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-03'
+    touches:
+      - .control/memlog/autopilot-DEC-072.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

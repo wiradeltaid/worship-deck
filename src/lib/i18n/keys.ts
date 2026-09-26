@@ -165,6 +165,7 @@ export const I18N_KEYS = [
   'form.songSets.savingToBook',
   'form.songSets.savedToBook',
   'form.songSets.saveToBookFailed',
+  'form.songSets.emptyLyricsError',
   'form.songSets.songChangedConflict',
   'form.verseRef',
   'form.verseText',

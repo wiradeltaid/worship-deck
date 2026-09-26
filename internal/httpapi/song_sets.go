@@ -37,7 +37,12 @@ func (s *Server) saveSongSetToBook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, status, msg)
 		return
 	}
-	text, _ := body["text"].(string)
+	rawText, ok := body["text"].(string)
+	if !ok || strings.TrimSpace(rawText) == "" {
+		writeError(w, http.StatusBadRequest, "text is required and cannot be empty")
+		return
+	}
+	text := rawText
 	expectedNumber := 0
 	switch v := body["songNumber"].(type) {
 	case float64:

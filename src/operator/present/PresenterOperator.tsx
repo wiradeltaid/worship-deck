@@ -29,13 +29,54 @@ import {
   type RefObject,
 } from 'react';
 import { toast } from 'sonner';
-import { Lock, Unlock, Pencil, Repeat } from 'lucide-react';
+import {
+  Lock,
+  Unlock,
+  Pencil,
+  Repeat,
+  Eye,
+  EyeOff,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Bold,
+  Italic,
+  Layers,
+  Type,
+  Image as ImageIcon,
+  Palette,
+  Check,
+  Sparkles,
+} from 'lucide-react';
 import Link from '@/components/Link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
+import {
+  findNextVisibleIndex,
+  findNearestVisibleIndex,
+  createSlideVisibilityController,
+} from '@/lib/slide-visibility';
 import SlideView from '@/components/SlideView';
+import ArtifactSlide from '@/components/artifacts/ArtifactSlide';
+import type {
+  ArtifactInstance,
+  ResolvedElement,
+  ResolvedStyle,
+} from '@/lib/artifacts/runtime-contract';
+import {
+  ensureArtifactInstance,
+  findCanonicalBodyElement,
+  updateElementText,
+  updateElementStyle,
+  updateElementGeometry,
+  updateElementImage,
+  updateArtifactBackground,
+  createEmergencyPatchRecord,
+  applyEmergencyPatchToSlides,
+} from '@/lib/emergency-canvas';
 import {
   isProjectorMessage,
   openPresentChannel,
+  slidePatchOf,
   type PresentMessage,
   type SlidePatch,
 } from '@/lib/present-channel';
@@ -244,15 +285,18 @@ function projectorWindowName(serviceId: number): string {
 
 function SlideListRow({
   entry,
+  slide,
   active,
   activeRef,
   onSelect,
 }: {
   entry: PresenterEntry;
+  slide?: SlidePlanItem;
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
 }) {
+  const isHidden = Boolean(slide?.hidden);
   return (
     <Button
       ref={active ? activeRef : null}
@@ -261,6 +305,8 @@ function SlideListRow({
       aria-current={active ? 'true' : undefined}
       onClick={() => onSelect(entry.index)}
       className={`flex h-auto w-full justify-start gap-2 rounded px-2 py-1.5 text-left font-normal ${
+        isHidden ? 'opacity-50' : ''
+      } ${
         active
           ? 'bg-primary text-primary-foreground hover:bg-primary/90'
           : 'text-foreground hover:bg-muted'
@@ -282,6 +328,14 @@ function SlideListRow({
       >
         {entry.label}
       </span>
+      {isHidden && (
+        <span
+          data-testid="list-hidden-badge"
+          className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.25 rounded border border-zinc-700 bg-zinc-900/90 text-zinc-300"
+        >
+          Hidden
+        </span>
+      )}
       <span className="truncate text-xs">{entry.title ?? ''}</span>
     </Button>
   );
@@ -304,6 +358,7 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active,
   activeRef,
   onSelect,
+  onToggleVisibility,
   backgroundOverride,
 }: {
   slide: SlidePlanItem | undefined;
@@ -311,46 +366,80 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
+  onToggleVisibility?: (index: number) => void;
   backgroundOverride?: string | null;
 }) {
+  const isHidden = Boolean(slide?.hidden);
   // The caption is clipped at 8rem, so the full text lives in the tooltip —
   // minus the headline when it only repeats the label ("Thank You · Thank You").
   const detail =
     entry.title && entry.title !== entry.label ? ` · ${entry.title}` : '';
   return (
-    <Button
-      ref={active ? activeRef : null}
-      type="button"
-      variant="ghost"
-      aria-current={active ? 'true' : undefined}
-      title={`${entry.index + 1} · ${entry.label}${detail}`}
-      onClick={() => onSelect(entry.index)}
-      className={`h-auto w-32 shrink-0 flex-col items-stretch rounded-md border p-1 text-left font-normal ${
-        active
-          ? 'border-primary bg-primary/15 ring-2 ring-primary hover:bg-primary/15'
-          : 'border-border hover:bg-muted'
-      }`}
-    >
-      <span className="block aspect-video overflow-hidden rounded-sm bg-black">
-        {slide ? (
-          <SlideView slide={slide} backgroundOverride={backgroundOverride} />
-        ) : null}
-      </span>
-      <span className="mt-1 flex items-center gap-1 overflow-hidden">
-        <span
-          className={`shrink-0 font-mono text-[10px] ${
-            active ? 'text-foreground' : 'text-muted-foreground'
-          }`}
-        >
-          {entry.index + 1}
+    <span className="relative group shrink-0 inline-block">
+      <Button
+        ref={active ? activeRef : null}
+        type="button"
+        variant="ghost"
+        aria-current={active ? 'true' : undefined}
+        title={`${entry.index + 1} · ${entry.label}${detail}${isHidden ? ' (Hidden)' : ''}`}
+        onClick={() => onSelect(entry.index)}
+        className={`h-auto w-32 flex-col items-stretch rounded-md border p-1 text-left font-normal ${
+          isHidden ? 'opacity-50 bg-muted/20' : ''
+        } ${
+          active
+            ? 'border-primary bg-primary/15 ring-2 ring-primary hover:bg-primary/15'
+            : 'border-border hover:bg-muted'
+        }`}
+      >
+        <span className="relative block aspect-video overflow-hidden rounded-sm bg-black">
+          {slide ? (
+            <SlideView slide={slide} backgroundOverride={backgroundOverride} />
+          ) : null}
+          {isHidden && (
+            <span
+              data-testid="filmstrip-hidden-badge"
+              className="absolute top-1 right-1 text-[8px] font-bold uppercase bg-zinc-900/90 text-zinc-300 px-1 py-0.5 rounded border border-zinc-700"
+            >
+              Hidden
+            </span>
+          )}
         </span>
-        <span
-          className={`${BADGE_BASE} truncate ${PRESENTER_TONE_CLASS[entry.tone]}`}
-        >
-          {entry.label}
+        <span className="mt-1 flex items-center gap-1 overflow-hidden">
+          <span
+            className={`shrink-0 font-mono text-[10px] ${
+              active ? 'text-foreground' : 'text-muted-foreground'
+            }`}
+          >
+            {entry.index + 1}
+          </span>
+          <span
+            className={`${BADGE_BASE} truncate ${PRESENTER_TONE_CLASS[entry.tone]}`}
+          >
+            {entry.label}
+          </span>
         </span>
-      </span>
-    </Button>
+      </Button>
+      {onToggleVisibility && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          data-testid="filmstrip-visibility-toggle"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisibility(entry.index);
+          }}
+          title={isHidden ? 'Unhide slide' : 'Hide slide'}
+          className="absolute top-1.5 left-1.5 z-10 size-6 p-1 rounded bg-black/70 hover:bg-black text-white/70 hover:text-white transition-opacity opacity-0 group-hover:opacity-100"
+        >
+          {isHidden ? (
+            <Eye className="size-3" />
+          ) : (
+            <EyeOff className="size-3" />
+          )}
+        </Button>
+      )}
+    </span>
   );
 });
 
@@ -382,9 +471,12 @@ export default function PresenterOperator({
 }) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
+  const activeSlidesRef = useRef(activeSlides);
+  activeSlidesRef.current = activeSlides;
 
   useEffect(() => {
     setActiveSlides(slides);
+    activeSlidesRef.current = slides;
   }, [slides]);
 
   const [presentationLock, setPresentationLock] = useState(true);
@@ -400,6 +492,8 @@ export default function PresenterOperator({
   const patchRevisionRef = useRef(0);
   const patchesRef = useRef<SlidePatch[]>([]);
   const patchRevisionsRef = useRef<Map<number, number>>(new Map());
+  const tabInstanceIdRef = useRef(Math.floor(Math.random() * 900 + 100));
+  const localSeqRef = useRef(0);
 
   const [index, setIndex] = useState(0);
   const [gridOpen, setGridOpen] = useState(false);
@@ -634,34 +728,6 @@ export default function PresenterOperator({
     [setIndexAndSync]
   );
 
-  useEffect(() => {
-    if (!isLooping) return;
-
-    const bounds = findAnnouncementSectionBounds(activeSlides, indexRef.current);
-    if (!bounds) {
-      isLoopingRef.current = false;
-      setIsLooping(false);
-      return;
-    }
-
-    const timer = setInterval(() => {
-      if (!isLoopingRef.current) return;
-      const currentIdx = indexRef.current;
-      const curBounds = findAnnouncementSectionBounds(activeSlides, currentIdx);
-      if (!curBounds) {
-        isLoopingRef.current = false;
-        setIsLooping(false);
-        return;
-      }
-      const nextIdx = computeNextLoopIndex(currentIdx, curBounds);
-      setIndexAndSync(nextIdx);
-    }, loopInterval * 1000);
-
-    return () => {
-      clearInterval(timer);
-    };
-  }, [isLooping, loopInterval, activeSlides, setIndexAndSync]);
-
   /**
    * Blanks or restores the projector. Takes the state it wants rather than
    * flipping whatever the receiver happens to hold, so a projector that missed
@@ -684,6 +750,77 @@ export default function PresenterOperator({
   const toggleBlank = useCallback(() => {
     setBlankAndSync(!blankRef.current);
   }, [setBlankAndSync]);
+
+  const visibilityController = useMemo(() => {
+    return createSlideVisibilityController({
+      getSlides: () => activeSlidesRef.current,
+      setSlides: (updated) => {
+        activeSlidesRef.current = updated as SlidePlanItem[];
+        setActiveSlides(updated as SlidePlanItem[]);
+      },
+      getCurrentIndex: () => indexRef.current,
+      setCurrentIndex: setIndexAndSync,
+      getIsBlank: () => blankRef.current,
+      setIsBlank: setBlankAndSync,
+      serviceId,
+      onError: (msg) => toast.error(msg),
+    });
+  }, [serviceId, setBlankAndSync, setIndexAndSync]);
+
+  const toggleSlideVisibility = visibilityController.toggleSlideVisibility;
+
+  const safeNavigate = useCallback(
+    async (targetIdx: number): Promise<boolean> => {
+      isLoopingRef.current = false;
+      setIsLooping(false);
+      return visibilityController.safeNavigate(targetIdx);
+    },
+    [visibilityController]
+  );
+
+  useEffect(() => {
+    visibilityController.checkInitialAllHidden();
+  }, [visibilityController]);
+
+  useEffect(() => {
+    if (!isLooping) return;
+
+    const bounds = findAnnouncementSectionBounds(activeSlides, indexRef.current);
+    if (!bounds) {
+      isLoopingRef.current = false;
+      setIsLooping(false);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      if (!isLoopingRef.current) return;
+      const currentIdx = indexRef.current;
+      const curBounds = findAnnouncementSectionBounds(activeSlides, currentIdx);
+      if (!curBounds) {
+        isLoopingRef.current = false;
+        setIsLooping(false);
+        return;
+      }
+      let nextIdx = computeNextLoopIndex(currentIdx, curBounds);
+      let attempts = 0;
+      const [start, end] = curBounds;
+      const sectionLength = end - start + 1;
+      while (activeSlides[nextIdx]?.hidden && attempts < sectionLength) {
+        nextIdx = computeNextLoopIndex(nextIdx, curBounds);
+        attempts++;
+      }
+      if (attempts >= sectionLength && activeSlides[nextIdx]?.hidden) {
+        isLoopingRef.current = false;
+        setIsLooping(false);
+        return;
+      }
+      setIndexAndSync(nextIdx);
+    }, loopInterval * 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isLooping, loopInterval, activeSlides, setIndexAndSync]);
 
   /**
    * Redirects the projector to another style for the rest of this session and
@@ -757,33 +894,35 @@ export default function PresenterOperator({
       if (msg.type === 'request-sync') {
         ch.postMessage(currentState());
       } else if (msg.type === 'slide-patch') {
+        const patch = slidePatchOf(msg);
         if (
-          msg.planIdentity === planIdentityRef.current &&
-          typeof msg.index === 'number' &&
-          msg.artifact &&
-          typeof msg.patchRevision === 'number'
+          patch &&
+          msg.planIdentity === planIdentityRef.current
         ) {
-          const lastRev = patchRevisionsRef.current.get(msg.index) || 0;
-          if (msg.patchRevision <= lastRev) return;
-          patchRevisionsRef.current.set(msg.index, msg.patchRevision);
-          patchRevisionRef.current = Math.max(patchRevisionRef.current, msg.patchRevision);
+          const lastRev = patchRevisionsRef.current.get(patch.index) || 0;
+          if (patch.patchRevision <= lastRev) return;
+          patchRevisionsRef.current.set(patch.index, patch.patchRevision);
+          patchRevisionRef.current = Math.max(patchRevisionRef.current, patch.patchRevision);
 
           patchesRef.current = [
-            ...patchesRef.current.filter((p) => p.index !== msg.index),
+            ...patchesRef.current.filter((p) => p.index !== patch.index),
             {
-              index: msg.index,
-              artifact: msg.artifact,
-              patchRevision: msg.patchRevision,
+              index: patch.index,
+              artifact: patch.artifact,
+              patchRevision: patch.patchRevision,
             },
           ];
           setActiveSlides((prev) => {
-            if (msg.index < 0 || msg.index >= prev.length) return prev;
+            if (patch.index < 0 || patch.index >= prev.length) return prev;
             const next = [...prev];
-            next[msg.index] = {
-              ...next[msg.index],
-              artifact: msg.artifact,
+            next[patch.index] = {
+              ...next[patch.index],
+              artifact: patch.artifact,
             };
             return next;
+          });
+          getEmergencyPatches(serviceId).then((refreshed) => {
+            setPendingPatches(refreshed);
           });
         }
       }
@@ -809,7 +948,7 @@ export default function PresenterOperator({
       serviceId,
       getPlanIdentity: () => planIdentityRef.current,
       handlers: {
-        setIndexAndSync: manualNavigate,
+        setIndexAndSync: safeNavigate,
         setBlankAndSync,
         setTransitionAndSync,
         setBackgroundAndSync,
@@ -830,7 +969,7 @@ export default function PresenterOperator({
     };
   }, [
     serviceId,
-    manualNavigate,
+    safeNavigate,
     setBlankAndSync,
     setTransitionAndSync,
     setBackgroundAndSync,
@@ -861,10 +1000,16 @@ export default function PresenterOperator({
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
         e.preventDefault();
-        manualNavigate(index + 1);
+        const next = findNextVisibleIndex(activeSlides, index, 1);
+        if (next !== index) {
+          manualNavigate(next);
+        }
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault();
-        manualNavigate(index - 1);
+        const prev = findNextVisibleIndex(activeSlides, index, -1);
+        if (prev !== index) {
+          manualNavigate(prev);
+        }
       } else if (e.key === 'b' || e.key === 'B' || e.key === '.') {
         // PowerPoint's own black-screen keys, so an operator who already runs
         // slides does not have to learn a second habit. Modifier chords are
@@ -978,7 +1123,10 @@ export default function PresenterOperator({
     setEmergencyOpen(true);
   };
 
-  const handleApplyEmergencyEdit = async () => {
+  const handleApplyEmergencyEdit = async (
+    customArtifact?: ArtifactInstance,
+    customText?: string
+  ) => {
     const targetIdx = editingSlideIndex;
     const currentSlide = activeSlides[targetIdx];
     if (!currentSlide) return;
@@ -987,29 +1135,74 @@ export default function PresenterOperator({
     const existingPatch = pendingPatches.find((p) => p.slideIndex === targetIdx);
     const originalText = existingPatch ? existingPatch.originalText : extracted.text;
     const originalArtifact = existingPatch && existingPatch.originalArtifact ? existingPatch.originalArtifact : currentSlide.artifact;
-    const updatedSlide = applyTextPatchToSlide(currentSlide, emergencyText, targetElementId);
-    const nextRev = (patchRevisionsRef.current.get(targetIdx) || 0) + 1;
-    patchRevisionsRef.current.set(targetIdx, nextRev);
-    patchRevisionRef.current = Math.max(patchRevisionRef.current, nextRev);
+
+    const effectiveText = typeof customText === 'string' ? customText : emergencyText;
+    const updatedArtifact = customArtifact || (
+      currentSlide.artifact
+        ? applyTextPatchToSlide(currentSlide, effectiveText, targetElementId).artifact
+        : ensureArtifactInstance(currentSlide)
+    );
+
+    // Canonical body/lines text derived safely to prevent title/image edits from corrupting body metadata
+    const canonicalBodyEl = findCanonicalBodyElement(updatedArtifact, targetElementId);
+    const effectiveBodyText = typeof customText === 'string'
+      ? customText
+      : (canonicalBodyEl?.text ?? currentSlide.body ?? extracted.text ?? '');
+
+    const lines = effectiveBodyText ? effectiveBodyText.split('\n') : currentSlide.lines;
+    const updatedSlide: SlidePlanItem = {
+      ...currentSlide,
+      artifact: updatedArtifact,
+      body: effectiveBodyText,
+      lines,
+    };
+
+    // Monotonic revision ordering safe across concurrent presenter tabs:
+    // Base timestamp scaled by 1,000 + unique 3-digit tab instance ID (0..999)
+    // Stays strictly within JavaScript Number.MAX_SAFE_INTEGER (1.75e15 < 9e15) until year 2255
+    const currentRecordedRev = patchRevisionsRef.current.get(targetIdx) || 0;
+    const nowCandidate = Date.now() * 1000 + (tabInstanceIdRef.current % 1000);
+    const nextRev = Math.max(currentRecordedRev + 1, nowCandidate);
+
+    const clientOpId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `op-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
     const newPatchRecord: EmergencyPatchRecord = {
       serviceId: String(serviceId),
+      clientOpId,
       basePlanIdentity: planIdentityRef.current,
       patchRevision: nextRev,
       patchTimestamp: Date.now(),
       slideIndex: targetIdx,
       originalText,
       originalArtifact,
-      updatedText: emergencyText,
-      patchedArtifact: updatedSlide.artifact,
+      updatedText: effectiveBodyText,
+      patchedArtifact: updatedArtifact,
     };
+
+    // Persistence-first with atomic revision allocation:
+    // saveEmergencyPatch runs inside an atomic transaction and dynamically guarantees
+    // newPatchRecord.patchRevision strictly exceeds any existing revision for this slide,
+    // completely eliminating collisions across concurrent presenter tabs.
+    try {
+      await saveEmergencyPatch(newPatchRecord);
+    } catch (err: any) {
+      toast.error('Gagal menyimpan koreksi darurat lokal: ' + (err?.message || 'Storage error'));
+      return;
+    }
+
+    const finalAllocatedRev = newPatchRecord.patchRevision;
+    patchRevisionsRef.current.set(targetIdx, finalAllocatedRev);
+    patchRevisionRef.current = Math.max(patchRevisionRef.current, finalAllocatedRev);
 
     patchesRef.current = [
       ...patchesRef.current.filter((p) => p.index !== targetIdx),
       {
         index: targetIdx,
-        artifact: updatedSlide.artifact,
-        patchRevision: nextRev,
+        artifact: updatedArtifact,
+        patchRevision: finalAllocatedRev,
       },
     ];
 
@@ -1019,15 +1212,14 @@ export default function PresenterOperator({
       return next;
     });
 
-    await saveEmergencyPatch(newPatchRecord);
     const refreshed = await getEmergencyPatches(serviceId);
     setPendingPatches(refreshed);
 
     broadcast({
       type: 'slide-patch',
       index: targetIdx,
-      artifact: updatedSlide.artifact,
-      patchRevision: nextRev,
+      artifact: updatedArtifact,
+      patchRevision: finalAllocatedRev,
       planIdentity: planIdentityRef.current,
     });
 
@@ -1045,8 +1237,13 @@ export default function PresenterOperator({
       }
       const remoteData = await getRes.json();
 
+      // Refresh pending patches from shared outbox right before syncing to ensure all concurrent edits are included
+      const freshPatches = await getEmergencyPatches(serviceId);
+      const activePatchesToSync = freshPatches.length > 0 ? freshPatches : pendingPatches;
+      setPendingPatches(activePatchesToSync);
+
       // Concurrency protection: Verify plan identity matches basePlanIdentity of queued patches
-      const divergentPatch = pendingPatches.find(
+      const divergentPatch = activePatchesToSync.find(
         (p) => p.basePlanIdentity && remoteData.plan_identity && p.basePlanIdentity !== remoteData.plan_identity
       );
       if (divergentPatch) {
@@ -1056,7 +1253,7 @@ export default function PresenterOperator({
 
       // Apply pending patches onto fresh server plan
       let patchedPlan = Array.isArray(remoteData.plan) ? [...remoteData.plan] : [];
-      for (const p of pendingPatches) {
+      for (const p of activePatchesToSync) {
         if (p.slideIndex >= 0 && p.slideIndex < patchedPlan.length && p.patchedArtifact) {
           patchedPlan[p.slideIndex] = {
             ...patchedPlan[p.slideIndex],
@@ -1076,7 +1273,7 @@ export default function PresenterOperator({
         },
         body: JSON.stringify({
           updated_at: remoteData.updated_at,
-          emergency_patches: pendingPatches.map((p) => ({
+          emergency_patches: activePatchesToSync.map((p) => ({
             slideIndex: p.slideIndex,
             updatedText: p.updatedText,
             patchedArtifact: p.patchedArtifact,
@@ -1283,6 +1480,28 @@ export default function PresenterOperator({
             <Pencil className="size-3.5" />
             <span>Edit Darurat (Lokal)</span>
           </Button>
+          <Button
+            type="button"
+            variant={current?.hidden ? 'destructive' : 'outline'}
+            size="sm"
+            data-testid="toggle-current-slide-visibility"
+            disabled={activeSlides.length === 0}
+            onClick={() => void toggleSlideVisibility(index)}
+            className="h-8 gap-1.5 text-xs select-none"
+            title={current?.hidden ? 'Unhide current slide' : 'Hide current slide'}
+          >
+            {current?.hidden ? (
+              <>
+                <Eye className="size-3.5" />
+                <span>Unhide Slide</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="size-3.5" />
+                <span>Hide Slide</span>
+              </>
+            )}
+          </Button>
           <OfflineReadinessBadge
             serviceId={serviceId}
             serviceData={rawService || { id: serviceId, plan: activeSlides }}
@@ -1467,14 +1686,22 @@ export default function PresenterOperator({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => manualNavigate(index - 1)}
-              disabled={index <= 0}
+              data-testid="presenter-prev-button"
+              onClick={() => {
+                const prev = findNextVisibleIndex(activeSlides, index, -1);
+                if (prev !== index) manualNavigate(prev);
+              }}
+              disabled={findNextVisibleIndex(activeSlides, index, -1) === index}
             >
               ← Prev
             </Button>
             <Button
-              onClick={() => manualNavigate(index + 1)}
-              disabled={atEnd}
+              data-testid="presenter-next-button"
+              onClick={() => {
+                const next = findNextVisibleIndex(activeSlides, index, 1);
+                if (next !== index) manualNavigate(next);
+              }}
+              disabled={findNextVisibleIndex(activeSlides, index, 1) === index}
             >
               Next →
             </Button>
@@ -1671,7 +1898,8 @@ export default function PresenterOperator({
                   entry={entry}
                   active={entry.index === index}
                   activeRef={activeFrameRef}
-                  onSelect={manualNavigate}
+                  onSelect={safeNavigate}
+                  onToggleVisibility={toggleSlideVisibility}
                   backgroundOverride={liveBackground}
                 />
               ))}
@@ -1693,9 +1921,10 @@ export default function PresenterOperator({
                   <SlideListRow
                     key={row.key}
                     entry={row.entry}
+                    slide={activeSlides[row.entry.index]}
                     active={row.entry.index === index}
                     activeRef={activeRowRef}
-                    onSelect={manualNavigate}
+                    onSelect={safeNavigate}
                   />
                 ) : (
                   <div
@@ -1721,9 +1950,10 @@ export default function PresenterOperator({
                         <SlideListRow
                           key={entry.instanceId}
                           entry={entry}
+                          slide={activeSlides[entry.index]}
                           active={entry.index === index}
                           activeRef={activeRowRef}
-                          onSelect={manualNavigate}
+                          onSelect={safeNavigate}
                         />
                       ))}
                     </div>
@@ -1828,7 +2058,10 @@ export default function PresenterOperator({
             <h2 className="border-b border-border px-3 py-2 text-sm font-semibold">
               Run-Sheet
             </h2>
-            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh] lg:max-h-[30rem]">
+            <ul
+              data-testid="presenter-rundown-list"
+              className="min-h-0 flex-1 h-full space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh]"
+            >
               <li className="list-none">
                 {runSheet.isEmpty ? (
                   <p className="text-sm italic text-muted-foreground">
@@ -1851,9 +2084,11 @@ export default function PresenterOperator({
         slides={activeSlides}
         entries={entries}
         currentIndex={index}
-        onPick={(picked) => {
-          manualNavigate(picked);
-          setGridOpen(false);
+        onPick={async (picked) => {
+          const ok = await safeNavigate(picked);
+          if (ok) {
+            setGridOpen(false);
+          }
         }}
       />
 
@@ -1987,39 +2222,563 @@ export default function PresenterOperator({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={emergencyOpen} onOpenChange={setEmergencyOpen}>
-        <DialogContent data-testid="emergency-edit-dialog" className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Darurat (Lokal)</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Ubah teks slide panggung secara langsung tanpa koneksi internet. Perubahan akan disiarkan ke layar proyektor seketika.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="emergency-text" className="text-xs font-medium">
-                Teks Slide (Slide {index + 1})
-              </Label>
-              <textarea
-                id="emergency-text"
-                data-testid="emergency-edit-textarea"
-                value={emergencyText}
-                onChange={(e) => setEmergencyText(e.target.value)}
-                rows={6}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
-              />
+      <EmergencyCanvasDesignerModal
+        open={emergencyOpen}
+        onOpenChange={setEmergencyOpen}
+        slideIndex={editingSlideIndex}
+        slide={activeSlides[editingSlideIndex] || null}
+        onApply={handleApplyEmergencyEdit}
+        onCancel={() => setEmergencyOpen(false)}
+      />
+    </div>
+  );
+}
+
+export function EmergencyCanvasDesignerModal({
+  open,
+  onOpenChange,
+  slideIndex,
+  slide,
+  onApply,
+  onCancel,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  slideIndex: number;
+  slide: SlidePlanItem | null;
+  onApply: (updatedArtifact: ArtifactInstance, updatedText: string) => Promise<void> | void;
+  onCancel: () => void;
+}) {
+  const [draftArtifact, setDraftArtifact] = useState<ArtifactInstance | null>(null);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'elements' | 'background'>('elements');
+  const [isApplying, setIsApplying] = useState(false);
+
+  useEffect(() => {
+    if (open && slide) {
+      const initial = ensureArtifactInstance(slide);
+      setDraftArtifact(initial);
+      const elements = initial.layout?.elements || [];
+      const firstText = elements.find((el) => el.type === 'text') || elements[0];
+      setSelectedElementId(firstText?.id || null);
+      setActiveTab('elements');
+    } else if (!open) {
+      setDraftArtifact(null);
+      setSelectedElementId(null);
+    }
+  }, [open, slide]);
+
+  const selectedElement = useMemo(() => {
+    if (!draftArtifact?.layout?.elements) return null;
+    return draftArtifact.layout.elements.find((el) => el.id === selectedElementId) || null;
+  }, [draftArtifact, selectedElementId]);
+
+  const handleUpdateText = (newText: string) => {
+    if (!draftArtifact || !selectedElementId) return;
+    setDraftArtifact((prev) => (prev ? updateElementText(prev, selectedElementId, newText) : prev));
+  };
+
+  const handleUpdateStyle = (stylePatch: Partial<ResolvedStyle>) => {
+    if (!draftArtifact || !selectedElementId) return;
+    setDraftArtifact((prev) => (prev ? updateElementStyle(prev, selectedElementId, stylePatch) : prev));
+  };
+
+  const handleUpdateGeometry = (geo: { x?: number; y?: number; w?: number; h?: number }) => {
+    if (!draftArtifact || !selectedElementId) return;
+    setDraftArtifact((prev) => (prev ? updateElementGeometry(prev, selectedElementId, geo) : prev));
+  };
+
+  const handleUpdateImage = (imageUrl: string, objectFit?: 'contain' | 'cover' | 'fill') => {
+    if (!draftArtifact || !selectedElementId) return;
+    setDraftArtifact((prev) =>
+      prev ? updateElementImage(prev, selectedElementId, imageUrl, objectFit) : prev
+    );
+  };
+
+  const handleUpdateBackground = (bg: { color?: string; image?: string | null }) => {
+    if (!draftArtifact) return;
+    setDraftArtifact((prev) => (prev ? updateArtifactBackground(prev, bg) : prev));
+  };
+
+  const handleApplyClick = async () => {
+    if (!draftArtifact) return;
+    setIsApplying(true);
+    try {
+      const canonicalBodyEl = findCanonicalBodyElement(draftArtifact);
+      const canonicalText = canonicalBodyEl?.text ?? slide?.body ?? '';
+      await onApply(draftArtifact, canonicalText);
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        data-testid="emergency-edit-dialog"
+        className="dark flex max-h-[92vh] w-[min(90rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col gap-3 p-4 sm:max-w-[min(90rem,calc(100vw-2rem))] bg-zinc-950 text-zinc-100 border-zinc-800"
+      >
+        <DialogHeader className="pb-1 border-b border-zinc-800/80">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-base font-semibold flex items-center gap-2 text-zinc-100">
+                <span>🎨 Edit Kanvas Darurat (Slide {slideIndex + 1})</span>
+                <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                  Lokal / Panggung
+                </span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-zinc-400 mt-0.5">
+                Koreksi visual instan multi-elemen pada slide aktif. Perubahan langsung disiarkan ke layar auditorium (lokal).
+              </DialogDescription>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Catatan: Perubahan disimpan di perangkat lokal dan disinkronkan ke layar proyektor via BroadcastChannel.
-            </p>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+        </DialogHeader>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto pr-1">
+          {/* Left Column: Live Canvas Preview Stage */}
+          <div className="lg:col-span-7 flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
+              <span>Pratinjau Layar Auditorium (16:9)</span>
+              <span className="text-[11px] font-mono text-zinc-400">
+                {draftArtifact?.layout?.elements?.length || 0} elemen terdeteksi
+              </span>
+            </div>
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-zinc-800 bg-black shadow-inner">
+              {draftArtifact ? <ArtifactSlide instance={draftArtifact} /> : null}
+              {/* Interactive Bounding Boxes Overlay */}
+              {draftArtifact?.layout?.elements?.map((el) => {
+                const isSelected = el.id === selectedElementId && activeTab === 'elements';
+                return (
+                  <div
+                    key={el.id}
+                    data-testid={`canvas-element-box-${el.id}`}
+                    onClick={() => {
+                      setSelectedElementId(el.id);
+                      setActiveTab('elements');
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: `${el.x}%`,
+                      top: `${el.y}%`,
+                      width: `${el.w}%`,
+                      height: `${el.h}%`,
+                      cursor: 'pointer',
+                    }}
+                    className={`group transition-all ${
+                      isSelected
+                        ? 'ring-2 ring-amber-500 border border-amber-400 bg-amber-500/10 z-30'
+                        : 'border border-dashed border-zinc-500/40 hover:border-amber-400/80 hover:bg-zinc-800/20 z-10'
+                    }`}
+                  >
+                    <span
+                      className={`absolute -top-4 left-0 text-[9px] font-semibold px-1 rounded truncate max-w-full ${
+                        isSelected
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-zinc-800/90 text-zinc-300 group-hover:bg-zinc-700'
+                      }`}
+                    >
+                      {el.placeholderKey || el.type}: {(el.text || el.imageUrl || el.id).slice(0, 16)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Element Quick Select Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[11px] text-zinc-400 mr-1">Pilih:</span>
+              {draftArtifact?.layout?.elements?.map((el, idx) => {
+                const isSelected = el.id === selectedElementId && activeTab === 'elements';
+                return (
+                  <Button
+                    key={el.id}
+                    type="button"
+                    variant={isSelected ? 'default' : 'secondary'}
+                    size="sm"
+                    data-testid={`emergency-element-tab-${el.id}`}
+                    onClick={() => {
+                      setSelectedElementId(el.id);
+                      setActiveTab('elements');
+                    }}
+                    className={`h-6 flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+                      isSelected
+                        ? 'bg-amber-500 text-black hover:bg-amber-400 font-medium shadow-sm'
+                        : 'bg-zinc-800/70 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                    }`}
+                  >
+                    {el.type === 'text' ? <Type className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
+                    <span>{el.placeholderKey || `${el.type} ${idx + 1}`}</span>
+                  </Button>
+                );
+              })}
+              <Button
+                type="button"
+                variant={activeTab === 'background' ? 'default' : 'secondary'}
+                size="sm"
+                data-testid="emergency-bg-tab"
+                onClick={() => setActiveTab('background')}
+                className={`h-6 flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+                  activeTab === 'background'
+                    ? 'bg-amber-500 text-black hover:bg-amber-400 font-medium shadow-sm'
+                    : 'bg-zinc-800/70 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                }`}
+              >
+                <Palette className="h-3 w-3" />
+                <span>Latar (Background)</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Right Column: Properties Inspector */}
+          <div className="lg:col-span-5 flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+            {activeTab === 'elements' && selectedElement ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-zinc-800">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-zinc-200">
+                      Elemen: {selectedElement.placeholderKey || selectedElement.id}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 uppercase">
+                      {selectedElement.type}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedElement.type === 'text' ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="emergency-text" className="text-xs font-medium text-zinc-300">
+                        Teks Elemen (Langsung Tampil di Kanvas)
+                      </Label>
+                      <textarea
+                        id="emergency-text"
+                        data-testid="emergency-edit-textarea"
+                        value={selectedElement.text ?? ''}
+                        onChange={(e) => handleUpdateText(e.target.value)}
+                        rows={5}
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 font-mono"
+                        placeholder="Ketik teks elemen..."
+                      />
+                    </div>
+
+                    {/* Typography Row */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-zinc-300">Tipografi & Penjajaran</Label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Select
+                          value={selectedElement.style?.fontFamily || 'Geist Sans'}
+                          onValueChange={(val) => {
+                            if (val) handleUpdateStyle({ fontFamily: val });
+                          }}
+                        >
+                          <SelectTrigger data-testid="emergency-font-family" className="h-8 w-[140px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Geist Sans">Geist Sans</SelectItem>
+                            <SelectItem value="Inter">Inter</SelectItem>
+                            <SelectItem value="Arial">Arial</SelectItem>
+                            <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                            <SelectItem value="Georgia">Georgia</SelectItem>
+                            <SelectItem value="Courier New">Courier New</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            data-testid="emergency-font-size"
+                            value={selectedElement.style?.fontSize || 32}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              if (!isNaN(val) && val > 0) handleUpdateStyle({ fontSize: val });
+                            }}
+                            min={8}
+                            max={200}
+                            className="h-8 w-14 rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200 text-center"
+                          />
+                          <span className="text-[10px] text-zinc-400">px</span>
+                        </div>
+
+                        <input
+                          type="color"
+                          data-testid="emergency-text-color"
+                          value={selectedElement.style?.fontColor || '#FFFFFF'}
+                          onChange={(e) => handleUpdateStyle({ fontColor: e.target.value })}
+                          className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                          title="Warna Teks"
+                        />
+
+                        {/* Align Buttons */}
+                        <div className="flex items-center rounded border border-zinc-700 bg-zinc-950 p-0.5">
+                          <Button
+                            type="button"
+                            variant={selectedElement.style?.textAlign === 'left' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            data-testid="emergency-text-align-left"
+                            onClick={() => handleUpdateStyle({ textAlign: 'left' })}
+                            className="h-7 w-7 p-0"
+                          >
+                            <AlignLeft className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={
+                              selectedElement.style?.textAlign === 'center' || !selectedElement.style?.textAlign
+                                ? 'secondary'
+                                : 'ghost'
+                            }
+                            size="sm"
+                            data-testid="emergency-text-align-center"
+                            onClick={() => handleUpdateStyle({ textAlign: 'center' })}
+                            className="h-7 w-7 p-0"
+                          >
+                            <AlignCenter className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={selectedElement.style?.textAlign === 'right' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            data-testid="emergency-text-align-right"
+                            onClick={() => handleUpdateStyle({ textAlign: 'right' })}
+                            className="h-7 w-7 p-0"
+                          >
+                            <AlignRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        {/* Bold / Italic */}
+                        <div className="flex items-center rounded border border-zinc-700 bg-zinc-950 p-0.5">
+                          <Button
+                            type="button"
+                            variant={selectedElement.style?.fontWeight === 'bold' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            data-testid="emergency-text-bold"
+                            onClick={() =>
+                              handleUpdateStyle({
+                                fontWeight:
+                                  selectedElement.style?.fontWeight === 'bold' ? 'normal' : 'bold',
+                              })
+                            }
+                            className="h-7 w-7 p-0"
+                          >
+                            <Bold className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={selectedElement.style?.fontStyle === 'italic' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            data-testid="emergency-text-italic"
+                            onClick={() =>
+                              handleUpdateStyle({
+                                fontStyle:
+                                  selectedElement.style?.fontStyle === 'italic' ? 'normal' : 'italic',
+                              })
+                            }
+                            className="h-7 w-7 p-0"
+                          >
+                            <Italic className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Geometry Row */}
+                    <div className="space-y-1.5 pt-1">
+                      <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">X</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-x"
+                            value={Math.round(selectedElement.x ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">Y</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-y"
+                            value={Math.round(selectedElement.y ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">W</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-w"
+                            value={Math.round(selectedElement.w ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">H</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-h"
+                            value={Math.round(selectedElement.h ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="emergency-image-url" className="text-xs font-medium text-zinc-300">
+                        URL Gambar
+                      </Label>
+                      <input
+                        id="emergency-image-url"
+                        type="text"
+                        data-testid="emergency-image-url"
+                        value={selectedElement.imageUrl || ''}
+                        onChange={(e) => handleUpdateImage(e.target.value, selectedElement.style?.objectFit)}
+                        placeholder="https://... atau /assets/..."
+                        className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-zinc-300">Penyesuaian (Fit Mode)</Label>
+                      <Select
+                        value={selectedElement.style?.objectFit || 'contain'}
+                        onValueChange={(val) => {
+                          if (val) {
+                            handleUpdateImage(
+                              selectedElement.imageUrl || '',
+                              val as 'contain' | 'cover' | 'fill'
+                            );
+                          }
+                        }}
+                      >
+                        <SelectTrigger data-testid="emergency-image-fit" className="h-8 w-full text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="contain">Contain (Muat Utuh)</SelectItem>
+                          <SelectItem value="cover">Cover (Penuh / Potong)</SelectItem>
+                          <SelectItem value="fill">Fill (Regang Penuh)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Geometry Row for Image */}
+                    <div className="space-y-1.5 pt-1">
+                      <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">X</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-x"
+                            value={Math.round(selectedElement.x ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">Y</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-y"
+                            value={Math.round(selectedElement.y ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">W</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-w"
+                            value={Math.round(selectedElement.w ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-400 block">H</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-element-h"
+                            value={Math.round(selectedElement.h ?? 0)}
+                            onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
+                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="pb-1 border-b border-zinc-800">
+                  <span className="text-xs font-semibold text-zinc-200">
+                    Pengaturan Latar Belakang (Background)
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-zinc-300">Warna Latar</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      data-testid="emergency-bg-color"
+                      value={draftArtifact?.layout?.backgroundColor || '#000000'}
+                      onChange={(e) => handleUpdateBackground({ color: e.target.value })}
+                      className="h-8 w-12 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                    />
+                    <span className="font-mono text-xs text-zinc-300">
+                      {draftArtifact?.layout?.backgroundColor || '#000000'}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-zinc-300">Gambar Latar (URL)</Label>
+                  <input
+                    type="text"
+                    data-testid="emergency-bg-image"
+                    value={draftArtifact?.layout?.backgroundImage || ''}
+                    onChange={(e) => handleUpdateBackground({ image: e.target.value })}
+                    placeholder="https://... atau /assets/..."
+                    className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                  />
+                  {draftArtifact?.layout?.backgroundImage ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUpdateBackground({ image: null })}
+                      className="text-xs text-destructive hover:text-destructive/80 h-7 px-2"
+                    >
+                      Hapus Gambar Latar
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="flex flex-row items-center justify-between border-t border-zinc-800/80 pt-2 gap-2">
+          <p className="text-[11px] text-zinc-400 text-left hidden sm:block">
+            Perubahan disimpan lokal di IndexedDB dan disiarkan seketika via BroadcastChannel.
+          </p>
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               data-testid="emergency-cancel-button"
-              onClick={() => setEmergencyOpen(false)}
+              onClick={onCancel}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
               Batal
             </Button>
@@ -2027,14 +2786,15 @@ export default function PresenterOperator({
               type="button"
               size="sm"
               data-testid="emergency-apply-button"
-              onClick={handleApplyEmergencyEdit}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              disabled={isApplying}
+              onClick={handleApplyClick}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium"
             >
               Terapkan ke Layar (Lokal)
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

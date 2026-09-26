@@ -629,6 +629,7 @@ dag:
   - parallel:
     - SPEC-85-01
     - SPEC-85-02
+  - parallel:
     - SPEC-85-03
   - parallel:
     - SPEC-85-04

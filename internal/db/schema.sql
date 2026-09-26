@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS services (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   registry_snapshot_at TEXT,
-  emergency_patches TEXT DEFAULT '[]'
+  emergency_patches TEXT DEFAULT '[]',
+  hidden_slide_ids TEXT DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS hymns (

@@ -520,7 +520,8 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, COALESCE(global_id, ''), date, raw_payload, parsed_data, images_payload, participants_payload,
 		        parser_profile_id, parser_profile_version,
 		        created_at, COALESCE(updated_at, created_at),
-		        COALESCE(emergency_patches, '[]')
+		        COALESCE(emergency_patches, '[]'),
+		        COALESCE(hidden_slide_ids, '[]')
 		   FROM services WHERE id = ?`,
 		id,
 	)
@@ -543,10 +544,11 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 		FieldValues          map[string]string `json:"field_values"`
 		FormLayoutSnapshot   json.RawMessage   `json:"form_layout_snapshot"`
 		EmergencyPatches     json.RawMessage   `json:"emergency_patches,omitempty"`
+		HiddenSlideIds       json.RawMessage   `json:"hidden_slide_ids,omitempty"`
 	}
-	var parsed, images, parts, profileID, emergencyPatches sql.NullString
+	var parsed, images, parts, profileID, emergencyPatches, hiddenSlideIDs sql.NullString
 	var profileVersion sql.NullInt64
-	if err := row.Scan(&out.ID, &out.GlobalID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt, &emergencyPatches); err != nil {
+	if err := row.Scan(&out.ID, &out.GlobalID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt, &emergencyPatches, &hiddenSlideIDs); err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, "Service not found")
 			return
@@ -565,6 +567,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	out.ParsedData = nullJSON(parsed)
 	out.ImagesPayload = nullJSON(images)
 	out.EmergencyPatches = nullJSON(emergencyPatches)
+	out.HiddenSlideIds = nullJSON(hiddenSlideIDs)
 	out.SongSets = s.storedSongSets(id)
 	out.FieldValues = s.storedFieldValues(id, parsed.String, images.String)
 	out.FormLayoutSnapshot = s.storedLayoutSnapshot(id)
@@ -598,6 +601,97 @@ func nullJSON(s sql.NullString) json.RawMessage {
 		return json.RawMessage(s.String)
 	}
 	return json.RawMessage("null")
+}
+
+func (s *Server) patchService(w http.ResponseWriter, r *http.Request) {
+	id, ok := parsePositiveID(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Invalid Service ID")
+		return
+	}
+	body, err, status, msg := readJSONObject(r, 1<<20)
+	if err != nil {
+		writeError(w, status, msg)
+		return
+	}
+
+	assignments := []string{`updated_at = ` + db.StampNowSQL}
+	var args []any
+
+	if raw, has := body["hidden_slide_ids"]; has {
+		var hiddenJSON string = "[]"
+		if raw != nil {
+			if b, err := json.Marshal(raw); err == nil {
+				hiddenJSON = string(b)
+			}
+		}
+		assignments = append(assignments, `hidden_slide_ids = ?`)
+		args = append(args, hiddenJSON)
+	} else if raw, has := body["hiddenSlideIds"]; has {
+		var hiddenJSON string = "[]"
+		if raw != nil {
+			if b, err := json.Marshal(raw); err == nil {
+				hiddenJSON = string(b)
+			}
+		}
+		assignments = append(assignments, `hidden_slide_ids = ?`)
+		args = append(args, hiddenJSON)
+	}
+
+	if raw, has := body["emergency_patches"]; has {
+		var patchesJSON string = "[]"
+		if raw != nil {
+			if b, err := json.Marshal(raw); err == nil {
+				patchesJSON = string(b)
+			}
+		}
+		assignments = append(assignments, `emergency_patches = ?`)
+		args = append(args, patchesJSON)
+	} else if raw, has := body["emergencyPatches"]; has {
+		var patchesJSON string = "[]"
+		if raw != nil {
+			if b, err := json.Marshal(raw); err == nil {
+				patchesJSON = string(b)
+			}
+		}
+		assignments = append(assignments, `emergency_patches = ?`)
+		args = append(args, patchesJSON)
+	}
+
+	if len(args) == 0 {
+		writeError(w, http.StatusBadRequest, "No supported patch fields provided")
+		return
+	}
+
+	args = append(args, id)
+	res, err := s.DB.Exec(`UPDATE services SET `+strings.Join(assignments, ", ")+` WHERE id = ?`, args...)
+	if err != nil {
+		log.Printf("Error patching service: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		writeError(w, http.StatusNotFound, "Service not found")
+		return
+	}
+
+	var updatedAt string
+	var hiddenSlideIDsJSON, emergencyPatchesJSON string
+	err = s.DB.QueryRow(`SELECT COALESCE(updated_at, created_at), COALESCE(hidden_slide_ids, '[]'), COALESCE(emergency_patches, '[]') FROM services WHERE id = ?`, id).Scan(&updatedAt, &hiddenSlideIDsJSON, &emergencyPatchesJSON)
+	if err != nil {
+		log.Printf("Error re-reading patched service: %v", err)
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"message":           "Service patched",
+		"id":                id,
+		"updated_at":        updatedAt,
+		"hidden_slide_ids":  json.RawMessage(hiddenSlideIDsJSON),
+		"emergency_patches": json.RawMessage(emergencyPatchesJSON),
+	})
 }
 
 func (s *Server) deleteService(w http.ResponseWriter, r *http.Request) {
@@ -923,6 +1017,24 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 			emergencyPatchesJSON = &str
 		}
 	}
+	var hiddenSlideIDsJSON *string
+	if hsi, has := body["hidden_slide_ids"]; has {
+		if hsi == nil {
+			empty := "[]"
+			hiddenSlideIDsJSON = &empty
+		} else if b, err := json.Marshal(hsi); err == nil {
+			str := string(b)
+			hiddenSlideIDsJSON = &str
+		}
+	} else if hsi, has := body["hiddenSlideIds"]; has {
+		if hsi == nil {
+			empty := "[]"
+			hiddenSlideIDsJSON = &empty
+		} else if b, err := json.Marshal(hsi); err == nil {
+			str := string(b)
+			hiddenSlideIDsJSON = &str
+		}
+	}
 	participants := existing.participants.String
 	participantsSet := false
 	if _, has := body["participantsRaw"]; has {
@@ -1000,6 +1112,10 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		args = append(args, *emergencyPatchesJSON)
 	} else if rawPayload != nil || parse.HasStructuredFields(body) || hasFieldValues {
 		assignments = append(assignments, `emergency_patches = '[]'`)
+	}
+	if hiddenSlideIDsJSON != nil {
+		assignments = append(assignments, `hidden_slide_ids = ?`)
+		args = append(args, *hiddenSlideIDsJSON)
 	}
 	args = append(args, id, currentUpdatedAt, rawStoredToken)
 	res, err := tx.Exec(

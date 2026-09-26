@@ -57,6 +57,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/services/{id}/sync-artifact", s.syncArtifact)
 	mux.HandleFunc("GET /api/services/{id}", s.getService)
 	mux.HandleFunc("PUT /api/services/{id}", s.updateService)
+	mux.HandleFunc("PATCH /api/services/{id}", s.patchService)
 	mux.HandleFunc("DELETE /api/services/{id}", s.deleteService)
 	mux.HandleFunc("POST /api/services/{id}/song-sets/{variableName}/save-to-book", s.saveSongSetToBook)
 	mux.HandleFunc("GET /api/song-set-entries", s.listSongSetEntriesForOperator)

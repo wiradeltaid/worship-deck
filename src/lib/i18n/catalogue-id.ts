@@ -191,6 +191,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'form.songSets.savingToBook': 'Menyimpan ke Buku Lagu...',
   'form.songSets.savedToBook': 'Tersimpan ke Buku Lagu',
   'form.songSets.saveToBookFailed': 'Gagal menyimpan ke Buku Lagu',
+  'form.songSets.emptyLyricsError': 'Lirik tidak boleh kosong saat disimpan ke buku lagu',
   'form.songSets.songChangedConflict': 'Lagu telah berubah. Silakan buka kembali penyunting lirik.',
   'form.verseRef': 'Referensi bacaan ayat',
   'form.verseText': 'Teks bacaan ayat',
