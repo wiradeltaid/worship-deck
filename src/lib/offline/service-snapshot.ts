@@ -73,8 +73,8 @@ export function subscribeServiceReadiness(
   };
 }
 
-const DB_NAME = 'worship_deck_offline_db';
-const DB_VERSION = 1;
+export const DB_NAME = 'worship_deck_offline_db';
+export const DB_VERSION = 2;
 const SNAPSHOT_STORE = 'service_snapshots';
 const MEDIA_STORE = 'media_cache';
 const OUTBOX_STORE = 'emergency_outbox';
@@ -86,10 +86,24 @@ export function getCacheEpoch(): number {
   return cacheEpoch;
 }
 
+export type EmergencyPatchRecord = {
+  id?: number;
+  serviceId: string;
+  basePlanIdentity: string;
+  patchRevision: number;
+  patchTimestamp: number;
+  slideIndex: number;
+  originalText: string;
+  originalArtifact?: any;
+  updatedText: string;
+  patchedArtifact: any;
+};
+
 // In-memory fallback stores for non-browser/test environments
 const inMemorySnapshots = new Map<string, OfflineServiceSnapshot>();
 const inMemoryMedia = new Map<string, Blob>();
 const activeObjectUrls = new Set<string>();
+const inMemoryOutbox: EmergencyPatchRecord[] = [];
 
 function isIndexedDBAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
@@ -487,6 +501,7 @@ export function clearInMemoryOfflineStore(): void {
   revokeMediaUrls();
   inMemorySnapshots.clear();
   inMemoryMedia.clear();
+  inMemoryOutbox.length = 0;
   activeWarmingMediaClaims.clear();
 }
 
@@ -904,4 +919,193 @@ export function revokeMediaUrls(): void {
     }
   }
   activeObjectUrls.clear();
+}
+
+/**
+ * Persists an emergency slide patch to the emergency outbox and updates the local service snapshot.
+ */
+export async function saveEmergencyPatch(
+  patch: Omit<EmergencyPatchRecord, 'id'>
+): Promise<number> {
+  const normId = normalizeServiceId(patch.serviceId);
+  const record: EmergencyPatchRecord = {
+    ...patch,
+    serviceId: normId,
+    patchTimestamp: patch.patchTimestamp || Date.now(),
+  };
+
+  let id = Date.now();
+
+  if (isIndexedDBAvailable()) {
+    try {
+      const db = await openDb();
+      id = await new Promise<number>((resolve, reject) => {
+        const tx = db.transaction([OUTBOX_STORE, SNAPSHOT_STORE], 'readwrite');
+        const outboxStore = tx.objectStore(OUTBOX_STORE);
+        const snapStore = tx.objectStore(SNAPSHOT_STORE);
+
+        const addReq = outboxStore.add(record);
+        addReq.onsuccess = () => {
+          const snapReq = snapStore.get(normId);
+          snapReq.onsuccess = () => {
+            const snap = snapReq.result as OfflineServiceSnapshot | undefined;
+            if (snap && Array.isArray(snap.plan) && snap.plan[record.slideIndex]) {
+              const updatedPlan = [...snap.plan];
+              updatedPlan[record.slideIndex] = {
+                ...updatedPlan[record.slideIndex],
+                artifact: record.patchedArtifact,
+              };
+              snap.plan = updatedPlan;
+              snap.cached_at = Date.now();
+              snapStore.put(snap);
+            }
+          };
+        };
+
+        tx.oncomplete = () => resolve(addReq.result as number || id);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } catch {
+      // fallback
+    }
+  }
+
+  // Update in-memory fallback stores
+  record.id = id;
+  inMemoryOutbox.push(record);
+  const memSnap = inMemorySnapshots.get(normId);
+  if (memSnap && Array.isArray(memSnap.plan) && memSnap.plan[record.slideIndex]) {
+    const updatedPlan = [...memSnap.plan];
+    updatedPlan[record.slideIndex] = {
+      ...updatedPlan[record.slideIndex],
+      artifact: record.patchedArtifact,
+    };
+    memSnap.plan = updatedPlan;
+    memSnap.cached_at = Date.now();
+  }
+
+  return id;
+}
+
+/**
+ * Retrieves all pending emergency patches for a given service.
+ */
+export async function getEmergencyPatches(
+  serviceId: string | number
+): Promise<EmergencyPatchRecord[]> {
+  const normId = normalizeServiceId(serviceId);
+  if (!normId) return [];
+
+  if (isIndexedDBAvailable()) {
+    try {
+      const db = await openDb();
+      const records = await new Promise<EmergencyPatchRecord[]>((resolve, reject) => {
+        const tx = db.transaction(OUTBOX_STORE, 'readonly');
+        const store = tx.objectStore(OUTBOX_STORE);
+        const req = store.getAll();
+        req.onsuccess = () => {
+          const all = (req.result || []) as EmergencyPatchRecord[];
+          const filtered = all.filter((r) => r.serviceId === normId);
+          resolve(filtered);
+        };
+        req.onerror = () => reject(req.error);
+      });
+      return records;
+    } catch {
+      // fallback
+    }
+  }
+
+  return inMemoryOutbox.filter((r) => r.serviceId === normId);
+}
+
+/**
+ * Clears pending emergency patches for a service (e.g. after sync to server or discard).
+ */
+export async function clearEmergencyPatches(
+  serviceId: string | number
+): Promise<void> {
+  const normId = normalizeServiceId(serviceId);
+  if (!normId) return;
+
+  if (isIndexedDBAvailable()) {
+    try {
+      const db = await openDb();
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(OUTBOX_STORE, 'readwrite');
+        const store = tx.objectStore(OUTBOX_STORE);
+        const req = store.openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (cursor) {
+            const val = cursor.value as EmergencyPatchRecord;
+            if (val && val.serviceId === normId) {
+              cursor.delete();
+            }
+            cursor.continue();
+          }
+        };
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } catch {
+      // fallback
+    }
+  }
+
+  for (let i = inMemoryOutbox.length - 1; i >= 0; i--) {
+    if (inMemoryOutbox[i].serviceId === normId) {
+      inMemoryOutbox.splice(i, 1);
+    }
+  }
+}
+
+/**
+ * Discards pending emergency patches and restores the canonical service snapshot.
+ * Uses the earliest recorded originalArtifact and originalText per slideIndex to ensure
+ * offline snapshots are restored cleanly even across multiple repeated edits.
+ */
+export async function revertEmergencyPatches(
+  serviceId: string | number
+): Promise<void> {
+  const normId = normalizeServiceId(serviceId);
+  const patches = await getEmergencyPatches(normId);
+
+  // Group by slideIndex, picking the earliest patch (lowest patchRevision) to get the true original
+  const earliestOriginals = new Map<number, { text: string; artifact?: any }>();
+  const sorted = [...patches].sort((a, b) => (a.patchRevision || 0) - (b.patchRevision || 0));
+  for (const p of sorted) {
+    if (!earliestOriginals.has(p.slideIndex)) {
+      earliestOriginals.set(p.slideIndex, {
+        text: p.originalText,
+        artifact: p.originalArtifact,
+      });
+    }
+  }
+
+  // Restore the snapshot in-place using the earliest recorded original
+  const snap = await getServiceSnapshot(normId);
+  if (snap && Array.isArray(snap.plan) && earliestOriginals.size > 0) {
+    const updatedPlan = [...snap.plan];
+    for (const [slideIndex, orig] of earliestOriginals.entries()) {
+      if (slideIndex >= 0 && slideIndex < updatedPlan.length) {
+        const slide = { ...updatedPlan[slideIndex] };
+        if (orig.text !== undefined) {
+          slide.body = orig.text;
+          slide.lines = orig.text.split('\n');
+        }
+        if (orig.artifact) {
+          slide.artifact = orig.artifact;
+        }
+        updatedPlan[slideIndex] = slide;
+      }
+    }
+    snap.plan = updatedPlan;
+    snap.cached_at = Date.now();
+    await saveServiceSnapshot(snap);
+  }
+
+  await clearEmergencyPatches(normId);
 }

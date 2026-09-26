@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS services (
   parser_profile_version INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  registry_snapshot_at TEXT
+  registry_snapshot_at TEXT,
+  emergency_patches TEXT DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS hymns (

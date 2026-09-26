@@ -8,6 +8,8 @@ import {
   liveBackgroundOf,
   liveTransitionOf,
   openPresentChannel,
+  slidePatchOf,
+  syncPatchesOf,
   type PresentMessage,
 } from '@/lib/present-channel';
 import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
@@ -40,12 +42,20 @@ export default function ProjectorClient({
   const [transition, setTransition] = useState<SlideTransition>(
     configuredTransition
   );
+  const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
+  const patchRevisionsRef = useRef<Map<number, number>>(new Map());
+
+  useEffect(() => {
+    setActiveSlides(slides);
+    patchRevisionsRef.current.clear();
+  }, [slides]);
+
   const [backgroundOverride, setBackgroundOverride] = useState<
     string | null | undefined
   >(undefined);
   const { index, outgoing, phase, goTo } = useSlideTransition(
     transition,
-    slides.length
+    activeSlides.length
   );
   const [blank, setBlank] = useState(false);
   const [stalePlan, setStalePlan] = useState(false);
@@ -87,7 +97,8 @@ export default function ProjectorClient({
           msg.type === 'transition' ||
           msg.type === 'background' ||
           msg.type === 'scripture' ||
-          msg.type === 'clear-scripture'
+          msg.type === 'clear-scripture' ||
+          msg.type === 'slide-patch'
         ) {
           setStalePlan(true);
         }
@@ -108,6 +119,40 @@ export default function ProjectorClient({
       if (msg.type === 'sync') {
         goToRef.current(msg.index);
         setOverlay(msg.scripture ?? null);
+        const patches = syncPatchesOf(msg);
+        if (patches !== null) {
+          patchRevisionsRef.current.clear();
+          setActiveSlides(() => {
+            const next = [...slides];
+            for (const p of patches) {
+              patchRevisionsRef.current.set(p.index, p.patchRevision);
+              if (p.index >= 0 && p.index < next.length && p.artifact) {
+                next[p.index] = {
+                  ...next[p.index],
+                  artifact: p.artifact,
+                };
+              }
+            }
+            return next;
+          });
+        }
+      } else if (msg.type === 'slide-patch') {
+        const patch = slidePatchOf(msg);
+        if (patch) {
+          const lastRev = patchRevisionsRef.current.get(patch.index) || 0;
+          if (patch.patchRevision > lastRev) {
+            patchRevisionsRef.current.set(patch.index, patch.patchRevision);
+            setActiveSlides((prev) => {
+              if (patch.index < 0 || patch.index >= prev.length) return prev;
+              const next = [...prev];
+              next[patch.index] = {
+                ...next[patch.index],
+                artifact: patch.artifact,
+              };
+              return next;
+            });
+          }
+        }
       } else if (msg.type === 'scripture') {
         setOverlay({ reference: msg.reference, text: msg.text });
       } else if (msg.type === 'clear-scripture') {
@@ -167,8 +212,8 @@ export default function ProjectorClient({
     );
   }
 
-  const slide = slides[index];
-  const outgoingSlide = outgoing === null ? undefined : slides[outgoing];
+  const slide = activeSlides[index];
+  const outgoingSlide = outgoing === null ? undefined : activeSlides[outgoing];
 
   // `text-white` on the root is not decoration. `globals.css` puts
   // `body { @apply text-foreground }` on the shell, so any projected node that

@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import Link from '@/components/Link';
 import EditForm from '@/operator/EditForm';
 import SyncArtifactButton from '@/operator/SyncArtifactButton';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,7 +18,14 @@ import {
   getCachedSession,
   invalidateAuthAndPurgeOffline,
 } from '@/lib/auth-session';
-import { getServiceSnapshot, warmServiceSnapshot } from '@/lib/offline/service-snapshot';
+import {
+  clearEmergencyPatches,
+  getEmergencyPatches,
+  getServiceSnapshot,
+  revertEmergencyPatches,
+  warmServiceSnapshot,
+  type EmergencyPatchRecord,
+} from '@/lib/offline/service-snapshot';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
 
 export default function RunSheetPage() {
@@ -29,6 +36,133 @@ export default function RunSheetPage() {
   const [svc, setSvc] = useState<any>(null);
   const [isOfflineData, setIsOfflineData] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pendingPatches, setPendingPatches] = useState<EmergencyPatchRecord[]>([]);
+  const [isReconciling, setIsReconciling] = useState(false);
+  const [reconcileError, setReconcileError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (id) {
+      getEmergencyPatches(id).then((records) => {
+        if (!cancelled) setPendingPatches(records);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [id, svc?.updated_at]);
+
+  const handleSyncEmergencyToServer = async () => {
+    if (!id) return;
+    setIsReconciling(true);
+    setReconcileError(null);
+    try {
+      const getRes = await fetch(`/api/services/${id}`, { credentials: 'same-origin' });
+      if (!getRes.ok) {
+        throw new Error(`Gagal memuat status server: HTTP ${getRes.status}`);
+      }
+      const remoteData = await getRes.json();
+
+      // Check basePlanIdentity concurrency guard
+      const divergentPatch = pendingPatches.find(
+        (p) => p.basePlanIdentity && remoteData.plan_identity && p.basePlanIdentity !== remoteData.plan_identity
+      );
+      if (divergentPatch) {
+        setReconcileError('Konflik: Susunan acara di server telah berubah sejak koreksi dibuat. Silakan muat ulang atau periksa perubahan.');
+        return;
+      }
+
+      // Apply queued patches onto fresh server plan
+      let patchedPlan = Array.isArray(remoteData.plan) ? [...remoteData.plan] : [];
+      for (const p of pendingPatches) {
+        if (p.slideIndex >= 0 && p.slideIndex < patchedPlan.length && p.patchedArtifact) {
+          patchedPlan[p.slideIndex] = {
+            ...patchedPlan[p.slideIndex],
+            artifact: p.patchedArtifact,
+            body: p.updatedText,
+            lines: p.updatedText.split('\n'),
+          };
+        }
+      }
+
+      const putRes = await fetch(`/api/services/${id}`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'If-Match': remoteData.updated_at || '',
+        },
+        body: JSON.stringify({
+          updated_at: remoteData.updated_at,
+          emergency_patches: pendingPatches.map((p) => ({
+            slideIndex: p.slideIndex,
+            updatedText: p.updatedText,
+            patchedArtifact: p.patchedArtifact,
+            patchRevision: p.patchRevision,
+            basePlanIdentity: p.basePlanIdentity,
+          })),
+        }),
+      });
+
+      if (putRes.status === 409) {
+        setReconcileError('Konflik versi: Layanan telah diubah di server.');
+        return;
+      }
+      if (!putRes.ok) {
+        throw new Error(`HTTP ${putRes.status}`);
+      }
+
+      await clearEmergencyPatches(id);
+      setPendingPatches([]);
+      await reloadService();
+    } catch (err: any) {
+      setReconcileError(err.message || 'Gagal menyimpan ke server');
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
+  const handleDiscardEmergencyPatches = async () => {
+    if (!id) return;
+    setIsReconciling(true);
+    setReconcileError(null);
+    try {
+      if (!isOfflineData) {
+        const getRes = await fetch(`/api/services/${id}`, { credentials: 'same-origin' });
+        if (!getRes.ok) {
+          throw new Error(`Gagal memuat status server: HTTP ${getRes.status}`);
+        }
+        const remoteData = await getRes.json();
+        const putRes = await fetch(`/api/services/${id}`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'If-Match': remoteData.updated_at || '',
+          },
+          body: JSON.stringify({
+            updated_at: remoteData.updated_at,
+            emergency_patches: [],
+          }),
+        });
+        if (putRes.status === 409) {
+          setReconcileError('Konflik versi: Layanan telah diubah di server.');
+          return;
+        }
+        if (!putRes.ok) {
+          throw new Error(`HTTP ${putRes.status}`);
+        }
+      }
+
+      await revertEmergencyPatches(id);
+      setPendingPatches([]);
+      await reloadService();
+    } catch (err: any) {
+      setReconcileError(err.message || 'Gagal membuang koreksi');
+    } finally {
+      setIsReconciling(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +290,44 @@ export default function RunSheetPage() {
             <span>Mode Offline — Membaca data tersimpan</span>
           </div>
           <span className="text-[11px] opacity-75">Tersimpan di perangkat lokal</span>
+        </div>
+      )}
+      {pendingPatches.length > 0 && !isOfflineData && (
+        <div
+          data-testid="emergency-reconciliation-banner"
+          role="status"
+          className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2"
+        >
+          <div className="flex items-center gap-2">
+            <span>Terdapat koreksi panggung: {pendingPatches.length} perubahan tersimpan secara lokal</span>
+            {reconcileError && (
+              <span className="text-destructive font-medium ml-2">({reconcileError})</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              data-testid="emergency-sync-server-button"
+              disabled={isReconciling}
+              onClick={handleSyncEmergencyToServer}
+              className="h-7 px-2.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {isReconciling ? 'Menyimpan...' : 'Simpan ke Server'}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="emergency-discard-button"
+              disabled={isReconciling}
+              onClick={handleDiscardEmergencyPatches}
+              className="h-7 px-2.5 text-xs border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
+            >
+              Buang
+            </Button>
+          </div>
         </div>
       )}
       <header className="mb-8 flex flex-col gap-4 border-b border-border/80 pb-4 sm:flex-row sm:items-end sm:justify-between">

@@ -47,21 +47,21 @@ Satisfies `FR-16`, `FR-19`, and `UC-21`.
 
 **Blocked by:** `SPEC-84-02`
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, and `src/lib/present-channel.ts`.
-- [ ] In `src/lib/present-channel.ts`:
+- [x] Read `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, and `src/lib/present-channel.ts`.
+- [x] In `src/lib/present-channel.ts`:
       - Extend `PresentMessage` union with `type: 'slide-patch'` and `patches` in `sync`.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Add `presentationLock` toggle.
       - Implement `EmergencyEditDialog` component.
       - On apply: update memory slides, write to IndexedDB, append to `emergency_outbox`, broadcast to channel.
       - Add online reconciliation banner action ("Simpan ke Server" / "Buang").
-- [ ] In `src/projected/ProjectorClient.tsx`:
+- [x] In `src/projected/ProjectorClient.tsx`:
       - Handle `slide-patch` message and mount-time `sync.patches` replay.
-- [ ] In `tests/emergency-local-edit.test.mjs`:
+- [x] In `tests/emergency-local-edit.test.mjs`:
       - Test emergency patch application and BroadcastChannel sync.
       - Test mount-time sync replay for reloaded projector window.
       - Test outbox persistence in IndexedDB and reconciliation actions.
       - Inject defect and prove guard triggers failure.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-local-edit.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-local-edit.test.mjs` and `npm run typecheck`.

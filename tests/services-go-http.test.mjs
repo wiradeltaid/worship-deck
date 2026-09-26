@@ -351,14 +351,136 @@ test('PUT with a matching updated_at returns 200 with the update envelope', asyn
   });
   assert.equal(status, 200);
   assert.deepEqual(sortedKeys(body), [
+    'date',
     'failedHymnNumbers',
+    'id',
     'message',
+    'plan',
+    'plan_identity',
+    'transition',
     'updated_at',
   ]);
   assert.equal(body.message, 'Service updated successfully');
   assert.deepEqual(body.failedHymnNumbers, []);
   const one = await getOne(id);
   assert.match(one.body.raw_payload, /edited-over-http/);
+});
+
+test('PUT with emergency_patches only updates emergency_patches and preserves raw_payload, parsed_data, and profile', async () => {
+  const rawText = RAW('SABBATH, NOVEMBER 21, 2026', 'initial-immutable-raw');
+  const id = await createdService({ raw_payload: rawText });
+  const initial = await getOne(id);
+  const initialIdentity = initial.body.plan_identity;
+  const initialParsedData = initial.body.parsed_data;
+  const initialProfileId = initial.body.parser_profile_id;
+  const initialProfileVer = initial.body.parser_profile_version;
+
+  const initialInstanceId =
+    Array.isArray(initial.body.plan) && initial.body.plan.length > 0 && initial.body.plan[0]?.artifact
+      ? initial.body.plan[0].artifact.instanceId
+      : 'slide-0';
+
+  const patch = [
+    {
+      slideIndex: 0,
+      updatedText: 'Emergency Headline Edit',
+      patchedArtifact: {
+        instanceId: initialInstanceId,
+        layout: { elements: [{ type: 'text', text: 'Emergency Headline Edit' }] },
+      },
+      patchRevision: 1,
+    },
+  ];
+
+  // 1. PUT with emergency_patches only (raw_payload omitted)
+  const { status, body } = await put(id, {
+    updated_at: initial.body.updated_at,
+    emergency_patches: patch,
+  });
+
+  assert.equal(status, 200);
+  assert.equal(body.plan_identity, initialIdentity, 'Canonical plan_identity must remain stable');
+
+  // 2. GET service: raw_payload, date, parsed_data, and profile are untouched, plan has patched text
+  const afterPatch = await getOne(id);
+  assert.equal(afterPatch.body.raw_payload, rawText, 'raw_payload must be preserved untouched');
+  assert.equal(afterPatch.body.date, initial.body.date);
+  assert.deepEqual(afterPatch.body.parsed_data, initialParsedData, 'parsed_data must be preserved untouched');
+  assert.equal(afterPatch.body.parser_profile_id, initialProfileId, 'parser_profile_id must be preserved untouched');
+  assert.equal(afterPatch.body.parser_profile_version, initialProfileVer, 'parser_profile_version must be preserved untouched');
+  assert.equal(afterPatch.body.plan_identity, initialIdentity);
+  assert.equal(afterPatch.body.plan[0].artifact.layout.elements[0].text, 'Emergency Headline Edit');
+
+  // 3. Stale updated_at returns 409
+  const stalePut = await put(id, {
+    updated_at: initial.body.updated_at,
+    emergency_patches: [],
+  });
+  assert.equal(stalePut.status, 409);
+
+  // 4. Discard emergency patches by sending empty array
+  const discardPut = await put(id, {
+    updated_at: afterPatch.body.updated_at,
+    emergency_patches: [],
+  });
+  assert.equal(discardPut.status, 200);
+  assert.equal(discardPut.body.plan_identity, initialIdentity);
+
+  // 5. GET service: original base slide plan is restored and metadata preserved
+  const afterDiscard = await getOne(id);
+  assert.equal(afterDiscard.body.plan_identity, initialIdentity);
+  assert.equal(afterDiscard.body.raw_payload, rawText);
+  assert.deepEqual(afterDiscard.body.parsed_data, initialParsedData);
+  assert.equal(afterDiscard.body.parser_profile_id, initialProfileId);
+  assert.equal(afterDiscard.body.parser_profile_version, initialProfileVer);
+  assert.notEqual(afterDiscard.body.plan[0].artifact.layout.elements[0].text, 'Emergency Headline Edit');
+});
+
+test('Normal service PUT invalidates stale emergency patches and avoids replaying onto new canonical plan', async () => {
+  const initialRaw = RAW('SABBATH, NOVEMBER 28, 2026', 'old-first-slide');
+  const id = await createdService({ raw_payload: initialRaw });
+  const initial = await getOne(id);
+
+  // 1. Save an emergency patch to slide 0 with basePlanIdentity
+  const patch = [
+    {
+      slideIndex: 0,
+      updatedText: 'Emergency Patch For Old First Slide',
+      basePlanIdentity: initial.body.plan_identity,
+      patchedArtifact: {
+        instanceId: 'slide-0',
+        layout: { elements: [{ type: 'text', text: 'Emergency Patch For Old First Slide' }] },
+      },
+      patchRevision: 1,
+    },
+  ];
+
+  const patchPut = await put(id, {
+    updated_at: initial.body.updated_at,
+    emergency_patches: patch,
+  });
+  assert.equal(patchPut.status, 200);
+
+  // Verify slide 0 now shows the emergency patch
+  const patched = await getOne(id);
+  assert.equal(patched.body.plan[0].artifact.layout.elements[0].text, 'Emergency Patch For Old First Slide');
+
+  // 2. Normal service update: operator edits/reorders the service rundown in EditForm
+  const updatedRaw = RAW('SABBATH, DECEMBER 5, 2026', 'Opening Song: SDAH #100');
+  const normalPut = await put(id, {
+    updated_at: patched.body.updated_at,
+    raw_payload: updatedRaw,
+  });
+  assert.equal(normalPut.status, 200);
+
+  // 3. GET service: emergency_patches must be cleared or not replayed onto the new canonical plan
+  const afterNormalEdit = await getOne(id);
+  assert.notEqual(afterNormalEdit.body.plan_identity, initial.body.plan_identity, 'Canonical plan identity changed');
+  assert.notEqual(
+    afterNormalEdit.body.plan[0].artifact.layout.elements[0].text,
+    'Emergency Patch For Old First Slide',
+    'Stale emergency patch must NOT be replayed onto a modified canonical plan'
+  );
 });
 
 test('PUT malformed JSON returns 400 Invalid JSON instead of 500', async () => {
