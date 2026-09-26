@@ -36,17 +36,17 @@ Satisfies `FR-16`, `FR-19`, and `UC-21`.
 
 **Blocked by:** `SPEC-85-04`
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, and `src/lib/present-channel.ts`.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] Read `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, and `src/lib/present-channel.ts`.
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Implement `EmergencyCanvasDesignerModal` consuming hydrated `ArtifactInstance`.
       - Allow editing multiple text elements, images, and visual properties.
       - Apply changes to local slide memory, IndexedDB snapshot, and outbox.
       - Transmit `slide-patch` over `BroadcastChannel`.
-- [ ] In `tests/emergency-canvas-edit.test.mjs`:
+- [x] In `tests/emergency-canvas-edit.test.mjs`:
       - Test hydrated artifact seeding into emergency edit canvas.
       - Test multi-element editing, patch persistence, and monotonic ordering.
       - Test projector broadcast, plan identity verification, and live rendering.
       - Inject defect and prove guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-canvas-edit.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-canvas-edit.test.mjs` and `npm run typecheck`.
