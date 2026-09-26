@@ -4232,7 +4232,7 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/scripture-aspect-containment.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -4261,7 +4261,7 @@ rtm:
   release: presentation-fidelity-slide-visibility-and-operator-polish
   test:
   - tests/scripture-aspect-containment.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

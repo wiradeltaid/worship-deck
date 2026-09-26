@@ -24,16 +24,16 @@ Satisfies `FR-19` and `UC-22`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/components/ScriptureOverlayView.tsx`, `src/lib/scripture-scaling.ts`, and `src/components/artifacts/ArtifactSlide.tsx`.
-- [ ] In `src/lib/scripture-scaling.ts`:
+- [x] Read `src/components/ScriptureOverlayView.tsx`, `src/lib/scripture-scaling.ts`, and `src/components/artifacts/ArtifactSlide.tsx`.
+- [x] In `src/lib/scripture-scaling.ts`:
       - Migrate font size formulas to pure container query units (`cqh`/`cqw`).
-- [ ] In `src/components/ScriptureOverlayView.tsx`:
+- [x] In `src/components/ScriptureOverlayView.tsx`:
       - Remove `max-w-5xl`, `sm:px-12`, and `rem` clamps.
       - Apply strict 16:9 letterboxed canvas stage with container query sizing.
-- [ ] In `tests/scripture-aspect-containment.test.mjs`:
+- [x] In `tests/scripture-aspect-containment.test.mjs`:
       - Test 16:9 aspect ratio preservation across multiple viewport dimensions and aspect ratios.
       - Test font scaling container query proportionality.
       - Inject defect and verify absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/scripture-aspect-containment.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/scripture-aspect-containment.test.mjs` and `npm run typecheck`.
