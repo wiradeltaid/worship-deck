@@ -16,6 +16,12 @@ import { parseSlideTransition, type SlideTransition } from './transitions';
  * state *and* the live transition, so a projector opened or reloaded mid-session
  * comes up correct on the one round trip it already makes.
  */
+export type SlidePatch = {
+  index: number;
+  artifact: any;
+  patchRevision: number;
+};
+
 export type PresentMessage =
   | {
       type: 'sync';
@@ -24,6 +30,14 @@ export type PresentMessage =
       transition: SlideTransition;
       background?: string | null;
       scripture?: { reference: string; text: string } | null;
+      planIdentity: string;
+      patches?: SlidePatch[];
+    }
+  | {
+      type: 'slide-patch';
+      index: number;
+      artifact: any;
+      patchRevision: number;
       planIdentity: string;
     }
   | { type: 'request-sync' }
@@ -118,6 +132,31 @@ export function liveBackgroundOf(msg: PresentMessage): string | null | undefined
     return msg.background !== undefined ? msg.background : null;
   }
   return undefined;
+}
+
+/**
+ * Returns the slide patch from a slide-patch message, or null if invalid/irrelevant.
+ */
+export function slidePatchOf(msg: PresentMessage): SlidePatch | null {
+  if (msg.type !== 'slide-patch') return null;
+  if (typeof msg.index !== 'number' || !msg.artifact || typeof msg.patchRevision !== 'number') {
+    return null;
+  }
+  return {
+    index: msg.index,
+    artifact: msg.artifact,
+    patchRevision: msg.patchRevision,
+  };
+}
+
+/**
+ * Returns any slide patches carried by a sync message, or null if absent.
+ */
+export function syncPatchesOf(msg: PresentMessage): SlidePatch[] | null {
+  if (msg.type !== 'sync' || !Array.isArray(msg.patches)) return null;
+  return msg.patches.filter(
+    (p) => typeof p.index === 'number' && p.artifact && typeof p.patchRevision === 'number'
+  );
 }
 
 /**

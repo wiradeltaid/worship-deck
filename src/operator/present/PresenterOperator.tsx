@@ -29,7 +29,7 @@ import {
   type RefObject,
 } from 'react';
 import { toast } from 'sonner';
-import { Repeat } from 'lucide-react';
+import { Lock, Unlock, Pencil, Repeat } from 'lucide-react';
 import Link from '@/components/Link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import SlideView from '@/components/SlideView';
@@ -37,7 +37,15 @@ import {
   isProjectorMessage,
   openPresentChannel,
   type PresentMessage,
+  type SlidePatch,
 } from '@/lib/present-channel';
+import {
+  clearEmergencyPatches,
+  getEmergencyPatches,
+  revertEmergencyPatches,
+  saveEmergencyPatch,
+  type EmergencyPatchRecord,
+} from '@/lib/offline/service-snapshot';
 import {
   INITIAL_LIVENESS_STATE,
   nextLivenessState,
@@ -77,6 +85,7 @@ import {
   type PresenterRemoteConnectionState,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
+import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
 import SlideGridDialog from './SlideGridDialog';
 import {
   PRESENTER_TONE_CLASS,
@@ -97,6 +106,69 @@ type CssVars = CSSProperties & Record<`--${string}`, string>;
 function blurFocusedControl() {
   const active = document.activeElement;
   if (active instanceof HTMLElement) active.blur();
+}
+
+function extractSlideEditableText(slide?: SlidePlanItem | null): { text: string; elementId?: string } {
+  if (!slide) return { text: '' };
+  if (slide.artifact?.layout?.elements) {
+    const elements = slide.artifact.layout.elements;
+    const byPlaceholder = elements.find(
+      (el) =>
+        el.type === 'text' &&
+        typeof el.text === 'string' &&
+        (el.placeholderKey === 'body' ||
+          el.placeholderKey === 'lyrics' ||
+          el.placeholderKey === 'content' ||
+          el.placeholderKey === 'text')
+    );
+    if (byPlaceholder) {
+      return { text: byPlaceholder.text || '', elementId: byPlaceholder.id };
+    }
+    const firstText = elements.find((el) => el.type === 'text' && typeof el.text === 'string');
+    if (firstText) {
+      return { text: firstText.text || '', elementId: firstText.id };
+    }
+  }
+  return {
+    text: slide.body || slide.lines?.join('\n') || slide.title || '',
+  };
+}
+
+function applyTextPatchToSlide(
+  slide: SlidePlanItem,
+  newText: string,
+  targetElementId?: string
+): SlidePlanItem {
+  const updated = { ...slide };
+  const lines = newText.split('\n');
+  updated.body = newText;
+  updated.lines = lines;
+
+  if (slide.artifact && slide.artifact.layout && Array.isArray(slide.artifact.layout.elements)) {
+    const elements = slide.artifact.layout.elements.map((el) => {
+      if (
+        (targetElementId && el.id === targetElementId) ||
+        (!targetElementId && el.type === 'text')
+      ) {
+        return {
+          ...el,
+          text: newText,
+          wrapLines: lines,
+        };
+      }
+      return el;
+    });
+
+    updated.artifact = {
+      ...slide.artifact,
+      layout: {
+        ...slide.artifact.layout,
+        elements,
+      },
+    };
+  }
+
+  return updated;
 }
 
 /**
@@ -289,6 +361,8 @@ export default function PresenterOperator({
   rundownText = '',
   planIdentity,
   transition: deckTransition,
+  isOffline = false,
+  rawService,
 }: {
   serviceId: number;
   serviceDate: string;
@@ -303,8 +377,30 @@ export default function PresenterOperator({
    * written anywhere.
    */
   transition: SlideTransition;
+  isOffline?: boolean;
+  rawService?: any;
 }) {
   const { t } = useT();
+  const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
+
+  useEffect(() => {
+    setActiveSlides(slides);
+  }, [slides]);
+
+  const [presentationLock, setPresentationLock] = useState(true);
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number>(0);
+  const [emergencyText, setEmergencyText] = useState('');
+  const [targetElementId, setTargetElementId] = useState<string | undefined>(undefined);
+  const [pendingPatches, setPendingPatches] = useState<EmergencyPatchRecord[]>([]);
+  const [isHydratingPatches, setIsHydratingPatches] = useState(true);
+  const [isReconciling, setIsReconciling] = useState(false);
+  const [reconcileError, setReconcileError] = useState<string | null>(null);
+
+  const patchRevisionRef = useRef(0);
+  const patchesRef = useRef<SlidePatch[]>([]);
+  const patchRevisionsRef = useRef<Map<number, number>>(new Map());
+
   const [index, setIndex] = useState(0);
   const [gridOpen, setGridOpen] = useState(false);
   const [blank, setBlank] = useState(false);
@@ -433,7 +529,7 @@ export default function PresenterOperator({
     };
   }, []);
 
-  const entries = useMemo(() => buildPresenterEntries(slides), [slides]);
+  const entries = useMemo(() => buildPresenterEntries(activeSlides), [activeSlides]);
   const rows = useMemo(() => buildPresenterRows(entries), [entries]);
 
   /**
@@ -508,7 +604,7 @@ export default function PresenterOperator({
 
   const setIndexAndSync = useCallback(
     (next: number) => {
-      const clamped = clampSlideIndex(next, slides.length);
+      const clamped = clampSlideIndex(next, activeSlides.length);
       indexRef.current = clamped;
       setIndex(clamped);
       setScriptureOverlay(null);
@@ -523,9 +619,10 @@ export default function PresenterOperator({
         transition: transitionRef.current,
         background: backgroundRef.current,
         planIdentity: planIdentityRef.current,
+        patches: patchesRef.current,
       });
     },
-    [broadcast, slides.length]
+    [broadcast, activeSlides.length]
   );
 
   const manualNavigate = useCallback(
@@ -540,7 +637,7 @@ export default function PresenterOperator({
   useEffect(() => {
     if (!isLooping) return;
 
-    const bounds = findAnnouncementSectionBounds(slides, indexRef.current);
+    const bounds = findAnnouncementSectionBounds(activeSlides, indexRef.current);
     if (!bounds) {
       isLoopingRef.current = false;
       setIsLooping(false);
@@ -550,7 +647,7 @@ export default function PresenterOperator({
     const timer = setInterval(() => {
       if (!isLoopingRef.current) return;
       const currentIdx = indexRef.current;
-      const curBounds = findAnnouncementSectionBounds(slides, currentIdx);
+      const curBounds = findAnnouncementSectionBounds(activeSlides, currentIdx);
       if (!curBounds) {
         isLoopingRef.current = false;
         setIsLooping(false);
@@ -563,7 +660,7 @@ export default function PresenterOperator({
     return () => {
       clearInterval(timer);
     };
-  }, [isLooping, loopInterval, slides, setIndexAndSync]);
+  }, [isLooping, loopInterval, activeSlides, setIndexAndSync]);
 
   /**
    * Blanks or restores the projector. Takes the state it wants rather than
@@ -639,6 +736,7 @@ export default function PresenterOperator({
       background: backgroundRef.current,
       scripture: scriptureOverlayRef.current,
       planIdentity: planIdentityRef.current,
+      patches: patchesRef.current,
     });
 
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
@@ -658,6 +756,36 @@ export default function PresenterOperator({
       }
       if (msg.type === 'request-sync') {
         ch.postMessage(currentState());
+      } else if (msg.type === 'slide-patch') {
+        if (
+          msg.planIdentity === planIdentityRef.current &&
+          typeof msg.index === 'number' &&
+          msg.artifact &&
+          typeof msg.patchRevision === 'number'
+        ) {
+          const lastRev = patchRevisionsRef.current.get(msg.index) || 0;
+          if (msg.patchRevision <= lastRev) return;
+          patchRevisionsRef.current.set(msg.index, msg.patchRevision);
+          patchRevisionRef.current = Math.max(patchRevisionRef.current, msg.patchRevision);
+
+          patchesRef.current = [
+            ...patchesRef.current.filter((p) => p.index !== msg.index),
+            {
+              index: msg.index,
+              artifact: msg.artifact,
+              patchRevision: msg.patchRevision,
+            },
+          ];
+          setActiveSlides((prev) => {
+            if (msg.index < 0 || msg.index >= prev.length) return prev;
+            const next = [...prev];
+            next[msg.index] = {
+              ...next[msg.index],
+              artifact: msg.artifact,
+            };
+            return next;
+          });
+        }
       }
     };
     ch.addEventListener('message', onMessage);
@@ -771,9 +899,287 @@ export default function PresenterOperator({
     }
   }, [index]);
 
-  const current = slides[index];
-  const next = slides[index + 1];
-  const atEnd = index >= slides.length - 1;
+  useEffect(() => {
+    let cancelled = false;
+    setIsHydratingPatches(true);
+    getEmergencyPatches(serviceId)
+      .then((records) => {
+        if (cancelled) return;
+        // Normalize: keep only the highest revision per slideIndex
+        const latestBySlide = new Map<number, EmergencyPatchRecord>();
+        for (const r of records) {
+          const existing = latestBySlide.get(r.slideIndex);
+          if (!existing || r.patchRevision > existing.patchRevision) {
+            latestBySlide.set(r.slideIndex, r);
+          }
+        }
+        const normalized = Array.from(latestBySlide.values()).sort(
+          (a, b) => a.slideIndex - b.slideIndex
+        );
+
+        setPendingPatches(normalized);
+        if (normalized.length > 0) {
+          const patches = normalized.map((r) => ({
+            index: r.slideIndex,
+            artifact: r.patchedArtifact,
+            patchRevision: r.patchRevision,
+          }));
+          patchesRef.current = patches;
+          for (const r of normalized) {
+            patchRevisionsRef.current.set(r.slideIndex, r.patchRevision);
+          }
+          setActiveSlides((prev) => {
+            const next = [...prev];
+            for (const r of normalized) {
+              if (r.slideIndex >= 0 && r.slideIndex < next.length && r.patchedArtifact) {
+                next[r.slideIndex] = {
+                  ...next[r.slideIndex],
+                  artifact: r.patchedArtifact,
+                  body: r.updatedText,
+                  lines: r.updatedText.split('\n'),
+                };
+              }
+            }
+            return next;
+          });
+          const highestRev = Math.max(...normalized.map((r) => r.patchRevision), 0);
+          patchRevisionRef.current = highestRev;
+
+          // Broadcast hydrated patches to any already-connected projector
+          broadcast({
+            type: 'sync',
+            index: indexRef.current,
+            blank: blankRef.current,
+            transition: transitionRef.current,
+            background: backgroundRef.current,
+            scripture: null,
+            planIdentity: planIdentityRef.current,
+            patches,
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsHydratingPatches(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceId, broadcast]);
+
+  const handleOpenEmergencyEdit = () => {
+    const activeIdx = indexRef.current;
+    setEditingSlideIndex(activeIdx);
+    const currentSlide = activeSlides[activeIdx];
+    const extracted = extractSlideEditableText(currentSlide);
+    setEmergencyText(extracted.text);
+    setTargetElementId(extracted.elementId);
+    setEmergencyOpen(true);
+  };
+
+  const handleApplyEmergencyEdit = async () => {
+    const targetIdx = editingSlideIndex;
+    const currentSlide = activeSlides[targetIdx];
+    if (!currentSlide) return;
+
+    const extracted = extractSlideEditableText(currentSlide);
+    const existingPatch = pendingPatches.find((p) => p.slideIndex === targetIdx);
+    const originalText = existingPatch ? existingPatch.originalText : extracted.text;
+    const originalArtifact = existingPatch && existingPatch.originalArtifact ? existingPatch.originalArtifact : currentSlide.artifact;
+    const updatedSlide = applyTextPatchToSlide(currentSlide, emergencyText, targetElementId);
+    const nextRev = (patchRevisionsRef.current.get(targetIdx) || 0) + 1;
+    patchRevisionsRef.current.set(targetIdx, nextRev);
+    patchRevisionRef.current = Math.max(patchRevisionRef.current, nextRev);
+
+    const newPatchRecord: EmergencyPatchRecord = {
+      serviceId: String(serviceId),
+      basePlanIdentity: planIdentityRef.current,
+      patchRevision: nextRev,
+      patchTimestamp: Date.now(),
+      slideIndex: targetIdx,
+      originalText,
+      originalArtifact,
+      updatedText: emergencyText,
+      patchedArtifact: updatedSlide.artifact,
+    };
+
+    patchesRef.current = [
+      ...patchesRef.current.filter((p) => p.index !== targetIdx),
+      {
+        index: targetIdx,
+        artifact: updatedSlide.artifact,
+        patchRevision: nextRev,
+      },
+    ];
+
+    setActiveSlides((prev) => {
+      const next = [...prev];
+      next[targetIdx] = updatedSlide;
+      return next;
+    });
+
+    await saveEmergencyPatch(newPatchRecord);
+    const refreshed = await getEmergencyPatches(serviceId);
+    setPendingPatches(refreshed);
+
+    broadcast({
+      type: 'slide-patch',
+      index: targetIdx,
+      artifact: updatedSlide.artifact,
+      patchRevision: nextRev,
+      planIdentity: planIdentityRef.current,
+    });
+
+    setEmergencyOpen(false);
+    toast.success('Koreksi panggung diterapkan ke layar (lokal)');
+  };
+
+  const handleSyncToServer = async () => {
+    setIsReconciling(true);
+    setReconcileError(null);
+    try {
+      const getRes = await fetch(`/api/services/${serviceId}`, { credentials: 'same-origin' });
+      if (!getRes.ok) {
+        throw new Error(`Gagal memuat status server: HTTP ${getRes.status}`);
+      }
+      const remoteData = await getRes.json();
+
+      // Concurrency protection: Verify plan identity matches basePlanIdentity of queued patches
+      const divergentPatch = pendingPatches.find(
+        (p) => p.basePlanIdentity && remoteData.plan_identity && p.basePlanIdentity !== remoteData.plan_identity
+      );
+      if (divergentPatch) {
+        setReconcileError('Konflik: Susunan acara di server telah berubah sejak koreksi dibuat. Silakan periksa perubahan.');
+        return;
+      }
+
+      // Apply pending patches onto fresh server plan
+      let patchedPlan = Array.isArray(remoteData.plan) ? [...remoteData.plan] : [];
+      for (const p of pendingPatches) {
+        if (p.slideIndex >= 0 && p.slideIndex < patchedPlan.length && p.patchedArtifact) {
+          patchedPlan[p.slideIndex] = {
+            ...patchedPlan[p.slideIndex],
+            artifact: p.patchedArtifact,
+            body: p.updatedText,
+            lines: p.updatedText.split('\n'),
+          };
+        }
+      }
+
+      const putRes = await fetch(`/api/services/${serviceId}`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'If-Match': remoteData.updated_at || '',
+        },
+        body: JSON.stringify({
+          updated_at: remoteData.updated_at,
+          emergency_patches: pendingPatches.map((p) => ({
+            slideIndex: p.slideIndex,
+            updatedText: p.updatedText,
+            patchedArtifact: p.patchedArtifact,
+            patchRevision: p.patchRevision,
+            basePlanIdentity: p.basePlanIdentity,
+          })),
+        }),
+      });
+
+      if (putRes.status === 409) {
+        setReconcileError('Konflik versi: Layanan telah diubah di server. Silakan muat ulang atau periksa perubahan.');
+        return;
+      }
+      if (!putRes.ok) {
+        throw new Error(`Gagal menyimpan ke server: HTTP ${putRes.status}`);
+      }
+
+      const updatedService = await putRes.json().catch(() => null);
+      if (updatedService?.plan) {
+        setActiveSlides(updatedService.plan);
+      }
+
+      await clearEmergencyPatches(serviceId);
+      setPendingPatches([]);
+      toast.success('Koreksi panggung berhasil disimpan ke server');
+    } catch (err: any) {
+      setReconcileError(err.message || 'Gagal menyimpan ke server');
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
+  const handleDiscardPatches = async () => {
+    setIsReconciling(true);
+    setReconcileError(null);
+    try {
+      if (!isOffline) {
+        const getRes = await fetch(`/api/services/${serviceId}`, { credentials: 'same-origin' });
+        if (!getRes.ok) {
+          throw new Error(`Gagal memuat status server: HTTP ${getRes.status}`);
+        }
+        const remoteData = await getRes.json();
+        const putRes = await fetch(`/api/services/${serviceId}`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'If-Match': remoteData.updated_at || '',
+          },
+          body: JSON.stringify({
+            updated_at: remoteData.updated_at,
+            emergency_patches: [],
+          }),
+        });
+
+        if (putRes.status === 409) {
+          setReconcileError('Konflik versi: Layanan telah diubah di server. Silakan muat ulang.');
+          return;
+        }
+        if (!putRes.ok) {
+          throw new Error(`Gagal membuang koreksi di server: HTTP ${putRes.status}`);
+        }
+
+        const resData = await putRes.json().catch(() => null);
+        if (resData?.plan) {
+          setActiveSlides(resData.plan);
+        } else {
+          setActiveSlides(slides);
+        }
+        if (resData?.plan_identity) {
+          planIdentityRef.current = resData.plan_identity;
+        }
+      } else {
+        setActiveSlides(slides);
+      }
+
+      await revertEmergencyPatches(serviceId);
+
+      patchesRef.current = [];
+      patchRevisionsRef.current.clear();
+      setPendingPatches([]);
+
+      broadcast({
+        type: 'sync',
+        index: indexRef.current,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+        background: backgroundRef.current,
+        scripture: null,
+        planIdentity: planIdentityRef.current,
+        patches: [],
+      });
+      toast.info('Koreksi lokal dibuang, kembali ke versi server');
+    } catch (err: any) {
+      setReconcileError(err.message || 'Gagal membuang koreksi');
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
+  const current = activeSlides[index];
+  const next = activeSlides[index + 1];
+  const atEnd = index >= activeSlides.length - 1;
   const activeEntry = activePresenterEntry(entries, index);
 
   const pushScripture = async () => {
@@ -819,19 +1225,73 @@ export default function PresenterOperator({
     <div className="dark flex min-h-dvh flex-col overflow-y-auto bg-background text-foreground">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">
-            Presenter · {serviceDate}
+          <h1 className="truncate text-lg font-semibold flex items-center gap-2">
+            <span>Presenter · {serviceDate}</span>
+            {presentationLock && (
+              <span
+                data-testid="presentation-lock-badge"
+                className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 select-none"
+              >
+                <Lock className="size-3" />
+                <span>Terkunci untuk Ibadah (Locked)</span>
+              </span>
+            )}
+            {isOffline && (
+              <span
+                data-testid="offline-presenter-badge"
+                className="rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 select-none"
+              >
+                Offline
+              </span>
+            )}
           </h1>
           <p className="truncate text-xs text-muted-foreground">
-            Slide {slides.length === 0 ? 0 : index + 1} / {slides.length}
+            Slide {activeSlides.length === 0 ? 0 : index + 1} / {activeSlides.length}
             {activeEntry ? ` · ${activeEntry.label}` : ''}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="presentation-lock-toggle"
+            onClick={() => setPresentationLock((prev) => !prev)}
+            className="h-8 gap-1.5 text-xs select-none"
+            title={
+              presentationLock
+                ? 'Buka kunci untuk mengizinkan perubahan tata letak dan navigasi keluar'
+                : 'Kunci navigasi untuk mencegah perubahan tidak disengaja selama ibadah'
+            }
+          >
+            {presentationLock ? (
+              <Lock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <Unlock className="size-3.5 text-amber-600 dark:text-amber-400" />
+            )}
+            <span>{presentationLock ? 'Buka Kunci' : 'Kunci Ibadah'}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="emergency-edit-button"
+            disabled={isHydratingPatches || activeSlides.length === 0}
+            onClick={handleOpenEmergencyEdit}
+            className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
+          >
+            <Pencil className="size-3.5" />
+            <span>Edit Darurat (Lokal)</span>
+          </Button>
+          <OfflineReadinessBadge
+            serviceId={serviceId}
+            serviceData={rawService || { id: serviceId, plan: activeSlides }}
+            className="mr-1"
+          />
           <Button
             variant="secondary"
             onClick={() => setGridOpen(true)}
-            disabled={slides.length === 0}
+            disabled={activeSlides.length === 0}
           >
             All slides
           </Button>
@@ -869,6 +1329,8 @@ export default function PresenterOperator({
               otherwise warns that a component acting as a button was handed
               something that is not a native `<button>`. */}
           <Button
+            disabled={presentationLock}
+            className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none')}
             variant="outline"
             nativeButton={false}
             render={<Link href={`/services/${serviceId}`} />}
@@ -907,6 +1369,46 @@ export default function PresenterOperator({
           </p>
         ) : null}
       </header>
+
+      {pendingPatches.length > 0 && !isOffline && (
+        <div
+          data-testid="emergency-reconciliation-banner"
+          role="status"
+          className="mx-4 mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2"
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Terdapat koreksi panggung:</span>
+            <span>{pendingPatches.length} perubahan tersimpan secara lokal</span>
+            {reconcileError && (
+              <span className="text-destructive font-medium ml-2">({reconcileError})</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              data-testid="emergency-sync-server-button"
+              disabled={isReconciling}
+              onClick={handleSyncToServer}
+              className="h-7 px-2.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {isReconciling ? 'Menyimpan...' : 'Simpan ke Server'}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="emergency-discard-button"
+              disabled={isReconciling}
+              onClick={handleDiscardPatches}
+              className="h-7 px-2.5 text-xs border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
+            >
+              Buang
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main
         style={STAGE_VARS}
@@ -988,7 +1490,7 @@ export default function PresenterOperator({
                     setIsLooping(false);
                     return;
                   }
-                  const bounds = findAnnouncementSectionBounds(slides, index);
+                  const bounds = findAnnouncementSectionBounds(activeSlides, index);
                   if (!bounds) {
                     toast.error('Current slide is not in an announcement section');
                     return;
@@ -1165,7 +1667,7 @@ export default function PresenterOperator({
               {entries.map((entry) => (
                 <FilmstripFrame
                   key={entry.instanceId}
-                  slide={slides[entry.index]}
+                  slide={activeSlides[entry.index]}
                   entry={entry}
                   active={entry.index === index}
                   activeRef={activeFrameRef}
@@ -1346,7 +1848,7 @@ export default function PresenterOperator({
       <SlideGridDialog
         open={gridOpen}
         onOpenChange={setGridOpen}
-        slides={slides}
+        slides={activeSlides}
         entries={entries}
         currentIndex={index}
         onPick={(picked) => {
@@ -1480,6 +1982,55 @@ export default function PresenterOperator({
               onClick={() => setRemoteDialogOpen(false)}
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emergencyOpen} onOpenChange={setEmergencyOpen}>
+        <DialogContent data-testid="emergency-edit-dialog" className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Darurat (Lokal)</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Ubah teks slide panggung secara langsung tanpa koneksi internet. Perubahan akan disiarkan ke layar proyektor seketika.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="emergency-text" className="text-xs font-medium">
+                Teks Slide (Slide {index + 1})
+              </Label>
+              <textarea
+                id="emergency-text"
+                data-testid="emergency-edit-textarea"
+                value={emergencyText}
+                onChange={(e) => setEmergencyText(e.target.value)}
+                rows={6}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Catatan: Perubahan disimpan di perangkat lokal dan disinkronkan ke layar proyektor via BroadcastChannel.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="emergency-cancel-button"
+              onClick={() => setEmergencyOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              data-testid="emergency-apply-button"
+              onClick={handleApplyEmergencyEdit}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Terapkan ke Layar (Lokal)
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,6 +3,8 @@ import { LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { clearCachedSession } from '@/lib/auth-session';
+import { clearOfflineStorage } from '@/lib/offline/service-snapshot';
 
 export default function LogoutButton({
   variant = 'button',
@@ -14,16 +16,30 @@ export default function LogoutButton({
 
   const logout = async () => {
     setBusy(true);
+    clearCachedSession();
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-      });
-      // Explicit full page navigation to clear cached in-memory SPA state
-      // and reset all auth/session state across the application.
-      window.location.assign('/login');
+      // Bounded 1s timeout for offline storage purge so hanging IndexedDB never blocks navigation
+      await Promise.race([
+        clearOfflineStorage(),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+      ]).catch(() => {});
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    } catch {
+      // Ignore network failures or timeouts during logout
     } finally {
-      setBusy(false);
+      // Unconditionally navigate to /login to clear in-memory auth state even on offline dropouts
+      window.location.assign('/login');
     }
   };
 

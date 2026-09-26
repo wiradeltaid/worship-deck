@@ -734,19 +734,20 @@ func BuildSlidePlan(serviceDate string, parsed ParsedRundown, media Media, snap 
 }
 
 type ServiceRow struct {
-	ID            int
-	Date          string
-	ParsedData    sql.NullString
-	ImagesPayload sql.NullString
+	ID               int
+	Date             string
+	ParsedData       sql.NullString
+	ImagesPayload    sql.NullString
+	EmergencyPatches sql.NullString
 }
 
 func LoadService(db *sql.DB, id int) (*ServiceRow, error) {
 	row := db.QueryRow(
-		`SELECT id, date, parsed_data, images_payload FROM services WHERE id = ?`,
+		`SELECT id, date, parsed_data, images_payload, COALESCE(emergency_patches, '[]') FROM services WHERE id = ?`,
 		id,
 	)
 	var s ServiceRow
-	if err := row.Scan(&s.ID, &s.Date, &s.ParsedData, &s.ImagesPayload); err != nil {
+	if err := row.Scan(&s.ID, &s.Date, &s.ParsedData, &s.ImagesPayload, &s.EmergencyPatches); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -766,26 +767,61 @@ func ParseRundownJSON(s string) (ParsedRundown, error) {
 	return parsed, nil
 }
 
-func PlanForService(db *sql.DB, serviceID int) (date string, items []DrawItem, transition string, err error) {
+func PlanForServiceWithIdentity(db *sql.DB, serviceID int) (date string, items []DrawItem, transition string, baseIdentity string, err error) {
 	svc, err := LoadService(db, serviceID)
 	if err != nil {
-		return "", nil, "", err
+		return "", nil, "", "", err
 	}
 	if svc == nil || !svc.ParsedData.Valid || svc.ParsedData.String == "" {
-		return "", nil, "", sql.ErrNoRows
+		return "", nil, "", "", sql.ErrNoRows
 	}
 	parsed, err := ParseRundownJSON(svc.ParsedData.String)
 	if err != nil {
-		return "", nil, "", err
+		return "", nil, "", "", err
 	}
 	snap, err := LoadSnapshot(db, serviceID)
 	if err != nil {
-		return "", nil, "", err
+		return "", nil, "", "", err
 	}
 	media := LoadMedia(db, serviceID, svc.ImagesPayload)
 	items, planErr := BuildSlidePlan(svc.Date, parsed, media, snap)
 	if planErr != nil {
-		return "", nil, "", planErr
+		return "", nil, "", "", planErr
 	}
-	return svc.Date, items, LoadTransition(db), nil
+
+	// Canonical basePlanIdentity is computed BEFORE applying transient/emergency patches (SPEC-84)
+	baseIdentity = Identity(items)
+
+	// Apply persisted emergency patches (SPEC-84)
+	if svc.EmergencyPatches.Valid && svc.EmergencyPatches.String != "" && svc.EmergencyPatches.String != "[]" {
+		type emergencyPatchRecord struct {
+			SlideIndex       int               `json:"slideIndex"`
+			UpdatedText      string            `json:"updatedText"`
+			BasePlanIdentity string            `json:"basePlanIdentity"`
+			PatchedArtifact  *ArtifactInstance `json:"patchedArtifact"`
+		}
+		var patches []emergencyPatchRecord
+		if err := json.Unmarshal([]byte(svc.EmergencyPatches.String), &patches); err == nil {
+			for _, p := range patches {
+				// Prevent stale replay if canonical plan has changed (SPEC-84 lifecycle guard)
+				if p.BasePlanIdentity != "" && p.BasePlanIdentity != baseIdentity {
+					continue
+				}
+				if p.SlideIndex >= 0 && p.SlideIndex < len(items) && p.PatchedArtifact != nil {
+					items[p.SlideIndex].Artifact = *p.PatchedArtifact
+				}
+			}
+		}
+	}
+
+	if items == nil {
+		items = []DrawItem{}
+	}
+
+	return svc.Date, items, LoadTransition(db), baseIdentity, nil
+}
+
+func PlanForService(db *sql.DB, serviceID int) (date string, items []DrawItem, transition string, err error) {
+	date, items, transition, _, err = PlanForServiceWithIdentity(db, serviceID)
+	return date, items, transition, err
 }

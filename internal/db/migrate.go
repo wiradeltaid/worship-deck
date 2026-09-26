@@ -51,7 +51,35 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureBackgroundDefaultAssignments(handle); err != nil {
 		return err
 	}
+	if err := ensureServicesEmergencyPatches(handle); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ensureServicesEmergencyPatches ensures the emergency_patches column exists on services table (SPEC-84).
+func ensureServicesEmergencyPatches(handle *sql.DB) error {
+	rows, err := handle.Query(`PRAGMA table_info(services)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid, notnull, pk int
+		var name, ctype string
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == "emergency_patches" {
+			return rows.Err()
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	_, err = handle.Exec(`ALTER TABLE services ADD COLUMN emergency_patches TEXT DEFAULT '[]'`)
+	return err
 }
 
 // ensureBackgroundDefaultAssignments establishes the dual-default role table and backfills legacy defaults (SPEC-81).

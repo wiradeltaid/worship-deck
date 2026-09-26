@@ -3,6 +3,19 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ProjectorClient from '@/projected/ProjectorClient';
 import ProjectedNotFound from '../projected/ProjectedNotFound';
 import ProjectedError from '../projected/ProjectedError';
+import {
+  clearCachedSession,
+  getCachedSession,
+  invalidateAuthAndPurgeOffline,
+  setCachedSession,
+  type StoredSession,
+} from '@/lib/auth-session';
+import {
+  createMediaResolutionContext,
+  getServiceSnapshot,
+  resolvePlanMedia,
+  warmServiceSnapshot,
+} from '@/lib/offline/service-snapshot';
 
 export default function ProjectorPage() {
   const { id } = useParams();
@@ -11,23 +24,161 @@ export default function ProjectorPage() {
   const [unavailable, setUnavailable] = useState<'missing' | 'error' | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    const resolutionContext = createMediaResolutionContext();
+    setUnavailable(null);
+    setData(null);
+    const sessionController = new AbortController();
+    const serviceController = new AbortController();
+    const sessionTimer = setTimeout(() => sessionController.abort(), 5000);
+
     (async () => {
-      const me = await fetch('/api/session', { credentials: 'same-origin' });
-      if (me.status === 401) {
-        navigate('/login');
-        return;
+      let isOffline = false;
+      try {
+        const me = await fetch('/api/session', {
+          credentials: 'same-origin',
+          signal: sessionController.signal,
+        });
+        clearTimeout(sessionTimer);
+        if (cancelled) return;
+        if (me.status === 401 || me.status === 403) {
+          await invalidateAuthAndPurgeOffline().catch(() => {});
+          navigate('/login');
+          return;
+        }
+        if (me.ok) {
+          const sessionBody = (await me.json().catch(() => null)) as StoredSession | null;
+          if (cancelled) return;
+          if (
+            sessionBody &&
+            typeof sessionBody.username === 'string' &&
+            (sessionBody.role === 'admin' || sessionBody.role === 'operator')
+          ) {
+            setCachedSession(sessionBody);
+          }
+        } else {
+          isOffline = true;
+        }
+      } catch {
+        clearTimeout(sessionTimer);
+        if (cancelled) return;
+        isOffline = true;
       }
-      const res = await fetch(`/api/services/${id}`, { credentials: 'same-origin' });
-      if (res.status === 404) {
-        setUnavailable('missing');
-        return;
+
+      if (cancelled) return;
+
+      // On network failure, attempt loading from offline snapshot directly ONLY if an authorized session exists
+      if (isOffline && id) {
+        const cachedSession = getCachedSession();
+        if (cachedSession && cachedSession.username) {
+          try {
+            const snapshot = await getServiceSnapshot(id);
+            if (cancelled) return;
+            if (snapshot && snapshot.id) {
+              const resolvedPlan = await resolvePlanMedia(
+                snapshot.plan || [],
+                resolutionContext,
+                () => cancelled
+              );
+              if (cancelled) {
+                resolutionContext.revoke();
+                return;
+              }
+              setData({ ...snapshot, plan: resolvedPlan });
+              return;
+            }
+          } catch {
+            // fall through
+          }
+        }
       }
-      if (!res.ok) {
-        setUnavailable('error');
-        return;
+
+      const serviceTimer = setTimeout(() => serviceController.abort(), 5000);
+      try {
+        const res = await fetch(`/api/services/${id}`, {
+          credentials: 'same-origin',
+          signal: serviceController.signal,
+        });
+        clearTimeout(serviceTimer);
+        if (cancelled) return;
+        if (res.status === 401 || res.status === 403) {
+          await invalidateAuthAndPurgeOffline().catch(() => {});
+          navigate('/login');
+          return;
+        }
+        if (res.status === 404) {
+          setUnavailable('missing');
+          return;
+        }
+        if (!res.ok) {
+          if (id) {
+            const cachedSession = getCachedSession();
+            if (cachedSession && cachedSession.username) {
+              const snapshot = await getServiceSnapshot(id).catch(() => null);
+              if (cancelled) return;
+              if (snapshot && snapshot.id) {
+                const resolvedPlan = await resolvePlanMedia(
+                  snapshot.plan || [],
+                  resolutionContext,
+                  () => cancelled
+                );
+                if (cancelled) {
+                  resolutionContext.revoke();
+                  return;
+                }
+                setData({ ...snapshot, plan: resolvedPlan });
+                return;
+              }
+            }
+          }
+          if (!cancelled) setUnavailable('error');
+          return;
+        }
+        const servicePayload = await res.json();
+        if (cancelled) return;
+        // Background-warm and provision local offline snapshot on successful load
+        if (servicePayload && servicePayload.id) {
+          warmServiceSnapshot(servicePayload.id, servicePayload).catch(() => {});
+        }
+        setData(servicePayload);
+      } catch {
+        clearTimeout(serviceTimer);
+        if (cancelled) return;
+        if (id) {
+          const cachedSession = getCachedSession();
+          if (cachedSession && cachedSession.username) {
+            try {
+              const snapshot = await getServiceSnapshot(id);
+              if (cancelled) return;
+              if (snapshot && snapshot.id) {
+                const resolvedPlan = await resolvePlanMedia(
+                  snapshot.plan || [],
+                  resolutionContext,
+                  () => cancelled
+                );
+                if (cancelled) {
+                  resolutionContext.revoke();
+                  return;
+                }
+                setData({ ...snapshot, plan: resolvedPlan });
+                return;
+              }
+            } catch {
+              // fall through
+            }
+          }
+        }
+        if (!cancelled) setUnavailable('error');
       }
-      setData(await res.json());
     })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(sessionTimer);
+      sessionController.abort();
+      serviceController.abort();
+      resolutionContext.revoke();
+    };
   }, [id, navigate]);
 
   if (unavailable === 'missing') return <ProjectedNotFound />;

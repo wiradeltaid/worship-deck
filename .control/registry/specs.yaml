@@ -3564,7 +3564,7 @@ waves:
   # Opened 2026-09-26 from user triage notes.
   # Offline presentation resilience and emergency local edit.
   - id: SPEC-84
-    status: open
+    status: closed
     release: offline-presentation-resilience
     prd: [offline-deck, operator-turn]
     fr: [FR-14, FR-16, FR-18, FR-19]

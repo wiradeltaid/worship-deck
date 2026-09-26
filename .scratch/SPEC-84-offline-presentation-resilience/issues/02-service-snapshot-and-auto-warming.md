@@ -44,26 +44,26 @@ Satisfies `FR-14`, `FR-16`, `FR-19`, and `UC-20`.
 
 **Blocked by:** `SPEC-84-01`
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/slide-plan.ts`, `spa/src/pages/RunSheetPage.tsx`, `src/operator/present/PresenterOperator.tsx`, `spa/src/pages/PresentPage.tsx`, and `spa/src/pages/ProjectorPage.tsx`.
-- [ ] In `lib/offline/service-snapshot.ts`:
+- [x] Read `src/lib/slide-plan.ts`, `spa/src/pages/RunSheetPage.tsx`, `src/operator/present/PresenterOperator.tsx`, `spa/src/pages/PresentPage.tsx`, and `spa/src/pages/ProjectorPage.tsx`.
+- [x] In `lib/offline/service-snapshot.ts`:
       - Implement IndexedDB database initialization (`openOfflineDb`).
       - Implement `extractRequiredMediaUrls(serviceData)`.
       - Implement `warmServiceSnapshot(serviceId, serviceData)` with progress callbacks and zero-media handling.
       - Implement `getServiceSnapshot(serviceId)` with LRU eviction.
       - Implement `resolveMediaUrl(url)` with `revokeMediaUrls()` cleanup.
-- [ ] In `spa/src/pages/RunSheetPage.tsx`:
+- [x] In `spa/src/pages/RunSheetPage.tsx`:
       - Wire auto-warming effect on successful service load.
       - Add network-error catch falling back to `getServiceSnapshot`.
       - Add readiness indicator badge in header actions.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Add readiness indicator badge in header chrome.
-- [ ] In `spa/src/pages/PresentPage.tsx` and `spa/src/pages/ProjectorPage.tsx`:
+- [x] In `spa/src/pages/PresentPage.tsx` and `spa/src/pages/ProjectorPage.tsx`:
       - Add fallback to `getServiceSnapshot` on network failure.
-- [ ] In `tests/offline-service-snapshot.test.mjs`:
+- [x] In `tests/offline-service-snapshot.test.mjs`:
       - Unit test for media extraction and snapshot serialization.
       - Integration test verifying Presenter/Projector data hydration from offline snapshot.
       - Test eviction and URL revocation.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/offline-service-snapshot.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/offline-service-snapshot.test.mjs` and `npm run typecheck`.

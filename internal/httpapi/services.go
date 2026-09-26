@@ -519,32 +519,34 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	row := s.DB.QueryRow(
 		`SELECT id, COALESCE(global_id, ''), date, raw_payload, parsed_data, images_payload, participants_payload,
 		        parser_profile_id, parser_profile_version,
-		        created_at, COALESCE(updated_at, created_at)
+		        created_at, COALESCE(updated_at, created_at),
+		        COALESCE(emergency_patches, '[]')
 		   FROM services WHERE id = ?`,
 		id,
 	)
 	var out struct {
-		ID                   int             `json:"id"`
-		GlobalID             string          `json:"global_id"`
-		Date                 string          `json:"date"`
-		RawPayload           string          `json:"raw_payload"`
-		ParsedData           json.RawMessage `json:"parsed_data"`
-		ImagesPayload        json.RawMessage `json:"images_payload"`
-		Participants         any             `json:"participants_payload"`
-		SongSets             map[string]any  `json:"songSets"`
-		ParserProfileID      *string         `json:"parser_profile_id,omitempty"`
-		ParserProfileVersion *int            `json:"parser_profile_version,omitempty"`
-		CreatedAt            string          `json:"created_at"`
-		UpdatedAt            string          `json:"updated_at"`
-		Plan                 any             `json:"plan"`
+		ID                   int               `json:"id"`
+		GlobalID             string            `json:"global_id"`
+		Date                 string            `json:"date"`
+		RawPayload           string            `json:"raw_payload"`
+		ParsedData           json.RawMessage   `json:"parsed_data"`
+		ImagesPayload        json.RawMessage   `json:"images_payload"`
+		Participants         any               `json:"participants_payload"`
+		SongSets             map[string]any    `json:"songSets"`
+		ParserProfileID      *string           `json:"parser_profile_id,omitempty"`
+		ParserProfileVersion *int              `json:"parser_profile_version,omitempty"`
+		CreatedAt            string            `json:"created_at"`
+		UpdatedAt            string            `json:"updated_at"`
+		Plan                 any               `json:"plan"`
 		PlanIdentity         string            `json:"plan_identity"`
 		Transition           string            `json:"transition"`
 		FieldValues          map[string]string `json:"field_values"`
 		FormLayoutSnapshot   json.RawMessage   `json:"form_layout_snapshot"`
+		EmergencyPatches     json.RawMessage   `json:"emergency_patches,omitempty"`
 	}
-	var parsed, images, parts, profileID sql.NullString
+	var parsed, images, parts, profileID, emergencyPatches sql.NullString
 	var profileVersion sql.NullInt64
-	if err := row.Scan(&out.ID, &out.GlobalID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt); err != nil {
+	if err := row.Scan(&out.ID, &out.GlobalID, &out.Date, &out.RawPayload, &parsed, &images, &parts, &profileID, &profileVersion, &out.CreatedAt, &out.UpdatedAt, &emergencyPatches); err != nil {
 		if err == sql.ErrNoRows {
 			writeError(w, http.StatusNotFound, "Service not found")
 			return
@@ -562,6 +564,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	}
 	out.ParsedData = nullJSON(parsed)
 	out.ImagesPayload = nullJSON(images)
+	out.EmergencyPatches = nullJSON(emergencyPatches)
 	out.SongSets = s.storedSongSets(id)
 	out.FieldValues = s.storedFieldValues(id, parsed.String, images.String)
 	out.FormLayoutSnapshot = s.storedLayoutSnapshot(id)
@@ -570,16 +573,20 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	}
 	out.CreatedAt = formatTimestamp(out.CreatedAt)
 	out.UpdatedAt = formatTimestamp(out.UpdatedAt)
-	date, items, transition, err := plan.PlanForService(s.DB, id)
+	date, items, transition, baseIdentity, err := plan.PlanForServiceWithIdentity(s.DB, id)
 	if err == nil {
-		out.Plan = items
-		out.PlanIdentity = plan.Identity(items)
+		if items == nil {
+			out.Plan = []plan.DrawItem{}
+		} else {
+			out.Plan = items
+		}
+		out.PlanIdentity = baseIdentity
 		out.Transition = transition
 		if date != "" {
 			out.Date = date
 		}
 	} else {
-		out.Plan = []any{}
+		out.Plan = []plan.DrawItem{}
 		out.PlanIdentity = plan.Identity(nil)
 		out.Transition = plan.LoadTransition(s.DB)
 	}
@@ -796,7 +803,13 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	} else if fv, ok := body["fieldValues"].(map[string]any); ok && len(fv) > 0 {
 		hasFieldValues = true
 	}
-	if rawPayload == nil && !parse.HasStructuredFields(body) && !hasFieldValues {
+	hasEmergencyPatches := false
+	if _, ok := body["emergency_patches"]; ok {
+		hasEmergencyPatches = true
+	} else if _, ok := body["emergencyPatches"]; ok {
+		hasEmergencyPatches = true
+	}
+	if rawPayload == nil && !parse.HasStructuredFields(body) && !hasFieldValues && !hasEmergencyPatches {
 		writeError(w, http.StatusBadRequest, "Missing raw_payload or structured fields")
 		return
 	}
@@ -834,10 +847,81 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Dedicated patch-only update branch: modify ONLY emergency_patches and concurrency timestamp
+	if hasEmergencyPatches && rawPayload == nil && !parse.HasStructuredFields(body) && !hasFieldValues {
+		var emergencyPatchesJSON string = "[]"
+		if ep, has := body["emergency_patches"]; has && ep != nil {
+			if b, err := json.Marshal(ep); err == nil {
+				emergencyPatchesJSON = string(b)
+			}
+		} else if ep, has := body["emergencyPatches"]; has && ep != nil {
+			if b, err := json.Marshal(ep); err == nil {
+				emergencyPatchesJSON = string(b)
+			}
+		}
+
+		res, err := s.DB.Exec(
+			`UPDATE services SET emergency_patches = ?, updated_at = `+db.StampNowSQL+`
+			  WHERE id = ? AND (COALESCE(updated_at, created_at) = ? OR COALESCE(updated_at, created_at) = ?)`,
+			emergencyPatchesJSON, id, currentUpdatedAt, rawStoredToken,
+		)
+		if err != nil {
+			log.Printf("Error updating emergency patches: %v", err)
+			writeError(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		n, _ := res.RowsAffected()
+		if n == 0 {
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"error":      "Conflict: service was modified; refresh and retry",
+				"updated_at": currentUpdatedAt,
+			})
+			return
+		}
+
+		var updatedAt string
+		_ = s.DB.QueryRow(`SELECT COALESCE(updated_at, created_at) FROM services WHERE id = ?`, id).Scan(&updatedAt)
+		updatedAt = formatTimestamp(updatedAt)
+		date, items, transition, baseIdentity, _ := plan.PlanForServiceWithIdentity(s.DB, id)
+		if items == nil {
+			items = []plan.DrawItem{}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"message":           "Service updated successfully",
+			"id":                id,
+			"date":              date,
+			"failedHymnNumbers": []int{},
+			"updated_at":        updatedAt,
+			"plan":              items,
+			"plan_identity":     baseIdentity,
+			"transition":        transition,
+		})
+		return
+	}
+
 	imagesJSON, errMsg := mergeImagesPayload(existing.images, body)
 	if errMsg != "" {
 		writeError(w, http.StatusBadRequest, errMsg)
 		return
+	}
+
+	var emergencyPatchesJSON *string
+	if ep, has := body["emergency_patches"]; has {
+		if ep == nil {
+			empty := "[]"
+			emergencyPatchesJSON = &empty
+		} else if b, err := json.Marshal(ep); err == nil {
+			str := string(b)
+			emergencyPatchesJSON = &str
+		}
+	} else if ep, has := body["emergencyPatches"]; has {
+		if ep == nil {
+			empty := "[]"
+			emergencyPatchesJSON = &empty
+		} else if b, err := json.Marshal(ep); err == nil {
+			str := string(b)
+			emergencyPatchesJSON = &str
+		}
 	}
 	participants := existing.participants.String
 	participantsSet := false
@@ -857,6 +941,12 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	profile := parse.StaticDefaultParser()
 	profileID := db.BuiltinDefaultParserProfileID
 	profileVersion := 1
+	if rawPayload == nil && existing.profileID.Valid && existing.profileID.String != "" {
+		profileID = existing.profileID.String
+		if existing.profileVersion.Valid && existing.profileVersion.Int64 > 0 {
+			profileVersion = int(existing.profileVersion.Int64)
+		}
+	}
 
 	storedRaw := existing.raw.String
 	if rawPayload != nil {
@@ -905,6 +995,12 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 			args = append(args, participants)
 		}
 	}
+	if emergencyPatchesJSON != nil {
+		assignments = append(assignments, `emergency_patches = ?`)
+		args = append(args, *emergencyPatchesJSON)
+	} else if rawPayload != nil || parse.HasStructuredFields(body) || hasFieldValues {
+		assignments = append(assignments, `emergency_patches = '[]'`)
+	}
 	args = append(args, id, currentUpdatedAt, rawStoredToken)
 	res, err := tx.Exec(
 		`UPDATE services SET `+strings.Join(assignments, ", ")+`
@@ -950,10 +1046,19 @@ func (s *Server) updateService(w http.ResponseWriter, r *http.Request) {
 	if failed == nil {
 		failed = []int{}
 	}
+	date, items, transition, baseIdentity, _ := plan.PlanForServiceWithIdentity(s.DB, id)
+	if items == nil {
+		items = []plan.DrawItem{}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"message":           "Service updated successfully",
+		"id":                id,
+		"date":              date,
 		"failedHymnNumbers": failed,
 		"updated_at":        updatedAt,
+		"plan":              items,
+		"plan_identity":     baseIdentity,
+		"transition":        transition,
 	})
 }
 

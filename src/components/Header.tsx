@@ -22,13 +22,21 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+
+import { submitPasswordChange } from '@/lib/auth-session';
 
 interface HeaderProps {
   username?: string;
   isAdmin?: boolean;
+  isOffline?: boolean;
 }
 
-export default function Header({ isAdmin = false, username = 'Operator' }: HeaderProps) {
+export default function Header({
+  isAdmin = false,
+  username = 'Operator',
+  isOffline = false,
+}: HeaderProps) {
   const { t } = useT();
   const pathname = usePathname() || '';
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -53,13 +61,14 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
     setPwError(null);
     setPwSuccess(false);
     try {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
+      const result = await submitPasswordChange({
+        currentPassword,
+        newPassword,
+        isOffline,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('chrome.password.failed'));
+      if (!result.ok) {
+        throw new Error(result.error || t('chrome.password.failed'));
+      }
       setPwSuccess(true);
       setCurrentPassword('');
       setNewPassword('');
@@ -111,22 +120,32 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
             New Workspace Mockup
           </CustomLink>
           {isAdmin && (
-            <>
-              <CustomLink
-                href="/admin/artifacts"
-                className={getLinkClass(pathname.startsWith('/admin/artifacts'))}
+            isOffline ? (
+              <span
+                data-testid="offline-admin-disabled"
+                className="text-xs text-muted-foreground/60 px-3 py-1.5 cursor-not-allowed select-none border border-dashed border-border/50 rounded-md"
+                title="Pengaturan server dinonaktifkan saat offline"
               >
-                {t('chrome.nav.artifacts')}
-              </CustomLink>
-              <CustomLink
-                href="/admin"
-                className={getLinkClass(
-                  pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
-                )}
-              >
-                {t('chrome.nav.settings')}
-              </CustomLink>
-            </>
+                {t('chrome.nav.settings')} (Offline)
+              </span>
+            ) : (
+              <>
+                <CustomLink
+                  href="/admin/artifacts"
+                  className={getLinkClass(pathname.startsWith('/admin/artifacts'))}
+                >
+                  {t('chrome.nav.artifacts')}
+                </CustomLink>
+                <CustomLink
+                  href="/admin"
+                  className={getLinkClass(
+                    pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
+                  )}
+                >
+                  {t('chrome.nav.settings')}
+                </CustomLink>
+              </>
+            )
           )}
         </nav>
 
@@ -145,15 +164,31 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
             </svg>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => setChangePasswordOpen(true)}>
+            <DropdownMenuItem
+              disabled={busy || isOffline}
+              onClick={() => {
+                if (isOffline) return;
+                resetPasswordForm();
+                setChangePasswordOpen(true);
+              }}
+            >
               <KeyRound className="size-4" />
-              {t('chrome.password.change')}
+              {t('chrome.password.change')} {isOffline && '(Offline)'}
             </DropdownMenuItem>
             {isAdmin && (
-              <DropdownMenuItem onClick={() => { window.location.href = '/admin/sync'; }}>
-                <RefreshCw className="size-4" />
-                <a href="/admin/sync">Sync</a>
-              </DropdownMenuItem>
+              isOffline ? (
+                <DropdownMenuItem disabled>
+                  <RefreshCw className="size-4" />
+                  <span>Sync (Offline)</span>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  render={<a href="/admin/sync" />}
+                >
+                  <RefreshCw className="size-4" />
+                  <span>Sync</span>
+                </DropdownMenuItem>
+              )
             )}
             <LogoutButton variant="menu" />
           </DropdownMenuContent>
@@ -197,6 +232,14 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
                 required
               />
             </div>
+            {isOffline ? (
+              <div
+                data-testid="offline-password-warning"
+                className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300"
+              >
+                Koneksi offline: Perubahan kata sandi dinonaktifkan hingga terhubung kembali.
+              </div>
+            ) : null}
             {pwError ? <p className="text-sm text-destructive">{pwError}</p> : null}
             {pwSuccess ? (
               <p className="text-sm text-emerald-600 dark:text-emerald-400 animate-pulse">
@@ -214,8 +257,8 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
               >
                 {t('chrome.password.cancel')}
               </Button>
-              <Button type="submit" disabled={busy}>
-                {t('chrome.password.save')}
+              <Button type="submit" disabled={busy || isOffline}>
+                {t('chrome.password.save')} {isOffline && '(Offline)'}
               </Button>
             </DialogFooter>
           </form>
