@@ -968,6 +968,20 @@ rtm:
   FR: FR-14
   DEC: []
   UC: UC-18
+  ticket: SPEC-83-01
+  spec: SPEC-83
+  release: pptx-dynamic-text-native-word-wrap
+  test:
+  - tests/pptx-dynamic-text-native-word-wrap.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
   ticket: W2-2-1
   spec: W2
   release: go-spa-cutover
@@ -7122,6 +7136,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-33
+  DEC: []
+  UC: UC-27
+  ticket: SPEC-82-01
+  spec: SPEC-82
+  release: song-set-dropdown-containment-and-presenter-parity
+  test:
+  - tests/presenter-live-background-preview.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-33

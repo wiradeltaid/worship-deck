@@ -607,6 +607,15 @@ dag:
     - SPEC-81-02
   - parallel:
     - SPEC-81-03
+- spec: SPEC-82
+  order:
+  - parallel:
+    - SPEC-82-01
+    - SPEC-82-02
+- spec: SPEC-83
+  order:
+  - parallel:
+    - SPEC-83-01
 - spec: W1
   order:
   - parallel:
