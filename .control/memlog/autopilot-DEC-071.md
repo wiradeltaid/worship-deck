@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-071-daily-autopilot-mandate-offline-presentatio
 
 ## Resume
 
-- State: In Progress — SPEC-84-03 implemented, verified, and peer-reviewed (APPROVED by Terra)
+- State: Complete — All 3 tickets of SPEC-84 closed, verified, and peer-reviewed (APPROVED by Terra)
 - Run branch: autopilot/DEC-071
-- Stopped at: SPEC-84-03 closed
+- Stopped at: Done — mandate DEC-071 complete
 - Blocked: —
 - Parked: SPEC-73 Ticket 16 (WSD-H-17) parked on external milestone prerequisite
-- Next: SPEC-84 completion & final release gate verification
+- Next: PR to development_branch (main) and mandate review
 
 ## Decisions
 

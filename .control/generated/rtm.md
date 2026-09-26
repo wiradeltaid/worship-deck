@@ -4992,10 +4992,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/emergency-local-edit.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -9445,10 +9445,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/session-provider-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -9459,10 +9459,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/offline-service-snapshot.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-4
@@ -9546,10 +9546,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/session-provider-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -9560,10 +9560,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/offline-service-snapshot.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
@@ -9633,10 +9633,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/session-provider-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6
@@ -9647,10 +9647,10 @@ rtm:
   release: offline-presentation-resilience
   test:
   - tests/offline-service-snapshot.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6
