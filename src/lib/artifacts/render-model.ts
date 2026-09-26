@@ -1279,11 +1279,12 @@ export function isLyricSlide(instance: {
 }
 
 /**
- * SPEC-81: Resolves the effective background image for an artifact slide instance.
- * When backgroundOverride is provided:
- * - If the slide is a lyric slide (isLyricSlide), backgroundOverride is applied (empty string or null resolves to undefined).
- * - If the slide is NOT a lyric slide, the authored layout.backgroundImage is preserved.
- * When backgroundOverride is undefined, the authored layout.backgroundImage is preserved.
+ * SPEC-81 / SPEC-82-01: Resolves the effective background image for an artifact slide instance.
+ * - Non-lyric slides (!isLyricSlide): authored layout.backgroundImage is always preserved.
+ * - Lyric slides (isLyricSlide):
+ *   - When backgroundOverride is a non-empty, non-whitespace string URL, it overrides the slide background.
+ *   - When backgroundOverride is null, undefined, '', or whitespace (representing Deck default / clearing override),
+ *     the slide's authored/resolved background (layout.backgroundImage) is preserved.
  */
 export function resolveEffectiveBackgroundImage(
   instance: {
@@ -1293,9 +1294,10 @@ export function resolveEffectiveBackgroundImage(
   },
   backgroundOverride?: string | null
 ): string | undefined {
-  const isLyric = isLyricSlide(instance);
-  return isLyric && backgroundOverride !== undefined
-    ? backgroundOverride || undefined
-    : instance.layout.backgroundImage;
+  if (!isLyricSlide(instance)) {
+    return instance.layout.backgroundImage;
+  }
+  const override = typeof backgroundOverride === 'string' ? backgroundOverride.trim() : '';
+  return override ? override : instance.layout.backgroundImage;
 }
 
