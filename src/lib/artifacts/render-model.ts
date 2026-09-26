@@ -890,6 +890,41 @@ export type PptxTextRun = {
 };
 
 /**
+ * SPEC-83-01: Resolves explicit paragraph runs for PPTX export without heuristic soft breaks.
+ * - Extracts text using resolveElementText(element).
+ * - Returns undefined if text is undefined or empty string.
+ * - Normalizes line endings (replaces \r\n with \n).
+ * - If text contains no \n, returns undefined (caller emits plain string directly).
+ * - If text contains \n, splits into paragraphs and emits runs with breakLine: true
+ *   on intermediate paragraph boundaries, creating distinct <a:p> elements in DrawingML
+ *   without injecting synthetic <a:br/> soft breaks.
+ */
+export function resolveExplicitParagraphRunsForPptx(
+  element: ResolvedElement
+): PptxTextRun[] | undefined {
+  if (element.type !== 'text') return undefined;
+  const text = resolveElementText(element);
+  if (text === undefined || text === '') return undefined;
+
+  const normalized = text.replace(/\r\n/g, '\n');
+  if (!normalized.includes('\n')) return undefined;
+
+  const paragraphs = normalized.split('\n');
+  const runs: PptxTextRun[] = [];
+  const numParas = paragraphs.length;
+
+  for (let i = 0; i < numParas; i++) {
+    const isLast = i === numParas - 1;
+    runs.push({
+      text: paragraphs[i],
+      options: isLast ? undefined : { breakLine: true },
+    });
+  }
+
+  return runs;
+}
+
+/**
  * SPEC-23-04: Resolves text runs for PPTX export.
  * - When `wrapLines` is present, non-empty and coherent with resolved text:
  *   Splits `text` on operator newlines into paragraphs, and within each paragraph,
@@ -1279,11 +1314,12 @@ export function isLyricSlide(instance: {
 }
 
 /**
- * SPEC-81: Resolves the effective background image for an artifact slide instance.
- * When backgroundOverride is provided:
- * - If the slide is a lyric slide (isLyricSlide), backgroundOverride is applied (empty string or null resolves to undefined).
- * - If the slide is NOT a lyric slide, the authored layout.backgroundImage is preserved.
- * When backgroundOverride is undefined, the authored layout.backgroundImage is preserved.
+ * SPEC-81 / SPEC-82-01: Resolves the effective background image for an artifact slide instance.
+ * - Non-lyric slides (!isLyricSlide): authored layout.backgroundImage is always preserved.
+ * - Lyric slides (isLyricSlide):
+ *   - When backgroundOverride is a non-empty, non-whitespace string URL, it overrides the slide background.
+ *   - When backgroundOverride is null, undefined, '', or whitespace (representing Deck default / clearing override),
+ *     the slide's authored/resolved background (layout.backgroundImage) is preserved.
  */
 export function resolveEffectiveBackgroundImage(
   instance: {
@@ -1293,9 +1329,10 @@ export function resolveEffectiveBackgroundImage(
   },
   backgroundOverride?: string | null
 ): string | undefined {
-  const isLyric = isLyricSlide(instance);
-  return isLyric && backgroundOverride !== undefined
-    ? backgroundOverride || undefined
-    : instance.layout.backgroundImage;
+  if (!isLyricSlide(instance)) {
+    return instance.layout.backgroundImage;
+  }
+  const override = typeof backgroundOverride === 'string' ? backgroundOverride.trim() : '';
+  return override ? override : instance.layout.backgroundImage;
 }
 

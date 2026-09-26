@@ -92,6 +92,64 @@ test('SPEC-81-03: DynamicFormBody background selector wires Use Song-Set Default
 });
 
 // ---------------------------------------------------------------------------
+// 1b. SPEC-82-02: Song-Set Background Dropdown Containment & Typography
+// ---------------------------------------------------------------------------
+
+test('SPEC-82-02: Song-Set Background Dropdown Containment & Typography in DynamicFormBody.tsx', () => {
+  const src = readFormBodySource();
+
+  // 1. SelectTrigger must pass w-full to be bounded to its w-48 container
+  assert.match(
+    src,
+    /<SelectTrigger\s+className=['"]w-full\s+h-9\s+text-xs['"]/,
+    'SelectTrigger must use className="w-full h-9 text-xs" for dropdown containment'
+  );
+
+  // 2. Both trigger flex containers must have min-w-0 for flexbox text truncation
+  const minW0Matches = src.match(
+    /<div\s+className=['"]flex\s+min-w-0\s+items-center\s+gap-1\.5\s+overflow-hidden['"]/g
+  );
+  assert.equal(
+    minW0Matches?.length,
+    2,
+    'Both trigger branches (explicit and default) must specify min-w-0'
+  );
+
+  // 3. Trigger label spans must specifically use concise text-[11px] truncate on both explicit and default branches
+  assert.match(
+    src,
+    /<span\s+className=['"]truncate\s+text-\[11px\]['"]\s+title=\{`Image \$\{selectedFormBg\.id\}`\}\s*>/,
+    'Explicit image trigger label span must specifically declare truncate text-[11px]'
+  );
+  assert.match(
+    src,
+    /<span\s+className=['"]truncate\s+text-\[11px\]['"]\s+title=\{`Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)`\}\s*>/,
+    'Default trigger label span must specifically declare truncate text-[11px]'
+  );
+
+  // 4. Default label in trigger must be concise "Song-Set Default (#id)"
+  assert.match(
+    src,
+    /Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)/,
+    'Trigger label for default must use concise Song-Set Default (#id)'
+  );
+
+  // 5. Explicit image label in trigger must be strictly concise "Image {selectedFormBg.id}" without suffix
+  assert.match(
+    src,
+    /Image \{selectedFormBg\.id\}\s*<\/span>/,
+    'Trigger label for explicit image must be strictly concise without suffix'
+  );
+
+  // 7. SelectItem value="default" in SelectContent retains full descriptive label
+  assert.match(
+    src,
+    /<SelectItem\s+value=['"]default['"]>[\s\S]*?Use Song-Set Default/,
+    'SelectContent must retain Use Song-Set Default in options list'
+  );
+});
+
+// ---------------------------------------------------------------------------
 // 2. Canvas Utils Placeholder Transparency Guard
 // ---------------------------------------------------------------------------
 
@@ -301,4 +359,149 @@ test('SPEC-81-03: Real-file defect injection proofs for DynamicFormBody and canv
   // Verify full restoration
   assert.equal(readFormBodySource(), originalFormBody);
   assert.equal(readCanvasUtilsSource(), originalCanvasUtils);
+});
+
+test('SPEC-82-02: Real-file defect injection proofs for DynamicFormBody dropdown containment', () => {
+  const originalFormBody = readFormBodySource();
+
+  function verifyContainment(source) {
+    const hasTriggerWidth =
+      /<SelectTrigger\s+className=['"]w-full\s+h-9\s+text-xs['"]/.test(source);
+    const minW0Count = (
+      source.match(
+        /<div\s+className=['"]flex\s+min-w-0\s+items-center\s+gap-1\.5\s+overflow-hidden['"]/g
+      ) || []
+    ).length;
+    const hasMinW0 = minW0Count === 2;
+    const hasExplicitTypography =
+      /<span\s+className=['"]truncate\s+text-\[11px\]['"]\s+title=\{`Image \$\{selectedFormBg\.id\}`\}\s*>/.test(
+        source
+      );
+    const hasDefaultTypography =
+      /<span\s+className=['"]truncate\s+text-\[11px\]['"]\s+title=\{`Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)`\}\s*>/.test(
+        source
+      );
+    const hasConciseDefault =
+      /Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)/.test(source);
+    const hasConciseExplicit =
+      /Image \{selectedFormBg\.id\}\s*<\/span>/.test(source);
+    return (
+      hasTriggerWidth &&
+      hasMinW0 &&
+      hasExplicitTypography &&
+      hasDefaultTypography &&
+      hasConciseDefault &&
+      hasConciseExplicit
+    );
+  }
+
+  // Baseline on real disk file
+  assert.equal(
+    verifyContainment(readFormBodySource()),
+    true,
+    'Unmodified DynamicFormBody must pass containment guards'
+  );
+
+  const defects = [
+    {
+      name: 'Missing w-full on SelectTrigger',
+      mutator: (s) =>
+        s.replace(
+          /<SelectTrigger\s+className=['"]w-full\s+h-9\s+text-xs['"]/,
+          '<SelectTrigger className="h-9 text-xs">'
+        ),
+    },
+    {
+      name: 'Missing min-w-0 in explicit branch specifically',
+      mutator: (s) =>
+        s.replace(
+          /<div\s+className=['"]flex\s+min-w-0\s+items-center\s+gap-1\.5\s+overflow-hidden['"]/,
+          '<div className="flex items-center gap-1.5 overflow-hidden"'
+        ),
+    },
+    {
+      name: 'Missing min-w-0 in default branch specifically',
+      mutator: (s) => {
+        let first = true;
+        return s.replace(
+          /<div\s+className=['"]flex\s+min-w-0\s+items-center\s+gap-1\.5\s+overflow-hidden['"]/g,
+          (m) => {
+            if (first) {
+              first = false;
+              return m;
+            }
+            return '<div className="flex items-center gap-1.5 overflow-hidden"';
+          }
+        );
+      },
+    },
+    {
+      name: 'Missing text-[11px] on explicit image trigger label specifically',
+      mutator: (s) =>
+        s.replace(
+          /<span\s+className=['"]truncate\s+text-\[11px\]['"]\s+title=\{`Image \$\{selectedFormBg\.id\}`\}\s*>/,
+          '<span className="truncate text-xs" title={`Image ${selectedFormBg.id}`}>'
+        ),
+    },
+    {
+      name: 'Missing text-[11px] on default trigger label specifically',
+      mutator: (s) =>
+        s.replace(
+          /<span\s+className=['"]truncate\s+text-\[11px\]['"]\s+title=\{`Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)`\}\s*>/,
+          '<span className="truncate text-xs" title={`Song-Set Default (#${songSetDefaultBg.id})`}>'
+        ),
+    },
+    {
+      name: 'Reverted overlong default trigger label',
+      mutator: (s) =>
+        s.replace(
+          /Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)/g,
+          'Use Song-Set Default (#{songSetDefaultBg.id})'
+        ),
+    },
+    {
+      name: 'Overlong explicit-image trigger label with suffix',
+      mutator: (s) =>
+        s.replace(
+          /Image \{selectedFormBg\.id\}/,
+          'Image {selectedFormBg.id} (Song-Set Default)'
+        ),
+    },
+    {
+      name: 'Missing title tooltip on explicit trigger label',
+      mutator: (s) =>
+        s.replace(
+          /title=\{`Image \$\{selectedFormBg\.id\}`\}/,
+          ''
+        ),
+    },
+    {
+      name: 'Missing title tooltip on default trigger label',
+      mutator: (s) =>
+        s.replace(
+          /title=\{`Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)`\}/,
+          ''
+        ),
+    },
+  ];
+
+  for (const { name, mutator } of defects) {
+    const defectiveSource = mutator(originalFormBody);
+    try {
+      fs.writeFileSync(FORM_BODY_PATH, defectiveSource, 'utf8');
+      assert.equal(
+        verifyContainment(readFormBodySource()),
+        false,
+        `Must detect containment defect: ${name}`
+      );
+    } finally {
+      fs.writeFileSync(FORM_BODY_PATH, originalFormBody, 'utf8');
+    }
+  }
+
+  assert.equal(
+    readFormBodySource(),
+    originalFormBody,
+    'Form body source must be fully restored'
+  );
 });

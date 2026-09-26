@@ -409,28 +409,33 @@ function SongSetSlotRenderer({
             }
             disabled={disabled}
           >
-            <SelectTrigger className="h-9 text-xs">
+            <SelectTrigger className="w-full h-9 text-xs">
               {selectedFormBg ? (
-                <div className="flex items-center gap-1.5 overflow-hidden">
+                <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
                   <img
                     src={selectedFormBg.url}
                     alt=""
                     className="h-4 w-6 shrink-0 rounded border border-border object-cover bg-muted"
                   />
-                  <span className="truncate text-xs">
+                  <span
+                    className="truncate text-[11px]"
+                    title={`Image ${selectedFormBg.id}`}
+                  >
                     Image {selectedFormBg.id}
-                    {selectedFormBg.defaultRoles?.includes('song_set') ? ' (Song-Set Default)' : ''}
                   </span>
                 </div>
               ) : songSetDefaultBg ? (
-                <div className="flex items-center gap-1.5 overflow-hidden">
+                <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
                   <img
                     src={songSetDefaultBg.url}
                     alt=""
                     className="h-4 w-6 shrink-0 rounded border border-border object-cover bg-muted"
                   />
-                  <span className="truncate text-xs">
-                    Use Song-Set Default (#{songSetDefaultBg.id})
+                  <span
+                    className="truncate text-[11px]"
+                    title={`Song-Set Default (#${songSetDefaultBg.id})`}
+                  >
+                    Song-Set Default (#{songSetDefaultBg.id})
                   </span>
                 </div>
               ) : (

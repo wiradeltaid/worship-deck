@@ -11,7 +11,8 @@
  * 7. Real-file defect injection proofs asserting absence guards fail cleanly if any backgroundOverride hook is omitted.
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -38,12 +39,35 @@ const ARTIFACT_SLIDE_PATH = path.join(
   'ArtifactSlide.tsx'
 );
 
+const PROJECTOR_CLIENT_PATH = path.join(
+  ROOT,
+  'src',
+  'projected',
+  'ProjectorClient.tsx'
+);
+
+const RENDER_MODEL_PATH = path.join(
+  ROOT,
+  'src',
+  'lib',
+  'artifacts',
+  'render-model.ts'
+);
+
 function readPresenterOperatorSource() {
   return readFileSync(PRESENTER_OPERATOR_PATH, 'utf8');
 }
 
 function readArtifactSlideSource() {
   return readFileSync(ARTIFACT_SLIDE_PATH, 'utf8');
+}
+
+function readProjectorClientSource() {
+  return readFileSync(PROJECTOR_CLIENT_PATH, 'utf8');
+}
+
+function readRenderModelSource() {
+  return readFileSync(RENDER_MODEL_PATH, 'utf8');
 }
 
 // ---------------------------------------------------------------------------
@@ -126,10 +150,10 @@ test('SPEC-81-01: ArtifactSlide.tsx delegates background resolution to resolveEf
 });
 
 // ---------------------------------------------------------------------------
-// 2. Behavioral Unit Verification: isLyricSlide and resolveEffectiveBackgroundImage
+// 2. Behavioral Unit Verification: isLyricSlide and resolveEffectiveBackgroundImage (SPEC-82-01)
 // ---------------------------------------------------------------------------
 
-test('SPEC-81-01: isLyricSlide and resolveEffectiveBackgroundImage respect isVerseOrReff boundary', () => {
+test('SPEC-82-01: isLyricSlide and resolveEffectiveBackgroundImage preserve deck default on null/empty/whitespace', () => {
   const lyricVerse = {
     layoutKey: 'verse',
     layout: { backgroundImage: 'default-song.jpg' },
@@ -162,29 +186,56 @@ test('SPEC-81-01: isLyricSlide and resolveEffectiveBackgroundImage respect isVer
   assert.equal(isLyricSlide(nonLyricTitle), false);
   assert.equal(isLyricSlide(nonLyricWelcome), false);
 
-  // 1. Lyric slides receive override
+  // 1. Lyric slides receive explicit non-empty URL override
   assert.equal(resolveEffectiveBackgroundImage(lyricVerse, overrideBg), overrideBg);
   assert.equal(resolveEffectiveBackgroundImage(lyricReff, overrideBg), overrideBg);
   assert.equal(resolveEffectiveBackgroundImage(lyricGroup, overrideBg), overrideBg);
 
-  // 2. Non-lyric slides preserve authored layout background
+  // 2. Non-lyric slides always preserve authored layout background under any override
   assert.equal(resolveEffectiveBackgroundImage(nonLyricTitle, overrideBg), 'title-bg.jpg');
   assert.equal(resolveEffectiveBackgroundImage(nonLyricWelcome, overrideBg), 'welcome-bg.jpg');
+  assert.equal(resolveEffectiveBackgroundImage(nonLyricTitle, null), 'title-bg.jpg');
 
-  // 3. Lyric slides with empty string or null clear background (undefined)
-  assert.equal(resolveEffectiveBackgroundImage(lyricVerse, ''), undefined);
-  assert.equal(resolveEffectiveBackgroundImage(lyricVerse, null), undefined);
-
-  // 4. When backgroundOverride is undefined, authored background is preserved
+  // 3. SPEC-82-01 Parity: null, undefined, '', and whitespace preserve the deck's authored background
+  assert.equal(resolveEffectiveBackgroundImage(lyricVerse, null), 'default-song.jpg');
   assert.equal(resolveEffectiveBackgroundImage(lyricVerse, undefined), 'default-song.jpg');
+  assert.equal(resolveEffectiveBackgroundImage(lyricVerse, ''), 'default-song.jpg');
+  assert.equal(resolveEffectiveBackgroundImage(lyricVerse, '   '), 'default-song.jpg');
+  assert.equal(resolveEffectiveBackgroundImage(lyricReff, null), 'default-song.jpg');
+});
+
+test('SPEC-82-01: ProjectorClient forwards backgroundOverride to active and outgoing SlideViews', () => {
+  const src = readProjectorClientSource();
+
+  // ProjectorClient backgroundOverride state declaration
+  assert.match(
+    src,
+    /const\s*\[backgroundOverride,\s*setBackgroundOverride\]\s*=\s*useState<\s*string\s*\|\s*null\s*\|\s*undefined\s*>\(\s*undefined\s*\)/,
+    'ProjectorClient must declare backgroundOverride state'
+  );
+
+  // Outgoing slide view backgroundOverride forwarding
+  assert.match(
+    src,
+    /<SlideView\s+slide=\{outgoingSlide\}\s+backgroundOverride=\{backgroundOverride\}\s*\/>/,
+    'Outgoing SlideView must receive backgroundOverride={backgroundOverride}'
+  );
+
+  // Incoming slide view backgroundOverride forwarding
+  assert.match(
+    src,
+    /<SlideView\s+slide=\{slide\}\s+backgroundOverride=\{backgroundOverride\}\s*\/>/,
+    'Incoming SlideView must receive backgroundOverride={backgroundOverride}'
+  );
 });
 
 // ---------------------------------------------------------------------------
 // 3. Defect Injection Proofs (Absence Guards)
 // ---------------------------------------------------------------------------
 
-test('SPEC-81-01: Defect injection proofs — absence guards fail if backgroundOverride omitted', () => {
+test('SPEC-82-01: Defect injection proofs — absence guards fail if backgroundOverride omitted or null handling broken', () => {
   const validSource = readPresenterOperatorSource();
+  const validProjectorSource = readProjectorClientSource();
 
   function verifySource(source) {
     const hasCurrent = /<SlideView\s+slide=\{current\}\s+backgroundOverride=\{liveBackground\}\s*\/>/.test(source);
@@ -196,8 +247,15 @@ test('SPEC-81-01: Defect injection proofs — absence guards fail if backgroundO
     return hasCurrent && hasNext && hasFilmstripProp && hasFilmstripFwd && hasLoopFwd;
   }
 
-  // Baseline: validSource must pass all guards
-  assert.equal(verifySource(validSource), true, 'Valid source must pass all absence guards');
+  function verifyProjectorSource(source) {
+    const hasOutgoing = /<SlideView\s+slide=\{outgoingSlide\}\s+backgroundOverride=\{backgroundOverride\}\s*\/>/.test(source);
+    const hasIncoming = /<SlideView\s+slide=\{slide\}\s+backgroundOverride=\{backgroundOverride\}\s*\/>/.test(source);
+    return hasOutgoing && hasIncoming;
+  }
+
+  // Baseline: valid sources must pass all guards
+  assert.equal(verifySource(validSource), true, 'Valid PresenterOperator source must pass all absence guards');
+  assert.equal(verifyProjectorSource(validProjectorSource), true, 'Valid ProjectorClient source must pass all absence guards');
 
   // Defect 1: Current missing backgroundOverride
   const defect1 = validSource.replace(
@@ -226,4 +284,119 @@ test('SPEC-81-01: Defect injection proofs — absence guards fail if backgroundO
     '$1'
   );
   assert.equal(verifySource(defect4), false, 'Must detect missing backgroundOverride in filmstrip loop');
+
+  // Defect 5: Projector incoming SlideView missing backgroundOverride
+  const defect5 = validProjectorSource.replace(
+    /<SlideView\s+slide=\{slide\}\s+backgroundOverride=\{backgroundOverride\}\s*\/>/,
+    '<SlideView slide={slide} />'
+  );
+  assert.equal(verifyProjectorSource(defect5), false, 'Must detect missing backgroundOverride in ProjectorClient');
+
+  // -------------------------------------------------------------------------
+  // Real-file defect injections with guaranteed restoration on render-model.ts
+  // -------------------------------------------------------------------------
+  const originalRenderModel = readRenderModelSource();
+
+  function verifyRenderModelSource(source) {
+    const hasNonLyricBypass =
+      /if\s*\(!isLyricSlide\(instance\)\)\s*\{\s*return\s+instance\.layout\.backgroundImage;\s*\}/.test(source);
+    const hasTrimNormalize =
+      /const\s+override\s*=\s*typeof\s+backgroundOverride\s*===\s*['"]string['"]\s*\?\s*backgroundOverride\.trim\(\)\s*:\s*['"]['"]/.test(source);
+    const hasDeckDefaultFallback =
+      /return\s+override\s*\?\s*override\s*:\s*instance\.layout\.backgroundImage/.test(source);
+
+    return hasNonLyricBypass && hasTrimNormalize && hasDeckDefaultFallback;
+  }
+
+  assert.equal(
+    verifyRenderModelSource(readRenderModelSource()),
+    true,
+    'Unmodified render-model.ts on disk must pass all source guards'
+  );
+
+  const renderModelDefects = [
+    {
+      name: 'Missing non-lyric bypass guard',
+      mutator: (s) =>
+        s.replace(
+          /if\s*\(!isLyricSlide\(instance\)\)\s*\{\s*return\s+instance\.layout\.backgroundImage;\s*\}/,
+          ''
+        ),
+      assertExecution: `
+        import assert from "node:assert/strict";
+        import { resolveEffectiveBackgroundImage } from "./src/lib/artifacts/render-model.ts";
+        const nonLyric = { layoutKey: "title", layout: { backgroundImage: "title.jpg" } };
+        // Under defect, non-lyric slide incorrectly receives override instead of preserving authored background
+        assert.equal(resolveEffectiveBackgroundImage(nonLyric, "override.jpg"), "override.jpg");
+        process.stdout.write("MUTANT_REGRESSION_CONFIRMED");
+      `,
+    },
+    {
+      name: 'Pre-SPEC-82 broken resolver (null returning undefined)',
+      mutator: (s) =>
+        s.replace(
+          /const\s+override\s*=\s*typeof\s+backgroundOverride\s*===\s*['"]string['"]\s*\?\s*backgroundOverride\.trim\(\)\s*:\s*['"]['"];\s*return\s+override\s*\?\s*override\s*:\s*instance\.layout\.backgroundImage;/,
+          'return backgroundOverride !== undefined ? backgroundOverride || undefined : instance.layout.backgroundImage;'
+        ),
+      assertExecution: `
+        import assert from "node:assert/strict";
+        import { resolveEffectiveBackgroundImage } from "./src/lib/artifacts/render-model.ts";
+        const lyric = { layoutKey: "verse", layout: { backgroundImage: "song.jpg" } };
+        // Under defect, null incorrectly resolves to undefined instead of preserving authored background
+        assert.equal(resolveEffectiveBackgroundImage(lyric, null), undefined);
+        process.stdout.write("MUTANT_REGRESSION_CONFIRMED");
+      `,
+    },
+    {
+      name: 'Whitespace override not trimmed to deck default',
+      mutator: (s) => s.replace(/backgroundOverride\.trim\(\)/, 'backgroundOverride'),
+      assertExecution: `
+        import assert from "node:assert/strict";
+        import { resolveEffectiveBackgroundImage } from "./src/lib/artifacts/render-model.ts";
+        const lyric = { layoutKey: "verse", layout: { backgroundImage: "song.jpg" } };
+        // Under defect, whitespace is treated as non-empty override instead of preserving authored background
+        assert.equal(resolveEffectiveBackgroundImage(lyric, "   "), "   ");
+        process.stdout.write("MUTANT_REGRESSION_CONFIRMED");
+      `,
+    },
+  ];
+
+  for (const { name, mutator, assertExecution } of renderModelDefects) {
+    const defectiveSource = mutator(originalRenderModel);
+    try {
+      writeFileSync(RENDER_MODEL_PATH, defectiveSource, 'utf8');
+      const diskSource = readRenderModelSource();
+      assert.equal(
+        verifyRenderModelSource(diskSource),
+        false,
+        `Real-file structural defect guard must detect: ${name}`
+      );
+
+      // Execute fresh node child process against mutated disk file to prove actual behavioral regression
+      const out = execFileSync(
+        process.execPath,
+        [
+          '--import',
+          './tests/register-ts-resolve.mjs',
+          '--experimental-strip-types',
+          '--input-type=module',
+          '-e',
+          assertExecution,
+        ],
+        { encoding: 'utf8', cwd: ROOT }
+      );
+      assert.ok(
+        out.includes('MUTANT_REGRESSION_CONFIRMED'),
+        `Real-file behavioral execution must prove regression for: ${name}`
+      );
+    } finally {
+      writeFileSync(RENDER_MODEL_PATH, originalRenderModel, 'utf8');
+    }
+  }
+
+  assert.equal(
+    readRenderModelSource(),
+    originalRenderModel,
+    'render-model.ts source must be completely restored after defect injection'
+  );
 });

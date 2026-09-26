@@ -8,22 +8,22 @@ In `tests/pptx-dynamic-text-native-word-wrap.test.mjs`, write automated regressi
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/pptx-draw.ts`, `src/lib/artifacts/render-model.ts`, and `tests/pptx-word-wrap-option.test.mjs`.
-- [ ] In `src/lib/artifacts/render-model.ts`, implement `resolveExplicitParagraphRunsForPptx`:
+- [x] Read `src/lib/pptx-draw.ts`, `src/lib/artifacts/render-model.ts`, and `tests/pptx-word-wrap-option.test.mjs`.
+- [x] In `src/lib/artifacts/render-model.ts`, implement `resolveExplicitParagraphRunsForPptx`:
       - Extract string content using `resolveElementText(element)`.
       - Return `undefined` if content is empty or undefined.
       - Normalize line endings: replace `\r\n` with `\n`.
       - If text does not contain `\n`, return a single run `{ text }` (or `undefined` so caller uses `text` directly).
       - If text contains `\n`, split paragraphs and return runs with `breakLine: true` on boundaries (matching paragraph structuring without `softBreakBefore`).
-- [ ] In `src/lib/pptx-draw.ts` (`renderTextElement`):
+- [x] In `src/lib/pptx-draw.ts` (`renderTextElement`):
       - Update branch logic for `!hasAuthoritativeWrap`:
         - `textRuns = resolveExplicitParagraphRunsForPptx(element) ?? text`
         - `scale = fallbackLayout.scale` (retains vertical pre-scaling for LibreOffice/PPTX `fontScale="100000"`)
         - `valign = resolveVerticalAlign(style ?? {})`
       - Preserve authoritative wrap path when `hasAuthoritativeWrap === true`.
-- [ ] In `tests/pptx-dynamic-text-native-word-wrap.test.mjs`:
+- [x] In `tests/pptx-dynamic-text-native-word-wrap.test.mjs`:
       - Build a test fixture with Hebrews 1:1-2 NKJV text, Montserrat Bold 45px, 90.34% box width, no `wrapLines` (`hasAuthoritativeWrap === false`).
       - Generate PPTX with `wordWrap: true` and inspect `ppt/slides/slide1.xml`:
         - Assert `<a:bodyPr[^>]*wrap="square"[^>]*>` is present.
@@ -33,4 +33,4 @@ In `tests/pptx-dynamic-text-native-word-wrap.test.mjs`, write automated regressi
       - Test explicit `\n` and CRLF: assert multiple `<a:p>` elements are created.
       - Test static slide with valid `wrapLines`: assert authoritative `<a:br/>` tags remain intact.
       - Add defect injection test asserting that injecting `softBreakBefore: true` on unmeasured text fails the guard.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/pptx-dynamic-text-native-word-wrap.test.mjs`, `npm test`, and `npm run typecheck` to verify 100% clean pass.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/pptx-dynamic-text-native-word-wrap.test.mjs`, `npm test`, and `npm run typecheck` to verify 100% clean pass.

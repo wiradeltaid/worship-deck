@@ -107,7 +107,8 @@ export function liveTransitionOf(msg: PresentMessage): SlideTransition | null {
 
 /**
  * The live background override a message asserts, or `undefined` when it says
- * nothing about it (null means an explicit override to remove/clear the live background).
+ * nothing about it (`null` means clearing the live session override back to
+ * Deck default, not wiping the slide background).
  */
 export function liveBackgroundOf(msg: PresentMessage): string | null | undefined {
   if (msg.type === 'sync') {

@@ -4,15 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/lib/artifacts/render-model.ts`, `src/components/artifacts/ArtifactSlide.tsx`, `src/projected/ProjectorClient.tsx`, and `tests/presenter-live-background-preview.test.mjs`.
-- [ ] In `src/lib/artifacts/render-model.ts`, update `resolveEffectiveBackgroundImage` and docblock:
+- [x] Read `src/lib/artifacts/render-model.ts`, `src/components/artifacts/ArtifactSlide.tsx`, `src/projected/ProjectorClient.tsx`, and `tests/presenter-live-background-preview.test.mjs`.
+- [x] In `src/lib/artifacts/render-model.ts`, update `resolveEffectiveBackgroundImage` and docblock:
       - If `!isLyricSlide(instance)`, return `instance.layout.backgroundImage`.
       - Normalize override URL: `const override = typeof backgroundOverride === 'string' ? backgroundOverride.trim() : '';`.
       - Return `override ? override : instance.layout.backgroundImage`.
-- [ ] In `src/lib/present-channel.ts`, calibrate doc comments on `liveBackgroundOf` to explicitly document that `null` represents clearing the live session override back to Deck default (not wiping the slide background).
-- [ ] In `tests/presenter-live-background-preview.test.mjs`:
+- [x] In `src/lib/present-channel.ts`, calibrate doc comments on `liveBackgroundOf` to explicitly document that `null` represents clearing the live session override back to Deck default (not wiping the slide background).
+- [x] In `tests/presenter-live-background-preview.test.mjs`:
       - Assert that `resolveEffectiveBackgroundImage(lyricVerse, null)` returns `'default-song.jpg'`.
       - Assert that `resolveEffectiveBackgroundImage(lyricVerse, undefined)` returns `'default-song.jpg'`.
       - Assert that `resolveEffectiveBackgroundImage(lyricVerse, '')` returns `'default-song.jpg'`.
@@ -21,4 +21,4 @@
       - Assert that non-lyric slides preserve their authored background.
       - Add source guard asserting `ProjectorClient.tsx` passes `backgroundOverride={backgroundOverride}` to `SlideView`.
       - Add defect injection test asserting failure if `null` override returns `undefined`.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-live-background-preview.test.mjs` and `npm run typecheck` to verify 100% green execution.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-live-background-preview.test.mjs` and `npm run typecheck` to verify 100% green execution.

@@ -1549,6 +1549,25 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-070
+    type: mandate
+    status: applied
+    applied_at: '2026-09-26'
+    accepted_by: "kodesh87 (2026-09-26)"
+    title: Daily Autopilot mandate for Song-Set Dropdown Containment and PPTX Dynamic Text Word Wrap Parity (SPEC-82, SPEC-83)
+    file: .control/decisions/DEC-070-daily-autopilot-mandate-dropdown-containment-and-pptx-wrap.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-03'
+    touches:
+      - .control/memlog/autopilot-DEC-070.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 
