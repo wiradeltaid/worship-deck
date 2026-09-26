@@ -982,6 +982,20 @@ rtm:
   FR: FR-14
   DEC: []
   UC: UC-18
+  ticket: SPEC-85-04
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/slide-visibility-hide-show.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
   ticket: W2-2-1
   spec: W2
   release: go-spa-cutover
@@ -4213,6 +4227,20 @@ rtm:
   FR: FR-23
   DEC: []
   UC: UC-22
+  ticket: SPEC-85-02
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/scripture-aspect-containment.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-23
+  DEC: []
+  UC: UC-22
   ticket: W9-05
   spec: W9
   release: hub-admin-mgmt
@@ -4223,6 +4251,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-24
+  DEC: []
+  UC: UC-22
+  ticket: SPEC-85-02
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/scripture-aspect-containment.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-10
   FR: FR-24
@@ -4996,6 +5038,48 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
+  ticket: SPEC-85-03
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/run-sheet-header-redesign.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
+  ticket: SPEC-85-04
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/slide-visibility-hide-show.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-1
+  FR: FR-3
+  DEC: []
+  UC: UC-21
+  ticket: SPEC-85-05
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/emergency-canvas-edit.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -9468,6 +9552,48 @@ rtm:
   FR: FR-4
   DEC: []
   UC: UC-20
+  ticket: SPEC-85-01
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/song-set-save-to-book-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-03
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/run-sheet-header-redesign.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-04
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/slide-visibility-hide-show.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-4
+  DEC: []
+  UC: UC-20
   ticket: W3-2
   spec: W3
   release: dec004-completion
@@ -9569,6 +9695,48 @@ rtm:
   FR: FR-5
   DEC: []
   UC: UC-20
+  ticket: SPEC-85-01
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/song-set-save-to-book-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-03
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/run-sheet-header-redesign.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-04
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/slide-visibility-hide-show.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-5
+  DEC: []
+  UC: UC-20
   ticket: W3-2
   spec: W3
   release: dec004-completion
@@ -9651,6 +9819,48 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-01
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/song-set-save-to-book-guard.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-03
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/run-sheet-header-redesign.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-2
+  FR: FR-6
+  DEC: []
+  UC: UC-20
+  ticket: SPEC-85-04
+  spec: SPEC-85
+  release: presentation-fidelity-slide-visibility-and-operator-polish
+  test:
+  - tests/slide-visibility-hide-show.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-2
   FR: FR-6

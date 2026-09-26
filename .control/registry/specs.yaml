@@ -3599,6 +3599,57 @@ waves:
         tests:
           - tests/emergency-local-edit.test.mjs
 
+  # Opened 2026-09-26 from user triage notes.
+  # Presentation fidelity, slide visibility control, and operator polish.
+  - id: SPEC-85
+    status: open
+    release: presentation-fidelity-slide-visibility-and-operator-polish
+    prd: [operator-turn, offline-deck]
+    fr: [FR-14, FR-16, FR-19, FR-31, FR-33]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-85-presentation-fidelity-slide-visibility-and-operator-polish/
+    spec_reviewed:
+      date: '2026-09-26'
+      sha: '0f4c4a93ef6de4cac689d0ceec72d93a54a28567'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-85-01"
+        component: hub
+        satisfies: [FR-31, FR-33, UC-20]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/song-set-save-to-book-guard.test.mjs
+      - id: "SPEC-85-02"
+        component: presenter
+        satisfies: [FR-19, UC-22]
+        blocked_by: []
+        touches: [projector]
+        tests:
+          - tests/scripture-aspect-containment.test.mjs
+      - id: "SPEC-85-03"
+        component: hub
+        satisfies: [FR-16, UC-20, UC-21]
+        blocked_by: []
+        touches: [spa]
+        tests:
+          - tests/run-sheet-header-redesign.test.mjs
+      - id: "SPEC-85-04"
+        component: hub
+        satisfies: [FR-14, FR-16, UC-18, UC-20, UC-21]
+        blocked_by: ["SPEC-85-01", "SPEC-85-03"]
+        touches: [services, presenter, pptx]
+        tests:
+          - tests/slide-visibility-hide-show.test.mjs
+      - id: "SPEC-85-05"
+        component: presenter
+        satisfies: [FR-16, FR-19, UC-21]
+        blocked_by: ["SPEC-85-04"]
+        touches: [presenter, present-channel, artifacts]
+        tests:
+          - tests/emergency-canvas-edit.test.mjs
+
 
 
 
