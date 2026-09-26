@@ -10,18 +10,18 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** closed
 
-- [ ] Read `src/operator/DynamicFormBody.tsx` and `tests/song-set-background-parity.test.mjs`.
-- [ ] In `src/operator/DynamicFormBody.tsx`:
+- [x] Read `src/operator/DynamicFormBody.tsx` and `tests/song-set-background-parity.test.mjs`.
+- [x] In `src/operator/DynamicFormBody.tsx`:
       - Set `<SelectTrigger className="w-full h-9 text-xs">`.
       - Add `min-w-0` to the trigger's flex wrapper `div`.
       - Set trigger label for default to `Song-Set Default (#${songSetDefaultBg.id})` with `text-[11px] truncate`.
       - Set trigger label for explicit image to `Image ${selectedFormBg.id}` with `text-[11px] truncate`.
       - Retain full text in `SelectContent` for `SelectItem value="default"`.
-- [ ] In `tests/song-set-background-parity.test.mjs`:
+- [x] In `tests/song-set-background-parity.test.mjs`:
       - Add assertions verifying `SelectTrigger` has `w-full`.
       - Add assertions verifying flex container has `min-w-0`.
       - Add assertions verifying trigger label text styling uses `text-[11px]`.
       - Add defect injection proofs asserting containment guards catch regressions.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/song-set-background-parity.test.mjs` and `npm run typecheck` to verify 100% green execution.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/song-set-background-parity.test.mjs` and `npm run typecheck` to verify 100% green execution.
