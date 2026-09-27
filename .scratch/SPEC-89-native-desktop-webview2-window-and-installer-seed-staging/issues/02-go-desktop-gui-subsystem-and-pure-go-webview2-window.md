@@ -34,12 +34,12 @@ Satisfies `FR-21`, `UC-15`, and `AD-30`.
 
 **Blocked by:** SPEC-89-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `scripts/build-desktop.mjs`:
+- [x] In `scripts/build-desktop.mjs`:
       - Add `-H=windowsgui` to `ldflags` in desktop Go build step.
-- [ ] In `cmd/api/main.go`:
+- [x] In `cmd/api/main.go`:
       - Initialize persistent desktop file logger at `%LOCALAPPDATA%\WorshipDeck\desktop.log`.
-- [ ] In `internal/desktop/window_windows.go` and `internal/desktop/window_other.go`:
+- [x] In `internal/desktop/window_windows.go` and `internal/desktop/window_other.go`:
       - Implement `RunDesktopWindow` embedding Microsoft Edge WebView2 using pure-Go COM binding with thread locking.
-- [ ] Verify `go test ./internal/desktop/...` and compilation with `GOOS=windows CGO_ENABLED=0` succeed.
+- [x] Verify `go test ./internal/desktop/...` and compilation with `GOOS=windows CGO_ENABLED=0` succeed.

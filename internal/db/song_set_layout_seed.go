@@ -22,18 +22,22 @@ import (
 //     when the stored payload still byte-matches the shipped seed — an edited
 //     layout keeps seed_hash NULL so reset keeps refusing per LC-11.
 func EnsureSongSetLayoutSeeds(db *sql.DB, root string) error {
-	seeds, err := LoadSongSetLayoutSeeds(root)
-	if err != nil {
-		log.Printf("[registry] song-set layout seeds unavailable; skipping: %v", err)
-		return nil
-	}
-
 	var count int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM song_set_layouts`).Scan(&count); err != nil {
 		return err
 	}
+
+	seeds, err := LoadSongSetLayoutSeeds(root)
+	if err != nil {
+		if count == 0 {
+			return fmt.Errorf("fresh database requires song-set layout seeds: %w", err)
+		}
+		log.Printf("[registry] song-set layout seeds unavailable; skipping: %v", err)
+		return nil
+	}
+
+	now := nowUTCString()
 	if count == 0 {
-		now := nowUTCString()
 		for _, role := range []string{"title", "verse", "reff"} {
 			payload := seeds[role]
 			if _, err := db.Exec(
@@ -46,6 +50,26 @@ func EnsureSongSetLayoutSeeds(db *sql.DB, root string) error {
 		}
 		log.Printf("[registry] seeded song_set_layouts trio from shipped defaults")
 		return nil
+	}
+
+	// Self-repair: inspect presence of each canonical role ('title', 'verse', 'reff').
+	// If any role is missing in a partially populated table, insert it from seeds with seed_hash.
+	for _, role := range []string{"title", "verse", "reff"} {
+		var roleCount int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM song_set_layouts WHERE role = ?`, role).Scan(&roleCount); err != nil {
+			return err
+		}
+		if roleCount == 0 {
+			payload := seeds[role]
+			if _, err := db.Exec(
+				`INSERT OR REPLACE INTO song_set_layouts (role, payload, updated_at, seed_hash)
+				 VALUES (?, ?, ?, ?)`,
+				role, string(payload), now, songSetSeedHash(payload),
+			); err != nil {
+				return err
+			}
+			log.Printf("[registry] self-repaired missing song_set_layout role %s from shipped defaults", role)
+		}
 	}
 
 	for role, payload := range seeds {
@@ -67,7 +91,18 @@ func EnsureSongSetLayoutSeeds(db *sql.DB, root string) error {
 // LoadSongSetLayoutSeeds returns the canonical compact JSON payload for each
 // trio role. Mirrors loadSeedTemplate's local/shipped resolution.
 func LoadSongSetLayoutSeeds(root string) (map[string][]byte, error) {
+	if root == "" {
+		if wd, err := os.Getwd(); err == nil {
+			root = wd
+		}
+	}
 	path := filepath.Join(root, "data", "default-song-set-layouts.json")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		alt := filepath.Join(root, "..", "..", "data", "default-song-set-layouts.json")
+		if stat, aErr := os.Stat(alt); aErr == nil && !stat.IsDir() {
+			path = alt
+		}
+	}
 	if os.Getenv("WPW_USE_SHIPPED_REGISTRY") != "1" {
 		local := filepath.Join(root, "data", "local", "default-song-set-layouts.json")
 		if _, err := os.Stat(local); err == nil {

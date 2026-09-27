@@ -3966,10 +3966,10 @@ rtm:
   release: native-desktop-webview2-window-and-installer-seed-staging
   test:
   - tests/installer-corpora-staging.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -3981,10 +3981,10 @@ rtm:
   test:
   - tests/desktop-webview2-contract.test.mjs
   - internal/desktop
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -4197,10 +4197,10 @@ rtm:
   release: native-desktop-webview2-window-and-installer-seed-staging
   test:
   - tests/installer-corpora-staging.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -4212,10 +4212,10 @@ rtm:
   test:
   - internal/desktop
   - cmd/api
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -4226,10 +4226,10 @@ rtm:
   release: native-desktop-webview2-window-and-installer-seed-staging
   test:
   - internal/desktop
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -4241,10 +4241,10 @@ rtm:
   test:
   - tests/desktop-webview2-contract.test.mjs
   - internal/desktop
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -7219,10 +7219,10 @@ rtm:
   release: native-desktop-webview2-window-and-installer-seed-staging
   test:
   - tests/installer-corpora-staging.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -7234,10 +7234,10 @@ rtm:
   test:
   - tests/desktop-webview2-contract.test.mjs
   - internal/desktop
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -9681,10 +9681,10 @@ rtm:
   release: native-desktop-webview2-window-and-installer-seed-staging
   test:
   - tests/installer-corpora-staging.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9696,10 +9696,10 @@ rtm:
   test:
   - tests/desktop-webview2-contract.test.mjs
   - internal/desktop
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

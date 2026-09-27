@@ -27,12 +27,12 @@ Satisfies `FR-21` and `UC-15`.
 
 **Blocked by:** SPEC-89-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `cmd/api/main.go`:
+- [x] In `cmd/api/main.go`:
       - Implement coordinated graceful shutdown via `srv.Shutdown` on single context cancellation.
-- [ ] In `internal/desktop/window_windows.go`:
+- [x] In `internal/desktop/window_windows.go`:
       - Implement window close handler triggering server context cancellation.
       - Implement single-instance focus and taskbar flash fallback.
       - Implement fallback to `OpenBrowser` on WebView2 initialization failure.
-- [ ] Verify `go test ./internal/desktop/...` and `go test ./cmd/api/...` pass cleanly.
+- [x] Verify `go test ./internal/desktop/...` and `go test ./cmd/api/...` pass cleanly.

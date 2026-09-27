@@ -1,8 +1,10 @@
 ﻿package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -37,6 +39,14 @@ func main() {
 	}
 	if env := os.Getenv("REPO_ROOT"); env != "" {
 		root = env
+	} else if isDesktop {
+		// In desktop mode, if REPO_ROOT is unset, check whether data/ exists adjacent to executable
+		if exe, err := os.Executable(); err == nil {
+			exeDir := filepath.Dir(exe)
+			if stat, err := os.Stat(filepath.Join(exeDir, "data")); err == nil && stat.IsDir() {
+				root = exeDir
+			}
+		}
 	}
 	root, err = filepath.Abs(root)
 	if err != nil {
@@ -53,6 +63,15 @@ func main() {
 			log.Fatalf("initializing data directory: %v", err)
 		}
 		log.Printf("using data directory: %s", dataDir)
+
+		if isDesktop {
+			logFilePath := filepath.Join(dataDir, "desktop.log")
+			logFile, lErr := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+			if lErr == nil {
+				defer logFile.Close()
+				log.SetOutput(io.MultiWriter(os.Stderr, logFile))
+			}
+		}
 
 		if os.Getenv("UPLOADS_DIR") == "" {
 			_ = os.Setenv("UPLOADS_DIR", filepath.Join(dataDir, "uploads"))
@@ -72,14 +91,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("acquiring single-instance mutex: %v", err)
 		} else if alreadyRunning {
-			if dataDir != "" {
-				if info, rErr := desktop.ReadRuntimeInfo(dataDir); rErr == nil && info.URL != "" && desktop.IsValidLoopbackURL(info.URL) {
-					log.Printf("another instance is already running at %s; focusing browser and exiting", info.URL)
-					_ = desktop.OpenBrowser(info.URL)
-					os.Exit(0)
+			log.Printf("another instance is already running; focusing existing window and exiting")
+			if !desktop.FocusExistingWindow(desktop.DefaultWindowTitle) {
+				if dataDir != "" {
+					if info, rErr := desktop.ReadRuntimeInfo(dataDir); rErr == nil && info.URL != "" && desktop.IsValidLoopbackURL(info.URL) {
+						_ = desktop.OpenBrowser(info.URL)
+					}
 				}
 			}
-			log.Printf("another instance is already running; exiting")
 			os.Exit(0)
 		}
 		if mutexLock != nil {
@@ -152,30 +171,79 @@ func main() {
 		}()
 	}
 
-	// Graceful shutdown handling
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	defer rootCancel()
+
+	// Graceful shutdown handling on OS signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-sigChan
-		log.Printf("shutting down...")
-		if dataDir != "" {
-			_ = desktop.RemoveRuntimeInfo(dataDir)
+		select {
+		case sig := <-sigChan:
+			log.Printf("received signal %v; shutting down...", sig)
+			rootCancel()
+		case <-rootCtx.Done():
 		}
-		if mutexLock != nil {
-			_ = mutexLock.Release()
-		}
-		os.Exit(0)
 	}()
 
-	// 6. Launch browser if requested or in desktop mode
-	shouldOpenBrowser := (*openBrowserFlag || isDesktop) && !*noBrowserFlag
-	if shouldOpenBrowser {
-		go func() {
-			time.Sleep(150 * time.Millisecond)
-			_ = desktop.OpenBrowser(serverURL)
-		}()
+	httpServer := &http.Server{
+		Handler: srv.Handler(),
 	}
 
-	// 7. Serve HTTP requests
-	log.Fatal(http.Serve(ln, srv.Handler()))
+	serverErrChan := make(chan error, 1)
+	go func() {
+		if err := httpServer.Serve(ln); err != nil && err != http.ErrServerClosed {
+			serverErrChan <- err
+			rootCancel()
+		}
+	}()
+
+	// 6. Native Desktop Window or Browser Launch
+	shouldOpenWindow := isDesktop && !*noBrowserFlag
+	shouldOpenBrowser := (*openBrowserFlag || isDesktop) && !*noBrowserFlag
+
+	if shouldOpenWindow {
+		winOpts := desktop.WindowOptions{
+			Title:   desktop.DefaultWindowTitle,
+			Width:   desktop.DefaultWindowWidth,
+			Height:  desktop.DefaultWindowHeight,
+			DataDir: dataDir,
+		}
+		winErr := desktop.RunDesktopWindow(rootCtx, serverURL, winOpts, rootCancel)
+		if winErr != nil {
+			log.Printf("[desktop] native window error: %v; running until signal", winErr)
+			select {
+			case err := <-serverErrChan:
+				log.Fatalf("server error: %v", err)
+			case <-rootCtx.Done():
+			}
+		}
+	} else {
+		if shouldOpenBrowser {
+			go func() {
+				time.Sleep(150 * time.Millisecond)
+				_ = desktop.OpenBrowser(serverURL)
+			}()
+		}
+		select {
+		case err := <-serverErrChan:
+			log.Fatalf("server error: %v", err)
+		case <-rootCtx.Done():
+		}
+	}
+
+	log.Printf("shutting down HTTP server...")
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP server shutdown error: %v", err)
+	}
+
+	if dataDir != "" {
+		_ = desktop.RemoveRuntimeInfo(dataDir)
+	}
+	if mutexLock != nil {
+		_ = mutexLock.Release()
+	}
+	log.Printf("worship-deck stopped cleanly")
 }

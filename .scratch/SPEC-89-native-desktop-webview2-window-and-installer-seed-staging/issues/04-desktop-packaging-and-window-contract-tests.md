@@ -30,14 +30,14 @@ Satisfies `FR-20`, `FR-21`, `UC-14`, `UC-15`, `AD-30`, and `AD-33`.
 
 **Blocked by:** SPEC-89-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `tests/desktop-webview2-contract.test.mjs`:
+- [x] In `tests/desktop-webview2-contract.test.mjs`:
       - Implement contract assertions for desktop build flags, seed staging, and installer packaging.
       - Add defect injection proofs for `-H=windowsgui` and seed staging.
-- [ ] In `tests/installer-corpora-staging.test.mjs`:
+- [x] In `tests/installer-corpora-staging.test.mjs`:
       - Add end-to-end staged bootstrap verification for song-set layout trio.
-- [ ] In `internal/desktop/desktop_test.go`:
+- [x] In `internal/desktop/window_test.go`:
       - Add unit tests for window options, graceful shutdown seams, and fallback logic.
-- [ ] Add `tests/desktop-webview2-contract.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify full test suite passes cleanly.
+- [x] Add `tests/desktop-webview2-contract.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify full test suite passes cleanly.

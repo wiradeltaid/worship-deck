@@ -3785,7 +3785,7 @@ waves:
           - tests/admin-sync-ephemeral-auth.test.mjs
 
   - id: SPEC-89
-    status: open
+    status: closed
     release: native-desktop-webview2-window-and-installer-seed-staging
     prd: [offline-deck]
     fr: [FR-20, FR-21]
