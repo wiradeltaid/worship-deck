@@ -3828,6 +3828,78 @@ waves:
           - tests/desktop-webview2-contract.test.mjs
           - internal/desktop
 
+  - id: SPEC-90
+    status: open
+    release: pe-versioninfo-metadata-and-operator-about-modal
+    prd: [offline-deck]
+    fr: [FR-40]
+    size: S
+    depends_on: [SPEC-89]
+    spec_folder: .scratch/SPEC-90-pe-versioninfo-metadata-and-operator-about-modal/
+    spec_reviewed:
+      date: '2026-09-27'
+      sha: 'd567f1ffe1d2c0082c64e714bbcfec38871a81a3'
+      lenses: [structure, prose, edge-case-hunter, traceability-auditor, release-packaging-verifier, legal-copy-parity]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: (1) corrected requirement traceability from unrelated slide layout FRs to FR-40 (offline desktop distribution & packaging integrity); (2) added explicit registration of all 3 new test files to package.json test script and dedicated smoke:spec-90 command; (3) established deterministic PE metadata compilation as a fail-closed desktop build invariant rather than optional tooling; (4) added artifact-level inspection of built PE versioninfo fields; (5) defined authoritative package.json version source for AboutModal with zero version drift; (6) reconciled English canonical legal text with Indonesian localization; (7) bounded zero-telemetry absence guard to update endpoints and analytics SDKs; (8) defined concrete desktop packaging acceptance criteria."
+    tickets:
+      - id: "SPEC-90-01"
+        component: hub
+        satisfies: [FR-40]
+        blocked_by: []
+        touches: [artifacts, settings]
+        tests:
+          - tests/installer-pe-metadata.test.mjs
+      - id: "SPEC-90-02"
+        component: registry
+        satisfies: [FR-40]
+        blocked_by: ["SPEC-90-01"]
+        touches: [settings]
+        tests:
+          - tests/about-modal.test.mjs
+      - id: "SPEC-90-03"
+        component: hub
+        satisfies: [FR-40]
+        blocked_by: ["SPEC-90-02"]
+        touches: [artifacts, settings]
+        tests:
+          - tests/desktop-about-contract.test.mjs
+
+  - id: SPEC-91
+    status: open
+    release: full-fidelity-cloud-sync-and-asset-hydration
+    prd: [offline-deck, operator-turn]
+    fr: [FR-21, FR-40]
+    size: M
+    depends_on: [SPEC-90]
+    spec_folder: .scratch/SPEC-91-full-fidelity-cloud-sync-and-asset-hydration/
+    spec_reviewed:
+      date: '2026-09-27'
+      sha: 'd567f1ffe1d2c0082c64e714bbcfec38871a81a3'
+      lenses: [structure, prose, edge-case-hunter, data-integrity, security-and-resource-safety, testability]
+      note: "Terra (kiro-agent). Verdict accept-with-changes upon revision. Folded in: (1) added push-side asset discovery and replication so local assets reach remote before/with DB references; (2) specified explicit conflict, deletion, and tombstone semantics; (3) established stable global ID relational mapping and parent-first insertion for announcement sets/slides and registry templates/snapshots, backed by internal/db/migrate_sync_announcement_sets.go schema migration; (4) made pull-side asset hydration fail-safe with SHA-256 checksum verification before local storage commit; (5) defined objective two-direction round-trip test oracle (A -> cloud -> B and B -> cloud -> A) with physical file existence and HTTP 200 checks; (6) integrated universal recursive asset extractor contract; (7) registered all three test files in package.json and verified unified smoke:spec-91 command."
+    tickets:
+      - id: "SPEC-91-01"
+        component: hub
+        satisfies: [FR-21, FR-40]
+        blocked_by: []
+        touches: [sync, settings]
+        tests:
+          - tests/sync-full-fidelity-entities.test.mjs
+      - id: "SPEC-91-02"
+        component: hub
+        satisfies: [FR-21, FR-40]
+        blocked_by: ["SPEC-91-01"]
+        touches: [sync]
+        tests:
+          - tests/sync-asset-hydration.test.mjs
+      - id: "SPEC-91-03"
+        component: hub
+        satisfies: [FR-21, FR-40]
+        blocked_by: ["SPEC-91-02"]
+        touches: [sync, artifacts, settings]
+        tests:
+          - tests/sync-bidirectional-contract.test.mjs
+
 
 
 
