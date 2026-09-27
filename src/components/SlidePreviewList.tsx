@@ -195,7 +195,7 @@ function SlideRow({
   return (
     <div
       data-testid="slide-preview-row"
-      className={`p-3 flex items-start gap-3 hover:bg-muted/30 transition-all ${
+      className={`group relative p-3 flex items-start gap-3 hover:bg-muted/30 transition-all ${
         isHidden ? 'opacity-60 bg-muted/20' : ''
       }`}
     >
@@ -241,7 +241,7 @@ function SlideRow({
             onToggleSlideVisibility(slideId);
           }}
           title={isHidden ? 'Show slide' : 'Hide slide'}
-          className="shrink-0 h-7 w-7 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          className="shrink-0 h-7 w-7 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           aria-label={isHidden ? 'Show slide' : 'Hide slide'}
         >
           {isHidden ? (
