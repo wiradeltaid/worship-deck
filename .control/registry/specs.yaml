@@ -3708,6 +3708,37 @@ waves:
         tests:
           - tests/bilingual-i18n-parity.test.mjs
 
+  # Opened 2026-09-27 from user triage notes.
+  # Emergency canvas background image upload and cropping parity.
+  - id: SPEC-87
+    status: open
+    release: emergency-canvas-background-image-crop-parity
+    prd: [operator-turn, offline-deck]
+    fr: [FR-14, FR-16, FR-19, FR-25]
+    size: S
+    depends_on: []
+    spec_folder: .scratch/SPEC-87-emergency-canvas-background-image-crop-parity/
+    spec_reviewed:
+      date: '2026-09-27'
+      sha: '43f1e4565970fcf2fe00c764ed96b40d9e9197cb'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-87-01"
+        component: presenter
+        satisfies: [FR-14, FR-16, FR-19, UC-12]
+        blocked_by: []
+        touches: [present-channel, artifacts]
+        tests:
+          - tests/emergency-canvas-bg-crop.test.mjs
+      - id: "SPEC-87-02"
+        component: presenter
+        satisfies: [FR-16, FR-25, UC-12]
+        blocked_by: ["SPEC-87-01"]
+        touches: [present-channel]
+        tests:
+          - tests/emergency-canvas-bg-crop.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+
 
 
 

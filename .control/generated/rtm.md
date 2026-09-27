@@ -1547,6 +1547,35 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-87-01
+  spec: SPEC-87
+  release: emergency-canvas-background-image-crop-parity
+  test:
+  - tests/emergency-canvas-bg-crop.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-87-02
+  spec: SPEC-87
+  release: emergency-canvas-background-image-crop-parity
+  test:
+  - tests/emergency-canvas-bg-crop.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live
