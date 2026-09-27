@@ -199,14 +199,28 @@ export default function AdminSyncPage() {
       const shaHashes = extractUploadHashes(pullRes.changes);
 
       if (shaHashes.length > 0) {
-        const checkResult = await checkSyncAssets(targetUrl, shaHashes, headers);
-        for (const missingHash of checkResult.missing) {
-          const assetBuffer = await downloadSyncAsset(window.location.origin, missingHash);
-          const computedSha = await computeBufferSha256(assetBuffer);
-          if (computedSha.toLowerCase() !== missingHash.toLowerCase()) {
-            throw new Error(`Local asset ${missingHash} is corrupted (checksum mismatch); aborting push to prevent corrupt remote state`);
+        try {
+          const checkResult = await checkSyncAssets(targetUrl, shaHashes, headers);
+          for (const missingHash of checkResult.missing) {
+            try {
+              const assetBuffer = await downloadSyncAsset(window.location.origin, missingHash);
+              const computedSha = await computeBufferSha256(assetBuffer);
+              if (computedSha.toLowerCase() !== missingHash.toLowerCase()) {
+                throw new Error(`Local asset ${missingHash} is corrupted (checksum mismatch); aborting push to prevent corrupt remote state`);
+              }
+              await uploadSyncAsset(targetUrl, assetBuffer, missingHash, '', headers);
+            } catch (assetErr: any) {
+              if (assetErr?.status === 401) {
+                throw assetErr;
+              }
+              throw new Error(`Asset upload failed for ${missingHash}: ${assetErr.message || assetErr}`);
+            }
           }
-          await uploadSyncAsset(targetUrl, assetBuffer, missingHash, '', headers);
+        } catch (checkErr: any) {
+          if (checkErr?.status === 401) {
+            throw checkErr;
+          }
+          throw new Error(`Asset check failed: ${checkErr.message || checkErr}`);
         }
       }
 
