@@ -32,6 +32,114 @@ export function resolvePackageVersion(root = repoRoot) {
   return version;
 }
 
+export function generateVersionInfoRc(version) {
+  const match = String(version || '').match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!match) {
+    throw new Error(`Invalid semver version format: "${version}"`);
+  }
+  const [, major, minor, patch] = match;
+  const numericVersion = `${major},${minor},${patch},0`;
+
+  return `1 ICON "../../installer/worship-deck.ico"
+1 VERSIONINFO
+FILEVERSION ${numericVersion}
+PRODUCTVERSION ${numericVersion}
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Wira Delta Indonesia"
+            VALUE "FileDescription", "WorshipDeck"
+            VALUE "FileVersion", "${version}"
+            VALUE "InternalName", "worship-deck"
+            VALUE "LegalCopyright", "Copyright (c) 2026 Wira Delta Indonesia"
+            VALUE "OriginalFilename", "worship-deck.exe"
+            VALUE "ProductName", "WorshipDeck"
+            VALUE "ProductVersion", "${version}"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+`;
+}
+
+export function findWindres() {
+  const candidates = [
+    'windres.exe',
+    'windres',
+    path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Packages', 'BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe', 'mingw64', 'bin', 'windres.exe'),
+    'C:\\mingw64\\bin\\windres.exe',
+    'C:\\msys64\\mingw64\\bin\\windres.exe',
+  ];
+
+  for (const bin of candidates) {
+    if (path.isAbsolute(bin) && fs.existsSync(bin)) {
+      return bin;
+    }
+    if (!path.isAbsolute(bin)) {
+      try {
+        const cmd = process.platform === 'win32' ? 'where.exe' : 'which';
+        const res = spawnSync(cmd, [bin], { stdio: 'ignore', shell: true });
+        if (res.status === 0) return bin;
+      } catch {
+        // continue
+      }
+    }
+  }
+  return null;
+}
+
+export function compileVersionInfoSyso(root = repoRoot, options = {}) {
+  const version = resolvePackageVersion(root);
+  const apiDir = path.join(root, 'cmd', 'api');
+  const rcPath = path.join(apiDir, 'worship-deck.rc');
+  const sysoPath = path.join(apiDir, 'rsrc_windows_amd64.syso');
+
+  // Purge any preexisting or stale syso file before regenerating
+  if (fs.existsSync(sysoPath)) {
+    fs.unlinkSync(sysoPath);
+  }
+
+  const rcContent = generateVersionInfoRc(version);
+  fs.writeFileSync(rcPath, rcContent, 'utf8');
+
+  const windresBin = findWindres();
+  if (!windresBin) {
+    if (options.strict || process.platform === 'win32') {
+      throw new Error('[build-desktop] windres compiler not found. Desktop packaging requires windres to compile PE VersionInfo resource.');
+    } else {
+      console.warn('[build-desktop] windres not found (non-Windows platform), skipping .syso generation');
+      return { rcPath, sysoPath: null, generated: false };
+    }
+  }
+
+  const res = spawnSync(windresBin, ['-i', 'worship-deck.rc', '-O', 'coff', '-o', 'rsrc_windows_amd64.syso'], {
+    cwd: apiDir,
+    stdio: 'inherit',
+    shell: false,
+  });
+
+  if (res.status !== 0) {
+    throw new Error(`[build-desktop] windres failed with status ${res.status}`);
+  }
+
+  if (!fs.existsSync(sysoPath)) {
+    throw new Error(`[build-desktop] Expected syso output not found at ${sysoPath}`);
+  }
+
+  console.log(`[build-desktop] Successfully compiled PE resource to ${sysoPath}`);
+  return { rcPath, sysoPath, generated: true };
+}
+
 export function stageCorporaAndNotices(targetDir) {
   console.log('[build-desktop] Staging corpora, fonts, licenses, and notices...');
 
@@ -68,8 +176,8 @@ export function stageCorporaAndNotices(targetDir) {
     fs.copyFileSync(src, path.join(dataDest, seedFile));
   }
 
-  // 5. Legal licenses & third-party notices
-  for (const f of ['LICENSE', 'ATTRIBUTIONS.md', 'THIRD-PARTY-NOTICES']) {
+  // 5. Legal licenses, privacy policy & third-party notices
+  for (const f of ['LICENSE', 'ATTRIBUTIONS.md', 'THIRD-PARTY-NOTICES', 'PRIVACY.md']) {
     const src = path.join(repoRoot, f);
     if (fs.existsSync(src)) {
       fs.copyFileSync(src, path.join(targetDir, f));
@@ -95,6 +203,7 @@ export async function buildDesktopPackage(options = {}) {
 
   // 2. Compile Go desktop executable
   console.log('[build-desktop] 2/4: Compiling Go binary...');
+  compileVersionInfoSyso(repoRoot, { strict: process.platform === 'win32' });
   const exeName = 'worship-deck.exe';
   const exePath = path.join(distDesktop, exeName);
   const goRes = spawnSync(
@@ -114,6 +223,29 @@ export async function buildDesktopPackage(options = {}) {
   );
   if (goRes.status !== 0) {
     throw new Error(`Go compilation failed with exit code ${goRes.status}`);
+  }
+
+  // Post-compilation verification of PE VersionInfo stamping
+  if (process.platform === 'win32' && fs.existsSync(exePath)) {
+    const psScript = `(Get-Item -LiteralPath '${exePath.replace(/'/g, "''")}').VersionInfo | Select-Object CompanyName, ProductVersion | ConvertTo-Json`;
+    const checkRes = spawnSync('powershell.exe', ['-NoProfile', '-Command', psScript], {
+      encoding: 'utf8',
+      shell: false,
+    });
+    if (checkRes.status === 0 && checkRes.stdout) {
+      try {
+        const info = JSON.parse(checkRes.stdout);
+        if (info.CompanyName !== 'Wira Delta Indonesia') {
+          throw new Error(`Stamped CompanyName mismatch: expected "Wira Delta Indonesia", got "${info.CompanyName}"`);
+        }
+        if (info.ProductVersion !== appVersion) {
+          throw new Error(`Stamped ProductVersion mismatch: expected "${appVersion}", got "${info.ProductVersion}"`);
+        }
+        console.log(`[build-desktop] Verified PE VersionInfo: CompanyName="${info.CompanyName}", ProductVersion="${info.ProductVersion}"`);
+      } catch (err) {
+        throw new Error(`[build-desktop] Post-compilation PE VersionInfo validation failed: ${err.message}`);
+      }
+    }
   }
 
   // 3. Stage portable Node.js and worker dependencies (strict mode)

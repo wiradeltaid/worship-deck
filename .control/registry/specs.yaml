@@ -3829,7 +3829,7 @@ waves:
           - internal/desktop
 
   - id: SPEC-90
-    status: open
+    status: closed
     release: pe-versioninfo-metadata-and-operator-about-modal
     prd: [offline-deck]
     fr: [FR-40]
