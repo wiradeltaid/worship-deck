@@ -35,11 +35,11 @@ Satisfies `FR-16`, `FR-25`, and `UC-12`.
 
 **Blocked by:** `SPEC-87-01`
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `src/lib/i18n/keys.ts`, `src/lib/i18n/catalogue-en.ts`, and `src/lib/i18n/catalogue-id.ts`:
+- [x] In `src/lib/i18n/keys.ts`, `src/lib/i18n/catalogue-en.ts`, and `src/lib/i18n/catalogue-id.ts`:
       - Add `emergency.modal.bgUpload` key and translations in English and Indonesian.
-- [ ] In `tests/emergency-canvas-bg-crop.test.mjs`:
+- [x] In `tests/emergency-canvas-bg-crop.test.mjs`:
       - Write automated tests verifying background upload button presence, `t('emergency.modal.bgUpload')` binding, 16:9 aspect containment, dual persistence paths (online URL and offline Data URL), element isolation, and race prevention.
       - Implement real-file defect injection proofs.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-canvas-bg-crop.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-canvas-bg-crop.test.mjs` and `npm run typecheck`.

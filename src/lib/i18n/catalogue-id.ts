@@ -770,6 +770,7 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'emergency.modal.bgHeading': 'Pengaturan Latar Belakang (Background)',
   'emergency.modal.bgColor': 'Warna Latar',
   'emergency.modal.bgImageUrl': 'Gambar Latar (URL)',
+  'emergency.modal.bgUpload': 'Unggah & Potong Latar',
   'emergency.modal.bgRemove': 'Hapus Gambar Latar',
   'emergency.modal.cancel': 'Batal',
   'emergency.modal.apply': 'Terapkan ke Layar (Lokal)',

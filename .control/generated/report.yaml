@@ -1,13 +1,13 @@
-asof: '2026-09-25'
+asof: '2026-09-27'
 since: ''
 since_report: ''
-sha: c504d2d798c136c10fb4eef65a7ea803606d2442
-registry_dirty: false
+sha: 47edaf8148a72691528f8d5c143488f0f6c8b20f
+registry_dirty: true
 uncommitted_tickets: []
 promise_progress: 97%
 rtm_rows:
-  green: 617
-  counted: 638
+  green: 665
+  counted: 688
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -340,6 +340,56 @@ work_progress:
   tickets_done: 3
   tickets_total: 3
   work_progress: 100%
+- spec: SPEC-78
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-79
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-80
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-81
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-82
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-83
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-84
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-85
+  status: closed
+  tickets_done: 5
+  tickets_total: 5
+  work_progress: 100%
+- spec: SPEC-86
+  status: closed
+  tickets_done: 6
+  tickets_total: 6
+  work_progress: 100%
+- spec: SPEC-87
+  status: open
+  tickets_done: 0
+  tickets_total: 2
+  work_progress: 0%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -1252,6 +1302,48 @@ proven:
   test:
   - tests/dynamic-field-extraction.test.mjs
   closed: '2026-09-23'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-86-01
+  test:
+  - tests/run-sheet-header-tiered-layout.test.mjs
+  closed: '2026-09-27'
+- FR: FR-34
+  UC: UC-28
+  ticket: SPEC-86-02
+  test:
+  - tests/song-set-lyric-button-layout.test.mjs
+  closed: '2026-09-27'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-86-03
+  test:
+  - tests/slide-preview-hover-visibility.test.mjs
+  closed: '2026-09-27'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-86-04
+  test:
+  - tests/presenter-header-two-row-layout.test.mjs
+  closed: '2026-09-27'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-86-05
+  test:
+  - tests/emergency-canvas-inspector-crop.test.mjs
+  closed: '2026-09-27'
+- FR: FR-11
+  UC: UC-5
+  ticket: SPEC-86-06
+  test:
+  - tests/bilingual-i18n-parity.test.mjs
+  closed: '2026-09-27'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-86-06
+  test:
+  - tests/bilingual-i18n-parity.test.mjs
+  closed: '2026-09-27'
 moved:
 - id: CAP-1
   kind: CAP
@@ -1371,15 +1463,7 @@ moved:
   date: '2026-09-18'
 - id: FR-23
   kind: FR
-  event: closed
-  date: '2026-09-18'
-- id: FR-23
-  kind: FR
   event: started
-  date: '2026-09-18'
-- id: FR-24
-  kind: FR
-  event: closed
   date: '2026-09-18'
 - id: FR-24
   kind: FR
@@ -1428,10 +1512,6 @@ moved:
 - id: FR-33
   kind: FR
   event: started
-  date: '2026-09-18'
-- id: FR-34
-  kind: FR
-  event: closed
   date: '2026-09-18'
 - id: FR-34
   kind: FR
@@ -1497,6 +1577,10 @@ moved:
   kind: FR
   event: started
   date: '2026-09-21'
+- id: FR-34
+  kind: FR
+  event: closed
+  date: '2026-09-27'
 late: []
 defects:
   opened: []

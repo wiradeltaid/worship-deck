@@ -2251,8 +2251,10 @@ export function EmergencyCanvasDesignerModal({
   const [activeTab, setActiveTab] = useState<'elements' | 'background'>('elements');
   const [isApplying, setIsApplying] = useState(false);
   const [cropTargetFile, setCropTargetFile] = useState<File | null>(null);
+  const [cropTargetType, setCropTargetType] = useState<'element' | 'background'>('element');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bgFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (open && slide) {
@@ -2298,12 +2300,23 @@ export function EmergencyCanvasDesignerModal({
   const handleFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCropTargetType('element');
+      setCropTargetFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleBgFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCropTargetType('background');
       setCropTargetFile(file);
     }
     e.target.value = '';
   };
 
   const handleCropComplete = async (croppedFile: File) => {
+    const targetType = cropTargetType;
     setCropTargetFile(null);
     setIsUploadingImage(true);
     try {
@@ -2318,7 +2331,11 @@ export function EmergencyCanvasDesignerModal({
       }
       const data = (await res.json()) as { url?: string };
       if (data.url) {
-        handleUpdateImage(data.url, selectedElement?.style?.objectFit);
+        if (targetType === 'background') {
+          handleUpdateBackground({ image: data.url });
+        } else {
+          handleUpdateImage(data.url, selectedElement?.style?.objectFit);
+        }
       } else {
         throw new Error('No URL returned from server');
       }
@@ -2326,7 +2343,11 @@ export function EmergencyCanvasDesignerModal({
       // Resilient offline fallback: convert to durable self-contained data URL
       try {
         const dataUrl = await fileToDataUrl(croppedFile);
-        handleUpdateImage(dataUrl, selectedElement?.style?.objectFit);
+        if (targetType === 'background') {
+          handleUpdateBackground({ image: dataUrl });
+        } else {
+          handleUpdateImage(dataUrl, selectedElement?.style?.objectFit);
+        }
       } catch {
         toast.error('Gagal memproses gambar lokal');
       }
@@ -2925,6 +2946,31 @@ export function EmergencyCanvasDesignerModal({
                     </span>
                   </div>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.bgUpload')}</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={bgFileInputRef}
+                      onChange={handleBgFileChosen}
+                      accept="image/*"
+                      className="hidden"
+                      data-testid="emergency-bg-file-input"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="emergency-bg-upload-button"
+                      disabled={isUploadingImage}
+                      onClick={() => bgFileInputRef.current?.click()}
+                      className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                    >
+                      <Upload className="size-3.5" />
+                      <span>{isUploadingImage ? t('emergency.modal.uploading') : t('emergency.modal.bgUpload')}</span>
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.bgImageUrl')}</Label>
                   <input
@@ -2984,6 +3030,7 @@ export function EmergencyCanvasDesignerModal({
         <ImageCropDialog
           open={cropTargetFile !== null}
           file={cropTargetFile}
+          defaultAspect={cropTargetType === 'background' ? '16:9' : undefined}
           onComplete={handleCropComplete}
           onCancel={() => setCropTargetFile(null)}
         />

@@ -85,6 +85,7 @@ export const SPEC_86_KEYS = [
   'emergency.modal.bgHeading',
   'emergency.modal.bgColor',
   'emergency.modal.bgImageUrl',
+  'emergency.modal.bgUpload',
   'emergency.modal.bgRemove',
   'emergency.modal.cancel',
   'emergency.modal.apply',
@@ -156,6 +157,8 @@ test('SPEC-86-06: Language switching renders distinct, idiomatic English and Ind
   assert.equal(resolveString('emergency.modal.title', 'id'), 'Edit Kanvas Darurat');
   assert.equal(resolveString('emergency.modal.badge', 'en'), 'Local / Stage');
   assert.equal(resolveString('emergency.modal.badge', 'id'), 'Lokal / Panggung');
+  assert.equal(resolveString('emergency.modal.bgUpload', 'en'), 'Upload & Crop Background');
+  assert.equal(resolveString('emergency.modal.bgUpload', 'id'), 'Unggah & Potong Latar');
 
   // 4. Image Crop Dialog
   assert.equal(resolveString('crop.skip', 'en'), 'Skip Crop');

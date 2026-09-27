@@ -1,4 +1,4 @@
-asof: '2026-09-25'
+asof: '2026-09-27'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -72,6 +72,10 @@ capabilities:
     - SPEC-73-06
     - SPEC-73-07
     - SPEC-73-08
+    - SPEC-84-03
+    - SPEC-85-03
+    - SPEC-85-04
+    - SPEC-85-05
     - W9-04
     actual_start: '2026-09-18'
     actual_end: ''
@@ -117,17 +121,19 @@ capabilities:
   - id: FR-23
     text: Resolve hymns from the selected Song Book, default SDAH
     tickets:
+    - SPEC-85-02
     - W9-05
     actual_start: '2026-09-18'
-    actual_end: '2026-09-18'
-    state: done
+    actual_end: ''
+    state: in-progress
   - id: FR-24
     text: Browse installed corpora by language; the default filters the display, not the data
     tickets:
+    - SPEC-85-02
     - W9-05
     actual_start: '2026-09-18'
-    actual_end: '2026-09-18'
-    state: done
+    actual_end: ''
+    state: in-progress
   - id: FR-25
     text: Display the Operator interface in the Operator's language
     tickets:
@@ -214,6 +220,11 @@ capabilities:
     tickets:
     - SPEC-59-01
     - SPEC-59-02
+    - SPEC-84-01
+    - SPEC-84-02
+    - SPEC-85-01
+    - SPEC-85-03
+    - SPEC-85-04
     - W3-2
     - W4-1
     actual_start: '2026-09-18'
@@ -224,6 +235,11 @@ capabilities:
     tickets:
     - SPEC-59-01
     - SPEC-59-02
+    - SPEC-84-01
+    - SPEC-84-02
+    - SPEC-85-01
+    - SPEC-85-03
+    - SPEC-85-04
     - W3-2
     - W4-1
     actual_start: '2026-09-18'
@@ -234,6 +250,11 @@ capabilities:
     tickets:
     - SPEC-59-01
     - SPEC-59-02
+    - SPEC-84-01
+    - SPEC-84-02
+    - SPEC-85-01
+    - SPEC-85-03
+    - SPEC-85-04
     - W3-2
     - W4-1
     actual_start: '2026-09-18'
@@ -344,6 +365,9 @@ capabilities:
     - SPEC-54-01
     - SPEC-54-02
     - SPEC-54-03
+    - SPEC-86-01
+    - SPEC-86-03
+    - SPEC-86-06
     - W8-03
     actual_start: '2026-09-18'
     actual_end: ''
@@ -385,9 +409,10 @@ capabilities:
     text: Operator edits a song's lyrics for this Service only, with an explicit action to save them back
       to the Song Book
     tickets:
+    - SPEC-86-02
     - W10-04
     actual_start: '2026-09-18'
-    actual_end: '2026-09-18'
+    actual_end: '2026-09-27'
     state: done
   - id: FR-37
     text: Admin configures the Hub form's fields and their grouping, not a code change
@@ -419,6 +444,10 @@ capabilities:
     text: Download a PPTX that presents fully offline
     tickets:
     - SPEC-74-01
+    - SPEC-78-01
+    - SPEC-81-03
+    - SPEC-83-01
+    - SPEC-85-04
     - W2-2-1
     - W2-2-2
     - W2-2-3
@@ -484,6 +513,11 @@ capabilities:
     - SPEC-52-04
     - SPEC-53-04
     - SPEC-75-01
+    - SPEC-86-04
+    - SPEC-86-05
+    - SPEC-86-06
+    - SPEC-87-01
+    - SPEC-87-02
     - W7-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -503,6 +537,8 @@ capabilities:
     text: Operator changes the live Verse/Reff background during the service
     tickets:
     - SPEC-76-01
+    - SPEC-81-01
+    - SPEC-82-01
     - W7-04
     actual_start: '2026-09-18'
     actual_end: ''
@@ -707,6 +743,10 @@ capabilities:
     - SPEC-76-02
     - SPEC-77-01
     - SPEC-77-03
+    - SPEC-79-01
+    - SPEC-79-02
+    - SPEC-80-01
+    - SPEC-81-03
     - W11-02
     - W11-03
     - W11-06
@@ -900,6 +940,10 @@ capabilities:
     - SPEC-76-02
     - SPEC-77-01
     - SPEC-77-03
+    - SPEC-79-01
+    - SPEC-79-02
+    - SPEC-80-01
+    - SPEC-81-03
     - W11-02
     - W11-03
     - W11-06
@@ -914,6 +958,7 @@ capabilities:
     - SPEC-40-02
     - SPEC-43-06
     - SPEC-73-05
+    - SPEC-81-02
     - W6-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -926,6 +971,7 @@ capabilities:
     - SPEC-40-02
     - SPEC-43-06
     - SPEC-73-05
+    - SPEC-81-02
     - W6-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -1060,6 +1106,10 @@ capabilities:
     - SPEC-76-02
     - SPEC-77-01
     - SPEC-77-03
+    - SPEC-79-01
+    - SPEC-79-02
+    - SPEC-80-01
+    - SPEC-81-03
     - W11-02
     - W11-03
     - W11-06
