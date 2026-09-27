@@ -54,7 +54,7 @@ export function scanPresenterHeaderLayout(presenterPath = presenterOperatorPath)
   // Containment & Exclusivity for Row 1
   if (row1Index !== -1 && row2Index !== -1 && row1Index < row2Index) {
     const row1Snippet = cleanSrc.slice(row1Index, row2Index);
-    if (!row1Snippet.includes('All slides')) {
+    if (!row1Snippet.includes('All slides') && !row1Snippet.includes("t('presenter.allSlides')")) {
       findings.push('presenter-header-row-1 must contain "All slides" button');
     }
     if (!row1Snippet.includes("t('presenter.openCongregationScreen')")) {
@@ -66,7 +66,8 @@ export function scanPresenterHeaderLayout(presenterPath = presenterOperatorPath)
     if (
       row1Snippet.includes('data-testid="presentation-lock-toggle"') ||
       row1Snippet.includes('data-testid="emergency-edit-button"') ||
-      row1Snippet.includes('Run-Sheet')
+      row1Snippet.includes('Run-Sheet') ||
+      row1Snippet.includes("t('presenter.runSheet')")
     ) {
       findings.push('presenter-header-row-1 must NOT contain safety or workflow controls (must be in row 2)');
     }
@@ -85,7 +86,7 @@ export function scanPresenterHeaderLayout(presenterPath = presenterOperatorPath)
     if (!row2Snippet.includes('data-testid="emergency-edit-button"')) {
       findings.push('presenter-header-row-2 must contain data-testid="emergency-edit-button"');
     }
-    if (!row2Snippet.includes('Run-Sheet')) {
+    if (!row2Snippet.includes('Run-Sheet') && !row2Snippet.includes("t('presenter.runSheet')")) {
       findings.push('presenter-header-row-2 must contain Run-Sheet navigation button');
     }
   }
