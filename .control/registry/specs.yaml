@@ -3784,6 +3784,51 @@ waves:
           - tests/sync-cors-and-bearer-auth.test.mjs
           - tests/admin-sync-ephemeral-auth.test.mjs
 
+  - id: SPEC-89
+    status: open
+    release: native-desktop-webview2-window-and-installer-seed-staging
+    prd: [offline-deck]
+    fr: [FR-20, FR-21]
+    size: M
+    depends_on: [SPEC-88]
+    spec_folder: .scratch/SPEC-89-native-desktop-webview2-window-and-installer-seed-staging/
+    spec_reviewed:
+      date: '2026-09-27'
+      sha: 'bb69f630fdcc5796532f97fb2175715eeda2fb30'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-89-01"
+        component: registry
+        satisfies: [FR-20, FR-21, UC-14, UC-15]
+        blocked_by: []
+        touches: [artifacts]
+        tests:
+          - tests/installer-corpora-staging.test.mjs
+      - id: "SPEC-89-02"
+        component: hub
+        satisfies: [FR-21, UC-15]
+        blocked_by: ["SPEC-89-01"]
+        touches: [settings]
+        tests:
+          - internal/desktop
+          - cmd/api
+      - id: "SPEC-89-03"
+        component: hub
+        satisfies: [FR-21, UC-15]
+        blocked_by: ["SPEC-89-02"]
+        touches: [settings]
+        tests:
+          - internal/desktop
+      - id: "SPEC-89-04"
+        component: hub
+        satisfies: [FR-20, FR-21, UC-14, UC-15]
+        blocked_by: ["SPEC-89-03"]
+        touches: [artifacts, settings]
+        tests:
+          - tests/desktop-webview2-contract.test.mjs
+          - internal/desktop
+
+
 
 
 

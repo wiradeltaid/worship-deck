@@ -3961,6 +3961,35 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-89-01
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/installer-corpora-staging.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-89-04
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/desktop-webview2-contract.test.mjs
+  - internal/desktop
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -4158,6 +4187,64 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-89-01
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/installer-corpora-staging.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-89-02
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - internal/desktop
+  - cmd/api
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-89-03
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - internal/desktop
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-89-04
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/desktop-webview2-contract.test.mjs
+  - internal/desktop
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -7127,6 +7214,35 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-89-01
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/installer-corpora-staging.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-89-04
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/desktop-webview2-contract.test.mjs
+  - internal/desktop
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -9555,6 +9671,35 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-89-01
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/installer-corpora-staging.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
+  ticket: SPEC-89-04
+  spec: SPEC-89
+  release: native-desktop-webview2-window-and-installer-seed-staging
+  test:
+  - tests/desktop-webview2-contract.test.mjs
+  - internal/desktop
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
