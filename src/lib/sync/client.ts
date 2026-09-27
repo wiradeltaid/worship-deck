@@ -23,6 +23,8 @@ export interface SyncPushPayload {
       parsed_data?: unknown;
       images_payload?: unknown;
       afternoon_program?: string;
+      hidden_slide_ids?: unknown;
+      emergency_patches?: unknown;
       created_at?: string;
       updated_at?: string;
     }>;
@@ -57,6 +59,54 @@ export interface SyncPushPayload {
       sort_order?: number;
       updated_at?: string;
     }>;
+    announcement_sets?: Array<{
+      global_id: string;
+      label?: string;
+      updated_at?: string;
+    }>;
+    announcement_set_slides?: Array<{
+      global_id: string;
+      ann_set_global_id: string;
+      label?: string;
+      payload?: string;
+      position?: number;
+      updated_at?: string;
+      seed_hash?: string;
+    }>;
+    artifact_templates?: Array<{
+      id: string;
+      label: string;
+      base_type: string;
+      payload?: string;
+      updated_at?: string;
+      seed_hash?: string;
+      position?: number;
+      variable_name?: string;
+      ann_set_global_id?: string;
+    }>;
+    service_registry_snapshots?: Array<{
+      service_global_id: string;
+      template_id: string;
+      position: number;
+      label: string;
+      base_type: string;
+      payload?: string;
+      updated_at?: string;
+      variable_name?: string;
+      ann_set_global_id?: string;
+    }>;
+    song_set_layouts?: Array<{
+      role: string;
+      payload?: string;
+      updated_at?: string;
+      seed_hash?: string;
+    }>;
+    service_song_set_layouts?: Array<{
+      service_global_id: string;
+      role: string;
+      payload?: string;
+      updated_at?: string;
+    }>;
   };
   tombstones?: Array<{
     global_id: string;
@@ -84,6 +134,12 @@ export interface SyncPullResponse {
     song_set_entries: Array<unknown>;
     background_library_images: Array<unknown>;
     announcement_items: Array<unknown>;
+    announcement_sets?: Array<unknown>;
+    announcement_set_slides?: Array<unknown>;
+    artifact_templates?: Array<unknown>;
+    service_registry_snapshots?: Array<unknown>;
+    song_set_layouts?: Array<unknown>;
+    service_song_set_layouts?: Array<unknown>;
   };
   tombstones: Array<{
     global_id: string;
@@ -326,6 +382,12 @@ export function chunkSyncPushPayload(
   type MutationKind = keyof SyncPushPayload['mutations'];
   const orderedKinds: MutationKind[] = [
     'services',
+    'announcement_sets',
+    'announcement_set_slides',
+    'artifact_templates',
+    'service_registry_snapshots',
+    'song_set_layouts',
+    'service_song_set_layouts',
     'hymns',
     'song_set_entries',
     'background_library_images',
@@ -474,5 +536,76 @@ export async function pushSyncChunked(
     chunks: chunkResults,
     skippedRecords: skippedRecords.length > 0 ? skippedRecords : undefined,
   };
+}
+
+/**
+ * Recursively scans arbitrary objects, arrays, and JSON strings for upload asset paths
+ * matching `/api/uploads/([a-f0-9]{64})/i` or raw 64-character SHA-256 hashes.
+ * Returns a sorted, de-duplicated array of lowercase hexadecimal hashes.
+ */
+export function extractUploadHashes(payload: unknown): string[] {
+  const hashes = new Set<string>();
+  const hex64Regex = /^[a-f0-9]{64}$/i;
+  const uploadPathRegex = /\/api\/uploads\/([a-f0-9]{64})/gi;
+
+  function scan(val: unknown) {
+    if (val === null || val === undefined) return;
+    if (typeof val === 'string') {
+      let match: RegExpExecArray | null;
+      while ((match = uploadPathRegex.exec(val)) !== null) {
+        hashes.add(match[1].toLowerCase());
+      }
+      if (hex64Regex.test(val)) {
+        hashes.add(val.toLowerCase());
+      }
+      if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(val);
+          scan(parsed);
+        } catch {
+          // not JSON, continue
+        }
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        scan(item);
+      }
+      return;
+    }
+    if (typeof val === 'object') {
+      for (const key of Object.keys(val as Record<string, unknown>)) {
+        scan((val as Record<string, unknown>)[key]);
+      }
+    }
+  }
+
+  scan(payload);
+  return Array.from(hashes).sort();
+}
+
+/**
+ * Computes hexadecimal SHA-256 hash of an ArrayBuffer across both browser (crypto.subtle)
+ * and Node.js environments.
+ */
+export async function computeBufferSha256(buffer: ArrayBuffer | ArrayBufferView): Promise<string> {
+  const subtle = typeof crypto !== 'undefined' ? crypto.subtle : undefined;
+  if (subtle) {
+    const data = (
+      ArrayBuffer.isView(buffer)
+        ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+        : new Uint8Array(buffer)
+    ) as BufferSource;
+    const digest = await subtle.digest('SHA-256', data);
+    const byteArr = Array.from(new Uint8Array(digest));
+    return byteArr.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  // Node.js fallback (isolated from Vite bundler)
+  const nodeCrypto = await (Function('return import("node:crypto")')() as Promise<typeof import('node:crypto')>);
+  const data = ArrayBuffer.isView(buffer)
+    ? Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+    : Buffer.from(buffer);
+  return nodeCrypto.createHash('sha256').update(data).digest('hex');
 }
 

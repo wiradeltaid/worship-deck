@@ -3865,7 +3865,7 @@ waves:
           - tests/desktop-about-contract.test.mjs
 
   - id: SPEC-91
-    status: open
+    status: closed
     release: full-fidelity-cloud-sync-and-asset-hydration
     prd: [offline-deck, operator-turn]
     fr: [FR-21, FR-40]
