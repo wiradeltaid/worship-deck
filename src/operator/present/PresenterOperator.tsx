@@ -358,7 +358,6 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active,
   activeRef,
   onSelect,
-  onToggleVisibility,
   backgroundOverride,
 }: {
   slide: SlidePlanItem | undefined;
@@ -366,7 +365,6 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
-  onToggleVisibility?: (index: number) => void;
   backgroundOverride?: string | null;
 }) {
   const isHidden = Boolean(slide?.hidden);
@@ -419,26 +417,6 @@ const FilmstripFrame = memo(function FilmstripFrame({
           </span>
         </span>
       </Button>
-      {onToggleVisibility && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          data-testid="filmstrip-visibility-toggle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleVisibility(entry.index);
-          }}
-          title={isHidden ? 'Unhide slide' : 'Hide slide'}
-          className="absolute top-1.5 left-1.5 z-10 size-6 p-1 rounded bg-black/70 hover:bg-black text-white/70 hover:text-white transition-opacity opacity-0 group-hover:opacity-100"
-        >
-          {isHidden ? (
-            <Eye className="size-3" />
-          ) : (
-            <EyeOff className="size-3" />
-          )}
-        </Button>
-      )}
     </span>
   );
 });
@@ -1447,115 +1425,109 @@ export default function PresenterOperator({
             {activeEntry ? ` · ${activeEntry.label}` : ''}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid="presentation-lock-toggle"
-            onClick={() => setPresentationLock((prev) => !prev)}
-            className="h-8 gap-1.5 text-xs select-none"
-            title={
-              presentationLock
-                ? 'Buka kunci untuk mengizinkan perubahan tata letak dan navigasi keluar'
-                : 'Kunci navigasi untuk mencegah perubahan tidak disengaja selama ibadah'
-            }
-          >
-            {presentationLock ? (
-              <Lock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <Unlock className="size-3.5 text-amber-600 dark:text-amber-400" />
-            )}
-            <span>{presentationLock ? 'Buka Kunci' : 'Kunci Ibadah'}</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid="emergency-edit-button"
-            disabled={isHydratingPatches || activeSlides.length === 0}
-            onClick={handleOpenEmergencyEdit}
-            className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
-          >
-            <Pencil className="size-3.5" />
-            <span>Edit Darurat (Lokal)</span>
-          </Button>
-          <Button
-            type="button"
-            variant={current?.hidden ? 'destructive' : 'outline'}
-            size="sm"
-            data-testid="toggle-current-slide-visibility"
-            disabled={activeSlides.length === 0}
-            onClick={() => void toggleSlideVisibility(index)}
-            className="h-8 gap-1.5 text-xs select-none"
-            title={current?.hidden ? 'Unhide current slide' : 'Hide current slide'}
-          >
-            {current?.hidden ? (
-              <>
-                <Eye className="size-3.5" />
-                <span>Unhide Slide</span>
-              </>
-            ) : (
-              <>
-                <EyeOff className="size-3.5" />
-                <span>Hide Slide</span>
-              </>
-            )}
-          </Button>
-          <OfflineReadinessBadge
-            serviceId={serviceId}
-            serviceData={rawService || { id: serviceId, plan: activeSlides }}
-            className="mr-1"
-          />
-          <Button
-            variant="secondary"
-            onClick={() => setGridOpen(true)}
-            disabled={activeSlides.length === 0}
-          >
-            All slides
-          </Button>
-          <Button variant="outline" onClick={openProjector}>
-            {t('presenter.openCongregationScreen')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setRemoteDialogOpen(true)}
-            className="flex items-center gap-1.5"
-            title="Mobile remote control pairing"
-          >
-            <span
-              className={cn(
-                'inline-block h-2 w-2 rounded-full',
-                remoteState === 'connected'
-                  ? 'bg-emerald-500'
-                  : remoteState === 'pairing'
-                  ? 'bg-amber-400 animate-pulse'
-                  : remoteState === 'error' || remoteState === 'role-lost'
-                  ? 'bg-destructive'
-                  : 'bg-muted-foreground/50'
-              )}
+        <div data-testid="presenter-header-actions" className="flex flex-col items-end gap-2">
+          {/* Row 1 (Display & Audience Controls) */}
+          <div data-testid="presenter-header-row-1" className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setGridOpen(true)}
+              disabled={activeSlides.length === 0}
+              className="h-8 text-xs font-medium"
+            >
+              All slides
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openProjector}
+              className="h-8 text-xs font-medium"
+            >
+              {t('presenter.openCongregationScreen')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRemoteDialogOpen(true)}
+              className="flex items-center gap-1.5 h-8 text-xs font-medium"
+              title="Mobile remote control pairing"
+            >
+              <span
+                className={cn(
+                  'inline-block h-2 w-2 rounded-full',
+                  remoteState === 'connected'
+                    ? 'bg-emerald-500'
+                    : remoteState === 'pairing'
+                    ? 'bg-amber-400 animate-pulse'
+                    : remoteState === 'error' || remoteState === 'role-lost'
+                    ? 'bg-destructive'
+                    : 'bg-muted-foreground/50'
+                )}
+              />
+              <span>
+                Remote code:{' '}
+                {remoteCode ? (
+                  <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
+                    {remoteCode}
+                  </span>
+                ) : null}
+              </span>
+            </Button>
+          </div>
+
+          {/* Row 2 (Session Safety & Workflow Controls) */}
+          <div data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">
+            <OfflineReadinessBadge
+              serviceId={serviceId}
+              serviceData={rawService || { id: serviceId, plan: activeSlides }}
+              className="mr-1"
             />
-            <span>
-              Remote code:{' '}
-              {remoteCode ? (
-                <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
-                  {remoteCode}
-                </span>
-              ) : null}
-            </span>
-          </Button>
-          {/* `nativeButton={false}` because this one really is a link: Base UI
-              otherwise warns that a component acting as a button was handed
-              something that is not a native `<button>`. */}
-          <Button
-            disabled={presentationLock}
-            className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none')}
-            variant="outline"
-            nativeButton={false}
-            render={<Link href={`/services/${serviceId}`} />}
-          >
-            Run-Sheet
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="presentation-lock-toggle"
+              onClick={() => setPresentationLock((prev) => !prev)}
+              className="h-8 gap-1.5 text-xs select-none"
+              title={
+                presentationLock
+                  ? 'Buka kunci untuk mengizinkan perubahan tata letak dan navigasi keluar'
+                  : 'Kunci navigasi untuk mencegah perubahan tidak disengaja selama ibadah'
+              }
+            >
+              {presentationLock ? (
+                <Lock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Unlock className="size-3.5 text-amber-600 dark:text-amber-400" />
+              )}
+              <span>{presentationLock ? 'Buka Kunci' : 'Kunci Ibadah'}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="emergency-edit-button"
+              disabled={isHydratingPatches || activeSlides.length === 0}
+              onClick={handleOpenEmergencyEdit}
+              className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
+            >
+              <Pencil className="size-3.5" />
+              <span>Edit Darurat (Lokal)</span>
+            </Button>
+            {/* `nativeButton={false}` because this one really is a link: Base UI
+                otherwise warns that a component acting as a button was handed
+                something that is not a native `<button>`. */}
+            <Button
+              disabled={presentationLock}
+              className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none', 'h-8 text-xs font-medium')}
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/services/${serviceId}`} />}
+            >
+              Run-Sheet
+            </Button>
+          </div>
         </div>
         {projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">
@@ -1704,6 +1676,28 @@ export default function PresenterOperator({
               disabled={findNextVisibleIndex(activeSlides, index, 1) === index}
             >
               Next →
+            </Button>
+            <Button
+              type="button"
+              variant={current?.hidden ? 'destructive' : 'outline'}
+              size="sm"
+              data-testid="transport-slide-visibility-toggle"
+              disabled={activeSlides.length === 0}
+              onClick={() => void toggleSlideVisibility(index)}
+              className="h-9 gap-1.5 text-xs select-none"
+              title={current?.hidden ? 'Unhide current slide' : 'Hide current slide'}
+            >
+              {current?.hidden ? (
+                <>
+                  <Eye className="size-3.5" />
+                  <span>Unhide Slide</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="size-3.5" />
+                  <span>Hide Slide</span>
+                </>
+              )}
             </Button>
             <div className="flex items-center gap-1.5 border border-border rounded-lg px-2 py-0.5 bg-card/60">
               <Button
@@ -1899,7 +1893,6 @@ export default function PresenterOperator({
                   active={entry.index === index}
                   activeRef={activeFrameRef}
                   onSelect={safeNavigate}
-                  onToggleVisibility={toggleSlideVisibility}
                   backgroundOverride={liveBackground}
                 />
               ))}
