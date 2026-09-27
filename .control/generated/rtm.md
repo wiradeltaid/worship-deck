@@ -768,10 +768,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -1538,10 +1538,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

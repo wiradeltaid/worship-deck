@@ -1411,7 +1411,7 @@ export default function PresenterOperator({
                 className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 select-none"
               >
                 <Lock className="size-3" />
-                <span>Terkunci untuk Ibadah (Locked)</span>
+                <span>{t('presenter.lockedBadge')}</span>
               </span>
             )}
             {isOffline && (
@@ -1438,7 +1438,7 @@ export default function PresenterOperator({
               disabled={activeSlides.length === 0}
               className="h-8 text-xs font-medium"
             >
-              All slides
+              {t('presenter.allSlides')}
             </Button>
             <Button
               variant="outline"
@@ -1468,7 +1468,7 @@ export default function PresenterOperator({
                 )}
               />
               <span>
-                Remote code:{' '}
+                {t('presenter.remoteCode')}{' '}
                 {remoteCode ? (
                   <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
                     {remoteCode}
@@ -1494,8 +1494,8 @@ export default function PresenterOperator({
               className="h-8 gap-1.5 text-xs select-none"
               title={
                 presentationLock
-                  ? 'Buka kunci untuk mengizinkan perubahan tata letak dan navigasi keluar'
-                  : 'Kunci navigasi untuk mencegah perubahan tidak disengaja selama ibadah'
+                  ? t('presenter.unlockTitle')
+                  : t('presenter.lockTitle')
               }
             >
               {presentationLock ? (
@@ -1503,7 +1503,7 @@ export default function PresenterOperator({
               ) : (
                 <Unlock className="size-3.5 text-amber-600 dark:text-amber-400" />
               )}
-              <span>{presentationLock ? 'Buka Kunci' : 'Kunci Ibadah'}</span>
+              <span>{presentationLock ? t('presenter.unlock') : t('presenter.lock')}</span>
             </Button>
             <Button
               type="button"
@@ -1515,7 +1515,7 @@ export default function PresenterOperator({
               className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
             >
               <Pencil className="size-3.5" />
-              <span>Edit Darurat (Lokal)</span>
+              <span>{t('presenter.emergencyEdit')}</span>
             </Button>
             {/* `nativeButton={false}` because this one really is a link: Base UI
                 otherwise warns that a component acting as a button was handed
@@ -1528,7 +1528,7 @@ export default function PresenterOperator({
               nativeButton={false}
               render={<Link href={`/services/${serviceId}`} />}
             >
-              Run-Sheet
+              {t('presenter.runSheet')}
             </Button>
           </div>
         </div>
@@ -1668,7 +1668,7 @@ export default function PresenterOperator({
               }}
               disabled={findNextVisibleIndex(activeSlides, index, -1) === index}
             >
-              ← Prev
+              {t('presenter.prev')}
             </Button>
             <Button
               data-testid="presenter-next-button"
@@ -1678,7 +1678,7 @@ export default function PresenterOperator({
               }}
               disabled={findNextVisibleIndex(activeSlides, index, 1) === index}
             >
-              Next →
+              {t('presenter.next')}
             </Button>
             <Button
               type="button"
@@ -1688,17 +1688,17 @@ export default function PresenterOperator({
               disabled={activeSlides.length === 0}
               onClick={() => void toggleSlideVisibility(index)}
               className="h-9 gap-1.5 text-xs select-none"
-              title={current?.hidden ? 'Unhide current slide' : 'Hide current slide'}
+              title={current?.hidden ? t('slide.visibility.unhide') : t('slide.visibility.hide')}
             >
               {current?.hidden ? (
                 <>
                   <Eye className="size-3.5" />
-                  <span>Unhide Slide</span>
+                  <span>{t('slide.visibility.unhide')}</span>
                 </>
               ) : (
                 <>
                   <EyeOff className="size-3.5" />
-                  <span>Hide Slide</span>
+                  <span>{t('slide.visibility.hide')}</span>
                 </>
               )}
             </Button>
@@ -1722,11 +1722,11 @@ export default function PresenterOperator({
                   isLoopingRef.current = true;
                   setIsLooping(true);
                 }}
-                title={isLooping ? 'Stop Announcement Loop' : 'Start Announcement Loop'}
+                title={isLooping ? t('presenter.stopLoop') : t('presenter.autoLoop')}
                 aria-pressed={isLooping}
               >
                 <Repeat className={`w-3.5 h-3.5 ${isLooping ? 'animate-spin' : ''}`} />
-                {isLooping ? 'Stop Loop' : 'Auto Loop'}
+                {isLooping ? t('presenter.stopLoop') : t('presenter.autoLoop')}
               </Button>
               <Select
                 value={String(loopInterval)}
@@ -1754,7 +1754,7 @@ export default function PresenterOperator({
               aria-pressed={blank}
               onClick={toggleBlank}
             >
-              {blank ? 'Resume screen (B)' : 'Blank screen (B)'}
+              {blank ? t('presenter.resumeScreen') : t('presenter.blankScreen')}
             </Button>
             <Button
               variant="ghost"
@@ -1766,7 +1766,7 @@ export default function PresenterOperator({
                 });
               }}
             >
-              Clear scripture
+              {t('presenter.clearScripture')}
             </Button>
 
             {/* Live-only, and it has to read that way at a glance. An operator
@@ -1779,11 +1779,11 @@ export default function PresenterOperator({
               className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"
             >
               <span className="flex items-center gap-1.5">
-                Transition
+                {t('presenter.liveTransition')}
                 <span
                   className={`${BADGE_CLASS} border-border bg-muted text-muted-foreground`}
                 >
-                  Live only · not saved
+                  {t('presenter.liveOnlyBadge')}
                 </span>
               </span>
               <Select
@@ -2245,6 +2245,7 @@ export function EmergencyCanvasDesignerModal({
   onApply: (updatedArtifact: ArtifactInstance, updatedText: string) => Promise<void> | void;
   onCancel: () => void;
 }) {
+  const { t } = useT();
   const [draftArtifact, setDraftArtifact] = useState<ArtifactInstance | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'elements' | 'background'>('elements');
@@ -2343,7 +2344,7 @@ export function EmergencyCanvasDesignerModal({
     if (!selectedElement) return null;
     return (
       <div className="space-y-1.5 pt-1 border-t border-zinc-800/60" data-testid="emergency-geometry-section">
-        <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
+        <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.geometry')}</Label>
         <div className="grid grid-cols-5 gap-1.5">
           <div>
             <span className="text-[10px] text-zinc-400 block">X</span>
@@ -2422,13 +2423,13 @@ export function EmergencyCanvasDesignerModal({
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-base font-semibold flex items-center gap-2 text-zinc-100">
-                <span>🎨 Edit Kanvas Darurat (Slide {slideIndex + 1})</span>
+                <span>🎨 {t('emergency.modal.title')} (Slide {slideIndex + 1})</span>
                 <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                  Lokal / Panggung
+                  {t('emergency.modal.badge')}
                 </span>
               </DialogTitle>
               <DialogDescription className="text-xs text-zinc-400 mt-0.5">
-                Koreksi visual instan multi-elemen pada slide aktif. Perubahan langsung disiarkan ke layar auditorium (lokal).
+                {t('emergency.modal.description')}
               </DialogDescription>
             </div>
           </div>
@@ -2524,7 +2525,7 @@ export function EmergencyCanvasDesignerModal({
                 }`}
               >
                 <Palette className="h-3 w-3" />
-                <span>Latar (Background)</span>
+                <span>{t('emergency.modal.bgTab')}</span>
               </Button>
             </div>
           </div>
@@ -2536,7 +2537,7 @@ export function EmergencyCanvasDesignerModal({
                 <div className="flex items-center justify-between pb-1 border-b border-zinc-800">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-zinc-200">
-                      Elemen: {selectedElement.placeholderKey || selectedElement.id}
+                      {t('emergency.modal.elementPrefix')} {selectedElement.placeholderKey || selectedElement.id}
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 uppercase">
                       {selectedElement.type}
@@ -2548,7 +2549,7 @@ export function EmergencyCanvasDesignerModal({
                   <div className="space-y-3" data-testid="inspector-text-panel">
                     <div className="space-y-1">
                       <Label htmlFor="emergency-text" className="text-xs font-medium text-zinc-300">
-                        Teks Elemen (Langsung Tampil di Kanvas)
+                        {t('emergency.modal.textLabel')}
                       </Label>
                       <textarea
                         id="emergency-text"
@@ -2563,7 +2564,7 @@ export function EmergencyCanvasDesignerModal({
 
                     {/* Typography Row */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-zinc-300">Tipografi & Penjajaran</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.typography')}</Label>
                       <div className="flex flex-wrap items-center gap-2">
                         <Select
                           value={selectedElement.style?.fontFamily || 'Geist Sans'}
@@ -2690,7 +2691,7 @@ export function EmergencyCanvasDesignerModal({
                 {selectedElement.type === 'shape' && (
                   <div className="space-y-3" data-testid="inspector-shape-panel">
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium text-zinc-300">Warna Isian & Transparansi</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.shapeFill')}</Label>
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
                           <input
@@ -2725,7 +2726,7 @@ export function EmergencyCanvasDesignerModal({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium text-zinc-300">Garis Tepi (Stroke)</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.shapeStroke')}</Label>
                       <div className="flex items-center gap-3">
                         <input
                           type="color"
@@ -2758,7 +2759,7 @@ export function EmergencyCanvasDesignerModal({
                 {selectedElement.type === 'line' && (
                   <div className="space-y-3" data-testid="inspector-line-panel">
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium text-zinc-300">Warna & Ketebalan Garis</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.lineColor')}</Label>
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
                           <input
@@ -2790,7 +2791,7 @@ export function EmergencyCanvasDesignerModal({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs font-medium text-zinc-300">Transparansi Garis</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.lineOpacity')}</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="range"
@@ -2815,7 +2816,7 @@ export function EmergencyCanvasDesignerModal({
                 {(selectedElement.type === 'image' || selectedElement.type === 'image-placeholder') && (
                   <div className="space-y-3" data-testid="inspector-image-panel">
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium text-zinc-300">Unggah Gambar (Upload & Crop)</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.imageUpload')}</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="file"
@@ -2835,14 +2836,14 @@ export function EmergencyCanvasDesignerModal({
                           className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
                         >
                           <Upload className="size-3.5" />
-                          <span>{isUploadingImage ? 'Mengunggah...' : 'Upload & Crop'}</span>
+                          <span>{isUploadingImage ? t('emergency.modal.uploading') : 'Upload & Crop'}</span>
                         </Button>
                       </div>
                     </div>
 
                     <div className="space-y-1">
                       <Label htmlFor="emergency-image-url" className="text-xs font-medium text-zinc-300">
-                        URL Gambar
+                        {t('emergency.modal.imageUrl')}
                       </Label>
                       <input
                         id="emergency-image-url"
@@ -2856,7 +2857,7 @@ export function EmergencyCanvasDesignerModal({
                     </div>
 
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium text-zinc-300">Penyesuaian (Fit Mode)</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.imageFit')}</Label>
                       <Select
                         value={selectedElement.style?.objectFit || 'contain'}
                         onValueChange={(val) => {
@@ -2880,7 +2881,7 @@ export function EmergencyCanvasDesignerModal({
                     </div>
 
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium text-zinc-300">Transparansi Gambar</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.imageOpacity')}</Label>
                       <div className="flex items-center gap-2">
                         <input
                           type="range"
@@ -2906,11 +2907,11 @@ export function EmergencyCanvasDesignerModal({
               <div className="space-y-3">
                 <div className="pb-1 border-b border-zinc-800">
                   <span className="text-xs font-semibold text-zinc-200">
-                    Pengaturan Latar Belakang (Background)
+                    {t('emergency.modal.bgHeading')}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-300">Warna Latar</Label>
+                  <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.bgColor')}</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -2925,7 +2926,7 @@ export function EmergencyCanvasDesignerModal({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-300">Gambar Latar (URL)</Label>
+                  <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.bgImageUrl')}</Label>
                   <input
                     type="text"
                     data-testid="emergency-bg-image"
@@ -2942,7 +2943,7 @@ export function EmergencyCanvasDesignerModal({
                       onClick={() => handleUpdateBackground({ image: null })}
                       className="text-xs text-destructive hover:text-destructive/80 h-7 px-2"
                     >
-                      Hapus Gambar Latar
+                      {t('emergency.modal.bgRemove')}
                     </Button>
                   ) : null}
                 </div>
@@ -2953,7 +2954,7 @@ export function EmergencyCanvasDesignerModal({
 
         <DialogFooter className="flex flex-row items-center justify-between border-t border-zinc-800/80 pt-2 gap-2">
           <p className="text-[11px] text-zinc-400 text-left hidden sm:block">
-            Perubahan disimpan lokal di IndexedDB dan disiarkan seketika via BroadcastChannel.
+            {t('emergency.modal.footerNotice')}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -2964,7 +2965,7 @@ export function EmergencyCanvasDesignerModal({
               onClick={onCancel}
               className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
-              Batal
+              {t('emergency.modal.cancel')}
             </Button>
             <Button
               type="button"
@@ -2974,7 +2975,7 @@ export function EmergencyCanvasDesignerModal({
               onClick={handleApplyClick}
               className="bg-amber-600 hover:bg-amber-700 text-white font-medium disabled:opacity-50"
             >
-              {isUploadingImage ? 'Mengunggah...' : 'Terapkan ke Layar (Lokal)'}
+              {isUploadingImage ? t('emergency.modal.uploading') : t('emergency.modal.apply')}
             </Button>
           </div>
         </DialogFooter>

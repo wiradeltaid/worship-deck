@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**73 decisions** — accepted: 1 · applied: 72.
+**73 decisions** — applied: 73.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -80,4 +80,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-070` | Daily Autopilot mandate for Song-Set Dropdown Containment and PPTX Dynamic Text Word Wrap Parity (SPEC-82, SP… | `applied` | mandate | `.control/memlog/autopilot-DEC-070.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-070-daily-autopilot-mandate-dropdown-containment-and-pptx-wrap.md` |
 | `DEC-071` | Daily Autopilot mandate for Offline Presentation Resilience and Emergency Local Edit (SPEC-84) | `applied` | mandate | `.control/memlog/autopilot-DEC-071.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-071-daily-autopilot-mandate-offline-presentation-resilience.md` |
 | `DEC-072` | Daily Autopilot mandate for Presentation Fidelity, Slide Visibility Control, and Operator Polish (SPEC-85) | `applied` | mandate | `.control/memlog/autopilot-DEC-072.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-072-daily-autopilot-mandate-presentation-fidelity-slide-visibility.md` |
-| `DEC-073` | Daily Autopilot mandate for Operator Ergonomics, Canvas Polish, and Localization Parity (SPEC-86) | `accepted` | mandate | `.control/memlog/autopilot-DEC-073.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-073-daily-autopilot-mandate-operator-ergonomics-canvas-polish.md` |
+| `DEC-073` | Daily Autopilot mandate for Operator Ergonomics, Canvas Polish, and Localization Parity (SPEC-86) | `applied` | mandate | `.control/memlog/autopilot-DEC-073.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-073-daily-autopilot-mandate-operator-ergonomics-canvas-polish.md` |

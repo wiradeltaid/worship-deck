@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useT } from '@/lib/i18n/operator';
 import {
   getCroppedImg,
   type CropArea,
@@ -54,6 +55,7 @@ export default function ImageCropDialog({
   onComplete,
   onCancel,
 }: ImageCropDialogProps) {
+  const { t } = useT();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -175,7 +177,7 @@ export default function ImageCropDialog({
 
         {/* Pan and zoom interaction hint */}
         <p className="text-[11px] text-muted-foreground text-center">
-          Geser gambar untuk mengatur posisi, gunakan slider zoom untuk memperbesar/memperkecil
+          {t('crop.hint')}
         </p>
 
         {/* Controls Grid */}
@@ -230,7 +232,7 @@ export default function ImageCropDialog({
             {/* Custom Ratio Inputs */}
             {selectedPreset === 'custom' && (
               <div className="flex items-center gap-2 pl-14 pt-1">
-                <span className="text-muted-foreground text-[11px]">Rasio W:H :</span>
+                <span className="text-muted-foreground text-[11px]">{t('crop.ratioLabel')}</span>
                 <input
                   type="number"
                   min="0.1"
@@ -297,7 +299,7 @@ export default function ImageCropDialog({
             disabled={isProcessing}
             title="Upload original file without cropping"
           >
-            Skip Crop
+            {t('crop.skip')}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -308,7 +310,7 @@ export default function ImageCropDialog({
               onClick={onCancel}
               disabled={isProcessing}
             >
-              Cancel
+              {t('crop.cancel')}
             </Button>
             <Button
               type="button"
@@ -317,7 +319,7 @@ export default function ImageCropDialog({
               onClick={handleApplyCrop}
               disabled={isApplyDisabled}
             >
-              {isProcessing ? 'Processing...' : 'Crop & Upload'}
+              {isProcessing ? t('crop.processing') : t('crop.apply')}
             </Button>
           </div>
         </div>

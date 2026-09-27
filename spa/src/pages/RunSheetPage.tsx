@@ -287,9 +287,9 @@ export default function RunSheetPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
             </span>
-            <span>Mode Offline — Membaca data tersimpan</span>
+            <span>{t('edit.offline.banner')}</span>
           </div>
-          <span className="text-[11px] opacity-75">Tersimpan di perangkat lokal</span>
+          <span className="text-[11px] opacity-75">{t('edit.offline.savedLocal')}</span>
         </div>
       )}
       {pendingPatches.length > 0 && !isOfflineData && (
@@ -299,7 +299,9 @@ export default function RunSheetPage() {
           className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2"
         >
           <div className="flex items-center gap-2">
-            <span>Terdapat koreksi panggung: {pendingPatches.length} perubahan tersimpan secara lokal</span>
+            <span>
+              {t('edit.emergency.bannerPrefix')} {pendingPatches.length} {t('edit.emergency.changesSaved')}
+            </span>
             {reconcileError && (
               <span className="text-destructive font-medium ml-2">({reconcileError})</span>
             )}
@@ -314,7 +316,7 @@ export default function RunSheetPage() {
               onClick={handleSyncEmergencyToServer}
               className="h-7 px-2.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
             >
-              {isReconciling ? 'Menyimpan...' : 'Simpan ke Server'}
+              {isReconciling ? t('edit.emergency.saving') : t('edit.emergency.syncServer')}
             </Button>
             <Button
               type="button"
@@ -325,7 +327,7 @@ export default function RunSheetPage() {
               onClick={handleDiscardEmergencyPatches}
               className="h-7 px-2.5 text-xs border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
             >
-              Buang
+              {t('edit.emergency.discard')}
             </Button>
           </div>
         </div>
@@ -410,8 +412,8 @@ export default function RunSheetPage() {
                     }}
                     className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
                   >
-                    <span className="font-medium text-xs">Word Wrap in PowerPoint (Default)</span>
-                    <span className="text-muted-foreground text-[10px]">Text reflows in PowerPoint when edited</span>
+                    <span className="font-medium text-xs">{t('edit.pptx.wordWrapDefault')}</span>
+                    <span className="text-muted-foreground text-[10px]">{t('edit.pptx.wordWrapDefaultDesc')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
@@ -422,8 +424,8 @@ export default function RunSheetPage() {
                     }}
                     className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
                   >
-                    <span className="font-medium text-xs">Disable PowerPoint Word Wrap</span>
-                    <span className="text-muted-foreground text-[10px]">Preserves fixed unwrapped shape boundaries</span>
+                    <span className="font-medium text-xs">{t('edit.pptx.wordWrapDisabled')}</span>
+                    <span className="text-muted-foreground text-[10px]">{t('edit.pptx.wordWrapDisabledDesc')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -639,7 +639,9 @@ dag:
   order:
   - parallel:
     - SPEC-86-01
+  - parallel:
     - SPEC-86-02
+  - parallel:
     - SPEC-86-03
   - parallel:
     - SPEC-86-04

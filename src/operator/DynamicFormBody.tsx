@@ -20,6 +20,7 @@ import {
 import { HymnNumberAutocomplete } from '@/components/HymnNumberAutocomplete';
 import { ImageUploadField } from '@/components/ImageUploadField';
 import type { HymnIndexEntry } from '@/lib/worship-form-fields';
+import { useT } from '@/lib/i18n/operator';
 import { cn } from '@/lib/utils';
 import type {
   PredefinedFieldDef,
@@ -339,6 +340,7 @@ function SongSetSlotRenderer({
   disabled?: boolean;
   hymnIndex?: HymnIndexEntry[];
 }) {
+  const { t } = useT();
   const entryDef = songSetEntries.find((e) => e.variableName === refKey);
   const title = entryDef?.title || refKey.replace(/_/g, ' ').toUpperCase();
   const defaultBook = songBooks.find((b) => b.isDefault);
@@ -541,7 +543,7 @@ function SongSetSlotRenderer({
             onClick={onToggleLyricEditor}
             data-testid="song-set-lyric-toggle-button"
           >
-            {isLyricOpen ? 'Close Lyrics' : 'Edit Lyrics'}
+            {isLyricOpen ? t('form.songSet.closeLyrics') : t('form.songSet.editLyrics')}
           </Button>
           {onSaveToBook && isLyricOpen && isLyricsDirty && (
             <Button
@@ -553,7 +555,7 @@ function SongSetSlotRenderer({
               disabled={disabled || isSavingBook}
               data-testid="save-to-book-button"
             >
-              {isSavingBook ? 'Saving...' : 'Save to Book'}
+              {isSavingBook ? t('form.songSet.saving') : t('form.songSet.saveToBook')}
             </Button>
           )}
         </div>
@@ -569,7 +571,7 @@ function SongSetSlotRenderer({
               hasUserEditedRef.current = true;
               onChange('lyricText', e.target.value);
             }}
-            placeholder="Ketik atau edit bait lirik di sini..."
+            placeholder={t('form.songSet.placeholder')}
             disabled={disabled}
             data-testid="song-set-lyric-textarea"
           />

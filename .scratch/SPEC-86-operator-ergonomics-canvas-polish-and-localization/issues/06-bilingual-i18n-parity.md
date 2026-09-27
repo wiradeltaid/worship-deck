@@ -24,17 +24,17 @@ Satisfies `FR-25`, `UC-5`, and `UC-12`.
 
 **Blocked by:** `SPEC-86-01`, `SPEC-86-02`, `SPEC-86-03`, `SPEC-86-04`, `SPEC-86-05`
 
-**Status:** open
+**Status:** done
 
-- [ ] Read `src/lib/i18n/keys.ts`, `src/lib/i18n/catalogue-en.ts`, `src/lib/i18n/catalogue-id.ts`, and `src/components/media/ImageCropDialog.tsx`.
-- [ ] In `src/lib/i18n/keys.ts`:
+- [x] Read `src/lib/i18n/keys.ts`, `src/lib/i18n/catalogue-en.ts`, `src/lib/i18n/catalogue-id.ts`, and `src/components/media/ImageCropDialog.tsx`.
+- [x] In `src/lib/i18n/keys.ts`:
       - Declare all new translation keys for Run-Sheet header, song-set actions, visibility toggles, presenter controls, emergency canvas modal, and image crop dialog.
-- [ ] In `src/lib/i18n/catalogue-en.ts` and `src/lib/i18n/catalogue-id.ts`:
+- [x] In `src/lib/i18n/catalogue-en.ts` and `src/lib/i18n/catalogue-id.ts`:
       - Add complete English and Indonesian translations for all declared keys.
-- [ ] In UI components (`RunSheetPage.tsx`, `PresenterOperator.tsx`, `DynamicFormBody.tsx`, `SlidePreviewList.tsx`, `ImageCropDialog.tsx`):
+- [x] In UI components (`RunSheetPage.tsx`, `PresenterOperator.tsx`, `DynamicFormBody.tsx`, `SlidePreviewList.tsx`, `ImageCropDialog.tsx`):
       - Replace hardcoded Indonesian or English text with `t(...)` localization hooks.
-- [ ] In `tests/bilingual-i18n-parity.test.mjs`:
+- [x] In `tests/bilingual-i18n-parity.test.mjs`:
       - Test dictionary key parity between `catalogue-en.ts` and `catalogue-id.ts`.
       - Test component rendering under English and Indonesian locales.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/bilingual-i18n-parity.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/bilingual-i18n-parity.test.mjs` and `npm run typecheck`.

@@ -210,7 +210,7 @@ function SlideRow({
               data-testid="slide-hidden-badge"
               className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.25 border rounded bg-zinc-800 text-zinc-300 border-zinc-700"
             >
-              Hidden
+              {t('slide.visibility.hidden')}
             </span>
           )}
           {title ? (
@@ -240,9 +240,9 @@ function SlideRow({
             e.stopPropagation();
             onToggleSlideVisibility(slideId);
           }}
-          title={isHidden ? 'Show slide' : 'Hide slide'}
+          title={isHidden ? t('slide.visibility.unhide') : t('slide.visibility.hide')}
           className="shrink-0 h-7 w-7 p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-opacity opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-          aria-label={isHidden ? 'Show slide' : 'Hide slide'}
+          aria-label={isHidden ? t('slide.visibility.unhide') : t('slide.visibility.hide')}
         >
           {isHidden ? (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
