@@ -545,7 +545,7 @@ function SongSetSlotRenderer({
           >
             {isLyricOpen ? t('form.songSet.closeLyrics') : t('form.songSet.editLyrics')}
           </Button>
-          {onSaveToBook && isLyricOpen && isLyricsDirty && (
+          {hasValidNum && onSaveToBook && isLyricOpen && isLyricsDirty && (
             <Button
               type="button"
               variant="outline"

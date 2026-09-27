@@ -133,7 +133,7 @@ test('SPEC-80: source presence and absence guards in ImageCropDialog.tsx', () =>
 
   // Must render on-screen pan/zoom interaction hint
   assert.ok(
-    content.includes('Geser gambar untuk mengatur posisi, gunakan slider zoom untuk memperbesar/memperkecil'),
+    content.includes("t('crop.hint')") || content.includes('Geser gambar untuk mengatur posisi, gunakan slider zoom untuk memperbesar/memperkecil'),
     'must render pan/zoom guidance hint'
   );
 

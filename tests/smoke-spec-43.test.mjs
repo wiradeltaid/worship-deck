@@ -49,7 +49,7 @@ function scanRemoteCodeFormat(source) {
 function scanRunSheetButtonVariant(source) {
   const findings = [];
   // Match the Button immediately preceding Run-Sheet
-  const m = source.match(/<Button\b([\s\S]*?)>\s*Run-Sheet\s*<\/Button>/);
+  const m = source.match(/<Button\b([\s\S]*?)>\s*(?:Run-Sheet|\{t\('presenter\.runSheet'\)\})\s*<\/Button>/);
   if (!m) {
     findings.push('Run-Sheet button not found');
   } else {
@@ -103,8 +103,8 @@ test('SPEC-43-01: 3. Run-Sheet button in PresenterOperator uses variant="outline
 
 test('SPEC-43-01: 4. Defect injection proof for Run-Sheet button variant guard', () => {
   const defectiveSource = presenterSource.replace(
-    /variant="outline"(\s+nativeButton=\{false\}\s+render=\{<Link href=\{\`\/services\/\$\{serviceId\}\`\} \/>\}\s*>\s*Run-Sheet\s*<\/Button>)/,
-    'variant="ghost"$1'
+    /(render=\{<Link href=\{\`\/services\/\$\{serviceId\}\`\} \/>\}\s*>\s*(?:Run-Sheet|\{t\('presenter\.runSheet'\)\})\s*<\/Button>)/,
+    'variant="ghost" $1'
   );
   const findings = scanRunSheetButtonVariant(defectiveSource);
   assert.ok(

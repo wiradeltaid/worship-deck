@@ -373,7 +373,8 @@ test('SPEC-39-02: 3. PresenterOperator UI implements loop toggle, interval selec
 
   // Loop Toggle button & Interval Select
   assert.ok(
-    presenterOperatorCode.includes('Stop Loop') && presenterOperatorCode.includes('Auto Loop'),
+    (presenterOperatorCode.includes('Stop Loop') && presenterOperatorCode.includes('Auto Loop')) ||
+    (presenterOperatorCode.includes("t('presenter.stopLoop')") && presenterOperatorCode.includes("t('presenter.autoLoop')")),
     'PresenterOperator must provide Auto Loop / Stop Loop button'
   );
   assert.ok(
