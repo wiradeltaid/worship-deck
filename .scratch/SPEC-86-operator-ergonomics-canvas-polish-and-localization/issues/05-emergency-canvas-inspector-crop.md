@@ -33,16 +33,16 @@ Satisfies `FR-16`, `FR-19`, and `UC-12`.
 
 **Blocked by:** `SPEC-86-04`
 
-**Status:** open
+**Status:** done
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx`, `src/lib/emergency-canvas.ts`, and `src/components/media/ImageCropDialog.tsx`.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] Read `src/operator/present/PresenterOperator.tsx`, `src/lib/emergency-canvas.ts`, and `src/components/media/ImageCropDialog.tsx`.
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Guard inspector panels strictly by `selectedElement.type` (`text`, `shape`, `line`, `image`, `image-placeholder`).
       - Suppress image URL and upload controls for shape and line elements.
       - Wire `ImageCropDialog` to crop and upload image files, updating `imageUrl` on `draftArtifact`.
-- [ ] In `tests/emergency-canvas-inspector-crop.test.mjs`:
+- [x] In `tests/emergency-canvas-inspector-crop.test.mjs`:
       - Test shape and line element inspector omits image properties.
       - Test image and image-placeholder element inspector provides image upload/crop triggers.
       - Test image crop flow updates `imageUrl` on `draftArtifact`.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-canvas-inspector-crop.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/emergency-canvas-inspector-crop.test.mjs` and `npm run typecheck`.

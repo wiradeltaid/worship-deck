@@ -47,8 +47,10 @@ import {
   Palette,
   Check,
   Sparkles,
+  Upload,
 } from 'lucide-react';
 import Link from '@/components/Link';
+import ImageCropDialog from '@/components/media/ImageCropDialog';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import {
   findNextVisibleIndex,
@@ -72,6 +74,7 @@ import {
   updateArtifactBackground,
   createEmergencyPatchRecord,
   applyEmergencyPatchToSlides,
+  fileToDataUrl,
 } from '@/lib/emergency-canvas';
 import {
   isProjectorMessage,
@@ -2246,6 +2249,9 @@ export function EmergencyCanvasDesignerModal({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'elements' | 'background'>('elements');
   const [isApplying, setIsApplying] = useState(false);
+  const [cropTargetFile, setCropTargetFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (open && slide) {
@@ -2276,7 +2282,7 @@ export function EmergencyCanvasDesignerModal({
     setDraftArtifact((prev) => (prev ? updateElementStyle(prev, selectedElementId, stylePatch) : prev));
   };
 
-  const handleUpdateGeometry = (geo: { x?: number; y?: number; w?: number; h?: number }) => {
+  const handleUpdateGeometry = (geo: { x?: number; y?: number; w?: number; h?: number; rotation?: number }) => {
     if (!draftArtifact || !selectedElementId) return;
     setDraftArtifact((prev) => (prev ? updateElementGeometry(prev, selectedElementId, geo) : prev));
   };
@@ -2288,13 +2294,114 @@ export function EmergencyCanvasDesignerModal({
     );
   };
 
+  const handleFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCropTargetFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropTargetFile(null);
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', croppedFile);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { url?: string };
+      if (data.url) {
+        handleUpdateImage(data.url, selectedElement?.style?.objectFit);
+      } else {
+        throw new Error('No URL returned from server');
+      }
+    } catch {
+      // Resilient offline fallback: convert to durable self-contained data URL
+      try {
+        const dataUrl = await fileToDataUrl(croppedFile);
+        handleUpdateImage(dataUrl, selectedElement?.style?.objectFit);
+      } catch {
+        toast.error('Gagal memproses gambar lokal');
+      }
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleUpdateBackground = (bg: { color?: string; image?: string | null }) => {
     if (!draftArtifact) return;
     setDraftArtifact((prev) => (prev ? updateArtifactBackground(prev, bg) : prev));
   };
 
+  const renderGeometryRow = () => {
+    if (!selectedElement) return null;
+    return (
+      <div className="space-y-1.5 pt-1 border-t border-zinc-800/60" data-testid="emergency-geometry-section">
+        <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
+        <div className="grid grid-cols-5 gap-1.5">
+          <div>
+            <span className="text-[10px] text-zinc-400 block">X</span>
+            <input
+              type="number"
+              data-testid="emergency-element-x"
+              value={Math.round(selectedElement.x ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">Y</span>
+            <input
+              type="number"
+              data-testid="emergency-element-y"
+              value={Math.round(selectedElement.y ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">W</span>
+            <input
+              type="number"
+              data-testid="emergency-element-w"
+              value={Math.round(selectedElement.w ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">H</span>
+            <input
+              type="number"
+              data-testid="emergency-element-h"
+              value={Math.round(selectedElement.h ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">Rot (°)</span>
+            <input
+              type="number"
+              data-testid="emergency-element-rotation"
+              value={Math.round(selectedElement.rotation ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ rotation: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleApplyClick = async () => {
-    if (!draftArtifact) return;
+    if (!draftArtifact || isApplying || isUploadingImage) return;
     setIsApplying(true);
     try {
       const canonicalBodyEl = findCanonicalBodyElement(draftArtifact);
@@ -2437,8 +2544,8 @@ export function EmergencyCanvasDesignerModal({
                   </div>
                 </div>
 
-                {selectedElement.type === 'text' ? (
-                  <div className="space-y-3">
+                {selectedElement.type === 'text' && (
+                  <div className="space-y-3" data-testid="inspector-text-panel">
                     <div className="space-y-1">
                       <Label htmlFor="emergency-text" className="text-xs font-medium text-zinc-300">
                         Teks Elemen (Langsung Tampil di Kanvas)
@@ -2576,55 +2683,163 @@ export function EmergencyCanvasDesignerModal({
                       </div>
                     </div>
 
-                    {/* Geometry Row */}
-                    <div className="space-y-1.5 pt-1">
-                      <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">X</span>
+                    {renderGeometryRow()}
+                  </div>
+                )}
+
+                {selectedElement.type === 'shape' && (
+                  <div className="space-y-3" data-testid="inspector-shape-panel">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">Warna Isian & Transparansi</Label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <input
-                            type="number"
-                            data-testid="emergency-element-x"
-                            value={Math.round(selectedElement.x ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                            type="color"
+                            data-testid="emergency-shape-fill"
+                            value={selectedElement.style?.fillColor || '#FFFFFF'}
+                            onChange={(e) => handleUpdateStyle({ fillColor: e.target.value })}
+                            className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                            title="Warna Isian Bentuk"
                           />
+                          <span className="font-mono text-xs text-zinc-300">
+                            {selectedElement.style?.fillColor || '#FFFFFF'}
+                          </span>
                         </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">Y</span>
+                        <div className="flex items-center gap-2 flex-1 min-w-[120px]">
+                          <span className="text-xs text-zinc-400">Opasitas:</span>
                           <input
-                            type="number"
-                            data-testid="emergency-element-y"
-                            value={Math.round(selectedElement.y ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                            type="range"
+                            data-testid="emergency-shape-opacity"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={selectedElement.style?.opacity ?? 1}
+                            onChange={(e) => handleUpdateStyle({ opacity: parseFloat(e.target.value) })}
+                            className="flex-1 accent-amber-500"
                           />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">W</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-w"
-                            value={Math.round(selectedElement.w ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">H</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-h"
-                            value={Math.round(selectedElement.h ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
+                          <span className="text-xs font-mono text-zinc-300 w-8">
+                            {Math.round((selectedElement.style?.opacity ?? 1) * 100)}%
+                          </span>
                         </div>
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">Garis Tepi (Stroke)</Label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          data-testid="emergency-shape-stroke-color"
+                          value={selectedElement.style?.strokeColor || '#FFFFFF'}
+                          onChange={(e) => handleUpdateStyle({ strokeColor: e.target.value })}
+                          className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                          title="Warna Garis Tepi"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-400">Tebal:</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-shape-stroke-width"
+                            min="0"
+                            max="50"
+                            value={selectedElement.style?.strokeWidth ?? 0}
+                            onChange={(e) => handleUpdateStyle({ strokeWidth: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                            className="h-8 w-16 rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                          />
+                          <span className="text-xs text-zinc-400">px</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {renderGeometryRow()}
                   </div>
-                ) : (
-                  <div className="space-y-3">
+                )}
+
+                {selectedElement.type === 'line' && (
+                  <div className="space-y-3" data-testid="inspector-line-panel">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">Warna & Ketebalan Garis</Label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            data-testid="emergency-line-color"
+                            value={selectedElement.style?.strokeColor || selectedElement.style?.fillColor || '#FFFFFF'}
+                            onChange={(e) => handleUpdateStyle({ strokeColor: e.target.value, fillColor: e.target.value })}
+                            className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                            title="Warna Garis"
+                          />
+                          <span className="font-mono text-xs text-zinc-300">
+                            {selectedElement.style?.strokeColor || selectedElement.style?.fillColor || '#FFFFFF'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-400">Tebal:</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-line-width"
+                            min="1"
+                            max="50"
+                            value={selectedElement.style?.strokeWidth ?? 2}
+                            onChange={(e) => handleUpdateStyle({ strokeWidth: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                            className="h-8 w-16 rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                          />
+                          <span className="text-xs text-zinc-400">px</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">Transparansi Garis</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          data-testid="emergency-line-opacity"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={selectedElement.style?.opacity ?? 1}
+                          onChange={(e) => handleUpdateStyle({ opacity: parseFloat(e.target.value) })}
+                          className="flex-1 accent-amber-500"
+                        />
+                        <span className="text-xs font-mono text-zinc-300 w-8">
+                          {Math.round((selectedElement.style?.opacity ?? 1) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {renderGeometryRow()}
+                  </div>
+                )}
+
+                {(selectedElement.type === 'image' || selectedElement.type === 'image-placeholder') && (
+                  <div className="space-y-3" data-testid="inspector-image-panel">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-zinc-300">Unggah Gambar (Upload & Crop)</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChosen}
+                          accept="image/*"
+                          className="hidden"
+                          data-testid="emergency-image-file-input"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          data-testid="emergency-image-upload-button"
+                          disabled={isUploadingImage}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                        >
+                          <Upload className="size-3.5" />
+                          <span>{isUploadingImage ? 'Mengunggah...' : 'Upload & Crop'}</span>
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
                       <Label htmlFor="emergency-image-url" className="text-xs font-medium text-zinc-300">
                         URL Gambar
@@ -2639,6 +2854,7 @@ export function EmergencyCanvasDesignerModal({
                         className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
                       />
                     </div>
+
                     <div className="space-y-1">
                       <Label className="text-xs font-medium text-zinc-300">Penyesuaian (Fit Mode)</Label>
                       <Select
@@ -2662,52 +2878,27 @@ export function EmergencyCanvasDesignerModal({
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Geometry Row for Image */}
-                    <div className="space-y-1.5 pt-1">
-                      <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">X</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-x"
-                            value={Math.round(selectedElement.x ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">Y</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-y"
-                            value={Math.round(selectedElement.y ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">W</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-w"
-                            value={Math.round(selectedElement.w ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">H</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-h"
-                            value={Math.round(selectedElement.h ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-zinc-300">Transparansi Gambar</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          data-testid="emergency-image-opacity"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={selectedElement.style?.opacity ?? 1}
+                          onChange={(e) => handleUpdateStyle({ opacity: parseFloat(e.target.value) })}
+                          className="flex-1 accent-amber-500"
+                        />
+                        <span className="text-xs font-mono text-zinc-300 w-8">
+                          {Math.round((selectedElement.style?.opacity ?? 1) * 100)}%
+                        </span>
                       </div>
                     </div>
+
+                    {renderGeometryRow()}
                   </div>
                 )}
               </div>
@@ -2779,15 +2970,23 @@ export function EmergencyCanvasDesignerModal({
               type="button"
               size="sm"
               data-testid="emergency-apply-button"
-              disabled={isApplying}
+              disabled={isApplying || isUploadingImage}
               onClick={handleApplyClick}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-medium"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium disabled:opacity-50"
             >
-              Terapkan ke Layar (Lokal)
+              {isUploadingImage ? 'Mengunggah...' : 'Terapkan ke Layar (Lokal)'}
             </Button>
           </div>
         </DialogFooter>
       </DialogContent>
+      {cropTargetFile && (
+        <ImageCropDialog
+          open={cropTargetFile !== null}
+          file={cropTargetFile}
+          onComplete={handleCropComplete}
+          onCancel={() => setCropTargetFile(null)}
+        />
+      )}
     </Dialog>
   );
 }
