@@ -3650,6 +3650,64 @@ waves:
         tests:
           - tests/emergency-canvas-edit.test.mjs
 
+  # Opened 2026-09-27 from user triage notes.
+  # Operator ergonomics, canvas polish, and localization parity.
+  - id: SPEC-86
+    status: open
+    release: operator-ergonomics-canvas-polish-and-localization
+    prd: [operator-turn, offline-deck]
+    fr: [FR-14, FR-16, FR-19, FR-25, FR-34]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-86-operator-ergonomics-canvas-polish-and-localization/
+    spec_reviewed:
+      date: '2026-09-27'
+      sha: '3d93123b06f44c6081deee4387a0821e9f6b34cc'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-86-01"
+        component: hub
+        satisfies: [FR-16, UC-5]
+        blocked_by: []
+        touches: [services]
+        tests:
+          - tests/run-sheet-header-tiered-layout.test.mjs
+      - id: "SPEC-86-02"
+        component: hub
+        satisfies: [FR-34, UC-28]
+        blocked_by: []
+        touches: [song-sets]
+        tests:
+          - tests/song-set-lyric-button-layout.test.mjs
+      - id: "SPEC-86-03"
+        component: presenter
+        satisfies: [FR-14, UC-5]
+        blocked_by: []
+        touches: [preview-list]
+        tests:
+          - tests/slide-preview-hover-visibility.test.mjs
+      - id: "SPEC-86-04"
+        component: presenter
+        satisfies: [FR-14, FR-16, UC-12]
+        blocked_by: ["SPEC-86-01"]
+        touches: [present-console]
+        tests:
+          - tests/presenter-header-two-row-layout.test.mjs
+      - id: "SPEC-86-05"
+        component: presenter
+        satisfies: [FR-16, FR-19, UC-12]
+        blocked_by: ["SPEC-86-04"]
+        touches: [emergency-canvas]
+        tests:
+          - tests/emergency-canvas-inspector-crop.test.mjs
+      - id: "SPEC-86-06"
+        component: presenter
+        satisfies: [FR-25, UC-5, UC-12]
+        blocked_by: ["SPEC-86-01", "SPEC-86-02", "SPEC-86-03", "SPEC-86-04", "SPEC-86-05"]
+        touches: [i18n]
+        tests:
+          - tests/bilingual-i18n-parity.test.mjs
+
 
 
 
