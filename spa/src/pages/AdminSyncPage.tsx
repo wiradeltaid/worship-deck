@@ -8,6 +8,8 @@ import {
   checkSyncAssets,
   uploadSyncAsset,
   downloadSyncAsset,
+  loginRemote,
+  SyncHttpError,
   SyncPushPayload,
   SyncPullResponse,
   SyncStatusResponse,
@@ -37,6 +39,8 @@ import {
   Clock,
   ShieldAlert,
   Copy,
+  Lock,
+  LogOut,
 } from 'lucide-react';
 
 export interface ServiceConflict {
@@ -46,6 +50,14 @@ export interface ServiceConflict {
   server_updated_at: string;
   local_payload: string;
   server_payload?: string;
+}
+
+export function getOriginSafely(urlStr: string): string {
+  try {
+    return new URL(urlStr, window.location.origin).origin;
+  } catch {
+    return window.location.origin;
+  }
 }
 
 export function getOrCreateDeviceId(): string {
@@ -70,9 +82,19 @@ export default function AdminSyncPage() {
   const [remoteUrl, setRemoteUrl] = useState(() => {
     return localStorage.getItem('wpw_sync_remote_url') || window.location.origin;
   });
-  const [deviceToken, setDeviceToken] = useState(() => {
-    return localStorage.getItem('wpw_sync_device_token') || '';
-  });
+
+  const [inMemoryRemoteToken, setInMemoryRemoteToken] = useState<string | null>(null);
+  const [boundRemoteOrigin, setBoundRemoteOrigin] = useState<string>(() =>
+    getOriginSafely(localStorage.getItem('wpw_sync_remote_url') || window.location.origin)
+  );
+
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMessage, setAuthModalMessage] = useState<string | null>(null);
+  const [remoteUsername, setRemoteUsername] = useState('admin');
+  const [remotePassword, setRemotePassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'push' | 'pull' | null>(null);
 
   const [status, setStatus] = useState<SyncStatusResponse | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -83,6 +105,25 @@ export default function AdminSyncPage() {
   // Conflict Resolution Dialog State
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [activeConflict, setActiveConflict] = useState<ServiceConflict | null>(null);
+
+  const isForeignHost = () => {
+    const currentOrigin = getOriginSafely(remoteUrl.trim() || window.location.origin);
+    return currentOrigin !== window.location.origin;
+  };
+
+  const handleRemoteUrlChange = (newUrl: string) => {
+    setRemoteUrl(newUrl);
+    const newOrigin = getOriginSafely(newUrl);
+    if (boundRemoteOrigin !== newOrigin) {
+      setInMemoryRemoteToken(null);
+      setBoundRemoteOrigin(newOrigin);
+    }
+  };
+
+  const handleDisconnectRemote = () => {
+    setInMemoryRemoteToken(null);
+    setMessage({ type: 'success', text: 'Remote session disconnected. Token cleared from memory.' });
+  };
 
   const fetchStatus = async () => {
     setLoadingStatus(true);
@@ -103,17 +144,24 @@ export default function AdminSyncPage() {
   }, [session]);
 
   const handleSaveConfig = () => {
-    localStorage.setItem('wpw_sync_remote_url', remoteUrl.trim());
-    localStorage.setItem('wpw_sync_device_token', deviceToken.trim());
+    const trimmed = remoteUrl.trim();
+    localStorage.setItem('wpw_sync_remote_url', trimmed);
+    const newOrigin = getOriginSafely(trimmed);
+    if (boundRemoteOrigin !== newOrigin) {
+      setInMemoryRemoteToken(null);
+      setBoundRemoteOrigin(newOrigin);
+    }
     setMessage({ type: 'success', text: 'Sync connection settings saved.' });
   };
 
-  // Push to Cloud (On-Demand Trigger)
-  const handlePush = async () => {
+  const executePush = async (token: string | null) => {
     setSyncing(true);
     setSyncAction('push');
     setMessage(null);
     try {
+      const targetUrl = remoteUrl.trim() || window.location.origin;
+      const targetOrigin = getOriginSafely(targetUrl);
+
       // 1. Gather local changes
       const pullRes = await pullSync(window.location.origin);
       const mutationId = 'mut-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
@@ -133,8 +181,8 @@ export default function AdminSyncPage() {
       };
 
       const headers: Record<string, string> = {};
-      if (deviceToken.trim()) {
-        headers['Authorization'] = `Bearer ${deviceToken.trim()}`;
+      if (token && (!isForeignHost() || boundRemoteOrigin === targetOrigin)) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       // 2. Check and upload any missing local media assets (flyers, backgrounds)
@@ -154,21 +202,27 @@ export default function AdminSyncPage() {
 
       if (shaHashes.length > 0) {
         try {
-          const checkResult = await checkSyncAssets(remoteUrl.trim() || window.location.origin, shaHashes, headers);
+          const checkResult = await checkSyncAssets(targetUrl, shaHashes, headers);
           for (const missingHash of checkResult.missing) {
             try {
               const assetBuffer = await downloadSyncAsset(window.location.origin, missingHash);
-              await uploadSyncAsset(remoteUrl.trim() || window.location.origin, assetBuffer, missingHash, '', headers);
-            } catch (assetErr) {
+              await uploadSyncAsset(targetUrl, assetBuffer, missingHash, '', headers);
+            } catch (assetErr: any) {
+              if (assetErr?.status === 401) {
+                throw assetErr;
+              }
               console.warn(`Asset upload failed for ${missingHash}:`, assetErr);
             }
           }
-        } catch (checkErr) {
+        } catch (checkErr: any) {
+          if (checkErr?.status === 401) {
+            throw checkErr;
+          }
           console.warn('Asset check failed:', checkErr);
         }
       }
 
-      const res = await pushSyncChunked(remoteUrl.trim() || window.location.origin, payload, headers);
+      const res = await pushSyncChunked(targetUrl, payload, headers);
       if (res.skippedRecords && res.skippedRecords.length > 0) {
         setMessage({
           type: 'error',
@@ -182,25 +236,35 @@ export default function AdminSyncPage() {
       }
       await fetchStatus();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to push changes to cloud.' });
+      if (err.status === 401 && isForeignHost()) {
+        setInMemoryRemoteToken(null);
+        setPendingAction('push');
+        setAuthModalMessage('Remote session expired or invalid credentials. Please log in again.');
+        setAuthError(null);
+        setAuthModalOpen(true);
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to push changes to cloud.' });
+      }
     } finally {
       setSyncing(false);
       setSyncAction(null);
     }
   };
 
-  // Pull from Cloud (On-Demand Trigger)
-  const handlePull = async () => {
+  const executePull = async (token: string | null) => {
     setSyncing(true);
     setSyncAction('pull');
     setMessage(null);
     try {
+      const targetUrl = remoteUrl.trim() || window.location.origin;
+      const targetOrigin = getOriginSafely(targetUrl);
+
       const headers: Record<string, string> = {};
-      if (deviceToken.trim()) {
-        headers['Authorization'] = `Bearer ${deviceToken.trim()}`;
+      if (token && (!isForeignHost() || boundRemoteOrigin === targetOrigin)) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const remoteData = await pullSync(remoteUrl.trim() || window.location.origin, '', headers);
+      const remoteData = await pullSync(targetUrl, '', headers);
 
       // Apply remote data into local database
       const mutationId = 'pull-mut-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
@@ -251,10 +315,82 @@ export default function AdminSyncPage() {
 
       await fetchStatus();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Failed to pull changes from cloud.' });
+      if (err.status === 401 && isForeignHost()) {
+        setInMemoryRemoteToken(null);
+        setPendingAction('pull');
+        setAuthModalMessage('Remote session expired or invalid credentials. Please log in again.');
+        setAuthError(null);
+        setAuthModalOpen(true);
+      } else {
+        setMessage({ type: 'error', text: err.message || 'Failed to pull changes from cloud.' });
+      }
     } finally {
       setSyncing(false);
       setSyncAction(null);
+    }
+  };
+
+  // Push to Cloud (On-Demand Trigger)
+  const handlePush = async () => {
+    if (isForeignHost() && !inMemoryRemoteToken) {
+      setPendingAction('push');
+      setAuthModalMessage(null);
+      setAuthError(null);
+      setAuthModalOpen(true);
+      return;
+    }
+    await executePush(inMemoryRemoteToken);
+  };
+
+  // Pull from Cloud (On-Demand Trigger)
+  const handlePull = async () => {
+    if (isForeignHost() && !inMemoryRemoteToken) {
+      setPendingAction('pull');
+      setAuthModalMessage(null);
+      setAuthError(null);
+      setAuthModalOpen(true);
+      return;
+    }
+    await executePull(inMemoryRemoteToken);
+  };
+
+  // Remote Handshake Auth Submit
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthSubmitting(true);
+    setAuthError(null);
+    try {
+      const targetUrl = remoteUrl.trim() || window.location.origin;
+      const submissionOrigin = getOriginSafely(targetUrl);
+      const authRes = await loginRemote(targetUrl, remoteUsername.trim(), remotePassword);
+
+      // Verify URL origin was not changed while authentication was in flight
+      const currentOrigin = getOriginSafely(remoteUrl.trim() || window.location.origin);
+      if (currentOrigin !== submissionOrigin) {
+        setRemotePassword('');
+        setAuthModalOpen(false);
+        setPendingAction(null);
+        setMessage({ type: 'warning', text: 'Remote URL was modified during authentication. Session discarded.' });
+        return;
+      }
+
+      const token = authRes.token;
+      setInMemoryRemoteToken(token);
+      setBoundRemoteOrigin(submissionOrigin);
+      setRemotePassword('');
+      setAuthModalOpen(false);
+
+      const action = pendingAction;
+      setPendingAction(null);
+      if (action === 'push') {
+        void executePush(token);
+      } else if (action === 'pull') {
+        void executePull(token);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Remote authentication failed');
+    } finally {
+      setAuthSubmitting(false);
     }
   };
 
@@ -278,11 +414,14 @@ export default function AdminSyncPage() {
           ],
         },
       };
+      const targetUrl = remoteUrl.trim() || window.location.origin;
+      const targetOrigin = getOriginSafely(targetUrl);
+
       const headers: Record<string, string> = {};
-      if (deviceToken.trim()) {
-        headers['Authorization'] = `Bearer ${deviceToken.trim()}`;
+      if (inMemoryRemoteToken && (!isForeignHost() || boundRemoteOrigin === targetOrigin)) {
+        headers['Authorization'] = `Bearer ${inMemoryRemoteToken}`;
       }
-      await pushSyncChunked(remoteUrl.trim() || window.location.origin, payload, headers);
+      await pushSyncChunked(targetUrl, payload, headers);
       setConflictModalOpen(false);
       setMessage({
         type: 'success',
@@ -290,7 +429,16 @@ export default function AdminSyncPage() {
       });
       await fetchStatus();
     } catch (err: any) {
-      setMessage({ type: 'error', text: 'Failed to keep local version: ' + err.message });
+      if (err.status === 401 && isForeignHost()) {
+        setInMemoryRemoteToken(null);
+        setPendingAction('push');
+        setConflictModalOpen(false);
+        setAuthModalMessage('Remote session expired or invalid credentials. Please log in again.');
+        setAuthError(null);
+        setAuthModalOpen(true);
+      } else {
+        setMessage({ type: 'error', text: 'Failed to keep local version: ' + err.message });
+      }
     } finally {
       setSyncing(false);
     }
@@ -509,10 +657,41 @@ export default function AdminSyncPage() {
       {/* Connection Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Remote Server Connection</CardTitle>
-          <CardDescription>
-            Configure the central church web server URL and device authorization token.
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <CardTitle>Remote Server Connection</CardTitle>
+              <CardDescription>
+                Configure the central church web server URL for cross-machine delta synchronization.
+              </CardDescription>
+            </div>
+            <div>
+              {!isForeignHost() ? (
+                <Badge variant="outline" className="border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                  Local Workstation (Active Session)
+                </Badge>
+              ) : inMemoryRemoteToken ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                    Remote Session Active (In-Memory)
+                  </Badge>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs text-destructive hover:bg-destructive/10"
+                    onClick={handleDisconnectRemote}
+                  >
+                    <LogOut className="w-3 h-3 mr-1" />
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                  Remote Cloud (Authentication Required)
+                </Badge>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -521,21 +700,10 @@ export default function AdminSyncPage() {
               id="remote-url"
               placeholder="https://worship.mychurch.org"
               value={remoteUrl}
-              onChange={(e) => setRemoteUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="device-token">Device Authorization Token (Optional)</Label>
-            <Input
-              id="device-token"
-              type="password"
-              placeholder="Bearer token or 6-digit pairing code"
-              value={deviceToken}
-              onChange={(e) => setDeviceToken(e.target.value)}
+              onChange={(e) => handleRemoteUrlChange(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Used when connecting to an authenticated remote church server instance.
+              Target WorshipDeck server instance URL. When connecting to a remote server, authentication is prompted on-demand and held exclusively in-memory.
             </p>
           </div>
         </CardContent>
@@ -543,6 +711,90 @@ export default function AdminSyncPage() {
           <Button onClick={handleSaveConfig}>Save Connection Settings</Button>
         </CardFooter>
       </Card>
+
+      {/* Ephemeral Remote Authentication Modal */}
+      <Dialog
+        open={authModalOpen}
+        onOpenChange={(open) => {
+          setAuthModalOpen(open);
+          if (!open) {
+            setRemotePassword('');
+            setAuthError(null);
+            setPendingAction(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" /> Connect to Remote WorshipDeck Server
+            </DialogTitle>
+            <DialogDescription>
+              Enter Admin Username &amp; Password for <span className="font-mono text-foreground font-semibold">{getOriginSafely(remoteUrl)}</span>. Credentials and tokens are held in-memory and never stored on disk.
+            </DialogDescription>
+          </DialogHeader>
+
+          {authModalMessage && (
+            <Alert className="border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-300 py-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs">{authModalMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {authError && (
+            <Alert variant="destructive" className="py-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs">{authError}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleAuthSubmit} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="remote-username">Admin Username</Label>
+              <Input
+                id="remote-username"
+                autoFocus
+                required
+                autoComplete="username"
+                value={remoteUsername}
+                onChange={(e) => setRemoteUsername(e.target.value)}
+                placeholder="admin"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="remote-password">Admin Password</Label>
+              <Input
+                id="remote-password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={remotePassword}
+                onChange={(e) => setRemotePassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <DialogFooter className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setAuthModalOpen(false);
+                  setRemotePassword('');
+                  setAuthError(null);
+                  setPendingAction(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={authSubmitting || !remoteUsername || !remotePassword}>
+                {authSubmitting ? 'Authenticating...' : 'Connect & Sync'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Interactive Conflict Resolution Modal */}
       <Dialog open={conflictModalOpen} onOpenChange={setConflictModalOpen}>

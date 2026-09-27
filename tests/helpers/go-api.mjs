@@ -8,7 +8,7 @@ import net from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 export function fetchRaw(url, opts = {}) {
   return new Promise((resolve, reject) => {

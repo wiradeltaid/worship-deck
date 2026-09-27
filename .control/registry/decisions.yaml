@@ -1640,6 +1640,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-075
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-27)"
+    title: Daily Autopilot mandate for Cross-Machine Cloud Sync with Ephemeral Auth and CORS (SPEC-88)
+    file: .control/decisions/DEC-075-daily-autopilot-mandate-cross-machine-cloud-sync.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-04'
+    touches:
+      - .control/memlog/autopilot-DEC-075.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

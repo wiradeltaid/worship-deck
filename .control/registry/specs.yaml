@@ -3742,7 +3742,7 @@ waves:
   # Opened 2026-09-27 from user triage notes.
   # Cross-machine cloud sync with ephemeral admin auth and CORS.
   - id: SPEC-88
-    status: open
+    status: closed
     release: cross-machine-cloud-sync-ephemeral-auth-cors
     prd: [offline-deck]
     fr: [FR-40, FR-21]

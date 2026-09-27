@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**74 decisions** — applied: 74.
+**75 decisions** — accepted: 1 · applied: 74.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -82,3 +82,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-072` | Daily Autopilot mandate for Presentation Fidelity, Slide Visibility Control, and Operator Polish (SPEC-85) | `applied` | mandate | `.control/memlog/autopilot-DEC-072.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-072-daily-autopilot-mandate-presentation-fidelity-slide-visibility.md` |
 | `DEC-073` | Daily Autopilot mandate for Operator Ergonomics, Canvas Polish, and Localization Parity (SPEC-86) | `applied` | mandate | `.control/memlog/autopilot-DEC-073.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-073-daily-autopilot-mandate-operator-ergonomics-canvas-polish.md` |
 | `DEC-074` | Daily Autopilot mandate for Emergency Canvas Background Image Crop Parity (SPEC-87) | `applied` | mandate | `.control/memlog/autopilot-DEC-074.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-074-daily-autopilot-mandate-emergency-canvas-bg-crop-parity.md` |
+| `DEC-075` | Daily Autopilot mandate for Cross-Machine Cloud Sync with Ephemeral Auth and CORS (SPEC-88) | `accepted` | mandate | `.control/memlog/autopilot-DEC-075.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-075-daily-autopilot-mandate-cross-machine-cloud-sync.md` |

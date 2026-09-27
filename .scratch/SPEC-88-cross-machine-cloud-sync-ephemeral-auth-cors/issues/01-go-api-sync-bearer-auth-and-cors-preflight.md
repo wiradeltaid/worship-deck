@@ -38,12 +38,12 @@ Satisfies `FR-40`, `FR-21`, and `UC-32`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `internal/httpapi/server.go`:
+- [x] In `internal/httpapi/server.go`:
       - Implement Bearer token extraction and authentication in `s.gate` middleware for sync routes.
       - Implement safe origin-allowlisted CORS preflight and response headers on `/api/sync/*` and `/api/auth/login`.
-- [ ] In `tests/sync-cors-and-bearer-auth.test.mjs`:
+- [x] In `tests/sync-cors-and-bearer-auth.test.mjs`:
       - Verify `OPTIONS` preflight returns 204 with required CORS headers when origin is allowlisted.
       - Verify unapproved origins do not receive `Access-Control-Allow-Origin` headers.
       - Verify `/api/sync/pull` and `/api/sync/push` accept valid `Authorization: Bearer <token>` without session cookie.

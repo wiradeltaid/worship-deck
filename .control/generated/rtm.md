@@ -9771,10 +9771,10 @@ rtm:
   release: cross-machine-cloud-sync-ephemeral-auth-cors
   test:
   - tests/sync-cors-and-bearer-auth.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -9785,10 +9785,10 @@ rtm:
   release: cross-machine-cloud-sync-ephemeral-auth-cors
   test:
   - tests/sync-cors-and-bearer-auth.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -9799,10 +9799,10 @@ rtm:
   release: cross-machine-cloud-sync-ephemeral-auth-cors
   test:
   - tests/admin-sync-ephemeral-auth.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -9814,10 +9814,10 @@ rtm:
   test:
   - tests/sync-cors-and-bearer-auth.test.mjs
   - tests/admin-sync-ephemeral-auth.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5

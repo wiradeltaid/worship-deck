@@ -35,13 +35,13 @@ Satisfies `FR-40`, `FR-21`, and `UC-32`.
 
 **Blocked by:** SPEC-88-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `tests/sync-cors-and-bearer-auth.test.mjs`:
+- [x] In `tests/sync-cors-and-bearer-auth.test.mjs`:
       - Implement integration tests for Go API CORS headers and Bearer token sync authentication.
       - Implement dual-instance data transfer test between two isolated Go processes.
-- [ ] In `tests/admin-sync-ephemeral-auth.test.mjs`:
+- [x] In `tests/admin-sync-ephemeral-auth.test.mjs`:
       - Implement UI and security absence guards verifying ephemeral in-memory token lifecycle across all browser storage sinks.
       - Inject defect to prove absence guard red before restoration.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Wire `smoke:spec-88` and update `test` script.

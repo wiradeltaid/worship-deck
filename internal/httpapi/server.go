@@ -155,35 +155,114 @@ func (s *Server) Handler() http.Handler {
 	return s.gate(mux)
 }
 
+func isCORSPath(pathname string) bool {
+	return pathname == "/api/sync" ||
+		strings.HasPrefix(pathname, "/api/sync/") ||
+		pathname == "/api/auth/login"
+}
+
+func isSyncPath(pathname string) bool {
+	return pathname == "/api/sync" || strings.HasPrefix(pathname, "/api/sync/")
+}
+
+func (s *Server) isOriginAllowed(origin string) bool {
+	if origin == "" {
+		return false
+	}
+	allowedEnv := strings.TrimSpace(os.Getenv("SYNC_ALLOWED_ORIGINS"))
+	var patterns []string
+	if allowedEnv != "" {
+		for _, part := range strings.Split(allowedEnv, ",") {
+			p := strings.TrimSpace(part)
+			if p != "" {
+				patterns = append(patterns, p)
+			}
+		}
+	}
+	if allowedEnv == "" || s.isDesktop() {
+		patterns = append(patterns, "http://localhost:*", "http://127.0.0.1:*", "https://localhost:*", "https://127.0.0.1:*")
+	}
+
+	for _, pattern := range patterns {
+		if pattern == "*" {
+			return true
+		}
+		if pattern == origin || strings.EqualFold(pattern, origin) {
+			return true
+		}
+		if strings.HasSuffix(pattern, ":*") {
+			prefix := strings.TrimSuffix(pattern, ":*")
+			if origin == prefix || strings.HasPrefix(origin, prefix+":") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (s *Server) gate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+
+		if isCORSPath(path) {
+			origin := r.Header.Get("Origin")
+			if origin != "" {
+				if s.isOriginAllowed(origin) {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					if r.Method == http.MethodOptions {
+						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Content-SHA256")
+						w.Header().Set("Access-Control-Max-Age", "86400")
+						w.Header().Set("Vary", "Origin")
+						w.WriteHeader(http.StatusNoContent)
+						return
+					}
+					w.Header().Add("Vary", "Origin")
+				} else if r.Method == http.MethodOptions {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+			} else if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+
 		if !gate.IsGated(path) {
 			next.ServeHTTP(w, r)
 			return
 		}
 		setNoStore(w)
+
+		var current *auth.Session
 		cookie, _ := r.Cookie(auth.CookieName)
-		token := ""
-		if cookie != nil {
-			token = cookie.Value
+		if cookie != nil && cookie.Value != "" {
+			if sess := auth.Verify(cookie.Value); sess != nil {
+				if dbSess, err := auth.ValidateAgainstDB(s.DB, sess); err == nil && dbSess != nil {
+					current = dbSess
+				}
+			}
 		}
-		sess := auth.Verify(token)
-		if sess == nil {
-			unauthorized(w, r)
-			return
+
+		// On sync paths: if cookie is absent, invalid, expired, or non-admin, fall back to Authorization: Bearer <token>
+		if isSyncPath(path) && (current == nil || current.Role != "admin") {
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				bearerToken := strings.TrimPrefix(authHeader, "Bearer ")
+				if bearerSess := auth.Verify(bearerToken); bearerSess != nil {
+					if bearerCurrent, err := auth.ValidateAgainstDB(s.DB, bearerSess); err == nil && bearerCurrent != nil {
+						current = bearerCurrent
+					}
+				}
+			}
 		}
-		current, err := auth.ValidateAgainstDB(s.DB, sess)
-		if err != nil {
-			log.Printf("Session re-check failed: %v", err)
-			unauthorized(w, r)
-			return
-		}
+
 		if current == nil {
 			unauthorized(w, r)
 			return
 		}
-		if gate.IsAdminPath(path) && current.Role != "admin" {
+
+		if (gate.IsAdminPath(path) || isSyncPath(path)) && current.Role != "admin" {
 			forbidden(w, r)
 			return
 		}
@@ -193,7 +272,11 @@ func (s *Server) gate(next http.Handler) http.Handler {
 
 func setNoStore(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "private, no-store")
-	w.Header().Set("Vary", "Cookie")
+	if strings.Contains(w.Header().Get("Vary"), "Origin") {
+		w.Header().Set("Vary", "Origin, Cookie")
+	} else {
+		w.Header().Set("Vary", "Cookie")
+	}
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
