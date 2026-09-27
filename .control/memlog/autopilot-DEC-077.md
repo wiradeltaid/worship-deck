@@ -7,7 +7,7 @@ artifact: .control/decisions/DEC-077-daily-autopilot-mandate-desktop-pe-metadata
 ## Resume
 
 - State: In-progress
-- Run branch: autopilot/DEC-077
+- Run branch: autopilot/DEC-077 (Draft PR #126 open)
 - Stopped at: SPEC-90 completed and verified; advancing to SPEC-91
 - Blocked: —
 - Parked: —
