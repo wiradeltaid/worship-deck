@@ -1642,7 +1642,7 @@ decisions:
       - .scratch/
   - id: DEC-075
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-27)"
     title: Daily Autopilot mandate for Cross-Machine Cloud Sync with Ephemeral Auth and CORS (SPEC-88)
     file: .control/decisions/DEC-075-daily-autopilot-mandate-cross-machine-cloud-sync.md

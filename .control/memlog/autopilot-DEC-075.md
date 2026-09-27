@@ -6,7 +6,7 @@ artifact: .control/decisions/DEC-075-daily-autopilot-mandate-cross-machine-cloud
 
 ## Resume
 
-- State: In-progress — All SPEC-88 tickets (SPEC-88-01 through 04) implemented, verified, and peer-reviewed (APPROVED by Terra); Draft PR #123 opened
+- State: Applied / Finished — All SPEC-88 tickets (SPEC-88-01 through 04) closed, verified, and peer-reviewed (APPROVED by Terra); Draft PR #123 opened
 - Run branch: autopilot/DEC-075 (PR #123)
 - Stopped at: Done — all FRs in mandate scope completed and verified
 - Blocked: —
