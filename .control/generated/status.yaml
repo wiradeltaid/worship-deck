@@ -484,9 +484,9 @@ open_questions:
 mandates:
   resolution: one
   active_ids:
-  - DEC-076
+  - DEC-077
   active_mandate:
-    id: DEC-076
+    id: DEC-077
     status: accepted
     expires: '2026-10-04'
     scope: all
