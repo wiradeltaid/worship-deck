@@ -768,6 +768,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'emergency.modal.bgHeading': 'Background Settings',
   'emergency.modal.bgColor': 'Background Color',
   'emergency.modal.bgImageUrl': 'Background Image (URL)',
+  'emergency.modal.bgUpload': 'Upload & Crop Background',
   'emergency.modal.bgRemove': 'Remove Background Image',
   'emergency.modal.cancel': 'Cancel',
   'emergency.modal.apply': 'Apply to Screen (Local)',

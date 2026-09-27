@@ -697,6 +697,7 @@ export const I18N_KEYS = [
   'emergency.modal.bgHeading',
   'emergency.modal.bgColor',
   'emergency.modal.bgImageUrl',
+  'emergency.modal.bgUpload',
   'emergency.modal.bgRemove',
   'emergency.modal.cancel',
   'emergency.modal.apply',

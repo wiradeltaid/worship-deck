@@ -3711,7 +3711,7 @@ waves:
   # Opened 2026-09-27 from user triage notes.
   # Emergency canvas background image upload and cropping parity.
   - id: SPEC-87
-    status: open
+    status: closed
     release: emergency-canvas-background-image-crop-parity
     prd: [operator-turn, offline-deck]
     fr: [FR-14, FR-16, FR-19, FR-25]

@@ -1622,6 +1622,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-074
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-27)"
+    title: Daily Autopilot mandate for Emergency Canvas Background Image Crop Parity (SPEC-87)
+    file: .control/decisions/DEC-074-daily-autopilot-mandate-emergency-canvas-bg-crop-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-04'
+    touches:
+      - .control/memlog/autopilot-DEC-074.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

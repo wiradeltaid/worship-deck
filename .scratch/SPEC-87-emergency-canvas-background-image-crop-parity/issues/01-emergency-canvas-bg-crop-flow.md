@@ -27,14 +27,14 @@ Satisfies `FR-14`, `FR-16`, `FR-19`, and `UC-12`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Add crop target context tracking (`'element'` vs `'background'`).
       - Add file input and `Upload & Crop` button (`emergency-bg-upload-button`) in Background inspector panel binding `t('emergency.modal.bgUpload')`.
       - Configure `ImageCropDialog` with `defaultAspect="16:9"` for background cropping.
       - Handle background crop completion with dual persistence (online `/api/upload` + offline Data URL) while strictly isolating `selectedElement`.
       - Ensure `isUploadingImage` race guard disables Apply button during background upload and resets in `finally` block.
       - Ensure dialog cancellation resets crop target without locking the Apply button.
-- [ ] In `tests/emergency-canvas-bg-crop.test.mjs`:
+- [x] In `tests/emergency-canvas-bg-crop.test.mjs`:
       - Verify `emergency-bg-upload-button` triggers background file selection and 16:9 cropping flow.
