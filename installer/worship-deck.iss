@@ -28,7 +28,9 @@ SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=worship-deck.ico
 LicenseFile=..\dist-desktop\LICENSE
-WizardImageFile=..\public\installer\wizard-image.bmp
+; Four DPI sizes (100/150/200/250%) of the modern-style 202x386; Inno picks the closest.
+; Built in ops brand-identity/sampul/src/installer.py.
+WizardImageFile=..\public\installer\wizard-image.png,..\public\installer\wizard-image-150.png,..\public\installer\wizard-image-200.png,..\public\installer\wizard-image-250.png
 WizardSmallImageFile=..\public\installer\wizard-small.bmp
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
