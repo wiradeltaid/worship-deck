@@ -9756,6 +9756,63 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-88-01
+  spec: SPEC-88
+  release: cross-machine-cloud-sync-ephemeral-auth-cors
+  test:
+  - tests/sync-cors-and-bearer-auth.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-88-02
+  spec: SPEC-88
+  release: cross-machine-cloud-sync-ephemeral-auth-cors
+  test:
+  - tests/sync-cors-and-bearer-auth.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-88-03
+  spec: SPEC-88
+  release: cross-machine-cloud-sync-ephemeral-auth-cors
+  test:
+  - tests/admin-sync-ephemeral-auth.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-88-04
+  spec: SPEC-88
+  release: cross-machine-cloud-sync-ephemeral-auth-cors
+  test:
+  - tests/sync-cors-and-bearer-auth.test.mjs
+  - tests/admin-sync-ephemeral-auth.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5

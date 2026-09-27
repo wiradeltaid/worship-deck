@@ -3739,6 +3739,52 @@ waves:
           - tests/emergency-canvas-bg-crop.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
 
+  # Opened 2026-09-27 from user triage notes.
+  # Cross-machine cloud sync with ephemeral admin auth and CORS.
+  - id: SPEC-88
+    status: open
+    release: cross-machine-cloud-sync-ephemeral-auth-cors
+    prd: [offline-deck]
+    fr: [FR-40, FR-21]
+    size: M
+    depends_on: []
+    spec_folder: .scratch/SPEC-88-cross-machine-cloud-sync-ephemeral-auth-cors/
+    spec_reviewed:
+      date: '2026-09-27'
+      sha: 'f2b7dd576e9a6320eefb19c034545bb7068017e2'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-88-01"
+        component: hub
+        satisfies: [FR-40, FR-21, UC-32]
+        blocked_by: []
+        touches: [services, settings]
+        tests:
+          - tests/sync-cors-and-bearer-auth.test.mjs
+      - id: "SPEC-88-02"
+        component: hub
+        satisfies: [FR-40, FR-21, UC-32]
+        blocked_by: ["SPEC-88-01"]
+        touches: [settings]
+        tests:
+          - tests/sync-cors-and-bearer-auth.test.mjs
+      - id: "SPEC-88-03"
+        component: hub
+        satisfies: [FR-40, FR-21, UC-32]
+        blocked_by: ["SPEC-88-02"]
+        touches: [services, uploads]
+        tests:
+          - tests/admin-sync-ephemeral-auth.test.mjs
+      - id: "SPEC-88-04"
+        component: hub
+        satisfies: [FR-40, FR-21, UC-32]
+        blocked_by: ["SPEC-88-03"]
+        touches: [services, settings, uploads]
+        tests:
+          - tests/sync-cors-and-bearer-auth.test.mjs
+          - tests/admin-sync-ephemeral-auth.test.mjs
+
+
 
 
 

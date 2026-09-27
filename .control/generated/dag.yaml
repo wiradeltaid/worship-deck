@@ -650,6 +650,16 @@ dag:
     - SPEC-87-01
   - parallel:
     - SPEC-87-02
+- spec: SPEC-88
+  order:
+  - parallel:
+    - SPEC-88-01
+  - parallel:
+    - SPEC-88-02
+  - parallel:
+    - SPEC-88-03
+  - parallel:
+    - SPEC-88-04
 - spec: W1
   order:
   - parallel:
