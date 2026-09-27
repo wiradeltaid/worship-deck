@@ -16,7 +16,7 @@ belongs under **Unreleased** and stays there until the owner decides.
 ## [Unreleased]
 
 ### Changed
-- Canonical domain in public documentation and legal texts moved from `wiradelta.id` to `wiradelta.com` (ODR-011); `security@` reporting-channel guard now rejects both domains.
+- Canonical domain in public documentation and legal texts is now `wiradelta.com`; `security@` reporting-channel guard now rejects both domains.
 
 ## [0.1.0] - 2026-09-24
 
