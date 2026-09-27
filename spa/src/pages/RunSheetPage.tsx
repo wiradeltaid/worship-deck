@@ -287,9 +287,9 @@ export default function RunSheetPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
             </span>
-            <span>Mode Offline — Membaca data tersimpan</span>
+            <span>{t('edit.offline.banner')}</span>
           </div>
-          <span className="text-[11px] opacity-75">Tersimpan di perangkat lokal</span>
+          <span className="text-[11px] opacity-75">{t('edit.offline.savedLocal')}</span>
         </div>
       )}
       {pendingPatches.length > 0 && !isOfflineData && (
@@ -299,7 +299,9 @@ export default function RunSheetPage() {
           className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2"
         >
           <div className="flex items-center gap-2">
-            <span>Terdapat koreksi panggung: {pendingPatches.length} perubahan tersimpan secara lokal</span>
+            <span>
+              {t('edit.emergency.bannerPrefix')} {pendingPatches.length} {t('edit.emergency.changesSaved')}
+            </span>
             {reconcileError && (
               <span className="text-destructive font-medium ml-2">({reconcileError})</span>
             )}
@@ -314,7 +316,7 @@ export default function RunSheetPage() {
               onClick={handleSyncEmergencyToServer}
               className="h-7 px-2.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
             >
-              {isReconciling ? 'Menyimpan...' : 'Simpan ke Server'}
+              {isReconciling ? t('edit.emergency.saving') : t('edit.emergency.syncServer')}
             </Button>
             <Button
               type="button"
@@ -325,32 +327,35 @@ export default function RunSheetPage() {
               onClick={handleDiscardEmergencyPatches}
               className="h-7 px-2.5 text-xs border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
             >
-              Buang
+              {t('edit.emergency.discard')}
             </Button>
           </div>
         </div>
       )}
       <header
         data-testid="run-sheet-header"
-        className="mb-8 flex flex-col gap-4 border-b border-border/80 pb-4 lg:flex-row lg:items-center lg:justify-between"
+        className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 border-b border-border/80 pb-4 items-start"
       >
-        {/* Meta Cluster (Left) */}
-        <div data-testid="header-meta-cluster" className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              Run-Sheet: {svc.date || svc.id}
-            </h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>
-          </div>
-          <div className="pt-0.5 sm:pt-0">
-            <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
-          </div>
+        {/* Column 1 (Left 50%): Meta Cluster */}
+        <div data-testid="header-meta-cluster" className="min-w-0 flex flex-col justify-center">
+          <h1
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate whitespace-nowrap"
+            title={`Run-Sheet: ${svc.date || svc.id}`}
+          >
+            Run-Sheet: {svc.date || svc.id}
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>
         </div>
 
-        {/* Action Clusters (Right) */}
-        <div data-testid="header-actions-wrapper" className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          {/* Primary Controls (Present with primary visual prominence, Preview, Remote) */}
-          <div data-testid="header-primary-controls" className="flex items-center gap-2">
+        {/* Column 2 (Right 50%): Structured Action Clusters */}
+        <div data-testid="header-actions-wrapper" className="flex flex-col items-start lg:items-end gap-2.5">
+          {/* Row 1: Status visibility */}
+          <div data-testid="header-offline-row" className="flex items-center justify-start lg:justify-end w-full">
+            <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
+          </div>
+
+          {/* Row 2: Primary Controls (Present with primary visual prominence, Preview, Remote) */}
+          <div data-testid="header-primary-controls" className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
             <Link
               href={`/services/${svc.id}/present`}
               className={cn(buttonVariants({ variant: 'default' }), 'h-9 px-4 font-bold shadow-xs')}
@@ -370,8 +375,8 @@ export default function RunSheetPage() {
             </Link>
           </div>
 
-          {/* Utility Controls (Sync Artifact, Download PPTX split button) */}
-          <div data-testid="header-utility-controls" className="flex items-center gap-2">
+          {/* Row 3: Utility Controls (Sync Artifact, Download PPTX split button) */}
+          <div data-testid="header-utility-controls" className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
             {isAdmin ? (
               <SyncArtifactButton
                 serviceId={svc.id}
@@ -407,8 +412,8 @@ export default function RunSheetPage() {
                     }}
                     className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
                   >
-                    <span className="font-medium text-xs">Word Wrap in PowerPoint (Default)</span>
-                    <span className="text-muted-foreground text-[10px]">Text reflows in PowerPoint when edited</span>
+                    <span className="font-medium text-xs">{t('edit.pptx.wordWrapDefault')}</span>
+                    <span className="text-muted-foreground text-[10px]">{t('edit.pptx.wordWrapDefaultDesc')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
@@ -419,8 +424,8 @@ export default function RunSheetPage() {
                     }}
                     className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
                   >
-                    <span className="font-medium text-xs">Disable PowerPoint Word Wrap</span>
-                    <span className="text-muted-foreground text-[10px]">Preserves fixed unwrapped shape boundaries</span>
+                    <span className="font-medium text-xs">{t('edit.pptx.wordWrapDisabled')}</span>
+                    <span className="text-muted-foreground text-[10px]">{t('edit.pptx.wordWrapDisabledDesc')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

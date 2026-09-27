@@ -63,15 +63,12 @@ export function scanSlideVisibilityGuards(overrides = {}) {
     findings.push('SlidePreviewList.tsx missing data-testid="slide-visibility-toggle"');
   }
 
-  // 2. Presenter console must declare filmstrip badge, filmstrip toggle, and current slide toggle
+  // 2. Presenter console must declare filmstrip badge and transport/current slide visibility toggle
   if (!presenterSrc.includes('data-testid="filmstrip-hidden-badge"')) {
     findings.push('PresenterOperator.tsx missing data-testid="filmstrip-hidden-badge"');
   }
-  if (!presenterSrc.includes('data-testid="filmstrip-visibility-toggle"')) {
-    findings.push('PresenterOperator.tsx missing data-testid="filmstrip-visibility-toggle"');
-  }
-  if (!presenterSrc.includes('data-testid="toggle-current-slide-visibility"')) {
-    findings.push('PresenterOperator.tsx missing data-testid="toggle-current-slide-visibility"');
+  if (!presenterSrc.includes('data-testid="transport-slide-visibility-toggle"') && !presenterSrc.includes('data-testid="toggle-current-slide-visibility"')) {
+    findings.push('PresenterOperator.tsx missing slide visibility toggle (transport-slide-visibility-toggle or toggle-current-slide-visibility)');
   }
 
   // 3. Presenter navigation must enforce linear advance skip rule via findNextVisibleIndex

@@ -47,8 +47,10 @@ import {
   Palette,
   Check,
   Sparkles,
+  Upload,
 } from 'lucide-react';
 import Link from '@/components/Link';
+import ImageCropDialog from '@/components/media/ImageCropDialog';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import {
   findNextVisibleIndex,
@@ -72,6 +74,7 @@ import {
   updateArtifactBackground,
   createEmergencyPatchRecord,
   applyEmergencyPatchToSlides,
+  fileToDataUrl,
 } from '@/lib/emergency-canvas';
 import {
   isProjectorMessage,
@@ -358,7 +361,6 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active,
   activeRef,
   onSelect,
-  onToggleVisibility,
   backgroundOverride,
 }: {
   slide: SlidePlanItem | undefined;
@@ -366,7 +368,6 @@ const FilmstripFrame = memo(function FilmstripFrame({
   active: boolean;
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
-  onToggleVisibility?: (index: number) => void;
   backgroundOverride?: string | null;
 }) {
   const isHidden = Boolean(slide?.hidden);
@@ -419,26 +420,6 @@ const FilmstripFrame = memo(function FilmstripFrame({
           </span>
         </span>
       </Button>
-      {onToggleVisibility && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          data-testid="filmstrip-visibility-toggle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleVisibility(entry.index);
-          }}
-          title={isHidden ? 'Unhide slide' : 'Hide slide'}
-          className="absolute top-1.5 left-1.5 z-10 size-6 p-1 rounded bg-black/70 hover:bg-black text-white/70 hover:text-white transition-opacity opacity-0 group-hover:opacity-100"
-        >
-          {isHidden ? (
-            <Eye className="size-3" />
-          ) : (
-            <EyeOff className="size-3" />
-          )}
-        </Button>
-      )}
     </span>
   );
 });
@@ -1430,7 +1411,7 @@ export default function PresenterOperator({
                 className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 select-none"
               >
                 <Lock className="size-3" />
-                <span>Terkunci untuk Ibadah (Locked)</span>
+                <span>{t('presenter.lockedBadge')}</span>
               </span>
             )}
             {isOffline && (
@@ -1447,115 +1428,109 @@ export default function PresenterOperator({
             {activeEntry ? ` · ${activeEntry.label}` : ''}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid="presentation-lock-toggle"
-            onClick={() => setPresentationLock((prev) => !prev)}
-            className="h-8 gap-1.5 text-xs select-none"
-            title={
-              presentationLock
-                ? 'Buka kunci untuk mengizinkan perubahan tata letak dan navigasi keluar'
-                : 'Kunci navigasi untuk mencegah perubahan tidak disengaja selama ibadah'
-            }
-          >
-            {presentationLock ? (
-              <Lock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <Unlock className="size-3.5 text-amber-600 dark:text-amber-400" />
-            )}
-            <span>{presentationLock ? 'Buka Kunci' : 'Kunci Ibadah'}</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid="emergency-edit-button"
-            disabled={isHydratingPatches || activeSlides.length === 0}
-            onClick={handleOpenEmergencyEdit}
-            className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
-          >
-            <Pencil className="size-3.5" />
-            <span>Edit Darurat (Lokal)</span>
-          </Button>
-          <Button
-            type="button"
-            variant={current?.hidden ? 'destructive' : 'outline'}
-            size="sm"
-            data-testid="toggle-current-slide-visibility"
-            disabled={activeSlides.length === 0}
-            onClick={() => void toggleSlideVisibility(index)}
-            className="h-8 gap-1.5 text-xs select-none"
-            title={current?.hidden ? 'Unhide current slide' : 'Hide current slide'}
-          >
-            {current?.hidden ? (
-              <>
-                <Eye className="size-3.5" />
-                <span>Unhide Slide</span>
-              </>
-            ) : (
-              <>
-                <EyeOff className="size-3.5" />
-                <span>Hide Slide</span>
-              </>
-            )}
-          </Button>
-          <OfflineReadinessBadge
-            serviceId={serviceId}
-            serviceData={rawService || { id: serviceId, plan: activeSlides }}
-            className="mr-1"
-          />
-          <Button
-            variant="secondary"
-            onClick={() => setGridOpen(true)}
-            disabled={activeSlides.length === 0}
-          >
-            All slides
-          </Button>
-          <Button variant="outline" onClick={openProjector}>
-            {t('presenter.openCongregationScreen')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setRemoteDialogOpen(true)}
-            className="flex items-center gap-1.5"
-            title="Mobile remote control pairing"
-          >
-            <span
-              className={cn(
-                'inline-block h-2 w-2 rounded-full',
-                remoteState === 'connected'
-                  ? 'bg-emerald-500'
-                  : remoteState === 'pairing'
-                  ? 'bg-amber-400 animate-pulse'
-                  : remoteState === 'error' || remoteState === 'role-lost'
-                  ? 'bg-destructive'
-                  : 'bg-muted-foreground/50'
-              )}
+        <div data-testid="presenter-header-actions" className="flex flex-col items-end gap-2">
+          {/* Row 1 (Display & Audience Controls) */}
+          <div data-testid="presenter-header-row-1" className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setGridOpen(true)}
+              disabled={activeSlides.length === 0}
+              className="h-8 text-xs font-medium"
+            >
+              {t('presenter.allSlides')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openProjector}
+              className="h-8 text-xs font-medium"
+            >
+              {t('presenter.openCongregationScreen')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRemoteDialogOpen(true)}
+              className="flex items-center gap-1.5 h-8 text-xs font-medium"
+              title="Mobile remote control pairing"
+            >
+              <span
+                className={cn(
+                  'inline-block h-2 w-2 rounded-full',
+                  remoteState === 'connected'
+                    ? 'bg-emerald-500'
+                    : remoteState === 'pairing'
+                    ? 'bg-amber-400 animate-pulse'
+                    : remoteState === 'error' || remoteState === 'role-lost'
+                    ? 'bg-destructive'
+                    : 'bg-muted-foreground/50'
+                )}
+              />
+              <span>
+                {t('presenter.remoteCode')}{' '}
+                {remoteCode ? (
+                  <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
+                    {remoteCode}
+                  </span>
+                ) : null}
+              </span>
+            </Button>
+          </div>
+
+          {/* Row 2 (Session Safety & Workflow Controls) */}
+          <div data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">
+            <OfflineReadinessBadge
+              serviceId={serviceId}
+              serviceData={rawService || { id: serviceId, plan: activeSlides }}
+              className="mr-1"
             />
-            <span>
-              Remote code:{' '}
-              {remoteCode ? (
-                <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
-                  {remoteCode}
-                </span>
-              ) : null}
-            </span>
-          </Button>
-          {/* `nativeButton={false}` because this one really is a link: Base UI
-              otherwise warns that a component acting as a button was handed
-              something that is not a native `<button>`. */}
-          <Button
-            disabled={presentationLock}
-            className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none')}
-            variant="outline"
-            nativeButton={false}
-            render={<Link href={`/services/${serviceId}`} />}
-          >
-            Run-Sheet
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="presentation-lock-toggle"
+              onClick={() => setPresentationLock((prev) => !prev)}
+              className="h-8 gap-1.5 text-xs select-none"
+              title={
+                presentationLock
+                  ? t('presenter.unlockTitle')
+                  : t('presenter.lockTitle')
+              }
+            >
+              {presentationLock ? (
+                <Lock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Unlock className="size-3.5 text-amber-600 dark:text-amber-400" />
+              )}
+              <span>{presentationLock ? t('presenter.unlock') : t('presenter.lock')}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="emergency-edit-button"
+              disabled={isHydratingPatches || activeSlides.length === 0}
+              onClick={handleOpenEmergencyEdit}
+              className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
+            >
+              <Pencil className="size-3.5" />
+              <span>{t('presenter.emergencyEdit')}</span>
+            </Button>
+            {/* `nativeButton={false}` because this one really is a link: Base UI
+                otherwise warns that a component acting as a button was handed
+                something that is not a native `<button>`. */}
+            <Button
+              disabled={presentationLock}
+              className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none', 'h-8 text-xs font-medium')}
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/services/${serviceId}`} />}
+            >
+              {t('presenter.runSheet')}
+            </Button>
+          </div>
         </div>
         {projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">
@@ -1693,7 +1668,7 @@ export default function PresenterOperator({
               }}
               disabled={findNextVisibleIndex(activeSlides, index, -1) === index}
             >
-              ← Prev
+              {t('presenter.prev')}
             </Button>
             <Button
               data-testid="presenter-next-button"
@@ -1703,7 +1678,29 @@ export default function PresenterOperator({
               }}
               disabled={findNextVisibleIndex(activeSlides, index, 1) === index}
             >
-              Next →
+              {t('presenter.next')}
+            </Button>
+            <Button
+              type="button"
+              variant={current?.hidden ? 'destructive' : 'outline'}
+              size="sm"
+              data-testid="transport-slide-visibility-toggle"
+              disabled={activeSlides.length === 0}
+              onClick={() => void toggleSlideVisibility(index)}
+              className="h-9 gap-1.5 text-xs select-none"
+              title={current?.hidden ? t('slide.visibility.unhide') : t('slide.visibility.hide')}
+            >
+              {current?.hidden ? (
+                <>
+                  <Eye className="size-3.5" />
+                  <span>{t('slide.visibility.unhide')}</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="size-3.5" />
+                  <span>{t('slide.visibility.hide')}</span>
+                </>
+              )}
             </Button>
             <div className="flex items-center gap-1.5 border border-border rounded-lg px-2 py-0.5 bg-card/60">
               <Button
@@ -1725,11 +1722,11 @@ export default function PresenterOperator({
                   isLoopingRef.current = true;
                   setIsLooping(true);
                 }}
-                title={isLooping ? 'Stop Announcement Loop' : 'Start Announcement Loop'}
+                title={isLooping ? t('presenter.stopLoop') : t('presenter.autoLoop')}
                 aria-pressed={isLooping}
               >
                 <Repeat className={`w-3.5 h-3.5 ${isLooping ? 'animate-spin' : ''}`} />
-                {isLooping ? 'Stop Loop' : 'Auto Loop'}
+                {isLooping ? t('presenter.stopLoop') : t('presenter.autoLoop')}
               </Button>
               <Select
                 value={String(loopInterval)}
@@ -1757,7 +1754,7 @@ export default function PresenterOperator({
               aria-pressed={blank}
               onClick={toggleBlank}
             >
-              {blank ? 'Resume screen (B)' : 'Blank screen (B)'}
+              {blank ? t('presenter.resumeScreen') : t('presenter.blankScreen')}
             </Button>
             <Button
               variant="ghost"
@@ -1769,7 +1766,7 @@ export default function PresenterOperator({
                 });
               }}
             >
-              Clear scripture
+              {t('presenter.clearScripture')}
             </Button>
 
             {/* Live-only, and it has to read that way at a glance. An operator
@@ -1782,11 +1779,11 @@ export default function PresenterOperator({
               className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"
             >
               <span className="flex items-center gap-1.5">
-                Transition
+                {t('presenter.liveTransition')}
                 <span
                   className={`${BADGE_CLASS} border-border bg-muted text-muted-foreground`}
                 >
-                  Live only · not saved
+                  {t('presenter.liveOnlyBadge')}
                 </span>
               </span>
               <Select
@@ -1899,7 +1896,6 @@ export default function PresenterOperator({
                   active={entry.index === index}
                   activeRef={activeFrameRef}
                   onSelect={safeNavigate}
-                  onToggleVisibility={toggleSlideVisibility}
                   backgroundOverride={liveBackground}
                 />
               ))}
@@ -2249,10 +2245,14 @@ export function EmergencyCanvasDesignerModal({
   onApply: (updatedArtifact: ArtifactInstance, updatedText: string) => Promise<void> | void;
   onCancel: () => void;
 }) {
+  const { t } = useT();
   const [draftArtifact, setDraftArtifact] = useState<ArtifactInstance | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'elements' | 'background'>('elements');
   const [isApplying, setIsApplying] = useState(false);
+  const [cropTargetFile, setCropTargetFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (open && slide) {
@@ -2283,7 +2283,7 @@ export function EmergencyCanvasDesignerModal({
     setDraftArtifact((prev) => (prev ? updateElementStyle(prev, selectedElementId, stylePatch) : prev));
   };
 
-  const handleUpdateGeometry = (geo: { x?: number; y?: number; w?: number; h?: number }) => {
+  const handleUpdateGeometry = (geo: { x?: number; y?: number; w?: number; h?: number; rotation?: number }) => {
     if (!draftArtifact || !selectedElementId) return;
     setDraftArtifact((prev) => (prev ? updateElementGeometry(prev, selectedElementId, geo) : prev));
   };
@@ -2295,13 +2295,114 @@ export function EmergencyCanvasDesignerModal({
     );
   };
 
+  const handleFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCropTargetFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropTargetFile(null);
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', croppedFile);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { url?: string };
+      if (data.url) {
+        handleUpdateImage(data.url, selectedElement?.style?.objectFit);
+      } else {
+        throw new Error('No URL returned from server');
+      }
+    } catch {
+      // Resilient offline fallback: convert to durable self-contained data URL
+      try {
+        const dataUrl = await fileToDataUrl(croppedFile);
+        handleUpdateImage(dataUrl, selectedElement?.style?.objectFit);
+      } catch {
+        toast.error('Gagal memproses gambar lokal');
+      }
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleUpdateBackground = (bg: { color?: string; image?: string | null }) => {
     if (!draftArtifact) return;
     setDraftArtifact((prev) => (prev ? updateArtifactBackground(prev, bg) : prev));
   };
 
+  const renderGeometryRow = () => {
+    if (!selectedElement) return null;
+    return (
+      <div className="space-y-1.5 pt-1 border-t border-zinc-800/60" data-testid="emergency-geometry-section">
+        <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.geometry')}</Label>
+        <div className="grid grid-cols-5 gap-1.5">
+          <div>
+            <span className="text-[10px] text-zinc-400 block">X</span>
+            <input
+              type="number"
+              data-testid="emergency-element-x"
+              value={Math.round(selectedElement.x ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">Y</span>
+            <input
+              type="number"
+              data-testid="emergency-element-y"
+              value={Math.round(selectedElement.y ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">W</span>
+            <input
+              type="number"
+              data-testid="emergency-element-w"
+              value={Math.round(selectedElement.w ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">H</span>
+            <input
+              type="number"
+              data-testid="emergency-element-h"
+              value={Math.round(selectedElement.h ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+          <div>
+            <span className="text-[10px] text-zinc-400 block">Rot (°)</span>
+            <input
+              type="number"
+              data-testid="emergency-element-rotation"
+              value={Math.round(selectedElement.rotation ?? 0)}
+              onChange={(e) => handleUpdateGeometry({ rotation: Number(e.target.value) })}
+              className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleApplyClick = async () => {
-    if (!draftArtifact) return;
+    if (!draftArtifact || isApplying || isUploadingImage) return;
     setIsApplying(true);
     try {
       const canonicalBodyEl = findCanonicalBodyElement(draftArtifact);
@@ -2322,13 +2423,13 @@ export function EmergencyCanvasDesignerModal({
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-base font-semibold flex items-center gap-2 text-zinc-100">
-                <span>🎨 Edit Kanvas Darurat (Slide {slideIndex + 1})</span>
+                <span>🎨 {t('emergency.modal.title')} (Slide {slideIndex + 1})</span>
                 <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                  Lokal / Panggung
+                  {t('emergency.modal.badge')}
                 </span>
               </DialogTitle>
               <DialogDescription className="text-xs text-zinc-400 mt-0.5">
-                Koreksi visual instan multi-elemen pada slide aktif. Perubahan langsung disiarkan ke layar auditorium (lokal).
+                {t('emergency.modal.description')}
               </DialogDescription>
             </div>
           </div>
@@ -2424,7 +2525,7 @@ export function EmergencyCanvasDesignerModal({
                 }`}
               >
                 <Palette className="h-3 w-3" />
-                <span>Latar (Background)</span>
+                <span>{t('emergency.modal.bgTab')}</span>
               </Button>
             </div>
           </div>
@@ -2436,7 +2537,7 @@ export function EmergencyCanvasDesignerModal({
                 <div className="flex items-center justify-between pb-1 border-b border-zinc-800">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-zinc-200">
-                      Elemen: {selectedElement.placeholderKey || selectedElement.id}
+                      {t('emergency.modal.elementPrefix')} {selectedElement.placeholderKey || selectedElement.id}
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 uppercase">
                       {selectedElement.type}
@@ -2444,11 +2545,11 @@ export function EmergencyCanvasDesignerModal({
                   </div>
                 </div>
 
-                {selectedElement.type === 'text' ? (
-                  <div className="space-y-3">
+                {selectedElement.type === 'text' && (
+                  <div className="space-y-3" data-testid="inspector-text-panel">
                     <div className="space-y-1">
                       <Label htmlFor="emergency-text" className="text-xs font-medium text-zinc-300">
-                        Teks Elemen (Langsung Tampil di Kanvas)
+                        {t('emergency.modal.textLabel')}
                       </Label>
                       <textarea
                         id="emergency-text"
@@ -2463,7 +2564,7 @@ export function EmergencyCanvasDesignerModal({
 
                     {/* Typography Row */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-zinc-300">Tipografi & Penjajaran</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.typography')}</Label>
                       <div className="flex flex-wrap items-center gap-2">
                         <Select
                           value={selectedElement.style?.fontFamily || 'Geist Sans'}
@@ -2583,58 +2684,166 @@ export function EmergencyCanvasDesignerModal({
                       </div>
                     </div>
 
-                    {/* Geometry Row */}
-                    <div className="space-y-1.5 pt-1">
-                      <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">X</span>
+                    {renderGeometryRow()}
+                  </div>
+                )}
+
+                {selectedElement.type === 'shape' && (
+                  <div className="space-y-3" data-testid="inspector-shape-panel">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.shapeFill')}</Label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <input
-                            type="number"
-                            data-testid="emergency-element-x"
-                            value={Math.round(selectedElement.x ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                            type="color"
+                            data-testid="emergency-shape-fill"
+                            value={selectedElement.style?.fillColor || '#FFFFFF'}
+                            onChange={(e) => handleUpdateStyle({ fillColor: e.target.value })}
+                            className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                            title="Warna Isian Bentuk"
                           />
+                          <span className="font-mono text-xs text-zinc-300">
+                            {selectedElement.style?.fillColor || '#FFFFFF'}
+                          </span>
                         </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">Y</span>
+                        <div className="flex items-center gap-2 flex-1 min-w-[120px]">
+                          <span className="text-xs text-zinc-400">Opasitas:</span>
                           <input
-                            type="number"
-                            data-testid="emergency-element-y"
-                            value={Math.round(selectedElement.y ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
+                            type="range"
+                            data-testid="emergency-shape-opacity"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={selectedElement.style?.opacity ?? 1}
+                            onChange={(e) => handleUpdateStyle({ opacity: parseFloat(e.target.value) })}
+                            className="flex-1 accent-amber-500"
                           />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">W</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-w"
-                            value={Math.round(selectedElement.w ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">H</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-h"
-                            value={Math.round(selectedElement.h ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
+                          <span className="text-xs font-mono text-zinc-300 w-8">
+                            {Math.round((selectedElement.style?.opacity ?? 1) * 100)}%
+                          </span>
                         </div>
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.shapeStroke')}</Label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          data-testid="emergency-shape-stroke-color"
+                          value={selectedElement.style?.strokeColor || '#FFFFFF'}
+                          onChange={(e) => handleUpdateStyle({ strokeColor: e.target.value })}
+                          className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                          title="Warna Garis Tepi"
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-400">Tebal:</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-shape-stroke-width"
+                            min="0"
+                            max="50"
+                            value={selectedElement.style?.strokeWidth ?? 0}
+                            onChange={(e) => handleUpdateStyle({ strokeWidth: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                            className="h-8 w-16 rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                          />
+                          <span className="text-xs text-zinc-400">px</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {renderGeometryRow()}
                   </div>
-                ) : (
-                  <div className="space-y-3">
+                )}
+
+                {selectedElement.type === 'line' && (
+                  <div className="space-y-3" data-testid="inspector-line-panel">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.lineColor')}</Label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            data-testid="emergency-line-color"
+                            value={selectedElement.style?.strokeColor || selectedElement.style?.fillColor || '#FFFFFF'}
+                            onChange={(e) => handleUpdateStyle({ strokeColor: e.target.value, fillColor: e.target.value })}
+                            className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
+                            title="Warna Garis"
+                          />
+                          <span className="font-mono text-xs text-zinc-300">
+                            {selectedElement.style?.strokeColor || selectedElement.style?.fillColor || '#FFFFFF'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-400">Tebal:</span>
+                          <input
+                            type="number"
+                            data-testid="emergency-line-width"
+                            min="1"
+                            max="50"
+                            value={selectedElement.style?.strokeWidth ?? 2}
+                            onChange={(e) => handleUpdateStyle({ strokeWidth: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                            className="h-8 w-16 rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
+                          />
+                          <span className="text-xs text-zinc-400">px</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.lineOpacity')}</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          data-testid="emergency-line-opacity"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={selectedElement.style?.opacity ?? 1}
+                          onChange={(e) => handleUpdateStyle({ opacity: parseFloat(e.target.value) })}
+                          className="flex-1 accent-amber-500"
+                        />
+                        <span className="text-xs font-mono text-zinc-300 w-8">
+                          {Math.round((selectedElement.style?.opacity ?? 1) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {renderGeometryRow()}
+                  </div>
+                )}
+
+                {(selectedElement.type === 'image' || selectedElement.type === 'image-placeholder') && (
+                  <div className="space-y-3" data-testid="inspector-image-panel">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.imageUpload')}</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChosen}
+                          accept="image/*"
+                          className="hidden"
+                          data-testid="emergency-image-file-input"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          data-testid="emergency-image-upload-button"
+                          disabled={isUploadingImage}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                        >
+                          <Upload className="size-3.5" />
+                          <span>{isUploadingImage ? t('emergency.modal.uploading') : 'Upload & Crop'}</span>
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
                       <Label htmlFor="emergency-image-url" className="text-xs font-medium text-zinc-300">
-                        URL Gambar
+                        {t('emergency.modal.imageUrl')}
                       </Label>
                       <input
                         id="emergency-image-url"
@@ -2646,8 +2855,9 @@ export function EmergencyCanvasDesignerModal({
                         className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
                       />
                     </div>
+
                     <div className="space-y-1">
-                      <Label className="text-xs font-medium text-zinc-300">Penyesuaian (Fit Mode)</Label>
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.imageFit')}</Label>
                       <Select
                         value={selectedElement.style?.objectFit || 'contain'}
                         onValueChange={(val) => {
@@ -2669,52 +2879,27 @@ export function EmergencyCanvasDesignerModal({
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Geometry Row for Image */}
-                    <div className="space-y-1.5 pt-1">
-                      <Label className="text-xs font-medium text-zinc-300">Posisi & Dimensi (% Layar 16:9)</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">X</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-x"
-                            value={Math.round(selectedElement.x ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ x: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">Y</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-y"
-                            value={Math.round(selectedElement.y ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ y: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">W</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-w"
-                            value={Math.round(selectedElement.w ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ w: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-400 block">H</span>
-                          <input
-                            type="number"
-                            data-testid="emergency-element-h"
-                            value={Math.round(selectedElement.h ?? 0)}
-                            onChange={(e) => handleUpdateGeometry({ h: Number(e.target.value) })}
-                            className="h-7 w-full rounded border border-zinc-700 bg-zinc-950 px-1 text-xs text-zinc-200"
-                          />
-                        </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.imageOpacity')}</Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          data-testid="emergency-image-opacity"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={selectedElement.style?.opacity ?? 1}
+                          onChange={(e) => handleUpdateStyle({ opacity: parseFloat(e.target.value) })}
+                          className="flex-1 accent-amber-500"
+                        />
+                        <span className="text-xs font-mono text-zinc-300 w-8">
+                          {Math.round((selectedElement.style?.opacity ?? 1) * 100)}%
+                        </span>
                       </div>
                     </div>
+
+                    {renderGeometryRow()}
                   </div>
                 )}
               </div>
@@ -2722,11 +2907,11 @@ export function EmergencyCanvasDesignerModal({
               <div className="space-y-3">
                 <div className="pb-1 border-b border-zinc-800">
                   <span className="text-xs font-semibold text-zinc-200">
-                    Pengaturan Latar Belakang (Background)
+                    {t('emergency.modal.bgHeading')}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-300">Warna Latar</Label>
+                  <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.bgColor')}</Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -2741,7 +2926,7 @@ export function EmergencyCanvasDesignerModal({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-300">Gambar Latar (URL)</Label>
+                  <Label className="text-xs font-medium text-zinc-300">{t('emergency.modal.bgImageUrl')}</Label>
                   <input
                     type="text"
                     data-testid="emergency-bg-image"
@@ -2758,7 +2943,7 @@ export function EmergencyCanvasDesignerModal({
                       onClick={() => handleUpdateBackground({ image: null })}
                       className="text-xs text-destructive hover:text-destructive/80 h-7 px-2"
                     >
-                      Hapus Gambar Latar
+                      {t('emergency.modal.bgRemove')}
                     </Button>
                   ) : null}
                 </div>
@@ -2769,7 +2954,7 @@ export function EmergencyCanvasDesignerModal({
 
         <DialogFooter className="flex flex-row items-center justify-between border-t border-zinc-800/80 pt-2 gap-2">
           <p className="text-[11px] text-zinc-400 text-left hidden sm:block">
-            Perubahan disimpan lokal di IndexedDB dan disiarkan seketika via BroadcastChannel.
+            {t('emergency.modal.footerNotice')}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -2780,21 +2965,29 @@ export function EmergencyCanvasDesignerModal({
               onClick={onCancel}
               className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
-              Batal
+              {t('emergency.modal.cancel')}
             </Button>
             <Button
               type="button"
               size="sm"
               data-testid="emergency-apply-button"
-              disabled={isApplying}
+              disabled={isApplying || isUploadingImage}
               onClick={handleApplyClick}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-medium"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium disabled:opacity-50"
             >
-              Terapkan ke Layar (Lokal)
+              {isUploadingImage ? t('emergency.modal.uploading') : t('emergency.modal.apply')}
             </Button>
           </div>
         </DialogFooter>
       </DialogContent>
+      {cropTargetFile && (
+        <ImageCropDialog
+          open={cropTargetFile !== null}
+          file={cropTargetFile}
+          onComplete={handleCropComplete}
+          onCancel={() => setCropTargetFile(null)}
+        />
+      )}
     </Dialog>
   );
 }

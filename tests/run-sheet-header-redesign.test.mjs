@@ -27,12 +27,12 @@ export function scanRunSheetHeaderRedesign(overrides = {}) {
   const runSheetSrc = overrides.runSheetSrc ?? fs.readFileSync(runSheetPagePath, 'utf8');
   const cleanSrc = stripComments(runSheetSrc);
 
-  // 1. Run-Sheet header container with responsive 1024px inline layout
+  // 1. Run-Sheet header container with responsive 1024px desktop layout
   if (!cleanSrc.includes('data-testid="run-sheet-header"')) {
     findings.push('RunSheetPage.tsx missing data-testid="run-sheet-header"');
   }
-  if (!cleanSrc.includes('lg:flex-row lg:items-center lg:justify-between')) {
-    findings.push('RunSheetPage.tsx missing lg:flex-row lg:items-center lg:justify-between for desktop inline alignment');
+  if (!cleanSrc.includes('lg:grid-cols-2') && !cleanSrc.includes('lg:flex-row lg:items-center lg:justify-between')) {
+    findings.push('RunSheetPage.tsx missing desktop layout alignment (lg:grid-cols-2 or lg:flex-row)');
   }
 
   // 2. Structured Meta Cluster (Left)
@@ -135,13 +135,12 @@ test('SPEC-85-03: Defect injection proof — removing utility controls cluster t
 
 test('SPEC-85-03: Defect injection proof — removing desktop inline alignment triggers header guard finding', () => {
   const rawRunSheet = fs.readFileSync(runSheetPagePath, 'utf8');
-  const defectiveSrc = rawRunSheet.replace(
-    'lg:flex-row lg:items-center lg:justify-between',
-    'flex-col'
-  );
+  const defectiveSrc = rawRunSheet
+    .replace('lg:grid-cols-2', 'grid-cols-1')
+    .replace('lg:flex-row lg:items-center lg:justify-between', 'flex-col');
   const findings = scanRunSheetHeaderRedesign({ runSheetSrc: defectiveSrc });
   assert.ok(
-    findings.some((f) => f.includes('missing lg:flex-row lg:items-center lg:justify-between')),
+    findings.some((f) => f.includes('missing desktop layout alignment') || f.includes('missing lg:flex-row')),
     'Expected defect injection without desktop alignment to fail scan'
   );
 });

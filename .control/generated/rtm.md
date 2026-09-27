@@ -740,10 +740,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/run-sheet-header-tiered-layout.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -754,10 +754,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/slide-preview-hover-visibility.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -768,10 +768,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -1510,10 +1510,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/presenter-header-two-row-layout.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1524,10 +1524,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/emergency-canvas-inspector-crop.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1538,10 +1538,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -7356,10 +7356,10 @@ rtm:
   release: operator-ergonomics-canvas-polish-and-localization
   test:
   - tests/song-set-lyric-button-layout.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-34

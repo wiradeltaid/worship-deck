@@ -237,11 +237,11 @@ test('SPEC-78: RunSheetPage provides PPTX download with default word wrap and wr
     'RunSheetPage must link to wrap=false option'
   );
   assert.ok(
-    content.includes('Word Wrap in PowerPoint (Default)'),
+    content.includes("t('edit.pptx.wordWrapDefault')") || content.includes('Word Wrap in PowerPoint (Default)'),
     'RunSheetPage must offer Word Wrap Default label'
   );
   assert.ok(
-    content.includes('Disable PowerPoint Word Wrap'),
+    content.includes("t('edit.pptx.wordWrapDisabled')") || content.includes('Disable PowerPoint Word Wrap'),
     'RunSheetPage must offer Disable PowerPoint Word Wrap label'
   );
 });

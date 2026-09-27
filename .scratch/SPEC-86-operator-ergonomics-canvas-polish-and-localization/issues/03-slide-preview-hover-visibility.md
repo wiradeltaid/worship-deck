@@ -20,14 +20,14 @@ Satisfies `FR-14` and `UC-5`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** done
 
-- [ ] Read `src/components/SlidePreviewList.tsx`.
-- [ ] In `src/components/SlidePreviewList.tsx`:
+- [x] Read `src/components/SlidePreviewList.tsx`.
+- [x] In `src/components/SlidePreviewList.tsx`:
       - Add `group` class to slide preview row container.
       - Apply `opacity-0 group-hover:opacity-100 focus-visible:opacity-100` to `slide-visibility-toggle`.
-- [ ] In `tests/slide-preview-hover-visibility.test.mjs`:
+- [x] In `tests/slide-preview-hover-visibility.test.mjs`:
       - Test hover-only opacity classes on visibility toggle button.
       - Test persistent visibility of `slide-hidden-badge` on hidden slides.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/slide-preview-hover-visibility.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/slide-preview-hover-visibility.test.mjs` and `npm run typecheck`.

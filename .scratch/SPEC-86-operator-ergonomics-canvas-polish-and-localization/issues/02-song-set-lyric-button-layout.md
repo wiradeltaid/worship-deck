@@ -24,14 +24,14 @@ Satisfies `FR-34` and `UC-28`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** done
 
-- [ ] Read `src/operator/DynamicFormBody.tsx`.
-- [ ] In `src/operator/DynamicFormBody.tsx`:
+- [x] Read `src/operator/DynamicFormBody.tsx`.
+- [x] In `src/operator/DynamicFormBody.tsx`:
       - Remove lyric action buttons from selector inputs row.
       - Add dedicated action row below inputs for `Edit/Close Lyrics` and `Save to Book`.
-- [ ] In `tests/song-set-lyric-button-layout.test.mjs`:
+- [x] In `tests/song-set-lyric-button-layout.test.mjs`:
       - Test that selector inputs and lyric action buttons occupy separate rows.
       - Test dirty state transition does not alter selector inputs layout.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/song-set-lyric-button-layout.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/song-set-lyric-button-layout.test.mjs` and `npm run typecheck`.

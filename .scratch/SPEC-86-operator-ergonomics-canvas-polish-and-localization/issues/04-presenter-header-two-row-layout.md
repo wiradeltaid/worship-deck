@@ -45,16 +45,16 @@ Satisfies `FR-14`, `FR-16`, and `UC-12`.
 
 **Blocked by:** `SPEC-86-01`
 
-**Status:** open
+**Status:** done
 
-- [ ] Read `src/operator/present/PresenterOperator.tsx`.
-- [ ] In `src/operator/present/PresenterOperator.tsx`:
+- [x] Read `src/operator/present/PresenterOperator.tsx`.
+- [x] In `src/operator/present/PresenterOperator.tsx`:
       - Move active slide visibility toggle into transport controls bar under Current Slide.
       - Remove visibility toggle button from `FilmstripFrame`.
       - Reorganize top-right header into Row 1 (Audience/Display) and Row 2 (Safety/Workflow).
-- [ ] In `tests/presenter-header-two-row-layout.test.mjs`:
+- [x] In `tests/presenter-header-two-row-layout.test.mjs`:
       - Test transport controls bar contains slide visibility toggle.
       - Test top-right header two-row semantic structure.
       - Test absence of filmstrip thumbnail toggle button.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-header-two-row-layout.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/presenter-header-two-row-layout.test.mjs` and `npm run typecheck`.

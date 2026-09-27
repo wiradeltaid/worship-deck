@@ -20,6 +20,7 @@ import {
 import { HymnNumberAutocomplete } from '@/components/HymnNumberAutocomplete';
 import { ImageUploadField } from '@/components/ImageUploadField';
 import type { HymnIndexEntry } from '@/lib/worship-form-fields';
+import { useT } from '@/lib/i18n/operator';
 import { cn } from '@/lib/utils';
 import type {
   PredefinedFieldDef,
@@ -339,6 +340,7 @@ function SongSetSlotRenderer({
   disabled?: boolean;
   hymnIndex?: HymnIndexEntry[];
 }) {
+  const { t } = useT();
   const entryDef = songSetEntries.find((e) => e.variableName === refKey);
   const title = entryDef?.title || refKey.replace(/_/g, ' ').toUpperCase();
   const defaultBook = songBooks.find((b) => b.isDefault);
@@ -423,7 +425,7 @@ function SongSetSlotRenderer({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5" data-testid="song-set-selectors-row">
         {/* Book Selector */}
         <div className="w-28 shrink-0">
           <Select
@@ -528,35 +530,36 @@ function SongSetSlotRenderer({
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        {/* Lyrics Editor Toggle */}
-        <div className="shrink-0 flex items-center gap-1.5">
-          {hasValidNum && (
+      {/* Dedicated Action Row */}
+      {hasValidNum && (
+        <div className="flex items-center gap-2 pt-1.5" data-testid="song-set-action-row">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 text-xs"
+            onClick={onToggleLyricEditor}
+            data-testid="song-set-lyric-toggle-button"
+          >
+            {isLyricOpen ? t('form.songSet.closeLyrics') : t('form.songSet.editLyrics')}
+          </Button>
+          {onSaveToBook && isLyricOpen && isLyricsDirty && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 px-3 text-xs"
-              onClick={onToggleLyricEditor}
-            >
-              {isLyricOpen ? 'Close Lyrics' : 'Edit Lyrics'}
-            </Button>
-          )}
-          {hasValidNum && onSaveToBook && isLyricOpen && isLyricsDirty && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 px-2.5 text-xs text-primary"
+              className="h-8 px-2.5 text-xs text-primary"
               onClick={handleSaveToBook}
               disabled={disabled || isSavingBook}
               data-testid="save-to-book-button"
             >
-              {isSavingBook ? 'Saving...' : 'Save to Book'}
+              {isSavingBook ? t('form.songSet.saving') : t('form.songSet.saveToBook')}
             </Button>
           )}
         </div>
-      </div>
+      )}
 
       {/* Expanded Lyrics Editor */}
       {isLyricOpen && (
@@ -568,7 +571,7 @@ function SongSetSlotRenderer({
               hasUserEditedRef.current = true;
               onChange('lyricText', e.target.value);
             }}
-            placeholder="Ketik atau edit bait lirik di sini..."
+            placeholder={t('form.songSet.placeholder')}
             disabled={disabled}
             data-testid="song-set-lyric-textarea"
           />

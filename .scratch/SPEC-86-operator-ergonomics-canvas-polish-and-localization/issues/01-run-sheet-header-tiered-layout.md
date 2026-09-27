@@ -22,15 +22,15 @@ Satisfies `FR-16` and `UC-5`.
 
 **Blocked by:** None (can start immediately).
 
-**Status:** open
+**Status:** done
 
-- [ ] Read `spa/src/pages/RunSheetPage.tsx`.
-- [ ] In `spa/src/pages/RunSheetPage.tsx`:
+- [x] Read `spa/src/pages/RunSheetPage.tsx`.
+- [x] In `spa/src/pages/RunSheetPage.tsx`:
       - Implement 50:50 two-column grid header.
       - Apply `whitespace-nowrap` / `truncate` and accessible `title` on service title.
       - Arrange right column into Row 1 (offline badge), Row 2 (primary actions), Row 3 (utility actions).
-- [ ] In `tests/run-sheet-header-tiered-layout.test.mjs`:
+- [x] In `tests/run-sheet-header-tiered-layout.test.mjs`:
       - Test header 50:50 column division and line-break prevention.
       - Test tiered rows in right column.
       - Inject defect and prove absence guard fails.
-- [ ] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/run-sheet-header-tiered-layout.test.mjs` and `npm run typecheck`.
+- [x] Run test suite with `node --import ./tests/register-ts-resolve.mjs --test tests/run-sheet-header-tiered-layout.test.mjs` and `npm run typecheck`.

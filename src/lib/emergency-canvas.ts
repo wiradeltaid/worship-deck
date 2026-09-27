@@ -161,7 +161,7 @@ export function updateElementStyle(
 export function updateElementGeometry(
   artifact: ArtifactInstance,
   elementId: string,
-  geo: { x?: number; y?: number; w?: number; h?: number }
+  geo: { x?: number; y?: number; w?: number; h?: number; rotation?: number }
 ): ArtifactInstance {
   const cloned: ArtifactInstance = JSON.parse(JSON.stringify(artifact));
   if (!cloned.layout?.elements) return cloned;
@@ -172,12 +172,17 @@ export function updateElementGeometry(
       const y = typeof geo.y === 'number' && Number.isFinite(geo.y) ? geo.y : el.y;
       const w = typeof geo.w === 'number' && Number.isFinite(geo.w) && geo.w > 0 ? geo.w : el.w;
       const h = typeof geo.h === 'number' && Number.isFinite(geo.h) && geo.h > 0 ? geo.h : el.h;
+      const rotation =
+        typeof geo.rotation === 'number' && Number.isFinite(geo.rotation)
+          ? ((geo.rotation % 360) + 360) % 360
+          : el.rotation;
       return {
         ...el,
         x,
         y,
         w,
         h,
+        rotation,
       };
     }
     return el;
@@ -187,7 +192,26 @@ export function updateElementGeometry(
 }
 
 /**
- * Updates image source URL and object-fit sizing mode for an image element.
+ * Reads a File or Blob into a durable base64 Data URL for offline canvas resilience.
+ * Supports both browser environments (FileReader / arrayBuffer) and Node test runners.
+ */
+export async function fileToDataUrl(file: Blob): Promise<string> {
+  if (typeof FileReader !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error || new Error('Failed to read file as Data URL'));
+      reader.readAsDataURL(file);
+    });
+  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mimeType = file.type || 'image/png';
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
+/**
+ * Updates image source URL and object-fit sizing mode for an image or image-placeholder element.
+ * Enforces type safety so non-image elements cannot receive imageUrl mutations.
  */
 export function updateElementImage(
   artifact: ArtifactInstance,
@@ -199,7 +223,7 @@ export function updateElementImage(
   if (!cloned.layout?.elements) return cloned;
 
   cloned.layout.elements = cloned.layout.elements.map((el) => {
-    if (el.id === elementId) {
+    if (el.id === elementId && (el.type === 'image' || el.type === 'image-placeholder')) {
       return {
         ...el,
         imageUrl,
