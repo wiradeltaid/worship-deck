@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -58,6 +59,90 @@ test('WSD-H-09: stageCorporaAndNotices stages all corpora, fonts, licenses, and 
     const notices = fs.readFileSync(path.join(tempDir, 'THIRD-PARTY-NOTICES'), 'utf8');
     assert.ok(notices.includes('SIL OPEN FONT LICENSE Version 1.1'));
     assert.ok(notices.includes('Apache License'));
+
+    // 5. Verify default seeds (SPEC-89)
+    for (const seed of ['default-song-set-layouts.json', 'default-registry.json', 'asset-map.json']) {
+      const seedPath = path.join(tempDir, 'data', seed);
+      assert.ok(fs.existsSync(seedPath), `data/${seed} must be staged`);
+      const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+      assert.ok(seedData && Object.keys(seedData).length > 0, `data/${seed} must not be empty`);
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+export function scanStagedSeeds(targetDir) {
+  const missing = [];
+  for (const file of ['default-song-set-layouts.json', 'default-registry.json', 'asset-map.json']) {
+    const p = path.join(targetDir, 'data', file);
+    if (!fs.existsSync(p)) {
+      missing.push(`Missing staged seed file: data/${file}`);
+    }
+  }
+  return missing;
+}
+
+test('SPEC-89-01: scanStagedSeeds verifies all required seed configuration files are staged', () => {
+  const tempDir = fs.mkdtempSync(path.join(path.resolve(root, '..'), 'test-seeds-scan-'));
+  try {
+    stageCorporaAndNotices(tempDir);
+    const missing = scanStagedSeeds(tempDir);
+    assert.deepEqual(missing, [], `Staged seed findings:\n${missing.join('\n')}`);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('SPEC-89-01: guard proof — injected missing default-song-set-layouts.json is detected', () => {
+  const tempDir = fs.mkdtempSync(path.join(path.resolve(root, '..'), 'test-seeds-defect-'));
+  try {
+    stageCorporaAndNotices(tempDir);
+    // Inject defect: remove default-song-set-layouts.json
+    fs.unlinkSync(path.join(tempDir, 'data', 'default-song-set-layouts.json'));
+    const missing = scanStagedSeeds(tempDir);
+    assert.ok(
+      missing.some((m) => m.includes('default-song-set-layouts.json')),
+      'Injected missing default-song-set-layouts.json must be caught by scanStagedSeeds'
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('SPEC-89-01: stageCorporaAndNotices throws when required seed source is missing from repo', () => {
+  const tempDir = fs.mkdtempSync(path.join(path.resolve(root, '..'), 'test-seeds-fail-'));
+  const seedPath = path.join(root, 'data', 'default-song-set-layouts.json');
+  const tempBackup = path.join(root, 'data', 'default-song-set-layouts.json.tmp-backup');
+  try {
+    fs.renameSync(seedPath, tempBackup);
+    assert.throws(
+      () => stageCorporaAndNotices(tempDir),
+      /Required default seed configuration file missing/,
+      'stageCorporaAndNotices must fail closed when a required seed file is missing from data/'
+    );
+  } finally {
+    if (fs.existsSync(tempBackup)) {
+      fs.renameSync(tempBackup, seedPath);
+    }
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('SPEC-89-04: end-to-end staged database bootstrap verifies song_set_layouts trio', () => {
+  const tempDir = fs.mkdtempSync(path.join(path.resolve(root, '..'), 'test-staged-bootstrap-'));
+  try {
+    stageCorporaAndNotices(tempDir);
+    const res = spawnSync('go', ['test', '-v', '-run', 'TestEnsureSongSetLayoutSeeds_StagedCorporaDirectory', './internal/db/...'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        STAGED_CORPORA_DIR: tempDir,
+      },
+    });
+    assert.equal(res.status, 0, `Go staged bootstrap failed:\n${res.stderr || res.stdout}`);
+    assert.ok(res.stdout.includes('PASS: TestEnsureSongSetLayoutSeeds_StagedCorporaDirectory'), 'Staged bootstrap must pass');
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }

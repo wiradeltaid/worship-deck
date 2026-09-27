@@ -57,7 +57,18 @@ export function stageCorporaAndNotices(targetDir) {
     }
   }
 
-  // 4. Legal licenses & third-party notices
+  // 4. Default seed JSON configuration files (SPEC-89)
+  const dataDest = path.join(targetDir, 'data');
+  fs.mkdirSync(dataDest, { recursive: true });
+  for (const seedFile of ['default-song-set-layouts.json', 'default-registry.json', 'asset-map.json']) {
+    const src = path.join(repoRoot, 'data', seedFile);
+    if (!fs.existsSync(src)) {
+      throw new Error(`[build-desktop] Required default seed configuration file missing: ${src}`);
+    }
+    fs.copyFileSync(src, path.join(dataDest, seedFile));
+  }
+
+  // 5. Legal licenses & third-party notices
   for (const f of ['LICENSE', 'ATTRIBUTIONS.md', 'THIRD-PARTY-NOTICES']) {
     const src = path.join(repoRoot, f);
     if (fs.existsSync(src)) {
@@ -88,7 +99,7 @@ export async function buildDesktopPackage(options = {}) {
   const exePath = path.join(distDesktop, exeName);
   const goRes = spawnSync(
     'go',
-    ['build', '-trimpath', '-ldflags=-s -w', '-o', exePath, './cmd/api'],
+    ['build', '-trimpath', '-ldflags=-s -w -H=windowsgui', '-o', exePath, './cmd/api'],
     {
       cwd: repoRoot,
       stdio: 'inherit',

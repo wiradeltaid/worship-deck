@@ -80,6 +80,11 @@ func seedHub(handle *sql.DB, root string) error {
 			return err
 		}
 		root = wd
+		if _, err := os.Stat(filepath.Join(root, "data")); os.IsNotExist(err) {
+			if _, err2 := os.Stat(filepath.Join(root, "..", "..", "data")); err2 == nil {
+				root = filepath.Join(root, "..", "..")
+			}
+		}
 	}
 	if err := repairPreCounter(handle); err != nil {
 		return err

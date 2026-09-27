@@ -1658,6 +1658,24 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-076
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-27)"
+    title: Daily Autopilot mandate for Native Desktop WebView2 Window and Installer Default Seed Staging (SPEC-89)
+    file: .control/decisions/DEC-076-daily-autopilot-mandate-native-desktop-webview2-and-installer-seed-staging.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-04'
+    touches:
+      - .control/memlog/autopilot-DEC-076.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
 
 
 

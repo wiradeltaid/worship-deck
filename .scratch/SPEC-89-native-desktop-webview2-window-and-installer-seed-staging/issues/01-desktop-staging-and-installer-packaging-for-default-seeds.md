@@ -29,14 +29,14 @@ Satisfies `FR-20`, `FR-21`, `UC-14`, `UC-15`, and `AD-33`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `scripts/build-desktop.mjs`:
+- [x] In `scripts/build-desktop.mjs`:
       - Add `default-song-set-layouts.json`, `default-registry.json`, and `asset-map.json` to `stageCorporaAndNotices(targetDir)`.
-- [ ] In `cmd/api/main.go`:
+- [x] In `cmd/api/main.go`:
       - Resolve `root` relative to `os.Executable()` in desktop mode when adjacent `data/` exists.
-- [ ] In `internal/db/song_set_layout_seed.go`:
+- [x] In `internal/db/song_set_layout_seed.go`:
       - Fail closed on fresh databases if seed file cannot be loaded; implement self-repair for partial trio rows.
-- [ ] In `tests/installer-corpora-staging.test.mjs`:
+- [x] In `tests/installer-corpora-staging.test.mjs`:
       - Assert presence and validity of staged seed files; add defect injection proof.
-- [ ] Verify `npm test` and `go test ./internal/db/...` pass.
+- [x] Verify `npm test` and `go test ./internal/db/...` pass.
