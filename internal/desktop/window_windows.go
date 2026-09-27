@@ -17,17 +17,21 @@ import (
 )
 
 var (
-	user32                  = windows.NewLazySystemDLL("user32.dll")
-	procFindWindowW         = user32.NewProc("FindWindowW")
-	procShowWindow          = user32.NewProc("ShowWindow")
-	procSetForegroundWindow = user32.NewProc("SetForegroundWindow")
-	procFlashWindowEx       = user32.NewProc("FlashWindowEx")
+	user32                            = windows.NewLazySystemDLL("user32.dll")
+	procFindWindowW                   = user32.NewProc("FindWindowW")
+	procShowWindow                    = user32.NewProc("ShowWindow")
+	procSetForegroundWindow           = user32.NewProc("SetForegroundWindow")
+	procFlashWindowEx                 = user32.NewProc("FlashWindowEx")
+	procSetProcessDpiAwarenessContext = user32.NewProc("SetProcessDpiAwarenessContext")
 )
 
 const (
 	SW_RESTORE       = 9
 	FLASHW_ALL       = 0x00000003
 	FLASHW_TIMERNOFG = 0x0000000C
+
+	// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 is ((DPI_AWARENESS_CONTEXT)-4) in Windows user32.
+	DpiAwarenessContextPerMonitorAwareV2 = ^uintptr(3)
 )
 
 type flashWInfo struct {
@@ -67,6 +71,18 @@ func FocusExistingWindow(title string) bool {
 	return true
 }
 
+// SetProcessDpiAwarenessPerMonitorV2 configures Per-Monitor V2 DPI awareness for the process.
+func SetProcessDpiAwarenessPerMonitorV2() error {
+	if procSetProcessDpiAwarenessContext.Find() != nil {
+		return fmt.Errorf("SetProcessDpiAwarenessContext not supported on this Windows release")
+	}
+	ret, _, err := procSetProcessDpiAwarenessContext.Call(DpiAwarenessContextPerMonitorAwareV2)
+	if ret == 0 && err != nil && err != windows.ERROR_SUCCESS {
+		return fmt.Errorf("SetProcessDpiAwarenessContext failed: %w", err)
+	}
+	return nil
+}
+
 // RunDesktopWindow creates and runs a native Win32 window hosting Microsoft Edge WebView2.
 func RunDesktopWindow(ctx context.Context, serverURL string, options WindowOptions, onExit func()) error {
 	if ctx != nil && ctx.Err() != nil {
@@ -102,6 +118,10 @@ func RunDesktopWindow(ctx context.Context, serverURL string, options WindowOptio
 				err = fmt.Errorf("webview2 runtime panic: %v", r)
 			}
 		}()
+		// Set Per-Monitor V2 DPI awareness if supported (Windows 10 1703+)
+		if dpiErr := SetProcessDpiAwarenessPerMonitorV2(); dpiErr != nil {
+			log.Printf("[desktop] SetProcessDpiAwarenessPerMonitorV2 notice: %v", dpiErr)
+		}
 		w = webview2.NewWithOptions(webview2.WebViewOptions{
 			Debug:     false,
 			DataPath:  dataPath,

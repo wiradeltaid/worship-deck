@@ -110,3 +110,10 @@ func TestRunDesktopWindow_ContextCancellationCallsOnExit(t *testing.T) {
 		t.Fatalf("timed out waiting for RunDesktopWindow to return after cancellation")
 	}
 }
+
+func TestSetProcessDpiAwarenessPerMonitorV2(t *testing.T) {
+	err := SetProcessDpiAwarenessPerMonitorV2()
+	// On Windows 10 1703+, this succeeds or returns an error if already locked by the test runner.
+	// In all cases, it must execute safely without panic.
+	t.Logf("SetProcessDpiAwarenessPerMonitorV2: %v", err)
+}

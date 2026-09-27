@@ -37,15 +37,15 @@ Satisfies `FR-40`.
 
 **Blocked by:** 01
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `<src/components/AboutModal.tsx>`:
+- [x] In `<src/components/AboutModal.tsx>`:
       - Implement Dialog modal rendering canonical WDI About copy.
-- [ ] In `src/components/Header.tsx`:
+- [x] In `src/components/Header.tsx`:
       - Add menu item in profile dropdown with `Info` icon opening the modal.
-- [ ] In `src/lib/i18n/operator.tsx`:
+- [x] In `src/lib/i18n/operator.tsx`:
       - Add localization keys for About dialog.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Add `tests/about-modal.test.mjs` to `test` and `smoke:spec-90` scripts.
-- [ ] In `tests/about-modal.test.mjs`:
+- [x] In `tests/about-modal.test.mjs`:
       - Assert legal copy integrity and trigger rendering with defect injection.

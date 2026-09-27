@@ -33,14 +33,14 @@ Satisfies `FR-40`, `FR-21`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `internal/db/migrate_sync_announcement_sets.go`:
+- [x] In `internal/db/migrate_sync_announcement_sets.go`:
       - Implement schema migration adding `global_id` columns and indexes.
-- [ ] In `internal/httpapi/sync.go`:
+- [x] In `internal/httpapi/sync.go`:
       - Add `hidden_slide_ids` and `emergency_patches` to `SyncService` query and upsert.
       - Implement sync protocol serialization, parent-first upsert, and tombstone handling.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/sync-full-fidelity-entities.test.mjs` in `test` and `smoke:spec-91`.
-- [ ] In `tests/sync-full-fidelity-entities.test.mjs`:
+- [x] In `tests/sync-full-fidelity-entities.test.mjs`:
       - Add unit and round-trip tests with defect injection.

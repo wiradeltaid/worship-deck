@@ -34,6 +34,18 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
+; VersionInfo and Copyright metadata
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription={#MyAppName} Setup
+VersionInfoCopyright=Copyright (c) 2026 {#MyAppPublisher}
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
+VersionInfoOriginalFileName=WorshipDeck-{#MyAppVersion}-x64-setup.exe
+AppCopyright=Copyright (c) 2026 {#MyAppPublisher}
+UninstallDisplayName={#MyAppName}
+UninstallDisplayIcon={app}\worship-deck.ico
+
 ; Single-Instance Mutex Guards (Supports both new and legacy mutex)
 AppMutex=Local\WorshipDeck.SingleInstance,Local\WorshipPresenter.SingleInstance,Global\WorshipDeck.SingleInstance
 CloseApplications=yes
@@ -59,6 +71,7 @@ Source: "..\dist-desktop\data\*"; DestDir: "{app}\data"; Flags: ignoreversion re
 Source: "..\dist-desktop\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist-desktop\ATTRIBUTIONS.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist-desktop\THIRD-PARTY-NOTICES"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist-desktop\PRIVACY.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\spa\dist\*"; DestDir: "{app}\spa\dist"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
@@ -82,6 +95,7 @@ Type: files; Name: "{app}\package.json"
 Type: files; Name: "{app}\LICENSE"
 Type: files; Name: "{app}\ATTRIBUTIONS.md"
 Type: files; Name: "{app}\THIRD-PARTY-NOTICES"
+Type: files; Name: "{app}\PRIVACY.md"
 
 [Code]
 // Data preservation guarantee:

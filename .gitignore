@@ -25,6 +25,8 @@ playwright-report/
 
 # production
 /build
+cmd/api/*.syso
+cmd/api/*.rc
 
 # misc
 .DS_Store

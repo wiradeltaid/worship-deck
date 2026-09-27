@@ -33,13 +33,13 @@ Satisfies `FR-40`, `FR-21`.
 
 **Blocked by:** 01
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `src/lib/sync/client.ts`:
+- [x] In `src/lib/sync/client.ts`:
       - Implement universal recursive `extractUploadHashes` helper.
-- [ ] In `spa/src/pages/AdminSyncPage.tsx`:
+- [x] In `spa/src/pages/AdminSyncPage.tsx`:
       - Integrate bidirectional asset discovery, push replication, and pull hydration with SHA-256 checksum verification.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/sync-asset-hydration.test.mjs` in `test` and `smoke:spec-91`.
-- [ ] In `tests/sync-asset-hydration.test.mjs`:
+- [x] In `tests/sync-asset-hydration.test.mjs`:
       - Add integration tests with defect injection.

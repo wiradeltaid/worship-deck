@@ -12,6 +12,11 @@ func FocusExistingWindow(title string) bool {
 	return false
 }
 
+// SetProcessDpiAwarenessPerMonitorV2 is a no-op on non-Windows platforms.
+func SetProcessDpiAwarenessPerMonitorV2() error {
+	return nil
+}
+
 // RunDesktopWindow on non-Windows platforms falls back to OpenBrowser and blocks until context cancellation.
 func RunDesktopWindow(ctx context.Context, serverURL string, options WindowOptions, onExit func()) error {
 	if ctx != nil && ctx.Err() != nil {

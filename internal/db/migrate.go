@@ -57,6 +57,9 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureServicesHiddenSlideIds(handle); err != nil {
 		return err
 	}
+	if err := ensureSyncAnnouncementSetsAndEntities(handle); err != nil {
+		return err
+	}
 	return nil
 }
 

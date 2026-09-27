@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-076-daily-autopilot-mandate-native-desktop-webv
 
 ## Resume
 
-- State: Finished — All SPEC-89 tickets (SPEC-89-01 through 04) implemented, verified, and peer-reviewed; Draft PR ready
+- State: Applied — All SPEC-89 tickets (SPEC-89-01 through 04) implemented, verified, and merged into main via PR #124
 - Run branch: autopilot/DEC-076
-- Stopped at: Done — all FRs in mandate scope completed and verified
+- Stopped at: Done — all FRs in mandate scope completed, verified, and merged
 - Blocked: —
 - Parked: —
-- Next: Ready for maintainer PR review and merge into main
+- Next: Mandate completed and applied. PR #124 merged into main.
 
 ## Decisions
 

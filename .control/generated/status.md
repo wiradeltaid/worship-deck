@@ -400,15 +400,15 @@ work_progress:
   tickets_total: 4
   work_progress: 100%
 - spec: SPEC-90
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 3
   tickets_total: 3
-  work_progress: 0%
+  work_progress: 100%
 - spec: SPEC-91
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 3
   tickets_total: 3
-  work_progress: 0%
+  work_progress: 100%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -487,12 +487,7 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: one
-  active_ids:
-  - DEC-076
-  active_mandate:
-    id: DEC-076
-    status: accepted
-    expires: '2026-10-04'
-    scope: all
+  resolution: none
+  active_ids: []
+  active_mandate: null
 ```

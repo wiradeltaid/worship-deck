@@ -41,13 +41,13 @@ Satisfies `FR-40`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `installer/worship-deck.iss`:
+- [x] In `installer/worship-deck.iss`:
       - Add `VersionInfoVersion`, `VersionInfoCompany`, `VersionInfoDescription`, `VersionInfoCopyright`, `VersionInfoProductName`, `VersionInfoProductVersion`, `VersionInfoOriginalFileName`, and `AppCopyright`.
-- [ ] In `scripts/build-desktop.mjs`:
+- [x] In `scripts/build-desktop.mjs`:
       - Implement deterministic `worship-deck.rc` resource generator and `windres` compilation to `cmd/api/rsrc_windows_amd64.syso`.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Add `tests/installer-pe-metadata.test.mjs` to `test` script and create `smoke:spec-90` command.
-- [ ] In `tests/installer-pe-metadata.test.mjs`:
+- [x] In `tests/installer-pe-metadata.test.mjs`:
       - Add guard assertions for Inno Setup directives, PE resource definitions, and artifact-level metadata inspection with defect injection.

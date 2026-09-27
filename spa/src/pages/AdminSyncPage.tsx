@@ -9,6 +9,8 @@ import {
   uploadSyncAsset,
   downloadSyncAsset,
   loginRemote,
+  extractUploadHashes,
+  computeBufferSha256,
   SyncHttpError,
   SyncPushPayload,
   SyncPullResponse,
@@ -50,6 +52,8 @@ export interface ServiceConflict {
   server_updated_at: string;
   local_payload: string;
   server_payload?: string;
+  local_service?: any;
+  server_service?: any;
 }
 
 export function getOriginSafely(urlStr: string): string {
@@ -176,6 +180,12 @@ export default function AdminSyncPage() {
           song_set_entries: pullRes.changes.song_set_entries as any,
           background_library_images: pullRes.changes.background_library_images as any,
           announcement_items: pullRes.changes.announcement_items as any,
+          announcement_sets: (pullRes.changes as any).announcement_sets as any,
+          announcement_set_slides: (pullRes.changes as any).announcement_set_slides as any,
+          artifact_templates: (pullRes.changes as any).artifact_templates as any,
+          service_registry_snapshots: (pullRes.changes as any).service_registry_snapshots as any,
+          song_set_layouts: (pullRes.changes as any).song_set_layouts as any,
+          service_song_set_layouts: (pullRes.changes as any).service_song_set_layouts as any,
         },
         tombstones: pullRes.tombstones,
       };
@@ -185,20 +195,8 @@ export default function AdminSyncPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // 2. Check and upload any missing local media assets (flyers, backgrounds)
-      const assetUrls: string[] = [];
-      for (const ann of (pullRes.changes.announcement_items as any[]) || []) {
-        if (ann.image_url) assetUrls.push(ann.image_url);
-      }
-      for (const bg of (pullRes.changes.background_library_images as any[]) || []) {
-        if (bg.url) assetUrls.push(bg.url);
-      }
-      const shaHashes = assetUrls
-        .map((url) => {
-          const match = url.match(/([a-fA-F0-9]{64})/);
-          return match ? match[1].toLowerCase() : null;
-        })
-        .filter((h): h is string => Boolean(h));
+      // 2. Check and upload any missing local media assets across all entities
+      const shaHashes = extractUploadHashes(pullRes.changes);
 
       if (shaHashes.length > 0) {
         try {
@@ -206,19 +204,23 @@ export default function AdminSyncPage() {
           for (const missingHash of checkResult.missing) {
             try {
               const assetBuffer = await downloadSyncAsset(window.location.origin, missingHash);
+              const computedSha = await computeBufferSha256(assetBuffer);
+              if (computedSha.toLowerCase() !== missingHash.toLowerCase()) {
+                throw new Error(`Local asset ${missingHash} is corrupted (checksum mismatch); aborting push to prevent corrupt remote state`);
+              }
               await uploadSyncAsset(targetUrl, assetBuffer, missingHash, '', headers);
             } catch (assetErr: any) {
               if (assetErr?.status === 401) {
                 throw assetErr;
               }
-              console.warn(`Asset upload failed for ${missingHash}:`, assetErr);
+              throw new Error(`Asset upload failed for ${missingHash}: ${assetErr.message || assetErr}`);
             }
           }
         } catch (checkErr: any) {
           if (checkErr?.status === 401) {
             throw checkErr;
           }
-          console.warn('Asset check failed:', checkErr);
+          throw new Error(`Asset check failed: ${checkErr.message || checkErr}`);
         }
       }
 
@@ -266,6 +268,20 @@ export default function AdminSyncPage() {
 
       const remoteData = await pullSync(targetUrl, '', headers);
 
+      // Hydrate missing assets from remote into local storage with SHA-256 integrity verification
+      const remoteHashes = extractUploadHashes(remoteData.changes);
+      if (remoteHashes.length > 0) {
+        const localCheck = await checkSyncAssets(window.location.origin, remoteHashes);
+        for (const missingHash of localCheck.missing) {
+          const assetBuffer = await downloadSyncAsset(targetUrl, missingHash, headers);
+          const actualSha = await computeBufferSha256(assetBuffer);
+          if (actualSha.toLowerCase() !== missingHash.toLowerCase()) {
+            throw new Error(`Asset checksum verification failed for ${missingHash}: expected ${missingHash}, computed ${actualSha}`);
+          }
+          await uploadSyncAsset(window.location.origin, assetBuffer, missingHash);
+        }
+      }
+
       // Apply remote data into local database
       const mutationId = 'pull-mut-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
       const applyPayload: SyncPushPayload = {
@@ -277,6 +293,12 @@ export default function AdminSyncPage() {
           song_set_entries: remoteData.changes.song_set_entries as any,
           background_library_images: remoteData.changes.background_library_images as any,
           announcement_items: remoteData.changes.announcement_items as any,
+          announcement_sets: (remoteData.changes as any).announcement_sets as any,
+          announcement_set_slides: (remoteData.changes as any).announcement_set_slides as any,
+          artifact_templates: (remoteData.changes as any).artifact_templates as any,
+          service_registry_snapshots: (remoteData.changes as any).service_registry_snapshots as any,
+          song_set_layouts: (remoteData.changes as any).song_set_layouts as any,
+          service_song_set_layouts: (remoteData.changes as any).service_song_set_layouts as any,
         },
         tombstones: remoteData.tombstones,
       };
@@ -306,6 +328,8 @@ export default function AdminSyncPage() {
             server_updated_at: conf.server_updated_at || remoteSvc?.updated_at || remoteData.server_timestamp,
             local_payload: localSvc?.raw_payload || 'Local modified worship service',
             server_payload: remoteSvc?.raw_payload || 'Cloud modified worship service',
+            local_service: localSvc,
+            server_service: remoteSvc,
           });
           setConflictModalOpen(true);
           return;
@@ -400,6 +424,7 @@ export default function AdminSyncPage() {
     setSyncing(true);
     try {
       const nowStr = new Date().toISOString();
+      const localServiceData = activeConflict.local_service || {};
       const payload: SyncPushPayload = {
         client_device_id: getOrCreateDeviceId(),
         mutation_id: 'resolve-local-' + Date.now(),
@@ -409,6 +434,11 @@ export default function AdminSyncPage() {
               global_id: activeConflict.global_id,
               date: activeConflict.date,
               raw_payload: activeConflict.local_payload,
+              parsed_data: localServiceData.parsed_data,
+              images_payload: localServiceData.images_payload,
+              afternoon_program: localServiceData.afternoon_program,
+              hidden_slide_ids: localServiceData.hidden_slide_ids,
+              emergency_patches: localServiceData.emergency_patches,
               updated_at: nowStr,
             },
           ],
@@ -448,6 +478,7 @@ export default function AdminSyncPage() {
     if (!activeConflict) return;
     setSyncing(true);
     try {
+      const serverServiceData = activeConflict.server_service || {};
       const payload: SyncPushPayload = {
         client_device_id: getOrCreateDeviceId(),
         mutation_id: 'resolve-cloud-' + Date.now(),
@@ -457,6 +488,11 @@ export default function AdminSyncPage() {
               global_id: activeConflict.global_id,
               date: activeConflict.date,
               raw_payload: activeConflict.server_payload || activeConflict.local_payload,
+              parsed_data: serverServiceData.parsed_data,
+              images_payload: serverServiceData.images_payload,
+              afternoon_program: serverServiceData.afternoon_program,
+              hidden_slide_ids: serverServiceData.hidden_slide_ids,
+              emergency_patches: serverServiceData.emergency_patches,
               updated_at: activeConflict.server_updated_at,
             },
           ],

@@ -35,10 +35,10 @@ Satisfies `FR-40`, `FR-21`.
 
 **Blocked by:** 02
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Add `tests/sync-bidirectional-contract.test.mjs` to `test` script and ensure `smoke:spec-91` runs all three test files.
-- [ ] In `tests/sync-bidirectional-contract.test.mjs`:
+- [x] In `tests/sync-bidirectional-contract.test.mjs`:
       - Implement comprehensive two-direction round-trip contract tests with defect injection.
-- [ ] Verify full test suite passes cleanly.
+- [x] Verify full test suite passes cleanly.

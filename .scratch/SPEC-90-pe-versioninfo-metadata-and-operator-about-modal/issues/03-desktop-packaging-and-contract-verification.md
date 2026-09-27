@@ -23,12 +23,12 @@ Satisfies `FR-40`.
 
 **Blocked by:** 02
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Add `tests/desktop-about-contract.test.mjs` to `test` and `smoke:spec-90` scripts.
-- [ ] In `tests/desktop-about-contract.test.mjs`:
+- [x] In `tests/desktop-about-contract.test.mjs`:
       - Implement end-to-end contract and bounded zero-telemetry absence guard tests with defect injection.
-- [ ] In `scripts/build-desktop.mjs`:
+- [x] In `scripts/build-desktop.mjs`:
       - Verify packaging pipeline integrity.
-- [ ] Run full test suite and confirm clean green execution.
+- [x] Run full test suite and confirm clean green execution.

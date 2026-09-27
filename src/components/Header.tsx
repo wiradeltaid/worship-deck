@@ -1,8 +1,9 @@
 import { usePathname } from '@/lib/navigation';
 import { useState } from 'react';
-import { KeyRound, RefreshCw } from 'lucide-react';
+import { KeyRound, RefreshCw, Info } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 import ThemeToggle from './ThemeToggle';
+import AboutModal from './AboutModal';
 import { CustomLink } from './navigation-blocker';
 import { headerLinkClass, HEADER_CONTROL_BOX_BASE } from './header-chrome';
 import { useT } from '@/lib/i18n/operator';
@@ -40,6 +41,7 @@ export default function Header({
   const { t } = useT();
   const pathname = usePathname() || '';
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [pwError, setPwError] = useState<string | null>(null);
@@ -190,6 +192,15 @@ export default function Header({
                 </DropdownMenuItem>
               )
             )}
+            <DropdownMenuItem
+              data-testid="about-modal-trigger"
+              onClick={() => {
+                setAboutOpen(true);
+              }}
+            >
+              <Info className="size-4" />
+              <span>{t('chrome.about')}</span>
+            </DropdownMenuItem>
             <LogoutButton variant="menu" />
           </DropdownMenuContent>
         </DropdownMenu>
@@ -264,6 +275,8 @@ export default function Header({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
     </header>
   );
 }
