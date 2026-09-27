@@ -1678,7 +1678,7 @@ decisions:
       - .scratch/
   - id: DEC-077
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-27)"
     title: Daily Autopilot mandate for Desktop PE Metadata, About Modal, and Full-Fidelity Cloud Sync (SPEC-90, SPEC-91)
     file: .control/decisions/DEC-077-daily-autopilot-mandate-desktop-pe-metadata-about-modal-and-full-fidelity-sync.md

@@ -6,7 +6,7 @@ artifact: .control/decisions/DEC-077-daily-autopilot-mandate-desktop-pe-metadata
 
 ## Resume
 
-- State: Finished — All SPEC-90 (01..03) and SPEC-91 (01..03) tickets implemented, verified, peer-reviewed, and ready for maintainer merge
+- State: Applied — All SPEC-90 (01..03) and SPEC-91 (01..03) tickets implemented, verified, peer-reviewed, and ready for maintainer merge
 - Run branch: autopilot/DEC-077 (PR #126)
 - Stopped at: Done — all FRs in mandate scope completed and verified
 - Blocked: —

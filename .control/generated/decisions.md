@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**77 decisions** — accepted: 1 · applied: 76.
+**77 decisions** — applied: 77.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -84,4 +84,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-074` | Daily Autopilot mandate for Emergency Canvas Background Image Crop Parity (SPEC-87) | `applied` | mandate | `.control/memlog/autopilot-DEC-074.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-074-daily-autopilot-mandate-emergency-canvas-bg-crop-parity.md` |
 | `DEC-075` | Daily Autopilot mandate for Cross-Machine Cloud Sync with Ephemeral Auth and CORS (SPEC-88) | `applied` | mandate | `.control/memlog/autopilot-DEC-075.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-075-daily-autopilot-mandate-cross-machine-cloud-sync.md` |
 | `DEC-076` | Daily Autopilot mandate for Native Desktop WebView2 Window and Installer Default Seed Staging (SPEC-89) | `applied` | mandate | `.control/memlog/autopilot-DEC-076.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-076-daily-autopilot-mandate-native-desktop-webview2-and-installer-seed-staging.md` |
-| `DEC-077` | Daily Autopilot mandate for Desktop PE Metadata, About Modal, and Full-Fidelity Cloud Sync (SPEC-90, SPEC-91) | `accepted` | mandate | `.control/memlog/autopilot-DEC-077.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-077-daily-autopilot-mandate-desktop-pe-metadata-about-modal-and-full-fidelity-sync.md` |
+| `DEC-077` | Daily Autopilot mandate for Desktop PE Metadata, About Modal, and Full-Fidelity Cloud Sync (SPEC-90, SPEC-91) | `applied` | mandate | `.control/memlog/autopilot-DEC-077.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-077-daily-autopilot-mandate-desktop-pe-metadata-about-modal-and-full-fidelity-sync.md` |
