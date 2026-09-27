@@ -1604,6 +1604,25 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+  - id: DEC-073
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-27)"
+    title: Daily Autopilot mandate for Operator Ergonomics, Canvas Polish, and Localization Parity (SPEC-86)
+    file: .control/decisions/DEC-073-daily-autopilot-mandate-operator-ergonomics-canvas-polish.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-04'
+    touches:
+      - .control/memlog/autopilot-DEC-073.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
 
 
 

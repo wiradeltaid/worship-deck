@@ -332,25 +332,28 @@ export default function RunSheetPage() {
       )}
       <header
         data-testid="run-sheet-header"
-        className="mb-8 flex flex-col gap-4 border-b border-border/80 pb-4 lg:flex-row lg:items-center lg:justify-between"
+        className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 border-b border-border/80 pb-4 items-start"
       >
-        {/* Meta Cluster (Left) */}
-        <div data-testid="header-meta-cluster" className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              Run-Sheet: {svc.date || svc.id}
-            </h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>
-          </div>
-          <div className="pt-0.5 sm:pt-0">
-            <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
-          </div>
+        {/* Column 1 (Left 50%): Meta Cluster */}
+        <div data-testid="header-meta-cluster" className="min-w-0 flex flex-col justify-center">
+          <h1
+            className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate whitespace-nowrap"
+            title={`Run-Sheet: ${svc.date || svc.id}`}
+          >
+            Run-Sheet: {svc.date || svc.id}
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>
         </div>
 
-        {/* Action Clusters (Right) */}
-        <div data-testid="header-actions-wrapper" className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          {/* Primary Controls (Present with primary visual prominence, Preview, Remote) */}
-          <div data-testid="header-primary-controls" className="flex items-center gap-2">
+        {/* Column 2 (Right 50%): Structured Action Clusters */}
+        <div data-testid="header-actions-wrapper" className="flex flex-col items-start lg:items-end gap-2.5">
+          {/* Row 1: Status visibility */}
+          <div data-testid="header-offline-row" className="flex items-center justify-start lg:justify-end w-full">
+            <OfflineReadinessBadge serviceId={svc.id} serviceData={svc} />
+          </div>
+
+          {/* Row 2: Primary Controls (Present with primary visual prominence, Preview, Remote) */}
+          <div data-testid="header-primary-controls" className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
             <Link
               href={`/services/${svc.id}/present`}
               className={cn(buttonVariants({ variant: 'default' }), 'h-9 px-4 font-bold shadow-xs')}
@@ -370,8 +373,8 @@ export default function RunSheetPage() {
             </Link>
           </div>
 
-          {/* Utility Controls (Sync Artifact, Download PPTX split button) */}
-          <div data-testid="header-utility-controls" className="flex items-center gap-2">
+          {/* Row 3: Utility Controls (Sync Artifact, Download PPTX split button) */}
+          <div data-testid="header-utility-controls" className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
             {isAdmin ? (
               <SyncArtifactButton
                 serviceId={svc.id}
