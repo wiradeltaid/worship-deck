@@ -36,14 +36,14 @@ Satisfies `FR-40`, `FR-21`, and `UC-32`.
 
 **Blocked by:** SPEC-88-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `spa/src/pages/AdminSyncPage.tsx`:
+- [x] In `spa/src/pages/AdminSyncPage.tsx`:
       - Remove legacy token input and confusing placeholder.
       - Implement `RemoteAuthDialog` for on-demand remote login.
       - Enforce origin-bound token lifecycle clearing on URL change, unmount, disconnect, and 401.
       - Wire `inMemoryRemoteToken` into `handlePush` and `handlePull` operations.
       - Add session disconnect action and remote connection status badge.
-- [ ] In `tests/admin-sync-ephemeral-auth.test.mjs`:
+- [x] In `tests/admin-sync-ephemeral-auth.test.mjs`:
       - Verify removal of legacy pairing code placeholder from sync page.
       - Verify in-memory ephemeral token lifecycle and absence of local/session storage leakage.

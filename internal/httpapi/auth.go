@@ -72,11 +72,13 @@ func (s *Server) postSetupAdmin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	setNoStore(w)
 	auth.SetSessionCookie(w, token)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":       true,
 		"role":     acct.Role,
 		"username": acct.Username,
+		"token":    token,
 	})
 }
 
@@ -122,11 +124,13 @@ func (s *Server) postLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
+	setNoStore(w)
 	auth.SetSessionCookie(w, token)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":       true,
 		"role":     account.Role,
 		"username": account.Username,
+		"token":    token,
 	})
 }
 

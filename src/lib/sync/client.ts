@@ -1,6 +1,15 @@
 /**
- * SPEC-47-05: Bidirectional On-Demand Delta Sync Client
+ * SPEC-47-05 / SPEC-88: Bidirectional On-Demand Delta Sync Client with Ephemeral Auth & Structured Errors
  */
+
+export class SyncHttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = 'SyncHttpError';
+  }
+}
 
 export interface SyncPushPayload {
   client_device_id: string;
@@ -105,14 +114,15 @@ export async function pushSync(
     body: JSON.stringify(payload),
   });
 
-  const data = (await res.json()) as SyncPushResponse;
+  const data = (await res.json().catch(() => ({}))) as SyncPushResponse;
   if (!res.ok) {
     if (res.status === 409 && data.error === 'presenter_active') {
-      throw new Error('Presenter actively projecting — sync paused until presentation completes');
+      const err = new SyncHttpError('Presenter actively projecting — sync paused until presentation completes', res.status);
+      (err as any).conflict = data;
+      throw err;
     }
-    const err = new Error(data.message || `Sync push failed with status ${res.status}`);
+    const err = new SyncHttpError(data.message || data.error || `Sync push failed with status ${res.status}`, res.status);
     (err as any).conflict = data;
-    (err as any).status = res.status;
     throw err;
   }
   return data;
@@ -134,7 +144,9 @@ export async function pullSync(
   });
 
   if (!res.ok) {
-    throw new Error(`Sync pull failed with status ${res.status}`);
+    const errorBody = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+    const msg = errorBody?.message || errorBody?.error || `Sync pull failed with status ${res.status}`;
+    throw new SyncHttpError(msg, res.status);
   }
   return (await res.json()) as SyncPullResponse;
 }
@@ -153,7 +165,9 @@ export async function getSyncStatus(
   });
 
   if (!res.ok) {
-    throw new Error(`Sync status failed with status ${res.status}`);
+    const errorBody = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+    const msg = errorBody?.message || errorBody?.error || `Sync status failed with status ${res.status}`;
+    throw new SyncHttpError(msg, res.status);
   }
   return (await res.json()) as SyncStatusResponse;
 }
@@ -184,7 +198,9 @@ export async function checkSyncAssets(
     body: JSON.stringify({ hashes }),
   });
   if (!res.ok) {
-    throw new Error(`Check sync assets failed with status ${res.status}`);
+    const errorBody = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+    const msg = errorBody?.message || errorBody?.error || `Check sync assets failed with status ${res.status}`;
+    throw new SyncHttpError(msg, res.status);
   }
   return (await res.json()) as SyncAssetsCheckResponse;
 }
@@ -208,7 +224,9 @@ export async function uploadSyncAsset(
     body: fileBytes,
   });
   if (!res.ok) {
-    throw new Error(`Upload sync asset failed with status ${res.status}`);
+    const errorBody = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+    const msg = errorBody?.message || errorBody?.error || `Upload sync asset failed with status ${res.status}`;
+    throw new SyncHttpError(msg, res.status);
   }
   return (await res.json()) as SyncAssetUploadResponse;
 }
@@ -226,9 +244,50 @@ export async function downloadSyncAsset(
     },
   });
   if (!res.ok) {
-    throw new Error(`Download sync asset failed with status ${res.status}`);
+    const errorBody = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+    const msg = errorBody?.message || errorBody?.error || `Download sync asset failed with status ${res.status}`;
+    throw new SyncHttpError(msg, res.status);
   }
   return await res.arrayBuffer();
+}
+
+export async function loginRemote(
+  remoteUrl: string,
+  username: string,
+  password: string
+): Promise<{ ok: boolean; token: string; role: string }> {
+  const url = `${remoteUrl.replace(/\/+$/, '')}/api/auth/login`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    token?: string;
+    role?: string;
+    error?: string;
+    message?: string;
+  };
+
+  if (!res.ok) {
+    const msg = data.error || data.message || `Remote authentication failed with status ${res.status}`;
+    throw new SyncHttpError(msg, res.status);
+  }
+
+  if (!data.token) {
+    throw new SyncHttpError('Remote server response missing token', res.status);
+  }
+
+  return {
+    ok: true,
+    token: data.token,
+    role: data.role || 'admin',
+  };
 }
 
 export interface SyncPushBatchResult {
@@ -394,13 +453,17 @@ export async function pushSyncChunked(
         appliedCount: 0,
         error: err.message || String(err),
       });
-      return {
+      const status = err.status || (err instanceof SyncHttpError ? err.status : 500);
+      const httpErr = new SyncHttpError(err.message || `Sync push chunked failed with status ${status}`, status);
+      (httpErr as any).conflict = err.conflict;
+      (httpErr as any).batchResult = {
         ok: false,
         appliedTotal,
         applied_count: appliedTotal,
         chunks: chunkResults,
         skippedRecords: skippedRecords.length > 0 ? skippedRecords : undefined,
       };
+      throw httpErr;
     }
   }
 

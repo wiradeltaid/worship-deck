@@ -38,14 +38,14 @@ Satisfies `FR-40`, `FR-21`, and `UC-32`.
 
 **Blocked by:** SPEC-88-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `internal/httpapi/auth.go`:
+- [x] In `internal/httpapi/auth.go`:
       - Return `token` field in `postLogin` response JSON.
-- [ ] In `src/lib/sync/client.ts`:
+- [x] In `src/lib/sync/client.ts`:
       - Implement and export `SyncHttpError` with `status` property.
       - Ensure all sync functions reject with `SyncHttpError` preserving `res.status`.
       - Export `loginRemote` helper for cross-origin remote authentication.
-- [ ] In `tests/sync-cors-and-bearer-auth.test.mjs`:
+- [x] In `tests/sync-cors-and-bearer-auth.test.mjs`:
       - Verify `POST /api/auth/login` returns valid session token in response body.
       - Verify `loginRemote` authenticates and receives token.
