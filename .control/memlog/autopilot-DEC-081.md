@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-081-daily-autopilot-mandate-cloud-sync-asset-pa
 
 ## Resume
 
-- State: In Progress — All SPEC-93 tickets (01..04) implemented, verified, and Terra peer review approved
+- State: Applied — All SPEC-93 tickets (01..04) implemented, verified, peer-reviewed, and ready for maintainer merge
 - Run branch: autopilot/DEC-081
-- Stopped at: SPEC-93 completed
+- Stopped at: Done — all FRs in mandate scope completed and verified
 - Blocked: —
 - Parked: —
-- Next: Close SPEC-93 in registry, reconcile corpus, run full test suite, and seal mandate
+- Next: Maintainer review and merge PR into main
 
 ## Decisions
 

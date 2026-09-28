@@ -3944,7 +3944,7 @@ waves:
           - tests/factory-reset.test.mjs
 
   - id: SPEC-93
-    status: open
+    status: closed
     release: cloud-sync-asset-parity-and-conscious-factory-reset
     prd: [offline-deck, operator-turn]
     fr: [FR-20, FR-21, FR-40]

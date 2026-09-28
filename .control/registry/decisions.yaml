@@ -1738,7 +1738,7 @@ decisions:
 
   - id: DEC-081
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-28)"
     title: Daily Autopilot mandate for Cloud Sync Asset Hydration Parity and Conscious Factory Reset (SPEC-93)
     file: .control/decisions/DEC-081-daily-autopilot-mandate-cloud-sync-asset-parity-and-conscious-factory-reset.md
