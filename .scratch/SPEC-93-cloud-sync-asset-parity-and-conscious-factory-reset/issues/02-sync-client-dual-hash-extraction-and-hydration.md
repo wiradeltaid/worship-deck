@@ -34,12 +34,12 @@ Satisfies `FR-40`, `UC-32`.
 
 **Blocked by:** SPEC-93-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `src/lib/sync/client.ts`:
+- [x] In `src/lib/sync/client.ts`:
       - Broaden `uploadPathRegex` to accept `32..64` hex characters with both `/api/uploads/` and `/uploads/` prefixes.
       - Add asset reference extraction with filename and extension metadata.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/sync-client-dual-hash.test.mjs`.
-- [ ] In `tests/sync-client-dual-hash.test.mjs`:
+- [x] In `tests/sync-client-dual-hash.test.mjs`:
       - Implement extraction tests with real production fixtures and defect injection proofs.

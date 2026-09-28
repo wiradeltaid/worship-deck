@@ -538,25 +538,33 @@ export async function pushSyncChunked(
   };
 }
 
+export interface UploadAssetRef {
+  hash: string;
+  filename: string;
+  extension: string;
+}
+
+const uploadPathRegex = /(?:\/api)?\/uploads\/((?:[a-f0-9]{32}|[a-f0-9]{64}))\.([a-z0-9]+)/gi;
+
 /**
  * Recursively scans arbitrary objects, arrays, and JSON strings for upload asset paths
- * matching `/api/uploads/([a-f0-9]{64})/i`.
- * Returns a sorted, de-duplicated array of lowercase hexadecimal hashes.
+ * matching `(?:/api)?/uploads/((?:[a-f0-9]{32}|[a-f0-9]{64}))\.[a-z0-9]+/i`.
+ * Returns a sorted, de-duplicated array of lowercase hexadecimal hashes (both 32-hex legacy and 64-hex SHA-256).
  *
- * NOTE (SPEC-92-03): Strictly restricts extraction to explicit `/api/uploads/<hash>` URI paths.
- * Never treats raw 64-hex strings in arbitrary fields (such as layout `seed_hash` or bible
+ * NOTE (SPEC-92-03, SPEC-93-02): Strictly restricts extraction to explicit `/(api/)?uploads/<hash>` URI paths.
+ * Never treats raw hex strings in arbitrary metadata fields (such as layout `seed_hash` or bible
  * translation `content_hash`) as uploaded media assets.
  */
 export function extractUploadHashes(payload: unknown): string[] {
   const hashes = new Set<string>();
-  const uploadPathRegex = /\/api\/uploads\/([a-f0-9]{64})\.[a-z0-9]+/gi;
+  const regex = new RegExp(uploadPathRegex.source, 'gi');
 
   function scan(val: unknown) {
     if (val === null || val === undefined) return;
     if (typeof val === 'string') {
       let match: RegExpExecArray | null;
-      uploadPathRegex.lastIndex = 0;
-      while ((match = uploadPathRegex.exec(val)) !== null) {
+      regex.lastIndex = 0;
+      while ((match = regex.exec(val)) !== null) {
         hashes.add(match[1].toLowerCase());
       }
       if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
@@ -584,6 +592,57 @@ export function extractUploadHashes(payload: unknown): string[] {
 
   scan(payload);
   return Array.from(hashes).sort();
+}
+
+/**
+ * Recursively scans arbitrary objects, arrays, and JSON strings for upload asset paths
+ * and returns structured asset reference metadata with canonical filename and extension.
+ */
+export function extractUploadAssetRefs(payload: unknown): UploadAssetRef[] {
+  const refMap = new Map<string, UploadAssetRef>();
+  const regex = new RegExp(uploadPathRegex.source, 'gi');
+
+  function scan(val: unknown) {
+    if (val === null || val === undefined) return;
+    if (typeof val === 'string') {
+      let match: RegExpExecArray | null;
+      regex.lastIndex = 0;
+      while ((match = regex.exec(val)) !== null) {
+        const hash = match[1].toLowerCase();
+        const extension = match[2].toLowerCase();
+        if (!refMap.has(hash)) {
+          refMap.set(hash, {
+            hash,
+            filename: `${hash}.${extension}`,
+            extension,
+          });
+        }
+      }
+      if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(val);
+          scan(parsed);
+        } catch {
+          // not JSON, continue
+        }
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        scan(item);
+      }
+      return;
+    }
+    if (typeof val === 'object') {
+      for (const key of Object.keys(val as Record<string, unknown>)) {
+        scan((val as Record<string, unknown>)[key]);
+      }
+    }
+  }
+
+  scan(payload);
+  return Array.from(refMap.values()).sort((a, b) => a.hash.localeCompare(b.hash));
 }
 
 /**
