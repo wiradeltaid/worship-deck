@@ -93,7 +93,7 @@ jobs:
         run: |
           $installer = "dist-installer\WorshipDeck-$($env:VERSION)-x64-setup.exe"
           if (-not (Test-Path $installer)) { throw "Installer not found at $installer" }
-          $fileVersion = (Get-Item $installer).VersionInfo.FileVersion
+          $fileVersion = ((Get-Item $installer).VersionInfo.FileVersion).Trim()
           if ($fileVersion -ne $env:VERSION) {
             throw "Installer FileVersion $fileVersion does not match package.json version $env:VERSION"
           }

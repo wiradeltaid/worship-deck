@@ -71,6 +71,13 @@ test('SPEC-64: release.yml verifies compiled installer FileVersion against tag/v
     releaseYmlSource.includes('VersionInfo.FileVersion'),
     'release.yml must inspect VersionInfo.FileVersion of installer'
   );
+  // Inno Setup 6.7 pads the FileVersion string resource with trailing spaces
+  // ("0.1.0               "), so an exact comparison fails the first real tag.
+  assert.match(
+    releaseYmlSource,
+    /\$fileVersion = \(\(Get-Item \$installer\)\.VersionInfo\.FileVersion\)\.Trim\(\)/,
+    'release.yml must trim the padded FileVersion before comparing it'
+  );
 });
 
 test('SPEC-73: installer naming follows WorshipDeck-{#MyAppVersion}-x64-setup and SHA256SUMS', () => {
