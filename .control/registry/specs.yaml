@@ -3900,6 +3900,50 @@ waves:
         tests:
           - tests/sync-bidirectional-contract.test.mjs
 
+  - id: SPEC-92
+    status: open
+    release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
+    prd: [offline-deck, operator-turn]
+    fr: [FR-20, FR-21, FR-40]
+    size: M
+    depends_on: [SPEC-91]
+    spec_folder: .scratch/SPEC-92-desktop-window-icon-installer-license-sync-resilience-and-factory-reset/
+    spec_reviewed:
+      date: '2026-09-28'
+      sha: 'b5107afe77d0ae6de73b3a7ef2bd571dcb280773'
+      lenses: [structure, prose, edge-case-hunter, traceability, security-and-destructive-data, sync-protocol, release-packaging]
+      note: "Terra (kiro-agent). Verdict accept upon revision. Folded in: (1) corrected requirement traceability from invalid FR-31 desktop claim to FR-20, FR-21, FR-40 and UC-14, UC-15, UC-32; (2) authorized whole-application factory reset under formal DEC-078 narrowing AD-17 with comprehensive table, account, and upload deletion boundaries; (3) maintained strict SHA-256 asset identity contract rejecting ambiguous 32-char widening and refined extractUploadHashes to URI paths only, ignoring metadata seed_hash and entity UUIDs; (4) enforced explicit 401 unauthorized vs 403 forbidden security gate for reset endpoint; (5) confirmed upstream legal MIT policy SSOT in ops/research/wdi-ecosystem-strategy/legal/; (6) disentangled artificial ticket dependencies into parallel desktop, installer, and sync tracks; (7) designed operator-visible structured skippedAssets partial-success reporting for non-fatal 404s; (8) included realistic seed_hash fixture in test plan."
+    tickets:
+      - id: "SPEC-92-01"
+        component: hub
+        satisfies: [FR-20, UC-14]
+        blocked_by: []
+        touches: [desktop]
+        tests:
+          - tests/desktop-window-icon.test.mjs
+      - id: "SPEC-92-02"
+        component: hub
+        satisfies: [FR-20, FR-21]
+        blocked_by: []
+        touches: [installer]
+        tests:
+          - tests/installer-license-and-uninstall.test.mjs
+      - id: "SPEC-92-03"
+        component: hub
+        satisfies: [FR-40, UC-32]
+        blocked_by: []
+        touches: [sync]
+        tests:
+          - tests/sync-asset-resilience.test.mjs
+      - id: "SPEC-92-04"
+        component: hub
+        satisfies: [FR-20, FR-21, UC-14, UC-15]
+        blocked_by: ["SPEC-92-03"]
+        touches: [sync, settings]
+        tests:
+          - tests/factory-reset.test.mjs
+
+
 
 
 

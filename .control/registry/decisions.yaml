@@ -1695,6 +1695,18 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/
 
+  - id: DEC-078
+    type: course-correction
+    status: applied
+    accepted_by: "kodesh87 (2026-09-28)"
+    title: Administrator Factory Reset Operation Narrows AD-17
+    file: .control/decisions/DEC-078-administrator-factory-reset-narrows-ad17.md
+    touches:
+      - .how/_platform/ARCHITECTURE-SPINE.md
+      - .how/registry/SDD-registry.md
+      - .control/registry/decisions.yaml
+
+
 
 
 
