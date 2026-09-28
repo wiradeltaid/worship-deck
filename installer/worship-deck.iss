@@ -158,7 +158,7 @@ id.SharedFileNameLabel=Nama file:
 
 [CustomMessages]
 en.UninstallDataWipePrompt=Do you also want to remove all local user data, service plans, and local databases in %1?%n%nSelect "No" to keep your data for future installations.
-id.UninstallDataWipePrompt=Apakah Anda juga ingin menghapus semua data pengguna lokal, paket layanan, dan basis data lokal di %1?%n%nPilih "Tidak" untuk menyimpan data Anda untuk pemasangan berikutnya.
+id.UninstallDataWipePrompt=Hapus juga semua data lokal WorshipDeck di %1, termasuk susunan ibadah dan database?%n%nPilih "Tidak" untuk menyimpan data Anda bila nanti memasang ulang.
 
 [Code]
 // Data preservation guarantee & interactive wipe option:
