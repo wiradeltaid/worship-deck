@@ -77,6 +77,83 @@ test('SPEC-92-02: installer/worship-deck.iss satisfies license page and uninstal
   assert.deepEqual(findings, [], `Installer license & uninstall contract findings:\n${findings.join('\n')}`);
 });
 
+// Owner decision 2026-09-28: the installer must be bilingual EN/ID, like Snapdown's, before the
+// v0.1.0 tag. LicenseFile stays the single (English) MIT LICENSE for both languages (no invented
+// Indonesian legal translation) - only [Languages] and [CustomMessages] carry the localisation.
+export function scanInstallerBilingualContract(issContent) {
+  const findings = [];
+  const cleanContent = stripComments(issContent);
+
+  const languagesMatch = cleanContent.match(/\[Languages\]([\s\S]*?)(?:\[[A-Za-z0-9_-]+\]|$)/i);
+  if (!languagesMatch) {
+    findings.push('installer/worship-deck.iss must contain [Languages] section');
+  } else {
+    const languagesBody = languagesMatch[1];
+    if (!/Name:\s*"en"\s*;\s*MessagesFile:\s*"compiler:Default\.isl"/i.test(languagesBody)) {
+      findings.push('[Languages] must declare Name: "en"; MessagesFile: "compiler:Default.isl"');
+    }
+    if (!/Name:\s*"id"\s*;\s*MessagesFile:\s*"languages\\Indonesian\.isl"/i.test(languagesBody)) {
+      findings.push('[Languages] must declare Name: "id"; MessagesFile: "languages\\Indonesian.isl"');
+    }
+  }
+
+  // Every en.X CustomMessage must have a matching id.X, and vice versa.
+  const customMessagesMatch = cleanContent.match(/\[CustomMessages\]([\s\S]*?)(?:\[[A-Za-z0-9_-]+\]|$)/i);
+  if (!customMessagesMatch) {
+    findings.push('installer/worship-deck.iss must contain [CustomMessages] section');
+  } else {
+    const body = customMessagesMatch[1];
+    const enKeys = new Set([...body.matchAll(/^en\.([A-Za-z0-9_]+)\s*=/gm)].map((m) => m[1]));
+    const idKeys = new Set([...body.matchAll(/^id\.([A-Za-z0-9_]+)\s*=/gm)].map((m) => m[1]));
+    if (enKeys.size === 0) {
+      findings.push('[CustomMessages] must declare at least one en.* message');
+    }
+    for (const key of enKeys) {
+      if (!idKeys.has(key)) {
+        findings.push(`[CustomMessages] en.${key} has no matching id.${key}`);
+      }
+    }
+    for (const key of idKeys) {
+      if (!enKeys.has(key)) {
+        findings.push(`[CustomMessages] id.${key} has no matching en.${key}`);
+      }
+    }
+  }
+
+  return findings;
+}
+
+test('Owner decision 2026-09-28: installer/worship-deck.iss ships English + Indonesian languages with paired CustomMessages', () => {
+  const issPath = path.join(root, 'installer', 'worship-deck.iss');
+  const content = fs.readFileSync(issPath, 'utf8');
+  const findings = scanInstallerBilingualContract(content);
+  assert.deepEqual(findings, [], `Installer bilingual contract findings:\n${findings.join('\n')}`);
+
+  const islPath = path.join(root, 'installer', 'languages', 'Indonesian.isl');
+  assert.ok(fs.existsSync(islPath), 'installer/languages/Indonesian.isl must exist');
+});
+
+test('Owner decision 2026-09-28: guard proof - scanInstallerBilingualContract detects a missing language and an unpaired CustomMessage', () => {
+  const issPath = path.join(root, 'installer', 'worship-deck.iss');
+  const prodContent = fs.readFileSync(issPath, 'utf8');
+
+  // Defect 1: Indonesian language entry removed
+  const defectNoId = prodContent.replace(/Name:\s*"id";\s*MessagesFile:\s*"languages\\Indonesian\.isl"\r?\n?/i, '');
+  const findings1 = scanInstallerBilingualContract(defectNoId);
+  assert.ok(findings1.some((f) => f.includes('Name: "id"')), 'must detect missing Indonesian language entry');
+
+  // Defect 2: an id.* CustomMessage with no en.* counterpart
+  const defectUnpaired = prodContent.replace(
+    '[Code]',
+    'id.OrphanMessage=Pesan tanpa padanan bahasa Inggris.\r\n\r\n[Code]'
+  );
+  const findings2 = scanInstallerBilingualContract(defectUnpaired);
+  assert.ok(
+    findings2.some((f) => f.includes('id.OrphanMessage has no matching en.OrphanMessage')),
+    'must detect an unpaired id.* CustomMessage'
+  );
+});
+
 test('SPEC-92-02: scanInstallerLicenseAndUninstallContract defect injection detects missing or misplaced directives on production file', () => {
   const issPath = path.join(root, 'installer', 'worship-deck.iss');
   const prodContent = fs.readFileSync(issPath, 'utf8');
