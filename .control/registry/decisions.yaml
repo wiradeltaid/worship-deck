@@ -1757,7 +1757,7 @@ decisions:
 
   - id: DEC-082
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-28)"
     title: Daily Autopilot mandate for Desktop Dark Mode Title Bar, Congregation F11 Guidance, and Installer Metadata (SPEC-94)
     file: .control/decisions/DEC-082-daily-autopilot-mandate-desktop-dark-mode-congregation-f11-and-installer-metadata.md
