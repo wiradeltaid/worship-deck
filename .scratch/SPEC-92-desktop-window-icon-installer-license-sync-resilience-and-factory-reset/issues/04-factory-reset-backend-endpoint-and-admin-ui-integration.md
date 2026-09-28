@@ -41,16 +41,16 @@ Satisfies `FR-20`, `FR-21`, `UC-14`, `UC-15`.
 
 **Blocked by:** SPEC-92-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `internal/httpapi/`:
+- [x] In `internal/httpapi/`:
       - Implement `handleResetFactory` and register route `POST /api/admin/reset-factory`.
       - Enforce 401 on unauthenticated and 403 on non-admin callers.
-- [ ] In `spa/src/pages/AdminSyncPage.tsx`:
+- [x] In `spa/src/pages/AdminSyncPage.tsx`:
       - Implement factory reset button and destructive confirmation dialog.
-- [ ] In `src/lib/i18n/`:
+- [x] In `src/lib/i18n/`:
       - Add bilingual i18n keys to `keys.ts`, `catalogue-en.ts`, and `catalogue-id.ts`.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/factory-reset.test.mjs`.
-- [ ] In `tests/factory-reset.test.mjs`:
+- [x] In `tests/factory-reset.test.mjs`:
       - Implement test suite for factory reset endpoint and UI contracts.

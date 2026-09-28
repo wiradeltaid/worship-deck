@@ -43,7 +43,9 @@ import {
   Copy,
   Lock,
   LogOut,
+  Trash2,
 } from 'lucide-react';
+import { useT } from '@/lib/i18n/operator';
 
 export interface ServiceConflict {
   global_id: string;
@@ -82,6 +84,7 @@ export function getOrCreateDeviceId(): string {
 
 export default function AdminSyncPage() {
   const { session } = useSession();
+  const { t } = useT();
 
   const [remoteUrl, setRemoteUrl] = useState(() => {
     return localStorage.getItem('wpw_sync_remote_url') || window.location.origin;
@@ -105,6 +108,10 @@ export default function AdminSyncPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncAction, setSyncAction] = useState<'push' | 'pull' | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
+
+  // Factory Reset State (DEC-078)
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Conflict Resolution Dialog State
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
@@ -573,6 +580,37 @@ export default function AdminSyncPage() {
     }
   };
 
+  const handleFactoryReset = async () => {
+    setResetting(true);
+    try {
+      const res = await fetch('/api/admin/reset-factory', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
+        throw new Error(body?.message || body?.error || `Factory reset failed with status ${res.status}`);
+      }
+      setResetModalOpen(false);
+      setMessage({
+        type: 'success',
+        text: t('sync.factoryReset.success'),
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: `${t('sync.factoryReset.failed')}: ${err.message}`,
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
+
   if (!session) return null;
   if (session.role !== 'admin') return <Navigate to="/" replace />;
 
@@ -761,6 +799,59 @@ export default function AdminSyncPage() {
           <Button onClick={handleSaveConfig}>Save Connection Settings</Button>
         </CardFooter>
       </Card>
+
+      {/* Factory Reset Section (DEC-078) */}
+      <Card className="border-red-500/30 bg-red-500/5">
+        <CardHeader>
+          <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+            <Trash2 className="w-5 h-5" /> {t('sync.factoryReset.title')}
+          </CardTitle>
+          <CardDescription>
+            {t('sync.factoryReset.description')}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex justify-end">
+          <Button
+            variant="destructive"
+            onClick={() => setResetModalOpen(true)}
+            disabled={syncing || resetting}
+          >
+            {t('sync.factoryReset.button')}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      {/* Factory Reset Confirmation Modal */}
+      <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5 text-destructive" /> {t('sync.factoryReset.confirmTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('sync.factoryReset.confirmDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setResetModalOpen(false)}
+              disabled={resetting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleFactoryReset}
+              disabled={resetting}
+            >
+              {resetting ? t('sync.factoryReset.inProgress') : t('sync.factoryReset.confirmButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Ephemeral Remote Authentication Modal */}
       <Dialog
