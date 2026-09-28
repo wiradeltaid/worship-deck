@@ -53,6 +53,10 @@ func findAssetBySHA256(dir, hash string) (string, error) {
 	return "", os.ErrNotExist
 }
 
+func findExistingUpload(dir, hash string) (string, error) {
+	return findAssetBySHA256(dir, hash)
+}
+
 // POST /api/sync/assets/check
 func (s *Server) syncAssetsCheck(w http.ResponseWriter, r *http.Request) {
 	if !requireAdmin(w, r) {
@@ -217,7 +221,7 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 	defer syncUploadMu.Unlock()
 
 	// Concurrency protection: if asset was committed concurrently while writing tmp file
-	if existingFile, err := findAssetBySHA256(dir, expectedHash); err == nil && existingFile != "" {
+	if existingFile, err := findExistingUpload(dir, expectedHash); err == nil && existingFile != "" {
 		_ = os.Remove(tmpName)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"ok":           true,
@@ -230,7 +234,7 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := os.Rename(tmpName, destPath); err != nil {
-		if existingFile, fErr := findAssetBySHA256(dir, expectedHash); fErr == nil && existingFile != "" {
+		if existingFile, fErr := findExistingUpload(dir, expectedHash); fErr == nil && existingFile != "" {
 			_ = os.Remove(tmpName)
 			writeJSON(w, http.StatusOK, map[string]any{
 				"ok":           true,
