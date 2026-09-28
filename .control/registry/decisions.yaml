@@ -1736,6 +1736,25 @@ decisions:
       - .how/registry/SDD-registry.md
       - .control/registry/decisions.yaml
 
+  - id: DEC-081
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-28)"
+    title: Daily Autopilot mandate for Cloud Sync Asset Hydration Parity and Conscious Factory Reset (SPEC-93)
+    file: .control/decisions/DEC-081-daily-autopilot-mandate-cloud-sync-asset-parity-and-conscious-factory-reset.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-05'
+    touches:
+      - .control/memlog/autopilot-DEC-081.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
 
 
 
