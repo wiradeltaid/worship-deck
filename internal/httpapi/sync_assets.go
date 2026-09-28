@@ -11,9 +11,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
-var sha256Regex = regexp.MustCompile(`^[a-fA-F0-9]{64}$`)
+var (
+	assetIdRegex = regexp.MustCompile(`^(?:[a-fA-F0-9]{32}|[a-fA-F0-9]{64})$`)
+	syncUploadMu sync.Mutex
+)
 
 type SyncAssetsCheckRequest struct {
 	Hashes []string `json:"hashes"`
@@ -24,7 +28,7 @@ type SyncAssetsCheckResponse struct {
 }
 
 func findAssetBySHA256(dir, hash string) (string, error) {
-	hash = strings.ToLower(hash)
+	hash = strings.ToLower(strings.TrimSpace(hash))
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -37,7 +41,12 @@ func findAssetBySHA256(dir, hash string) (string, error) {
 			continue
 		}
 		name := strings.ToLower(entry.Name())
-		if strings.HasPrefix(name, hash) {
+		if !uploadRef.MatchString(name) {
+			continue
+		}
+		ext := filepath.Ext(name)
+		stem := strings.TrimSuffix(name, ext)
+		if stem == hash {
 			return filepath.Join(dir, entry.Name()), nil
 		}
 	}
@@ -61,8 +70,9 @@ func (s *Server) syncAssetsCheck(w http.ResponseWriter, r *http.Request) {
 
 	for _, h := range req.Hashes {
 		h = strings.TrimSpace(h)
-		if !sha256Regex.MatchString(h) {
-			continue
+		if !assetIdRegex.MatchString(h) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid asset identifier: %s", h))
+			return
 		}
 		if _, err := findAssetBySHA256(dir, h); err != nil {
 			missing = append(missing, h)
@@ -85,8 +95,11 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expectedHash := strings.ToLower(strings.TrimSpace(r.Header.Get("X-Content-SHA256")))
-	if expectedHash == "" || !sha256Regex.MatchString(expectedHash) {
-		writeError(w, http.StatusBadRequest, "X-Content-SHA256 header is required and must be a 64-character hex string")
+	if expectedHash == "" {
+		expectedHash = strings.ToLower(strings.TrimSpace(r.Header.Get("X-Asset-Identifier")))
+	}
+	if expectedHash == "" || !assetIdRegex.MatchString(expectedHash) {
+		writeError(w, http.StatusBadRequest, "X-Content-SHA256 header is required and must be a 32 or 64 character hex string")
 		return
 	}
 
@@ -96,10 +109,31 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine extension
-	ext := strings.ToLower(filepath.Ext(r.URL.Query().Get("filename")))
-	if ext == "" {
+	rawFilename := strings.TrimSpace(r.URL.Query().Get("filename"))
+	if rawFilename == "" {
+		rawFilename = strings.TrimSpace(r.Header.Get("X-Filename"))
+	}
+
+	var filename string
+	if rawFilename != "" {
+		if strings.Contains(rawFilename, "/") || strings.Contains(rawFilename, "\\") || strings.Contains(rawFilename, "..") || filepath.Base(rawFilename) != rawFilename {
+			writeError(w, http.StatusBadRequest, "Invalid filename: path traversal is forbidden")
+			return
+		}
+		ext := strings.ToLower(filepath.Ext(rawFilename))
+		stem := strings.ToLower(strings.TrimSuffix(rawFilename, ext))
+		if assetIdRegex.MatchString(stem) && !strings.EqualFold(stem, expectedHash) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Filename stem (%s) does not match declared identifier (%s)", stem, expectedHash))
+			return
+		}
+		if ext == "" || !uploadRef.MatchString(expectedHash+ext) {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("Unsupported asset extension: %s", ext))
+			return
+		}
+		filename = expectedHash + ext
+	} else {
 		ct := r.Header.Get("Content-Type")
+		ext := ".bin"
 		switch {
 		case strings.Contains(ct, "png"):
 			ext = ".png"
@@ -109,12 +143,10 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 			ext = ".webp"
 		case strings.Contains(ct, "gif"):
 			ext = ".gif"
-		default:
-			ext = ".bin"
 		}
+		filename = expectedHash + ext
 	}
 
-	filename := expectedHash + ext
 	destPath := filepath.Join(dir, filename)
 
 	// Deduplication short-circuit: if content-addressed asset already exists, return immediately
@@ -139,18 +171,20 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasher := sha256.New()
-	hasher.Write(buf)
-	actualHash := hex.EncodeToString(hasher.Sum(nil))
+	if len(expectedHash) == 64 {
+		hasher := sha256.New()
+		hasher.Write(buf)
+		actualHash := hex.EncodeToString(hasher.Sum(nil))
 
-	if expectedHash != actualHash {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error":    "hash_mismatch",
-			"message":  fmt.Sprintf("SHA256 mismatch: expected %s, got %s", expectedHash, actualHash),
-			"expected": expectedHash,
-			"actual":   actualHash,
-		})
-		return
+		if expectedHash != actualHash {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"error":    "hash_mismatch",
+				"message":  fmt.Sprintf("SHA256 mismatch: expected %s, got %s", expectedHash, actualHash),
+				"expected": expectedHash,
+				"actual":   actualHash,
+			})
+			return
+		}
 	}
 
 	// Write atomically via unique temporary file in the same directory
@@ -179,14 +213,41 @@ func (s *Server) syncAssetUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	syncUploadMu.Lock()
+	defer syncUploadMu.Unlock()
+
+	// Concurrency protection: if asset was committed concurrently while writing tmp file
+	if existingFile, err := findAssetBySHA256(dir, expectedHash); err == nil && existingFile != "" {
+		_ = os.Remove(tmpName)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"ok":           true,
+			"sha256":       expectedHash,
+			"url":          "/api/uploads/" + filepath.Base(existingFile),
+			"filename":     filepath.Base(existingFile),
+			"deduplicated": true,
+		})
+		return
+	}
+
 	if err := os.Rename(tmpName, destPath); err != nil {
+		if existingFile, fErr := findAssetBySHA256(dir, expectedHash); fErr == nil && existingFile != "" {
+			_ = os.Remove(tmpName)
+			writeJSON(w, http.StatusOK, map[string]any{
+				"ok":           true,
+				"sha256":       expectedHash,
+				"url":          "/api/uploads/" + filepath.Base(existingFile),
+				"filename":     filepath.Base(existingFile),
+				"deduplicated": true,
+			})
+			return
+		}
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to commit asset: %v", err))
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"ok":           true,
-		"sha256":       actualHash,
+		"sha256":       expectedHash,
 		"url":          "/api/uploads/" + filename,
 		"filename":     filename,
 		"deduplicated": false,
@@ -200,7 +261,7 @@ func (s *Server) syncAssetDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash := strings.TrimSpace(r.PathValue("sha256"))
-	if !sha256Regex.MatchString(hash) {
+	if !assetIdRegex.MatchString(hash) {
 		writeError(w, http.StatusBadRequest, "Invalid SHA256 parameter")
 		return
 	}
