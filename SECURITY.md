@@ -1,10 +1,10 @@
 # Security Policy
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.en.md) on 2026-09-26.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.en.md) on 2026-09-28.
      Edit the source, then copy it here again. -->
 
 This is an English translation of the Indonesian original ([SECURITY.id.md](SECURITY.id.md)). If the two differ in interpretation, the Indonesian text prevails.
 
-**Effective:** September 24, 2026 · applies to WorshipDeck 0.1.0
+**Effective:** September 28, 2026 · applies to WorshipDeck 0.1.0
 
 WorshipDeck stores the names and photos of people who are not its direct users, namely the personal data of members and of those serving. The server accepts file uploads, including PowerPoint files that are unpacked on the server. The server fetches images from web addresses that account holders supply, and by default it accepts any public host. On a server installation, WorshipDeck can be opened from other computers and phones on your network. These properties deserve scrutiny. See "Two Facts Most People Want Up Front" below, [`docs/threat-model.md`](docs/threat-model.md) for the full analysis of components and attack paths, and the [Privacy Policy](PRIVACY.md) for what is stored and where.
 
@@ -12,8 +12,8 @@ In this document, "you" means the church or organization that installs and runs 
 
 ## Two Facts Most People Want Up Front
 
-1. **Does WorshipDeck send member data anywhere?** No request in the code sends names, photos, or service content to a third party or to Wira Delta Indonesia. The server makes exactly two kinds of outbound request, and both only fetch an image from a web address an account holder chose: uploading an image from a web address (`postUploadFromURL`), and placing an image from a web address into a PowerPoint file while that file is built. There is no request to Google Fonts, no update check, no telemetry, and no crash reporting. Service data leaves the server only through PowerPoint files and pages that account holders open, and through the experimental Manual Sync, to an address an admin types in.
-2. **What network input does it accept, and how is it restricted?** Without a valid session, the server accepts only the sign-in page, sign-in and sign-out requests, static files under `/assets` and `/branding`, the initial administrator setup request (restricted strictly to desktop mode, loopback connections from the local machine, and only while zero accounts exist), and the webhook endpoint. The webhook endpoint is not offered in this release and is disabled in the code until the feature is ready. Every other endpoint requires a session cookie signed with `AUTH_SECRET` and checked again against the database on every request. Admin paths, including PowerPoint import, font upload, and Manual Sync, also require the admin role. Fetching an image from a web address does not follow redirects, refuses loopback, private network, link-local, and cloud metadata addresses, and accepts only hosts in `IMAGE_URL_ALLOWLIST` when that list is filled in.
+1. **Does WorshipDeck send member data anywhere?** No request in the code sends names, photos, or service content to a third party or to Wira Delta Indonesia. The server makes exactly two kinds of outbound request, and both only fetch an image from a web address an account holder chose: uploading an image from a web address (`postUploadFromURL`), and placing an image from a web address into a PowerPoint file while that file is built. There is no request to Google Fonts, no update check, no telemetry, and no crash reporting. Service data leaves the server only through PowerPoint files and pages that account holders open, and through the experimental Data Sync, to an address an admin types in.
+2. **What network input does it accept, and how is it restricted?** Without a valid session, the server accepts only the sign-in page, sign-in and sign-out requests, static files under `/assets` and `/branding`, the initial administrator setup request (restricted strictly to desktop mode, loopback connections from the local machine, and only while zero accounts exist), and the webhook endpoint. The webhook endpoint is not offered in this release and is disabled in the code until the feature is ready. Every other endpoint requires a session signed with `AUTH_SECRET` and checked again against the database on every request. The session travels in a cookie; the sync endpoints also accept the same signed session as an `Authorization: Bearer` header, so an admin signed in to one instance can sync with another. Admin paths, including PowerPoint import, font upload, factory reset, and Data Sync, also require the admin role. Fetching an image from a web address does not follow redirects, refuses loopback, private network, link-local, and cloud metadata addresses, and accepts only hosts in `IMAGE_URL_ALLOWLIST` when that list is filled in.
 
 ## Reporting a Vulnerability
 
@@ -32,7 +32,7 @@ You will get an acknowledgement, then a fix or an explanation of why the report 
 - fetching images from a web address, including ways around the private address refusal;
 - file uploads and PowerPoint file import;
 - phone remote pairing and remote commands;
-- Manual Sync, even though it is still experimental, and any way to make the disabled webhook endpoint accept a request;
+- Data Sync, even though it is still experimental, and any way to make the disabled webhook endpoint accept a request;
 - text from an order of service or other data that appears as HTML on the congregation screen instead of as text.
 
 **Out of scope**, with the reason:
@@ -62,12 +62,12 @@ The code does not enforce the requirements below. It only assumes they are met, 
 The risks below are documented rather than fixed. The full description is in [`docs/threat-model.md`](docs/threat-model.md).
 
 - **IP address for sign-in rate limiting.** The sign-in rate limiter reads the client address from the `CF-Connecting-IP` or `X-Forwarded-For` header when present. If the server can be reached without passing through a proxy that overwrites those headers, a client can choose its own address and avoid the per-IP limit. Put the server behind a proxy that overwrites those headers, and do not expose the server port directly.
-- **Manual Sync.** `POST /api/sync/push` and `POST /api/sync/assets/check` do not limit the size of the request body. The "Device Authorization Token" field on the Manual Sync page is sent but not read by the server, so it is not a security control. Without CORS support, sync between two different origins cannot yet work.
+- **Data Sync.** `POST /api/sync/assets/check` does not limit the size of the request body; `POST /api/sync/push` and `POST /api/sync/assets/upload` stop at 50 MB. The sync endpoints have no rate limit of their own (only signing in is rate limited), and sync transfers are not logged. A request from another origin is accepted only from origins listed in `SYNC_ALLOWED_ORIGINS`; when it is empty, only `localhost` origins are accepted. `*` accepts any origin, so do not use it on a server that can be reached from the internet. A signed session used for sync stays valid for up to 7 days, like the sign-in cookie, unless it is revoked.
 - **Image sources open by default.** See requirement 4.
 
 ## Deletion Is Permanent
 
-WorshipDeck has no trash. Data deleted through the application is gone from the database and cannot be recovered from the application. Deleting an announcement slide or a Background Library image does not remove the image file from the upload folder. The details are in the Privacy Policy, under "Deletion".
+WorshipDeck has no trash. Data deleted through the application is gone from the database and cannot be recovered from the application. Deleting an announcement slide or a Background Library image does not remove the image file from the upload folder. A factory reset, which only an admin can run after typing `factory reset`, deletes all service content and upload files except fonts, and also cannot be undone. The details are in the Privacy Policy, under "Deletion".
 
 ## Release Integrity
 

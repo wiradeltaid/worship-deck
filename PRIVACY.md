@@ -1,10 +1,10 @@
 # Privacy Policy
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.en.md) on 2026-09-26.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.en.md) on 2026-09-28.
      Edit the source, then copy it here again. -->
 
 This is an English translation of the Indonesian original ([PRIVACY.id.md](PRIVACY.id.md)). If the two differ in interpretation, the Indonesian text prevails.
 
-**Effective:** September 24, 2026 · applies to WorshipDeck 0.1.0
+**Effective:** September 28, 2026 · applies to WorshipDeck 0.1.0
 
 WorshipDeck is worship presentation software that you install and run yourself. In this document, "you" means the church or organization that installs and runs WorshipDeck, and "server" means the computer WorshipDeck runs on, including a laptop that uses the Windows installer. The data WorshipDeck stores stays on your server unless you send it somewhere yourself. Wira Delta Indonesia writes the software. Wira Delta Indonesia does not run your installation, does not receive a copy of your data, and has no access to it.
 
@@ -41,10 +41,10 @@ The sign-in session itself is not stored on the server. It travels in a signed `
 
 | Path | Contents | Retention |
 |---|---|---|
-| SQLite database file: `data.db` in the folder the server is started from, or the path in `DB_PATH`. With the Windows installer: `%LOCALAPPDATA%\WorshipDeck\data.db` | All data in the table above, except image and font files | Until deleted through the application or removed from the server. Uninstalling does not remove the `%LOCALAPPDATA%\WorshipDeck\` folder |
+| SQLite database file: `data.db` in the folder the server is started from, or the path in `DB_PATH`. With the Windows installer: `%LOCALAPPDATA%\WorshipDeck\data.db` | All data in the table above, except image and font files | Until deleted through the application or removed from the server. When you uninstall, the uninstaller asks whether to delete the `%LOCALAPPDATA%\WorshipDeck\` folder; the default answer is No, which keeps it |
 | Upload folder: `data/uploads/` in the folder the server is started from, or the path in `UPLOADS_DIR`. With the Windows installer: `%LOCALAPPDATA%\WorshipDeck\uploads\` | Photos and images that were uploaded, fetched from a web address, or imported from PowerPoint; uploaded fonts in the `fonts` subfolder | See "Deletion" below |
 | `%LOCALAPPDATA%\WorshipDeck\runtime.json` (Windows installer) | The address and port of the running server | Removed when the application closes normally |
-| `AUTH_SECRET` in the `%LOCALAPPDATA%\WorshipDeck\` folder (Windows installer) | A random secret for signing sign-in sessions, generated automatically the first time the installer runs | Until that folder is removed. Uninstalling does not remove it |
+| `AUTH_SECRET` in the `%LOCALAPPDATA%\WorshipDeck\` folder (Windows installer) | A random secret for signing sign-in sessions, generated automatically the first time the installer runs | Until that folder is removed. Uninstalling removes it only if you answer Yes to the uninstaller's question |
 | `.env` file (installation from source) | `AUTH_SECRET` and the first admin account's password in plain text, written by `npm run setup` | Until you change or delete it |
 
 The Windows installer also creates a `%LOCALAPPDATA%\WorshipDeck\logs\` folder. This version writes nothing to it; server messages appear only in the terminal window or in the service log of whatever you use to run it.
@@ -58,6 +58,7 @@ All of the files above sit on storage **you** control. Their security is the sec
 - **Deleting a service** removes its data from the database, then removes the upload files that service used if no other data still uses them.
 - **Deleting an announcement slide or a Background Library image** removes only its data from the database. The image file stays in the upload folder until it is removed directly from the server's file system. If a photo must be gone completely, delete it from both places.
 - **Deleting an uploaded font** removes the font file as well.
+- **Factory Reset** (admin only, on the Sync page) deletes all services, service snapshots, announcements, Background Library entries, slide designs, song data, and sync records, then restores the built-in starting data. It also deletes the files in the upload folder except uploaded fonts, and clears the offline copy kept in the browser that ran it. Accounts, settings, and fonts are kept. The admin must type `factory reset` to confirm, and it cannot be undone.
 - **There is no trash.** Deletion through the application is permanent and cannot be undone from the application. Deleted data can come back only from a backup you made yourself.
 
 ## What Is Stored in the Browser
@@ -67,7 +68,8 @@ All of the files above sit on storage **you** control. Their security is the sec
 | Cookie `auth_session` | Signed sign-in session: account number, role, and expiry | 7 days, or until you sign out |
 | `localStorage` `theme` | The light or dark theme choice | Until the site data in the browser is cleared |
 | `localStorage` `wpw_presenter_loop_interval` | The announcement loop interval in the operator console | Until the site data in the browser is cleared |
-| `localStorage` `wpw_device_id`, `wpw_sync_remote_url`, `wpw_sync_device_token` | The device identity, target instance address, and token entered on the Manual Sync page | Until the site data in the browser is cleared |
+| `localStorage` `wpw_device_id`, `wpw_sync_remote_url` | The device identity and the target instance address entered on the Sync page | Until the site data in the browser is cleared |
+| IndexedDB `worship_deck_offline_db` | A copy of the services opened for presenting, the images they use, and edits made while offline that are waiting to be sent to the server, so a service can keep running when the connection drops | Until the site data in the browser is cleared or a factory reset is run; older images are removed first when the space runs out |
 | `sessionStorage` `wpw_canvas_clipboard` | Slide objects copied in the slide editor | Until the tab is closed |
 
 All of these are stored in the browser under your own server's address, and none is sent to Wira Delta Indonesia.
@@ -94,16 +96,16 @@ On a server installation, an operator can pair a phone as a remote with a 6-digi
 - **What is not sent.** Nothing leaves the network between the phone and your server. The phone must sign in with a WorshipDeck account first.
 - **How to turn it off.** Do not pair a phone. The Windows installer listens only on `127.0.0.1`, so the phone remote cannot be used there at all.
 
-### Manual Sync (Experimental)
+### Data Sync (Experimental)
 
-If you run more than one WorshipDeck instance, an admin can push and pull service data, Song Set entries, background images, and announcements between two instances, including the names and photos in them, to an address the admin types in.
+If you run more than one WorshipDeck instance, for example the Windows app on a laptop and a server, an admin can push and pull data between two instances on the Sync page, to an address the admin types in. The data covers services, Song Set entries and layouts, background images, announcements, slide designs, and the image files they use, including the names and photos in them.
 
-- **What is sent.** The data named above, from the admin's browser directly to the target instance's address.
+- **What is sent.** The data named above, from the admin's browser directly to the target instance's address. When the target is a different instance, the admin first signs in to it with an admin account on that instance: the username and password go only to that instance's sign-in address, and are not stored. The sign-in session that comes back is kept only in the page's memory and is discarded when the page is closed, the address changes, or the admin disconnects.
 - **What is still revealed.** The target instance sees the IP address of the admin's browser.
 - **What is not sent.** Nothing is sent to a third party or to Wira Delta Indonesia. Sync runs only when an admin starts it, never automatically.
-- **How to turn it off.** Do not use the Manual Sync page. No other feature depends on it.
+- **How to turn it off.** Do not use the Sync page. No other feature depends on it. A server accepts sync from another address only if that address is listed in `SYNC_ALLOWED_ORIGINS`, or, when that setting is empty, only from pages served on the same computer (`localhost`), which is how the Windows app syncs with a server.
 
-**If you sync, the second instance becomes a second copy of that data,** and you are the data controller for that copy too. **This feature is experimental.** Sync has been proven only with one server exchanging data with itself. Sync between two genuinely separate computers has not been shown to work, and the browser's cross-origin rules may refuse the request before any data moves. Do not rely on it as your only way to keep two instances the same.
+**If you sync, the second instance becomes a second copy of that data,** and you are the data controller for that copy too. **This feature is experimental.** It has been tested between a Windows app and a separate server during development, but not yet across many installations. Do not rely on it as your only way to keep two instances the same, and keep your own backups.
 
 ### Webhook Endpoint
 
@@ -132,7 +134,7 @@ Software that respects privacy does not make your installation compliant by itse
 3. **Run a WorshipDeck server installation behind HTTPS**, also when the server is opened only from the church network, with an `AUTH_SECRET` unique to your installation and never committed. The Security Policy states that an installation that skips this is insecure regardless of the code, and that remains true. The Windows installer is exempt from the HTTPS requirement because it listens only on `127.0.0.1`, so its traffic does not leave that computer. Its `AUTH_SECRET` is generated automatically and is unique to each installation.
 4. **Remove accounts when someone stops serving**, and revoke their sessions.
 5. **Decide how long you keep past services and photos**, and actually delete them. Nothing in the application expires on its own.
-6. **If you use Manual Sync**, treat the second instance as a second copy of every record it receives. Deleting someone's data on one instance does not delete it on the other, and each needs its own retention decision.
+6. **If you use Data Sync**, treat the second instance as a second copy of every record it receives. Deleting someone's data on one instance does not delete it on the other, and each needs its own retention decision.
 
 ## Questions
 

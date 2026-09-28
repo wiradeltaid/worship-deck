@@ -1,10 +1,10 @@
 # Kebijakan Privasi
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.id.md) on 2026-09-26.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/privacy.id.md) on 2026-09-28.
      Edit the source, then copy it here again. -->
 
 Naskah ini adalah naskah resmi dalam bahasa Indonesia. Terjemahan bahasa Inggris tersedia di [PRIVACY.md](PRIVACY.md).
 
-**Berlaku sejak:** 24 September 2026 · berlaku untuk WorshipDeck 0.1.0
+**Berlaku sejak:** 28 September 2026 · berlaku untuk WorshipDeck 0.1.0
 
 WorshipDeck adalah software (perangkat lunak) presentasi ibadah yang Anda pasang dan jalankan sendiri. Di naskah ini, "Anda" berarti gereja atau organisasi yang memasang dan menjalankan WorshipDeck, dan "server" berarti komputer tempat WorshipDeck berjalan, termasuk laptop yang memakai installer Windows. Data yang disimpan WorshipDeck tetap berada di server Anda, kecuali Anda sendiri mengirimnya ke tempat lain. Wira Delta Indonesia menulis software ini. Wira Delta Indonesia tidak menjalankan instalasi Anda, tidak menerima salinan data Anda, dan tidak punya akses ke data itu.
 
@@ -41,10 +41,10 @@ Sesi masuk sendiri tidak disimpan di server. Sesi dibawa oleh cookie `auth_sessi
 
 | Path | Isi | Retensi |
 |---|---|---|
-| File database SQLite: `data.db` di folder tempat server dijalankan, atau path di `DB_PATH`. Pada installer Windows: `%LOCALAPPDATA%\WorshipDeck\data.db` | Semua data di tabel sebelumnya, kecuali file gambar dan font | Sampai dihapus lewat aplikasi atau dihapus dari server. Uninstall tidak menghapus folder `%LOCALAPPDATA%\WorshipDeck\` |
+| File database SQLite: `data.db` di folder tempat server dijalankan, atau path di `DB_PATH`. Pada installer Windows: `%LOCALAPPDATA%\WorshipDeck\data.db` | Semua data di tabel sebelumnya, kecuali file gambar dan font | Sampai dihapus lewat aplikasi atau dihapus dari server. Saat uninstall, uninstaller menanyakan apakah folder `%LOCALAPPDATA%\WorshipDeck\` ikut dihapus; jawaban bawaannya Tidak, sehingga folder itu tetap ada |
 | Folder unggahan: `data/uploads/` di folder tempat server dijalankan, atau path di `UPLOADS_DIR`. Pada installer Windows: `%LOCALAPPDATA%\WorshipDeck\uploads\` | Foto dan gambar yang diunggah, diambil dari alamat web, atau diimpor dari PowerPoint; font yang diunggah di subfolder `fonts` | Lihat "Penghapusan" di bawah |
 | `%LOCALAPPDATA%\WorshipDeck\runtime.json` (installer Windows) | Alamat dan port server yang sedang berjalan | Dihapus saat aplikasi ditutup dengan normal |
-| `AUTH_SECRET` di folder `%LOCALAPPDATA%\WorshipDeck\` (installer Windows) | Secret acak untuk menandatangani sesi masuk, dibuat otomatis saat installer pertama kali dijalankan | Sampai folder itu dihapus. Uninstall tidak menghapusnya |
+| `AUTH_SECRET` di folder `%LOCALAPPDATA%\WorshipDeck\` (installer Windows) | Secret acak untuk menandatangani sesi masuk, dibuat otomatis saat installer pertama kali dijalankan | Sampai folder itu dihapus. Uninstall hanya menghapusnya bila Anda menjawab Ya pada pertanyaan uninstaller |
 | File `.env` (instalasi dari kode sumber) | `AUTH_SECRET` dan kata sandi akun admin pertama dalam teks biasa, ditulis oleh `npm run setup` | Sampai Anda mengubah atau menghapusnya |
 
 Installer Windows juga membuat folder `%LOCALAPPDATA%\WorshipDeck\logs\`. Versi ini tidak menulis apa pun ke folder itu; catatan server hanya tampil di jendela terminal atau log layanan yang Anda pakai untuk menjalankannya.
@@ -58,6 +58,7 @@ Semua file di atas berada di penyimpanan yang **Anda** kendalikan. Keamanannya a
 - **Menghapus ibadah** menghapus datanya dari database, lalu menghapus file unggahan yang dipakai ibadah itu bila tidak ada data lain yang masih memakainya.
 - **Menghapus slide pengumuman atau gambar di Background Library** hanya menghapus datanya dari database. File gambarnya tetap ada di folder unggahan sampai dihapus langsung dari file system server. Bila sebuah foto harus hilang sepenuhnya, hapus dari kedua tempat.
 - **Menghapus font yang diunggah** menghapus file fontnya juga.
+- **Reset ke Data Awal Pabrik** (factory reset; khusus admin, di halaman Sync) menghapus semua ibadah, snapshot ibadah, pengumuman, isi Background Library, desain slide, data lagu, dan catatan sync, lalu memulihkan data awal bawaan. Langkah ini juga menghapus file di folder unggahan kecuali font yang diunggah, dan mengosongkan salinan offline di browser yang menjalankannya. Akun, pengaturan, dan font tetap disimpan. Admin harus mengetik `factory reset` untuk mengonfirmasi, dan langkah ini tidak bisa dibatalkan.
 - **Tidak ada tong sampah.** Penghapusan lewat aplikasi bersifat permanen dan tidak bisa dibatalkan dari aplikasi. Data yang sudah dihapus hanya bisa kembali dari cadangan yang Anda buat sendiri.
 
 ## Yang Disimpan di Browser
@@ -67,7 +68,8 @@ Semua file di atas berada di penyimpanan yang **Anda** kendalikan. Keamanannya a
 | Cookie `auth_session` | Sesi masuk bertanda tangan: nomor akun, peran, dan masa berlaku | 7 hari, atau sampai Anda keluar |
 | `localStorage` `theme` | Pilihan tema terang atau gelap | Sampai data situs di browser dihapus |
 | `localStorage` `wpw_presenter_loop_interval` | Jeda putar ulang pengumuman di konsol operator | Sampai data situs di browser dihapus |
-| `localStorage` `wpw_device_id`, `wpw_sync_remote_url`, `wpw_sync_device_token` | Identitas perangkat, alamat instance tujuan, dan token yang diisi di halaman Manual Sync | Sampai data situs di browser dihapus |
+| `localStorage` `wpw_device_id`, `wpw_sync_remote_url` | Identitas perangkat dan alamat instance tujuan yang diisi di halaman Sync | Sampai data situs di browser dihapus |
+| IndexedDB `worship_deck_offline_db` | Salinan ibadah yang dibuka untuk presentasi, gambar yang dipakainya, dan perubahan yang dibuat saat offline dan menunggu dikirim ke server, supaya ibadah tetap berjalan saat koneksi putus | Sampai data situs di browser dihapus atau factory reset dijalankan; gambar yang lebih lama dihapus lebih dulu saat ruangnya habis |
 | `sessionStorage` `wpw_canvas_clipboard` | Objek slide yang disalin di editor slide | Sampai tab ditutup |
 
 Semua ini disimpan di browser pada alamat server Anda sendiri, dan tidak dikirim ke Wira Delta Indonesia.
@@ -94,16 +96,16 @@ Pada instalasi server, operator bisa memasangkan ponsel sebagai remote dengan ko
 - **Yang tidak dikirim.** Tidak ada yang keluar dari jaringan antara ponsel dan server Anda. Ponsel harus masuk dengan akun WorshipDeck lebih dulu.
 - **Cara mematikannya.** Jangan pasangkan ponsel. Installer Windows hanya mendengarkan di `127.0.0.1`, sehingga remote ponsel tidak bisa dipakai di sana sama sekali.
 
-### Manual Sync (Eksperimental)
+### Sinkronisasi Data (Eksperimental)
 
-Bila Anda menjalankan lebih dari satu instance WorshipDeck, admin bisa mengirim dan mengambil data ibadah, entri Song Set, gambar latar, dan pengumuman antara dua instance, termasuk nama dan foto di dalamnya, ke alamat yang diketik admin sendiri.
+Bila Anda menjalankan lebih dari satu instance WorshipDeck, misalnya aplikasi Windows di laptop dan sebuah server, admin bisa mengirim dan mengambil data antara dua instance di halaman Sync, ke alamat yang diketik admin sendiri. Datanya mencakup ibadah, entri dan layout Song Set, gambar latar, pengumuman, desain slide, dan file gambar yang dipakainya, termasuk nama dan foto di dalamnya.
 
-- **Yang dikirim.** Data yang disebut di atas, dari browser admin langsung ke alamat instance tujuan.
+- **Yang dikirim.** Data yang disebut di atas, dari browser admin langsung ke alamat instance tujuan. Bila tujuannya instance lain, admin lebih dulu masuk ke instance itu dengan akun admin di sana: nama pengguna dan kata sandi hanya dikirim ke alamat masuk instance itu, dan tidak disimpan. Sesi masuk yang diterima hanya disimpan di memori halaman dan dibuang saat halaman ditutup, alamatnya berganti, atau admin memutus sambungan.
 - **Yang tetap terungkap.** Instance tujuan melihat alamat IP browser admin.
 - **Yang tidak dikirim.** Tidak ada yang dikirim ke pihak ketiga atau ke Wira Delta Indonesia. Sync hanya berjalan saat admin menekannya, tidak pernah otomatis.
-- **Cara mematikannya.** Jangan pakai halaman Manual Sync. Tidak ada fitur lain yang bergantung padanya.
+- **Cara mematikannya.** Jangan pakai halaman Sync. Tidak ada fitur lain yang bergantung padanya. Server hanya menerima sync dari alamat lain bila alamat itu tercantum di `SYNC_ALLOWED_ORIGINS`, atau, bila pengaturan itu kosong, hanya dari halaman yang disajikan di komputer yang sama (`localhost`), yaitu cara aplikasi Windows melakukan sync dengan server.
 
-**Bila Anda memakai sync, instance kedua menjadi salinan kedua data itu,** dan Anda juga pengendali data untuk salinan itu. **Fitur ini eksperimental.** Sync baru dibuktikan dengan satu server yang bertukar data dengan dirinya sendiri. Sync antara dua komputer yang benar-benar terpisah belum terbukti berjalan, dan aturan lintas-origin browser bisa menolak permintaannya sebelum ada data yang berpindah. Jangan mengandalkannya sebagai satu-satunya cara menjaga dua instance tetap sama.
+**Bila Anda memakai sync, instance kedua menjadi salinan kedua data itu,** dan Anda juga pengendali data untuk salinan itu. **Fitur ini eksperimental.** Sync sudah diuji antara aplikasi Windows dan server terpisah selama pengembangan, tetapi belum di banyak instalasi. Jangan mengandalkannya sebagai satu-satunya cara menjaga dua instance tetap sama, dan tetap buat cadangan sendiri.
 
 ### Endpoint Webhook
 
@@ -132,7 +134,7 @@ Software yang menjaga privasi tidak membuat instalasi Anda otomatis patuh hukum.
 3. **Jalankan instalasi server WorshipDeck di belakang HTTPS**, juga bila server hanya dibuka dari jaringan gereja, dengan `AUTH_SECRET` yang unik untuk instalasi Anda dan tidak pernah di-commit. Kebijakan Keamanan menyatakan bahwa instalasi yang melewatkan ini tidak aman, apa pun kodenya, dan itu tetap berlaku. Installer Windows dikecualikan dari syarat HTTPS karena hanya mendengarkan di `127.0.0.1`, sehingga lalu lintasnya tidak keluar dari komputer itu. `AUTH_SECRET`-nya dibuat otomatis dan unik untuk setiap instalasi.
 4. **Hapus akun saat seseorang berhenti bertugas**, dan cabut sesinya.
 5. **Tentukan berapa lama Anda menyimpan ibadah lama dan foto**, lalu benar-benar hapus. Tidak ada data di aplikasi yang kedaluwarsa sendiri.
-6. **Bila Anda memakai Manual Sync**, perlakukan instance kedua sebagai salinan kedua setiap data yang diterimanya. Menghapus data seseorang di satu instance tidak menghapusnya di instance lain, dan keduanya butuh keputusan retensinya sendiri.
+6. **Bila Anda memakai Sinkronisasi Data**, perlakukan instance kedua sebagai salinan kedua setiap data yang diterimanya. Menghapus data seseorang di satu instance tidak menghapusnya di instance lain, dan keduanya butuh keputusan retensinya sendiri.
 
 ## Pertanyaan
 
