@@ -65,11 +65,11 @@ Satisfies `FR-16`, `UC-12`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** done
 
-- [ ] In `src/projected/ProjectorClient.tsx`:
+- [x] In `src/projected/ProjectorClient.tsx`:
       - Implement floating F11 fullscreen hint with dual dismissal (F11 keydown and fullscreenchange) and room-facing safeguards.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/congregation-fullscreen-guidance.test.mjs`.
-- [ ] In `tests/congregation-fullscreen-guidance.test.mjs`:
+- [x] In `tests/congregation-fullscreen-guidance.test.mjs`:
       - Implement contract assertions, static checks, and defect injection proofs.
