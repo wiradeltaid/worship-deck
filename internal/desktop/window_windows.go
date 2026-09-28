@@ -17,18 +17,26 @@ import (
 )
 
 var (
+	kernel32                          = windows.NewLazySystemDLL("kernel32.dll")
 	user32                            = windows.NewLazySystemDLL("user32.dll")
 	procFindWindowW                   = user32.NewProc("FindWindowW")
 	procShowWindow                    = user32.NewProc("ShowWindow")
 	procSetForegroundWindow           = user32.NewProc("SetForegroundWindow")
 	procFlashWindowEx                 = user32.NewProc("FlashWindowEx")
 	procSetProcessDpiAwarenessContext = user32.NewProc("SetProcessDpiAwarenessContext")
+	procSendMessageW                  = user32.NewProc("SendMessageW")
+	procLoadIconW                     = user32.NewProc("LoadIconW")
+	procGetModuleHandleW              = kernel32.NewProc("GetModuleHandleW")
 )
 
 const (
 	SW_RESTORE       = 9
 	FLASHW_ALL       = 0x00000003
 	FLASHW_TIMERNOFG = 0x0000000C
+
+	WM_SETICON = 0x0080
+	ICON_SMALL = 0
+	ICON_BIG   = 1
 
 	// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 is ((DPI_AWARENESS_CONTEXT)-4) in Windows user32.
 	DpiAwarenessContextPerMonitorAwareV2 = ^uintptr(3)
@@ -154,6 +162,16 @@ func RunDesktopWindow(ctx context.Context, serverURL string, options WindowOptio
 			return ctx.Err()
 		}
 		return initErr
+	}
+
+	// Bind embedded icon resource (ID 1 from rsrc_windows_amd64.syso) to Win32 window HWND
+	if hwnd := uintptr(w.Window()); hwnd != 0 {
+		hInst, _, _ := procGetModuleHandleW.Call(0)
+		hIcon, _, _ := procLoadIconW.Call(hInst, 1)
+		if hIcon != 0 {
+			procSendMessageW.Call(hwnd, WM_SETICON, uintptr(ICON_SMALL), hIcon)
+			procSendMessageW.Call(hwnd, WM_SETICON, uintptr(ICON_BIG), hIcon)
+		}
 	}
 
 	var (

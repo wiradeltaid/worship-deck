@@ -540,23 +540,24 @@ export async function pushSyncChunked(
 
 /**
  * Recursively scans arbitrary objects, arrays, and JSON strings for upload asset paths
- * matching `/api/uploads/([a-f0-9]{64})/i` or raw 64-character SHA-256 hashes.
+ * matching `/api/uploads/([a-f0-9]{64})/i`.
  * Returns a sorted, de-duplicated array of lowercase hexadecimal hashes.
+ *
+ * NOTE (SPEC-92-03): Strictly restricts extraction to explicit `/api/uploads/<hash>` URI paths.
+ * Never treats raw 64-hex strings in arbitrary fields (such as layout `seed_hash` or bible
+ * translation `content_hash`) as uploaded media assets.
  */
 export function extractUploadHashes(payload: unknown): string[] {
   const hashes = new Set<string>();
-  const hex64Regex = /^[a-f0-9]{64}$/i;
-  const uploadPathRegex = /\/api\/uploads\/([a-f0-9]{64})/gi;
+  const uploadPathRegex = /\/api\/uploads\/([a-f0-9]{64})\.[a-z0-9]+/gi;
 
   function scan(val: unknown) {
     if (val === null || val === undefined) return;
     if (typeof val === 'string') {
       let match: RegExpExecArray | null;
+      uploadPathRegex.lastIndex = 0;
       while ((match = uploadPathRegex.exec(val)) !== null) {
         hashes.add(match[1].toLowerCase());
-      }
-      if (hex64Regex.test(val)) {
-        hashes.add(val.toLowerCase());
       }
       if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
         try {

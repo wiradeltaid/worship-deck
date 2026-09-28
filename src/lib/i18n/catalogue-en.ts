@@ -665,6 +665,17 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'sync.success': 'Artifact registry synced successfully',
   'sync.failed': 'Sync failed',
   'sync.conflict': 'Service was modified elsewhere. Please reload and try again.',
+  'sync.factoryReset.title': 'Factory Reset',
+  'sync.factoryReset.description':
+    'Resets all local services, custom layouts, and cached media back to fresh out-of-the-box defaults. User accounts and system settings are preserved.',
+  'sync.factoryReset.button': 'Reset to Factory Defaults',
+  'sync.factoryReset.confirmTitle': 'Confirm Factory Reset',
+  'sync.factoryReset.confirmDescription':
+    'Are you sure you want to perform a factory reset? This will permanently erase all created worship services, announcement slides, custom layouts, and uploaded media files, restoring original factory seeds. Your admin login account will be preserved. This action cannot be undone.',
+  'sync.factoryReset.confirmButton': 'Yes, Reset Application',
+  'sync.factoryReset.inProgress': 'Resetting application…',
+  'sync.factoryReset.success': 'Factory reset completed successfully. Reloading application…',
+  'sync.factoryReset.failed': 'Factory reset failed',
   'admin.registry.tab.parsing': 'Rundown Parsing',
   'admin.parsing.title': 'Rundown Parser Settings',
   'admin.parsing.description':

@@ -27,6 +27,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=worship-deck.ico
+LicenseFile=..\dist-desktop\LICENSE
 WizardImageFile=..\public\installer\wizard-image.bmp
 WizardSmallImageFile=..\public\installer\wizard-small.bmp
 ArchitecturesAllowed=x64compatible
@@ -98,16 +99,27 @@ Type: files; Name: "{app}\THIRD-PARTY-NOTICES"
 Type: files; Name: "{app}\PRIVACY.md"
 
 [Code]
-// Data preservation guarantee:
-// Verify that user database (%LocalAppData%\WorshipDeck\data.db) is preserved across uninstalls.
+// Data preservation guarantee & interactive wipe option:
+// Prompts the user during uninstallation whether to remove local databases in %LocalAppData%\WorshipDeck.
+// If the user selects "No", the directory is preserved for future installations.
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   DataDir: String;
 begin
-  if CurUninstallStep = usPostUninstall then
+  if CurUninstallStep = usUninstall then
   begin
     DataDir := ExpandConstant('{localappdata}\WorshipDeck');
-    // Deliberate invariant: User data in %LocalAppData%\WorshipDeck is never removed during uninstallation.
-    Log('Data preservation invariant: Preserving user data directory at ' + DataDir);
+    if DirExists(DataDir) then
+    begin
+      if MsgBox('Do you also want to remove all local user data, service plans, and local databases in ' + DataDir + '?' + #13#10#13#10 + 'Select "No" to keep your data for future installations.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+      begin
+        Log('User confirmed local data wipe: removing ' + DataDir);
+        DelTree(DataDir, True, True, True);
+      end
+      else
+      begin
+        Log('Data preservation invariant: Preserving user data directory at ' + DataDir);
+      end;
+    end;
   end;
 end;

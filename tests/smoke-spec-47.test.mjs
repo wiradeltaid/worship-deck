@@ -426,17 +426,19 @@ export function scanInnoSetupDataPreservation(issSource) {
       }
     }
   }
-  // Guard 2: Inno Setup [Code] must never invoke destructive procedures on user data directory
+  // Guard 2: Inno Setup [Code] must never invoke unconditional destructive procedures on user data directory
   const codeMatch = issSource.match(/\[Code\]([\s\S]*$)/);
   if (codeMatch) {
     const codeSection = codeMatch[1];
+    // Exclude only the user-confirmed IDYES deletion block (SPEC-92); retain else/unconfirmed branches
+    const unconfirmedCode = codeSection.replace(/if\s+MsgBox\([^)]*mbConfirmation[^)]*\)\s*=\s*IDYES\s+then\s+begin[\s\S]*?end\s+else/gi, 'else');
     const destructiveCalls = [
       /\bDelTree\s*\([^)]*(?:DataDir|localappdata|userappdata|WorshipPresenter)/i,
       /\bRemoveDir\s*\([^)]*(?:DataDir|localappdata|userappdata|WorshipPresenter)/i,
       /\bDeleteFile\s*\([^)]*(?:DataDir|localappdata|userappdata|WorshipPresenter|data\.db)/i,
     ];
     for (const pattern of destructiveCalls) {
-      if (pattern.test(codeSection)) {
+      if (pattern.test(unconfirmedCode)) {
         findings.push('Pascal script [Code] violates data preservation by invoking destructive deletion routines on user data directory');
       }
     }

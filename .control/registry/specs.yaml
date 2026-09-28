@@ -3901,7 +3901,7 @@ waves:
           - tests/sync-bidirectional-contract.test.mjs
 
   - id: SPEC-92
-    status: open
+    status: closed
     release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
     prd: [offline-deck, operator-turn]
     fr: [FR-20, FR-21, FR-40]
@@ -3918,14 +3918,14 @@ waves:
         component: hub
         satisfies: [FR-20, UC-14]
         blocked_by: []
-        touches: [desktop]
+        touches: [settings]
         tests:
           - tests/desktop-window-icon.test.mjs
       - id: "SPEC-92-02"
         component: hub
         satisfies: [FR-20, FR-21]
-        blocked_by: []
-        touches: [installer]
+        blocked_by: ["SPEC-92-01"]
+        touches: [settings]
         tests:
           - tests/installer-license-and-uninstall.test.mjs
       - id: "SPEC-92-03"
@@ -3938,7 +3938,7 @@ waves:
       - id: "SPEC-92-04"
         component: hub
         satisfies: [FR-20, FR-21, UC-14, UC-15]
-        blocked_by: ["SPEC-92-03"]
+        blocked_by: ["SPEC-92-02", "SPEC-92-03"]
         touches: [sync, settings]
         tests:
           - tests/factory-reset.test.mjs

@@ -667,6 +667,17 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'sync.success': 'Registri artefak berhasil disinkronkan',
   'sync.failed': 'Sinkronisasi gagal',
   'sync.conflict': 'Kebaktian telah diubah di sesi lain. Silakan muat ulang dan coba lagi.',
+  'sync.factoryReset.title': 'Reset ke Data Awal Pabrik',
+  'sync.factoryReset.description':
+    'Mengembalikan semua data kebaktian lokal, tata letak khusus, dan media tersimpan ke setelan awal bawaan. Akun pengguna dan setelan sistem tetap dipertahankan.',
+  'sync.factoryReset.button': 'Reset ke Setelan Awal Pabrik',
+  'sync.factoryReset.confirmTitle': 'Konfirmasi Reset ke Setelan Pabrik',
+  'sync.factoryReset.confirmDescription':
+    'Apakah Anda yakin ingin melakukan reset pabrik? Tindakan ini akan menghapus permanen semua kebaktian yang telah dibuat, slide pengumuman, tata letak kustom, dan berkas media unggahan, serta memulihkan data awal pabrik. Akun admin Anda akan tetap dipertahankan. Tindakan ini tidak dapat dibatalkan.',
+  'sync.factoryReset.confirmButton': 'Ya, Reset Aplikasi',
+  'sync.factoryReset.inProgress': 'Mereset aplikasi…',
+  'sync.factoryReset.success': 'Reset pabrik berhasil diselesaikan. Memuat ulang aplikasi…',
+  'sync.factoryReset.failed': 'Gagal melakukan reset pabrik',
   'admin.registry.tab.parsing': 'Pemrosesan Susunan Acara',
   'admin.parsing.title': 'Pengaturan Parser Susunan Acara',
   'admin.parsing.description':

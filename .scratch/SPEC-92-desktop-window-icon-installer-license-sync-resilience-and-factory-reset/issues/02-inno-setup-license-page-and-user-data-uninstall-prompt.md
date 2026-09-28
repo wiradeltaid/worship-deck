@@ -31,12 +31,12 @@ Satisfies `FR-20`, `FR-21`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `installer/worship-deck.iss`:
+- [x] In `installer/worship-deck.iss`:
       - Add `LicenseFile=..\dist-desktop\LICENSE` in `[Setup]`.
       - Implement interactive data removal confirmation dialog in `CurUninstallStepChanged`.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/installer-license-and-uninstall.test.mjs`.
-- [ ] In `tests/installer-license-and-uninstall.test.mjs`:
+- [x] In `tests/installer-license-and-uninstall.test.mjs`:
       - Implement static assertions and defect injection proofs for license file directive and uninstallation prompt.

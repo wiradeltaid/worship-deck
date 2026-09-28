@@ -3995,10 +3995,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/desktop-window-icon.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -4009,10 +4009,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -4283,10 +4283,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -7290,10 +7290,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/desktop-window-icon.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -7304,10 +7304,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -9780,10 +9780,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/desktop-window-icon.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -9794,10 +9794,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -10071,10 +10071,10 @@ rtm:
   release: desktop-window-icon-installer-license-sync-resilience-and-factory-reset
   test:
   - tests/sync-asset-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5
