@@ -133,7 +133,7 @@ test('WSD-H-14: guard proof — injected <GO-LIVE DATE> in SECURITY.md is detect
   const target = path.join(root, 'SECURITY.md');
   const original = fs.readFileSync(target, 'utf8');
   try {
-    const mutated = original.replace('September 24, 2026', '<GO-LIVE DATE>');
+    const mutated = original.replace('September 28, 2026', '<GO-LIVE DATE>');
     fs.writeFileSync(target, mutated);
     const violations = scanLegalDefects(['SECURITY.md'], root);
     assert.ok(

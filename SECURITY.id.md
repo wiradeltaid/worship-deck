@@ -1,10 +1,10 @@
 # Kebijakan Keamanan
-<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.id.md) on 2026-09-26.
+<!-- Copied from the Wira Delta Indonesia legal source (worship-deck/security.id.md) on 2026-09-28.
      Edit the source, then copy it here again. -->
 
 Naskah ini adalah naskah resmi dalam bahasa Indonesia. Terjemahan bahasa Inggris tersedia di [SECURITY.md](SECURITY.md).
 
-**Berlaku sejak:** 24 September 2026 · berlaku untuk WorshipDeck 0.1.0
+**Berlaku sejak:** 28 September 2026 · berlaku untuk WorshipDeck 0.1.0
 
 WorshipDeck menyimpan nama dan foto orang yang bukan pengguna langsungnya, yaitu data pribadi jemaat dan petugas. Server menerima unggahan file, termasuk file PowerPoint yang dibongkar di server. Server mengambil gambar dari alamat web yang diberikan pemegang akun, dan secara default menerima semua host publik. Pada instalasi server, WorshipDeck bisa dibuka dari komputer dan ponsel lain di jaringan Anda. Hal-hal ini layak diperiksa. Lihat "Dua Fakta yang Paling Ingin Diketahui" di bawah, [`docs/threat-model.md`](docs/threat-model.md) untuk analisis lengkap komponen dan jalur serangannya, dan [Kebijakan Privasi](PRIVACY.id.md) untuk apa yang disimpan dan di mana.
 
@@ -12,8 +12,8 @@ Di naskah ini, "Anda" berarti gereja atau organisasi yang memasang dan menjalank
 
 ## Dua Fakta yang Paling Ingin Diketahui
 
-1. **Apakah WorshipDeck mengirim data jemaat ke mana-mana?** Tidak ada permintaan di kode yang mengirim nama, foto, atau isi ibadah ke pihak ketiga atau ke Wira Delta Indonesia. Server membuat tepat dua jenis permintaan keluar, dan keduanya hanya mengambil gambar dari alamat web yang dipilih pemegang akun: mengunggah gambar dari alamat web (`postUploadFromURL`), dan memasukkan gambar dari alamat web ke file PowerPoint saat file itu dibuat. Tidak ada permintaan ke Google Fonts, cek update, telemetri, atau laporan crash. Data ibadah hanya keluar dari server lewat file PowerPoint dan halaman yang dibuka pemegang akun, dan lewat Manual Sync yang eksperimental, ke alamat yang diketik admin sendiri.
-2. **Masukan jaringan apa yang diterima, dan bagaimana dibatasi?** Tanpa sesi yang sah, server hanya menerima halaman masuk, permintaan masuk dan keluar, file statis di `/assets` dan `/branding`, permintaan penyiapan admin pertama (khusus pada mode desktop, hanya dari komputer itu sendiri / loopback, dan hanya selama belum ada akun), dan endpoint webhook. Endpoint webhook belum ditawarkan di rilis ini dan dimatikan di kode sampai fiturnya siap. Semua endpoint lain membutuhkan cookie sesi yang ditandatangani dengan `AUTH_SECRET` dan diperiksa ulang ke database pada setiap permintaan. Jalur admin, termasuk impor PowerPoint, unggah font, dan Manual Sync, juga membutuhkan peran admin. Pengambilan gambar dari alamat web tidak mengikuti pengalihan (redirect), menolak alamat loopback, jaringan privat, link-local, dan metadata cloud, dan hanya menerima host di `IMAGE_URL_ALLOWLIST` bila daftar itu diisi.
+1. **Apakah WorshipDeck mengirim data jemaat ke mana-mana?** Tidak ada permintaan di kode yang mengirim nama, foto, atau isi ibadah ke pihak ketiga atau ke Wira Delta Indonesia. Server membuat tepat dua jenis permintaan keluar, dan keduanya hanya mengambil gambar dari alamat web yang dipilih pemegang akun: mengunggah gambar dari alamat web (`postUploadFromURL`), dan memasukkan gambar dari alamat web ke file PowerPoint saat file itu dibuat. Tidak ada permintaan ke Google Fonts, cek update, telemetri, atau laporan crash. Data ibadah hanya keluar dari server lewat file PowerPoint dan halaman yang dibuka pemegang akun, dan lewat Sinkronisasi Data yang eksperimental, ke alamat yang diketik admin sendiri.
+2. **Masukan jaringan apa yang diterima, dan bagaimana dibatasi?** Tanpa sesi yang sah, server hanya menerima halaman masuk, permintaan masuk dan keluar, file statis di `/assets` dan `/branding`, permintaan penyiapan admin pertama (khusus pada mode desktop, hanya dari komputer itu sendiri / loopback, dan hanya selama belum ada akun), dan endpoint webhook. Endpoint webhook belum ditawarkan di rilis ini dan dimatikan di kode sampai fiturnya siap. Semua endpoint lain membutuhkan sesi yang ditandatangani dengan `AUTH_SECRET` dan diperiksa ulang ke database pada setiap permintaan. Sesi itu dibawa di cookie; endpoint sync juga menerima sesi bertanda tangan yang sama di header `Authorization: Bearer`, sehingga admin yang masuk ke satu instance bisa melakukan sync dengan instance lain. Jalur admin, termasuk impor PowerPoint, unggah font, factory reset, dan Sinkronisasi Data, juga membutuhkan peran admin. Pengambilan gambar dari alamat web tidak mengikuti pengalihan (redirect), menolak alamat loopback, jaringan privat, link-local, dan metadata cloud, dan hanya menerima host di `IMAGE_URL_ALLOWLIST` bila daftar itu diisi.
 
 ## Melaporkan Celah Keamanan
 
@@ -32,7 +32,7 @@ Anda akan menerima tanda terima, lalu perbaikan atau penjelasan mengapa laporan 
 - pengambilan gambar dari alamat web, termasuk cara melewati penolakan alamat privat;
 - unggahan file dan impor file PowerPoint;
 - pemasangan dan perintah remote ponsel;
-- Manual Sync, walaupun masih eksperimental, dan setiap cara membuat endpoint webhook yang dimatikan itu menerima permintaan;
+- Sinkronisasi Data, walaupun masih eksperimental, dan setiap cara membuat endpoint webhook yang dimatikan itu menerima permintaan;
 - teks dari susunan acara atau data lain yang tampil sebagai HTML di layar jemaat, bukan sebagai teks.
 
 **Tidak termasuk cakupan**, dengan alasannya:
@@ -62,12 +62,12 @@ Kode tidak memaksakan syarat berikut. Kode hanya berasumsi syarat ini dipenuhi, 
 Risiko berikut sudah dicatat, bukan diperbaiki. Uraian lengkapnya ada di [`docs/threat-model.md`](docs/threat-model.md).
 
 - **Alamat IP untuk pembatasan percobaan masuk.** Pembatas percobaan masuk membaca alamat klien dari header `CF-Connecting-IP` atau `X-Forwarded-For` bila header itu ada. Bila server bisa dijangkau tanpa melewati proxy yang menimpa header itu, klien bisa memilih alamatnya sendiri dan menghindari batas per alamat IP. Letakkan server di belakang proxy yang menimpa header itu, dan jangan buka port server langsung.
-- **Manual Sync.** `POST /api/sync/push` dan `POST /api/sync/assets/check` tidak membatasi ukuran isi permintaan. Kolom "Device Authorization Token" di halaman Manual Sync dikirim tetapi tidak dibaca server, jadi kolom itu bukan kontrol keamanan. Tanpa dukungan CORS, sync antara dua origin yang berbeda belum bisa berjalan.
+- **Sinkronisasi Data.** `POST /api/sync/assets/check` tidak membatasi ukuran isi permintaan; `POST /api/sync/push` dan `POST /api/sync/assets/upload` berhenti di 50 MB. Endpoint sync tidak punya batas laju sendiri (hanya permintaan masuk yang dibatasi), dan transfer sync tidak dicatat di log. Permintaan dari origin lain hanya diterima dari origin yang tercantum di `SYNC_ALLOWED_ORIGINS`; bila kosong, hanya origin `localhost` yang diterima. `*` menerima origin apa pun, jadi jangan dipakai di server yang bisa dijangkau dari internet. Sesi bertanda tangan yang dipakai untuk sync berlaku paling lama 7 hari, sama dengan cookie masuk, kecuali dicabut.
 - **Sumber gambar terbuka secara default.** Lihat syarat nomor 4.
 
 ## Penghapusan Bersifat Permanen
 
-Tidak ada tong sampah di WorshipDeck. Data yang dihapus lewat aplikasi hilang dari database dan tidak bisa dipulihkan dari aplikasi. Menghapus slide pengumuman atau gambar Background Library tidak menghapus file gambarnya dari folder unggahan. Rinciannya ada di Kebijakan Privasi, bagian "Penghapusan".
+Tidak ada tong sampah di WorshipDeck. Data yang dihapus lewat aplikasi hilang dari database dan tidak bisa dipulihkan dari aplikasi. Menghapus slide pengumuman atau gambar Background Library tidak menghapus file gambarnya dari folder unggahan. Reset ke Data Awal Pabrik (factory reset), yang hanya bisa dijalankan admin sesudah mengetik `factory reset`, menghapus semua isi ibadah dan file unggahan kecuali font, dan juga tidak bisa dibatalkan. Rinciannya ada di Kebijakan Privasi, bagian "Penghapusan".
 
 ## Keaslian Rilis
 
