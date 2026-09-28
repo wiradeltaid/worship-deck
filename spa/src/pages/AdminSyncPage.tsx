@@ -9,8 +9,9 @@ import {
   uploadSyncAsset,
   downloadSyncAsset,
   loginRemote,
-  extractUploadHashes,
-  computeBufferSha256,
+  extractUploadAssetRefs,
+  verifyAndResolveSyncAsset,
+  resolvePullOutcomeMessage,
   SyncHttpError,
   SyncPushPayload,
   SyncPullResponse,
@@ -203,7 +204,9 @@ export default function AdminSyncPage() {
       }
 
       // 2. Check and upload any missing local media assets across all entities
-      const shaHashes = extractUploadHashes(pullRes.changes);
+      const assetRefs = extractUploadAssetRefs(pullRes.changes);
+      const shaHashes = assetRefs.map((r) => r.hash);
+      const assetRefMap = new Map(assetRefs.map((r) => [r.hash, r]));
 
       if (shaHashes.length > 0) {
         try {
@@ -211,11 +214,9 @@ export default function AdminSyncPage() {
           for (const missingHash of checkResult.missing) {
             try {
               const assetBuffer = await downloadSyncAsset(window.location.origin, missingHash);
-              const computedSha = await computeBufferSha256(assetBuffer);
-              if (computedSha.toLowerCase() !== missingHash.toLowerCase()) {
-                throw new Error(`Local asset ${missingHash} is corrupted (checksum mismatch); aborting push to prevent corrupt remote state`);
-              }
-              await uploadSyncAsset(targetUrl, assetBuffer, missingHash, '', headers);
+              const ref = assetRefMap.get(missingHash);
+              const { filename } = await verifyAndResolveSyncAsset(missingHash, assetBuffer, ref);
+              await uploadSyncAsset(targetUrl, assetBuffer, missingHash, filename, headers);
             } catch (assetErr: any) {
               if (assetErr?.status === 401) {
                 throw assetErr;
@@ -275,9 +276,12 @@ export default function AdminSyncPage() {
 
       const remoteData = await pullSync(targetUrl, '', headers);
 
-      // Hydrate missing assets from remote into local storage with SHA-256 integrity verification
-      const remoteHashes = extractUploadHashes(remoteData.changes);
+      // Hydrate missing assets from remote into local storage with dual-mode integrity verification
+      const assetRefs = extractUploadAssetRefs(remoteData.changes);
+      const remoteHashes = assetRefs.map((r) => r.hash);
+      const assetRefMap = new Map(assetRefs.map((r) => [r.hash, r]));
       const skippedAssets: Array<{ hash: string; reason: string }> = [];
+
       if (remoteHashes.length > 0) {
         const localCheck = await checkSyncAssets(window.location.origin, remoteHashes);
         for (const missingHash of localCheck.missing) {
@@ -292,11 +296,10 @@ export default function AdminSyncPage() {
             }
             throw assetErr;
           }
-          const actualSha = await computeBufferSha256(assetBuffer);
-          if (actualSha.toLowerCase() !== missingHash.toLowerCase()) {
-            throw new Error(`Asset checksum verification failed for ${missingHash}: expected ${missingHash}, computed ${actualSha}`);
-          }
-          await uploadSyncAsset(window.location.origin, assetBuffer, missingHash);
+
+          const ref = assetRefMap.get(missingHash);
+          const { filename } = await verifyAndResolveSyncAsset(missingHash, assetBuffer, ref);
+          await uploadSyncAsset(window.location.origin, assetBuffer, missingHash, filename);
         }
       }
 
@@ -323,13 +326,8 @@ export default function AdminSyncPage() {
 
       try {
         const applyRes = await pushSyncChunked(window.location.origin, applyPayload);
-        const skippedNote = skippedAssets.length > 0
-          ? ` (${skippedAssets.length} auxiliary media items could not be found on remote server).`
-          : '';
-        setMessage({
-          type: 'success',
-          text: `Pull completed successfully! Applied ${applyRes.appliedTotal} updates from cloud.${skippedNote}`,
-        });
+        const outcome = resolvePullOutcomeMessage(applyRes.appliedTotal, skippedAssets.length);
+        setMessage(outcome);
       } catch (applyErr: any) {
         if (applyErr.conflict || applyErr.message?.includes('newer remote edits') || applyErr.message?.includes('conflict')) {
           // Open interactive conflict resolution modal with real conflicting entity data

@@ -669,3 +669,54 @@ export async function computeBufferSha256(buffer: ArrayBuffer | ArrayBufferView)
   return nodeCrypto.createHash('sha256').update(data).digest('hex');
 }
 
+export const HEX_32_REGEX = /^[a-f0-9]{32}$/i;
+export const HEX_64_REGEX = /^[a-f0-9]{64}$/i;
+
+/**
+ * Validates discrete hex format, performs dual-mode integrity verification (SHA-256
+ * for 64-hex, buffer length check for 32-hex), and resolves canonical filename.
+ */
+export async function verifyAndResolveSyncAsset(
+  missingHash: string,
+  assetBuffer: ArrayBuffer,
+  assetRef?: UploadAssetRef
+): Promise<{ filename: string }> {
+  const hash = missingHash.trim().toLowerCase();
+
+  if (HEX_64_REGEX.test(hash)) {
+    const actualSha = await computeBufferSha256(assetBuffer);
+    if (actualSha.toLowerCase() !== hash) {
+      throw new Error(`Asset checksum verification failed for ${missingHash}: expected ${missingHash}, computed ${actualSha}`);
+    }
+  } else if (HEX_32_REGEX.test(hash)) {
+    if (!assetBuffer || assetBuffer.byteLength === 0) {
+      throw new Error(`Empty asset buffer for legacy asset ${missingHash}`);
+    }
+  } else {
+    throw new Error(`Invalid asset identifier format for ${missingHash}: must be discrete 32 or 64 hex characters`);
+  }
+
+  const filename = assetRef?.filename || `${hash}.png`;
+  return { filename };
+}
+
+/**
+ * Resolves the UI pull outcome status message adhering to outcome fidelity.
+ */
+export function resolvePullOutcomeMessage(
+  appliedTotal: number,
+  skippedCount: number
+): { type: 'success' | 'error'; text: string } {
+  if (skippedCount > 0) {
+    return {
+      type: 'error',
+      text: `Sync completed with missing assets: applied ${appliedTotal} updates from cloud, but ${skippedCount} media assets could not be downloaded.`,
+    };
+  }
+  return {
+    type: 'success',
+    text: `Pull completed successfully! Applied ${appliedTotal} updates from cloud.`,
+  };
+}
+
+

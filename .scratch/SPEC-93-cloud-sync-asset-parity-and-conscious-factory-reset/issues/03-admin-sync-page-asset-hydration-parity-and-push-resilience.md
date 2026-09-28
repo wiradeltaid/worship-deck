@@ -62,13 +62,13 @@ Satisfies `FR-40`, `UC-32`.
 
 **Blocked by:** SPEC-93-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `spa/src/pages/AdminSyncPage.tsx`:
+- [x] In `spa/src/pages/AdminSyncPage.tsx`:
       - Implement dual-mode checksum verification in `executePull`.
       - Forward exact filename with extension to `uploadSyncAsset`.
       - Implement resilient push asset hydration in `executePush`.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/admin-sync-asset-parity.test.mjs`.
-- [ ] In `tests/admin-sync-asset-parity.test.mjs`:
+- [x] In `tests/admin-sync-asset-parity.test.mjs`:
       - Implement behavioral simulation tests for dual-mode hydration in pull and push.
