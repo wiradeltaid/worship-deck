@@ -27,12 +27,12 @@ Satisfies `FR-20`, `UC-14`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `internal/desktop/window_windows.go`:
+- [x] In `internal/desktop/window_windows.go`:
       - Add `WM_SETICON`, `ICON_SMALL`, `ICON_BIG` Win32 procedures and constants.
       - Bind embedded resource icon 1 to the WebView2 window HWND.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/desktop-window-icon.test.mjs`.
-- [ ] In `tests/desktop-window-icon.test.mjs`:
+- [x] In `tests/desktop-window-icon.test.mjs`:
       - Implement static structure and defect injection proofs for Win32 window icon integration.
