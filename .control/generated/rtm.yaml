@@ -1571,6 +1571,20 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-94-02
+  spec: SPEC-94
+  release: desktop-dark-mode-congregation-f11-hint-and-installer-metadata
+  test:
+  - tests/congregation-fullscreen-guidance.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live

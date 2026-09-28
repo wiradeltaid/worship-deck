@@ -3986,6 +3986,43 @@ waves:
         tests:
           - tests/conscious-factory-reset.test.mjs
 
+  - id: SPEC-94
+    status: open
+    release: desktop-dark-mode-congregation-f11-hint-and-installer-metadata
+    prd: [operator-turn]
+    fr: [FR-16]
+    size: S
+    depends_on: [SPEC-93]
+    spec_folder: .scratch/SPEC-94-desktop-dark-mode-congregation-f11-hint-and-installer-metadata/
+    spec_reviewed:
+      date: '2026-09-28'
+      sha: '295b97235a3f00574b24355b76b712d15a765d19'
+      lenses: [structure, prose, edge-case-hunter, traceability, scope-boundary, runtime-integration, platform-api, test-guard]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: (1) removed provider-dependent useT() in ProjectorClient in favor of self-contained static bilingual cue ('Press F11 for full screen · Tekan F11 untuk layar penuh') preserving projected-route isolation; (2) authorized explicit transient startup onboarding exception to UC-12 / SRS-presenter room-facing chrome prohibition with strict below-blanking invariant; (3) removed misclassified DEC-076/DEC-079 from Architectural Decisions, retaining AD-30 as authoritative architecture citation; (4) specified deterministic launch-time registry lookup of AppsUseLightTheme with fallback to false (light mode); (5) implemented dual F11 dismissal via keydown (without preventDefault) and fullscreenchange; (6) consolidated installer tests into existing tests/installer-pe-metadata.test.mjs avoiding cross-repo test coupling."
+    tickets:
+      - id: "SPEC-94-01"
+        component: hub
+        satisfies: []
+        blocked_by: []
+        touches: [desktop]
+        tests:
+          - tests/desktop-dark-mode-titlebar.test.mjs
+      - id: "SPEC-94-02"
+        component: presenter
+        satisfies: [FR-16, UC-12]
+        blocked_by: []
+        touches: [projector]
+        tests:
+          - tests/congregation-fullscreen-guidance.test.mjs
+      - id: "SPEC-94-03"
+        component: hub
+        satisfies: []
+        blocked_by: []
+        touches: [installer]
+        tests:
+          - tests/installer-pe-metadata.test.mjs
+
+
 
 
 
