@@ -45,13 +45,13 @@ Satisfies `FR-40`, `UC-32`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `src/lib/sync/client.ts`:
+- [x] In `src/lib/sync/client.ts`:
       - Refine `extractUploadHashes` to extract only valid SHA-256 upload path hashes and ignore layout/seed digests.
-- [ ] In `spa/src/pages/AdminSyncPage.tsx`:
+- [x] In `spa/src/pages/AdminSyncPage.tsx`:
       - Add selective 404 exception handling and `skippedAssets` reporting during pull asset hydration.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/sync-asset-resilience.test.mjs`.
-- [ ] In `tests/sync-asset-resilience.test.mjs`:
+- [x] In `tests/sync-asset-resilience.test.mjs`:
       - Implement extraction filter assertions and hydration resilience tests with seed_hash fixture.

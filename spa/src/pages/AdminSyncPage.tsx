@@ -270,10 +270,21 @@ export default function AdminSyncPage() {
 
       // Hydrate missing assets from remote into local storage with SHA-256 integrity verification
       const remoteHashes = extractUploadHashes(remoteData.changes);
+      const skippedAssets: Array<{ hash: string; reason: string }> = [];
       if (remoteHashes.length > 0) {
         const localCheck = await checkSyncAssets(window.location.origin, remoteHashes);
         for (const missingHash of localCheck.missing) {
-          const assetBuffer = await downloadSyncAsset(targetUrl, missingHash, headers);
+          let assetBuffer: ArrayBuffer;
+          try {
+            assetBuffer = await downloadSyncAsset(targetUrl, missingHash, headers);
+          } catch (assetErr: any) {
+            if (assetErr.status === 404 || assetErr.message?.includes('not found')) {
+              skippedAssets.push({ hash: missingHash, reason: 'remote_not_found' });
+              console.warn(`[sync] Auxiliary media asset ${missingHash} not found on remote server; skipping.`);
+              continue;
+            }
+            throw assetErr;
+          }
           const actualSha = await computeBufferSha256(assetBuffer);
           if (actualSha.toLowerCase() !== missingHash.toLowerCase()) {
             throw new Error(`Asset checksum verification failed for ${missingHash}: expected ${missingHash}, computed ${actualSha}`);
@@ -305,9 +316,12 @@ export default function AdminSyncPage() {
 
       try {
         const applyRes = await pushSyncChunked(window.location.origin, applyPayload);
+        const skippedNote = skippedAssets.length > 0
+          ? ` (${skippedAssets.length} auxiliary media items could not be found on remote server).`
+          : '';
         setMessage({
           type: 'success',
-          text: `Pull completed successfully! Applied ${applyRes.appliedTotal} updates from cloud.`,
+          text: `Pull completed successfully! Applied ${applyRes.appliedTotal} updates from cloud.${skippedNote}`,
         });
       } catch (applyErr: any) {
         if (applyErr.conflict || applyErr.message?.includes('newer remote edits') || applyErr.message?.includes('conflict')) {
