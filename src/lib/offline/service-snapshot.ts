@@ -508,9 +508,10 @@ export function clearInMemoryOfflineStore(): void {
 
 /**
  * Completely purges all offline snapshots, cached media blobs, and emergency outbox
- * across both IndexedDB and in-memory stores (e.g. on operator logout on shared PCs).
+ * across both IndexedDB and in-memory stores. If strict is true (e.g. on Factory Reset),
+ * any storage or transaction failure is propagated instead of being swallowed.
  */
-export async function clearOfflineStorage(): Promise<void> {
+export async function clearOfflineStorage(strict = false): Promise<void> {
   clearInMemoryOfflineStore();
   if (isIndexedDBAvailable()) {
     try {
@@ -521,13 +522,26 @@ export async function clearOfflineStorage(): Promise<void> {
         tx.objectStore(MEDIA_STORE).clear();
         tx.objectStore(OUTBOX_STORE).clear();
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error || new Error('clearOfflineStorage transaction failed'));
+        tx.onabort = () => reject(tx.error || new Error('clearOfflineStorage transaction aborted'));
       });
-    } catch {
-      // ignore storage errors
+    } catch (err) {
+      if (strict) {
+        throw err;
+      }
+      // ignore storage errors in non-strict mode (e.g. best-effort logout)
     }
+  } else if (strict && typeof window !== 'undefined') {
+    throw new Error('IndexedDB is not available in browser environment');
   }
+}
+
+/**
+ * Strict offline storage purge for factory reset: propagates any storage or transaction
+ * error to ensure the caller can execute fallbacks and block unconfirmed reloads.
+ */
+export async function purgeOfflineStorageStrict(): Promise<void> {
+  return clearOfflineStorage(true);
 }
 
 export function getActiveObjectUrlCount(): number {

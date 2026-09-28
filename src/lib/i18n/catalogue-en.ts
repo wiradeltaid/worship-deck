@@ -673,6 +673,8 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'sync.factoryReset.confirmDescription':
     'Are you sure you want to perform a factory reset? This will permanently erase all created worship services, announcement slides, custom layouts, and uploaded media files, restoring original factory seeds. Your admin login account will be preserved. This action cannot be undone.',
   'sync.factoryReset.confirmButton': 'Yes, Reset Application',
+  'sync.factoryReset.typeInstruction': 'Type: factory reset to begin resetting',
+  'sync.factoryReset.inputPlaceholder': 'factory reset',
   'sync.factoryReset.inProgress': 'Resetting application…',
   'sync.factoryReset.success': 'Factory reset completed successfully. Reloading application…',
   'sync.factoryReset.failed': 'Factory reset failed',

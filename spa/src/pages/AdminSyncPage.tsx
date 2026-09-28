@@ -47,6 +47,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useT } from '@/lib/i18n/operator';
+import { purgeOfflineStorageStrict } from '@/lib/offline/service-snapshot';
 
 export interface ServiceConflict {
   global_id: string;
@@ -110,9 +111,10 @@ export default function AdminSyncPage() {
   const [syncAction, setSyncAction] = useState<'push' | 'pull' | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
 
-  // Factory Reset State (DEC-078)
+  // Factory Reset State (DEC-078, DEC-080)
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [resetConfirmationText, setResetConfirmationText] = useState('');
 
   // Conflict Resolution Dialog State
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
@@ -586,11 +588,38 @@ export default function AdminSyncPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ confirm: 'factory reset' }),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { message?: string; error?: string } | null;
         throw new Error(body?.message || body?.error || `Factory reset failed with status ${res.status}`);
       }
+
+      // Purge client-side IndexedDB caches before reloading
+      try {
+        await purgeOfflineStorageStrict();
+      } catch (err) {
+        console.warn('[reset] purgeOfflineStorageStrict failed, attempting deleteDatabase fallback:', err);
+        try {
+          if (typeof indexedDB === 'undefined') {
+            throw new Error('IndexedDB unavailable');
+          }
+          await new Promise<void>((resolve, reject) => {
+            const req = indexedDB.deleteDatabase('worship_deck_offline_db');
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error || new Error('deleteDatabase failed'));
+            req.onblocked = () => reject(new Error('deleteDatabase blocked by open connection'));
+          });
+        } catch (dbErr) {
+          setMessage({
+            type: 'error',
+            text: 'Database was reset on server, but local browser cache could not be cleared. Please clear your browser cache manually before proceeding.',
+          });
+          return; // Block reload into corrupt/stale state
+        }
+      }
+
+      setResetConfirmationText('');
       setResetModalOpen(false);
       setMessage({
         type: 'success',
@@ -820,7 +849,15 @@ export default function AdminSyncPage() {
       </Card>
 
       {/* Factory Reset Confirmation Modal */}
-      <Dialog open={resetModalOpen} onOpenChange={setResetModalOpen}>
+      <Dialog
+        open={resetModalOpen}
+        onOpenChange={(open) => {
+          setResetModalOpen(open);
+          if (!open) {
+            setResetConfirmationText('');
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
@@ -830,11 +867,28 @@ export default function AdminSyncPage() {
               {t('sync.factoryReset.confirmDescription')}
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="reset-confirm-input" className="text-sm font-medium text-foreground">
+              {t('sync.factoryReset.typeInstruction')}
+            </Label>
+            <Input
+              id="reset-confirm-input"
+              value={resetConfirmationText}
+              onChange={(e) => setResetConfirmationText(e.target.value)}
+              placeholder={t('sync.factoryReset.inputPlaceholder')}
+              disabled={resetting}
+              className="font-mono text-sm"
+              autoComplete="off"
+            />
+          </div>
           <DialogFooter className="mt-4 flex gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setResetModalOpen(false)}
+              onClick={() => {
+                setResetConfirmationText('');
+                setResetModalOpen(false);
+              }}
               disabled={resetting}
             >
               Cancel
@@ -843,7 +897,7 @@ export default function AdminSyncPage() {
               type="button"
               variant="destructive"
               onClick={handleFactoryReset}
-              disabled={resetting}
+              disabled={resetting || resetConfirmationText.trim().toLowerCase() !== 'factory reset'}
             >
               {resetting ? t('sync.factoryReset.inProgress') : t('sync.factoryReset.confirmButton')}
             </Button>

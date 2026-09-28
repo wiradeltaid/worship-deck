@@ -675,6 +675,8 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'sync.factoryReset.confirmDescription':
     'Apakah Anda yakin ingin melakukan reset pabrik? Tindakan ini akan menghapus permanen semua kebaktian yang telah dibuat, slide pengumuman, tata letak kustom, dan berkas media unggahan, serta memulihkan data awal pabrik. Akun admin Anda akan tetap dipertahankan. Tindakan ini tidak dapat dibatalkan.',
   'sync.factoryReset.confirmButton': 'Ya, Reset Aplikasi',
+  'sync.factoryReset.typeInstruction': 'Ketik: factory reset untuk memulai reset',
+  'sync.factoryReset.inputPlaceholder': 'factory reset',
   'sync.factoryReset.inProgress': 'Mereset aplikasi…',
   'sync.factoryReset.success': 'Reset pabrik berhasil diselesaikan. Memuat ulang aplikasi…',
   'sync.factoryReset.failed': 'Gagal melakukan reset pabrik',
