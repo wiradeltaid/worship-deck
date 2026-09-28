@@ -155,7 +155,7 @@ test('SPEC-92-04: POST /api/admin/reset-factory restores canonical defaults and 
   const resetRes = await json(
     `${instance.base}/api/admin/reset-factory`,
     'POST',
-    null,
+    { confirm: 'factory reset' },
     { Cookie: adminCookie }
   );
   assert.equal(resetRes.status, 200, 'admin reset must return HTTP 200');

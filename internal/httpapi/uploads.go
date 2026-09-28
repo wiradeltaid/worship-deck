@@ -1,7 +1,7 @@
 ﻿package httpapi
 
 import (
-	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,7 +17,7 @@ import (
 	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
-var uploadRef = regexp.MustCompile(`(?i)^[a-f0-9]{32,64}\.(jpe?g|png|gif|webp|bin|ttf|otf|woff2?)$`)
+var uploadRef = regexp.MustCompile(`(?i)^([a-f0-9]{32}|[a-f0-9]{64})\.(jpe?g|png|gif|webp|bin|ttf|otf|woff2?)$`)
 
 func uploadsDir() string {
 	if d := strings.TrimSpace(os.Getenv("UPLOADS_DIR")); d != "" {
@@ -76,11 +76,17 @@ func writeUpload(ext string, buf []byte) (string, string, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", "", err
 	}
-	b := make([]byte, 16)
-	if _, err := rand.Read(b); err != nil {
-		return "", "", err
+	hasher := sha256.Sum256(buf)
+	shaHex := hex.EncodeToString(hasher[:])
+
+	syncUploadMu.Lock()
+	defer syncUploadMu.Unlock()
+
+	if existing, err := findAssetBySHA256(dir, shaHex); err == nil && existing != "" {
+		existingName := filepath.Base(existing)
+		return existingName, "/api/uploads/" + existingName, nil
 	}
-	filename := hex.EncodeToString(b) + ext
+	filename := shaHex + ext
 	path := filepath.Join(dir, filename)
 	if err := os.WriteFile(path, buf, 0o644); err != nil {
 		return "", "", err

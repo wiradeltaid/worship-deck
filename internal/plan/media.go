@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	localUpload        = regexp.MustCompile(`(?i)^/api/uploads/([a-f0-9]{32}\.(?:jpe?g|png|gif|webp))$`)
-	localUploadPattern = regexp.MustCompile(`(?i)/api/uploads/([a-f0-9]{32}\.(?:jpe?g|png|gif|webp))`)
+	localUpload        = regexp.MustCompile(`(?i)^/api/uploads/((?:[a-f0-9]{32}|[a-f0-9]{64})\.(?:jpe?g|png|gif|webp))$`)
+	localUploadPattern = regexp.MustCompile(`(?i)/api/uploads/((?:[a-f0-9]{32}|[a-f0-9]{64})\.(?:jpe?g|png|gif|webp))`)
 	videoExt           = regexp.MustCompile(`(?i)\.(mp4|webm|mov|m4v|avi|mkv)$`)
 	imageExt           = regexp.MustCompile(`(?i)\.(jpe?g|png|gif|webp)$`)
 )

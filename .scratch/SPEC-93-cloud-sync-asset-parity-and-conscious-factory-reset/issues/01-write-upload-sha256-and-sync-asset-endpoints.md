@@ -38,14 +38,14 @@ Satisfies `FR-40`, `UC-32`.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `internal/httpapi/uploads.go`:
+- [x] In `internal/httpapi/uploads.go`:
       - Modernize `writeUpload` to compute SHA-256 content hashes for new uploads with deduplication.
-- [ ] In `internal/httpapi/sync_assets.go`:
+- [x] In `internal/httpapi/sync_assets.go`:
       - Accept `32..64` hex characters in check, upload, and download endpoints.
       - Preserve original extension and filename in `syncAssetUpload`.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/sync-asset-endpoints.test.mjs`.
-- [ ] In `tests/sync-asset-endpoints.test.mjs`:
+- [x] In `tests/sync-asset-endpoints.test.mjs`:
       - Implement static assertions, defect injection proofs, and endpoint contract tests.

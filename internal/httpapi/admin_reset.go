@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,10 @@ import (
 
 	"github.com/wiradeltaid/worship-deck/internal/db"
 )
+
+type FactoryResetRequest struct {
+	Confirm string `json:"confirm"`
+}
 
 func cleanUploadsDir(dir string) error {
 	entries, err := os.ReadDir(dir)
@@ -52,6 +57,15 @@ func (s *Server) handleResetFactory(w http.ResponseWriter, r *http.Request) {
 	}
 	if sess.Role != "admin" {
 		writeError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	var req FactoryResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.ToLower(strings.TrimSpace(req.Confirm)) != "factory reset" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error":   "invalid_confirmation",
+			"message": "Confirmation phrase 'factory reset' is required",
+		})
 		return
 	}
 

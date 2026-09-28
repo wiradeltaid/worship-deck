@@ -538,25 +538,33 @@ export async function pushSyncChunked(
   };
 }
 
+export interface UploadAssetRef {
+  hash: string;
+  filename: string;
+  extension: string;
+}
+
+const uploadPathRegex = /(?:\/api)?\/uploads\/((?:[a-f0-9]{32}|[a-f0-9]{64}))\.([a-z0-9]+)/gi;
+
 /**
  * Recursively scans arbitrary objects, arrays, and JSON strings for upload asset paths
- * matching `/api/uploads/([a-f0-9]{64})/i`.
- * Returns a sorted, de-duplicated array of lowercase hexadecimal hashes.
+ * matching `(?:/api)?/uploads/((?:[a-f0-9]{32}|[a-f0-9]{64}))\.[a-z0-9]+/i`.
+ * Returns a sorted, de-duplicated array of lowercase hexadecimal hashes (both 32-hex legacy and 64-hex SHA-256).
  *
- * NOTE (SPEC-92-03): Strictly restricts extraction to explicit `/api/uploads/<hash>` URI paths.
- * Never treats raw 64-hex strings in arbitrary fields (such as layout `seed_hash` or bible
+ * NOTE (SPEC-92-03, SPEC-93-02): Strictly restricts extraction to explicit `/(api/)?uploads/<hash>` URI paths.
+ * Never treats raw hex strings in arbitrary metadata fields (such as layout `seed_hash` or bible
  * translation `content_hash`) as uploaded media assets.
  */
 export function extractUploadHashes(payload: unknown): string[] {
   const hashes = new Set<string>();
-  const uploadPathRegex = /\/api\/uploads\/([a-f0-9]{64})\.[a-z0-9]+/gi;
+  const regex = new RegExp(uploadPathRegex.source, 'gi');
 
   function scan(val: unknown) {
     if (val === null || val === undefined) return;
     if (typeof val === 'string') {
       let match: RegExpExecArray | null;
-      uploadPathRegex.lastIndex = 0;
-      while ((match = uploadPathRegex.exec(val)) !== null) {
+      regex.lastIndex = 0;
+      while ((match = regex.exec(val)) !== null) {
         hashes.add(match[1].toLowerCase());
       }
       if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
@@ -587,6 +595,57 @@ export function extractUploadHashes(payload: unknown): string[] {
 }
 
 /**
+ * Recursively scans arbitrary objects, arrays, and JSON strings for upload asset paths
+ * and returns structured asset reference metadata with canonical filename and extension.
+ */
+export function extractUploadAssetRefs(payload: unknown): UploadAssetRef[] {
+  const refMap = new Map<string, UploadAssetRef>();
+  const regex = new RegExp(uploadPathRegex.source, 'gi');
+
+  function scan(val: unknown) {
+    if (val === null || val === undefined) return;
+    if (typeof val === 'string') {
+      let match: RegExpExecArray | null;
+      regex.lastIndex = 0;
+      while ((match = regex.exec(val)) !== null) {
+        const hash = match[1].toLowerCase();
+        const extension = match[2].toLowerCase();
+        if (!refMap.has(hash)) {
+          refMap.set(hash, {
+            hash,
+            filename: `${hash}.${extension}`,
+            extension,
+          });
+        }
+      }
+      if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(val);
+          scan(parsed);
+        } catch {
+          // not JSON, continue
+        }
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      for (const item of val) {
+        scan(item);
+      }
+      return;
+    }
+    if (typeof val === 'object') {
+      for (const key of Object.keys(val as Record<string, unknown>)) {
+        scan((val as Record<string, unknown>)[key]);
+      }
+    }
+  }
+
+  scan(payload);
+  return Array.from(refMap.values()).sort((a, b) => a.hash.localeCompare(b.hash));
+}
+
+/**
  * Computes hexadecimal SHA-256 hash of an ArrayBuffer across both browser (crypto.subtle)
  * and Node.js environments.
  */
@@ -609,4 +668,55 @@ export async function computeBufferSha256(buffer: ArrayBuffer | ArrayBufferView)
     : Buffer.from(buffer);
   return nodeCrypto.createHash('sha256').update(data).digest('hex');
 }
+
+export const HEX_32_REGEX = /^[a-f0-9]{32}$/i;
+export const HEX_64_REGEX = /^[a-f0-9]{64}$/i;
+
+/**
+ * Validates discrete hex format, performs dual-mode integrity verification (SHA-256
+ * for 64-hex, buffer length check for 32-hex), and resolves canonical filename.
+ */
+export async function verifyAndResolveSyncAsset(
+  missingHash: string,
+  assetBuffer: ArrayBuffer,
+  assetRef?: UploadAssetRef
+): Promise<{ filename: string }> {
+  const hash = missingHash.trim().toLowerCase();
+
+  if (HEX_64_REGEX.test(hash)) {
+    const actualSha = await computeBufferSha256(assetBuffer);
+    if (actualSha.toLowerCase() !== hash) {
+      throw new Error(`Asset checksum verification failed for ${missingHash}: expected ${missingHash}, computed ${actualSha}`);
+    }
+  } else if (HEX_32_REGEX.test(hash)) {
+    if (!assetBuffer || assetBuffer.byteLength === 0) {
+      throw new Error(`Empty asset buffer for legacy asset ${missingHash}`);
+    }
+  } else {
+    throw new Error(`Invalid asset identifier format for ${missingHash}: must be discrete 32 or 64 hex characters`);
+  }
+
+  const filename = assetRef?.filename || `${hash}.png`;
+  return { filename };
+}
+
+/**
+ * Resolves the UI pull outcome status message adhering to outcome fidelity.
+ */
+export function resolvePullOutcomeMessage(
+  appliedTotal: number,
+  skippedCount: number
+): { type: 'success' | 'error'; text: string } {
+  if (skippedCount > 0) {
+    return {
+      type: 'error',
+      text: `Sync completed with missing assets: applied ${appliedTotal} updates from cloud, but ${skippedCount} media assets could not be downloaded.`,
+    };
+  }
+  return {
+    type: 'success',
+    text: `Pull completed successfully! Applied ${appliedTotal} updates from cloud.`,
+  };
+}
+
 

@@ -75,16 +75,16 @@ Satisfies `FR-20`, `FR-21`, `UC-14`, `UC-15`.
 
 **Blocked by:** SPEC-93-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] In `spa/src/pages/AdminSyncPage.tsx`:
+- [x] In `spa/src/pages/AdminSyncPage.tsx`:
       - Add conscious confirmation input gating destructive reset button.
-      - Await `clearOfflineStorage()` before window reload.
-- [ ] In `internal/httpapi/admin_reset.go`:
+      - Await `purgeOfflineStorageStrict()` before window reload and block reload on failure.
+- [x] In `internal/httpapi/admin_reset.go`:
       - Validate confirmation token in request body.
-- [ ] In `src/lib/i18n/`:
+- [x] In `src/lib/i18n/`:
       - Add bilingual i18n keys to `keys.ts`, `catalogue-en.ts`, and `catalogue-id.ts`.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/conscious-factory-reset.test.mjs`.
-- [ ] In `tests/conscious-factory-reset.test.mjs`:
+- [x] In `tests/conscious-factory-reset.test.mjs`:
       - Implement contract assertions and defect injection proofs.

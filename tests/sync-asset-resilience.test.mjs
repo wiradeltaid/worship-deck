@@ -233,7 +233,7 @@ test('SPEC-92-03: scanSyncPageResilienceContract defect injection detects overly
 
   // Defect 2: wrap uploadSyncAsset inside non-fatal 404 catch
   const defectBroadCatch = prodContent.replace(
-    /let assetBuffer: ArrayBuffer;[\s\S]*?await uploadSyncAsset\(window\.location\.origin, assetBuffer, missingHash\);/i,
+    /let assetBuffer: ArrayBuffer;[\s\S]*?await uploadSyncAsset\(window\.location\.origin, assetBuffer, missingHash[^)]*\);/i,
     `try {
        const assetBuffer = await downloadSyncAsset(targetUrl, missingHash, headers);
        await uploadSyncAsset(window.location.origin, assetBuffer, missingHash);

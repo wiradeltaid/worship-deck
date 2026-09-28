@@ -4023,10 +4023,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/conscious-factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -4311,10 +4311,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/conscious-factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -7346,10 +7346,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/conscious-factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -9850,10 +9850,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/conscious-factory-reset.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39
@@ -10141,10 +10141,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/sync-asset-endpoints.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -10155,10 +10155,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/sync-client-dual-hash.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -10169,10 +10169,10 @@ rtm:
   release: cloud-sync-asset-parity-and-conscious-factory-reset
   test:
   - tests/admin-sync-asset-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5

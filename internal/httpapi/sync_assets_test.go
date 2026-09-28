@@ -47,7 +47,7 @@ func TestSyncAssets_EndToEnd(t *testing.T) {
 	}
 
 	// 2a. Upload asset without X-Content-SHA256 header -> 400 Bad Request
-	reqNoHeader, _ := http.NewRequest("POST", ts.URL+"/api/sync/assets/upload?filename=flyer.png", bytes.NewReader(sampleData))
+	reqNoHeader, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/sync/assets/upload?filename=%s.png", ts.URL, sampleHash), bytes.NewReader(sampleData))
 	reqNoHeader.AddCookie(cookie)
 	noHeaderRes, err := ts.Client().Do(reqNoHeader)
 	if err != nil {
@@ -59,7 +59,7 @@ func TestSyncAssets_EndToEnd(t *testing.T) {
 	noHeaderRes.Body.Close()
 
 	// 2b. Upload asset with mismatched hash -> 400 Bad Request
-	reqBad, _ := http.NewRequest("POST", ts.URL+"/api/sync/assets/upload?filename=flyer.png", bytes.NewReader(sampleData))
+	reqBad, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/sync/assets/upload?filename=%s.png", ts.URL, sampleHash), bytes.NewReader(sampleData))
 	reqBad.AddCookie(cookie)
 	reqBad.Header.Set("X-Content-SHA256", "1111111111111111111111111111111111111111111111111111111111111111")
 	badRes, err := ts.Client().Do(reqBad)
@@ -72,7 +72,7 @@ func TestSyncAssets_EndToEnd(t *testing.T) {
 	badRes.Body.Close()
 
 	// 3. Upload asset with correct hash -> 200 OK
-	reqGood, _ := http.NewRequest("POST", ts.URL+"/api/sync/assets/upload?filename=flyer.png", bytes.NewReader(sampleData))
+	reqGood, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/sync/assets/upload?filename=%s.png", ts.URL, sampleHash), bytes.NewReader(sampleData))
 	reqGood.AddCookie(cookie)
 	reqGood.Header.Set("X-Content-SHA256", sampleHash)
 	goodRes, err := ts.Client().Do(reqGood)
@@ -97,7 +97,7 @@ func TestSyncAssets_EndToEnd(t *testing.T) {
 	}
 
 	// 3b. Upload same asset again -> deduplication short-circuit returns deduplicated: true
-	reqDup, _ := http.NewRequest("POST", ts.URL+"/api/sync/assets/upload?filename=flyer.png", bytes.NewReader(sampleData))
+	reqDup, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/sync/assets/upload?filename=%s.png", ts.URL, sampleHash), bytes.NewReader(sampleData))
 	reqDup.AddCookie(cookie)
 	reqDup.Header.Set("X-Content-SHA256", sampleHash)
 	dupRes, err := ts.Client().Do(reqDup)

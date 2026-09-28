@@ -602,6 +602,8 @@ export const I18N_KEYS = [
   'sync.factoryReset.confirmTitle',
   'sync.factoryReset.confirmDescription',
   'sync.factoryReset.confirmButton',
+  'sync.factoryReset.typeInstruction',
+  'sync.factoryReset.inputPlaceholder',
   'sync.factoryReset.inProgress',
   'sync.factoryReset.success',
   'sync.factoryReset.failed',

@@ -1,4 +1,4 @@
-﻿package httpapi
+package httpapi
 
 import (
 	"database/sql"
@@ -212,7 +212,7 @@ func (s *Server) gate(next http.Handler) http.Handler {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					if r.Method == http.MethodOptions {
 						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Content-SHA256")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Content-SHA256, X-Asset-Identifier, X-Filename")
 						w.Header().Set("Access-Control-Max-Age", "86400")
 						w.Header().Set("Vary", "Origin")
 						w.WriteHeader(http.StatusNoContent)

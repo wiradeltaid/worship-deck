@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**80 decisions** — accepted: 1 · applied: 78 · superseded: 1.
+**81 decisions** — accepted: 1 · applied: 79 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -88,3 +88,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-078` | Administrator Factory Reset Operation Narrows AD-17 | `superseded` | course-correction | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-078-administrator-factory-reset-narrows-ad17.md` |
 | `DEC-079` | Daily Autopilot mandate for Desktop Window Icon, Installer License, Sync Resilience, and Factory Reset (SPEC-… | `applied` | mandate | `.control/memlog/autopilot-DEC-079.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-079-daily-autopilot-mandate-desktop-icon-license-sync-resilience-and-factory-reset.md` |
 | `DEC-080` | Dual-Hash Asset Identity Protocol and Conscious Factory Reset Confirmation | `accepted` | course-correction | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-080-dual-hash-asset-identity-and-conscious-factory-reset.md` |
+| `DEC-081` | Daily Autopilot mandate for Cloud Sync Asset Hydration Parity and Conscious Factory Reset (SPEC-93) | `applied` | mandate | `.control/memlog/autopilot-DEC-081.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-081-daily-autopilot-mandate-cloud-sync-asset-parity-and-conscious-factory-reset.md` |
