@@ -22,7 +22,7 @@ export const CANONICAL_CHURCH_DISCLAIMER =
   'This installation is operated by the local church administration, not by the publisher. What is stored, and who answers for it: PRIVACY.md';
 export const CANONICAL_HYMN_EXCLUSION =
   'Hymn texts are not covered by the MIT license and are not ours to license. See ATTRIBUTIONS.md';
-export const CANONICAL_STUDIO_URL = 'https://wiradelta.id/worship-deck';
+export const CANONICAL_STUDIO_URL = 'https://wiradelta.com/worship-deck/';
 export const CANONICAL_SUPPORT_EMAIL = 'support@wiradelta.com';
 
 export default function AboutModal({ open, onOpenChange }: AboutModalProps) {
