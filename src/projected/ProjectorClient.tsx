@@ -313,7 +313,7 @@ export default function ProjectorClient({
           <button
             type="button"
             onClick={() => setShowHint(false)}
-            className="pointer-events-auto bg-black/80 text-white/90 border border-white/20 rounded-full px-4 py-1.5 text-xs font-medium shadow-lg backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-opacity hover:bg-black/90"
+            className="pointer-events-auto bg-black/80 text-white/90 rounded-full px-4 py-1.5 text-xs font-medium shadow-lg backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-opacity hover:bg-black/90 focus-visible:outline-white"
           >
             <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[11px] font-mono">F11</kbd>
             <span>Press F11 for full screen · Tekan F11 untuk layar penuh</span>
