@@ -40,14 +40,14 @@
 
 Bounded operational installer deliverable.
 
-**Blocked by:** none
+**Blocked by:** SPEC-94-01
 
-**Status:** open
+**Status:** done
 
-- [ ] In `installer/worship-deck.iss`:
+- [x] In `installer/worship-deck.iss`:
       - Define `MyAppSupportURL` and `MyAppUpdatesURL` alongside `MyAppURL`.
       - Bind `AppPublisherURL`, `AppSupportURL`, and `AppUpdatesURL` in `[Setup]`.
-- [ ] In `tests/installer-pe-metadata.test.mjs`:
+- [x] In `tests/installer-pe-metadata.test.mjs`:
       - Extend contract assertions to verify canonical metadata URLs and Setup bindings.
-- [ ] In `D:\Developer\wiradeltaid\ops\research\wdi-ecosystem-strategy\plan\worship-deck.md`:
+- [x] In `D:\Developer\wiradeltaid\ops\research\wdi-ecosystem-strategy\plan\worship-deck.md`:
       - Document Windows Installer metadata specification under Section 3.

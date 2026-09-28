@@ -128,3 +128,65 @@ test('SPEC-90-01: Windows PE binary worship-deck.exe metadata verification', (t)
   assert.equal(info.LegalCopyright, 'Copyright (c) 2026 Wira Delta Indonesia', 'LegalCopyright must match');
   assert.equal(info.ProductName, 'WorshipDeck', 'ProductName must match');
 });
+
+export function verifyInnoSetupMetadataUrls(issContent) {
+  // Strip comment lines beginning with optional whitespace and ;
+  const effectiveLines = issContent
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => !line.startsWith(';'));
+  const effectiveContent = effectiveLines.join('\n');
+
+  const urlDirectives = [
+    '#define MyAppURL "https://wiradelta.com/worship-deck/"',
+    '#define MyAppSupportURL "https://github.com/wiradeltaid/worship-deck/issues"',
+    '#define MyAppUpdatesURL "https://github.com/wiradeltaid/worship-deck/releases"',
+    'AppPublisherURL={#MyAppURL}',
+    'AppSupportURL={#MyAppSupportURL}',
+    'AppUpdatesURL={#MyAppUpdatesURL}',
+  ];
+
+  for (const directive of urlDirectives) {
+    if (!effectiveContent.includes(directive)) {
+      throw new Error(`Missing required Inno Setup metadata URL directive: "${directive}"`);
+    }
+  }
+}
+
+test('SPEC-94-03: installer/worship-deck.iss contains canonical metadata URL directives', () => {
+  const issPath = path.join(repoRoot, 'installer', 'worship-deck.iss');
+  const content = fs.readFileSync(issPath, 'utf8');
+  verifyInnoSetupMetadataUrls(content);
+});
+
+test('SPEC-94-03 guard proof: verifyInnoSetupMetadataUrls detects missing or misdirected URLs', () => {
+  const validContent = fs.readFileSync(path.join(repoRoot, 'installer', 'worship-deck.iss'), 'utf8');
+
+  // Defect 1: MyAppURL pointing to raw github repo
+  const githubUrl = validContent.replace('#define MyAppURL "https://wiradelta.com/worship-deck/"', '#define MyAppURL "https://github.com/wiradeltaid/worship-deck"');
+  assert.throws(
+    () => verifyInnoSetupMetadataUrls(githubUrl),
+    /Missing required Inno Setup metadata URL directive/
+  );
+
+  // Defect 2: AppSupportURL pointing to MyAppURL instead of MyAppSupportURL
+  const collapsedSupport = validContent.replace('AppSupportURL={#MyAppSupportURL}', 'AppSupportURL={#MyAppURL}');
+  assert.throws(
+    () => verifyInnoSetupMetadataUrls(collapsedSupport),
+    /Missing required Inno Setup metadata URL directive/
+  );
+
+  // Defect 3: AppUpdatesURL pointing to MyAppURL instead of MyAppUpdatesURL
+  const collapsedUpdates = validContent.replace('AppUpdatesURL={#MyAppUpdatesURL}', 'AppUpdatesURL={#MyAppURL}');
+  assert.throws(
+    () => verifyInnoSetupMetadataUrls(collapsedUpdates),
+    /Missing required Inno Setup metadata URL directive/
+  );
+
+  // Defect 4: Directive commented out with ;
+  const commentedDirective = validContent.replace('AppPublisherURL={#MyAppURL}', '; AppPublisherURL={#MyAppURL}');
+  assert.throws(
+    () => verifyInnoSetupMetadataUrls(commentedDirective),
+    /Missing required Inno Setup metadata URL directive/
+  );
+});
