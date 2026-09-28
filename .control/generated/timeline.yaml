@@ -1,4 +1,4 @@
-asof: '2026-09-27'
+asof: '2026-09-28'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -197,6 +197,14 @@ capabilities:
       WorshipDeck instances, on demand
     tickets:
     - SPEC-47-06
+    - SPEC-88-01
+    - SPEC-88-02
+    - SPEC-88-03
+    - SPEC-88-04
+    - SPEC-92-03
+    - SPEC-93-01
+    - SPEC-93-02
+    - SPEC-93-03
     actual_start: '2026-09-21'
     actual_end: ''
     state: in-progress
@@ -518,6 +526,7 @@ capabilities:
     - SPEC-86-06
     - SPEC-87-01
     - SPEC-87-02
+    - SPEC-94-02
     - W7-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -747,6 +756,11 @@ capabilities:
     - SPEC-79-02
     - SPEC-80-01
     - SPEC-81-03
+    - SPEC-89-01
+    - SPEC-89-04
+    - SPEC-92-01
+    - SPEC-92-04
+    - SPEC-93-04
     - W11-02
     - W11-03
     - W11-06
@@ -768,6 +782,12 @@ capabilities:
     - SPEC-42-02
     - SPEC-59-01
     - SPEC-59-02
+    - SPEC-89-01
+    - SPEC-89-02
+    - SPEC-89-03
+    - SPEC-89-04
+    - SPEC-92-04
+    - SPEC-93-04
     - W1-1-1
     - W1-1-2
     - W11-01
@@ -944,6 +964,11 @@ capabilities:
     - SPEC-79-02
     - SPEC-80-01
     - SPEC-81-03
+    - SPEC-89-01
+    - SPEC-89-04
+    - SPEC-92-01
+    - SPEC-92-04
+    - SPEC-93-04
     - W11-02
     - W11-03
     - W11-06
@@ -1110,6 +1135,11 @@ capabilities:
     - SPEC-79-02
     - SPEC-80-01
     - SPEC-81-03
+    - SPEC-89-01
+    - SPEC-89-04
+    - SPEC-92-01
+    - SPEC-92-04
+    - SPEC-93-04
     - W11-02
     - W11-03
     - W11-06
