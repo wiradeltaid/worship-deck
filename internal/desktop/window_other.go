@@ -17,6 +17,16 @@ func SetProcessDpiAwarenessPerMonitorV2() error {
 	return nil
 }
 
+// IsWindowsSystemDarkMode returns false on non-Windows platforms.
+func IsWindowsSystemDarkMode() bool {
+	return false
+}
+
+// SetWindowImmersiveDarkMode is a no-op on non-Windows platforms.
+func SetWindowImmersiveDarkMode(hwnd uintptr, darkMode bool) error {
+	return nil
+}
+
 // RunDesktopWindow on non-Windows platforms falls back to OpenBrowser and blocks until context cancellation.
 func RunDesktopWindow(ctx context.Context, serverURL string, options WindowOptions, onExit func()) error {
 	if ctx != nil && ctx.Err() != nil {
