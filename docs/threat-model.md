@@ -26,7 +26,7 @@ deployment decisions, it is cataloged under [Residual risks](#residual-risks-ope
 | **Presenter & Projector SPA (`spa/`, `src/`)** | Client browser (operator console & second-screen window) | Displayed lyrics, names, images, slide canvases | Standard React JSX escaping; zero `dangerouslySetInnerHTML` |
 | **External Rundown Webhook Client** | External network (e.g., Telegram bot, automation script) | Service rundown text, song numbers, schedule | Gated by `WEBHOOK_SECRET` with constant-time comparison |
 | **External Image Host** | Public Internet (operator-specified URL) | Remote image payloads for flyers | SSRF filter, allowlist, redirect refusal, size & timeout caps |
-| **Peer WorshipDeck Instance (Manual Sync)** | Operator-supplied address, same local network by design | Services (incl. member names), photographs, Song Set entries, backgrounds, announcements | Admin session required on the receiving side; **experimental: see §3.7** |
+| **Peer WorshipDeck Instance (Data Sync)** | Operator-supplied address, same local network by design | Services (incl. member names), photographs, Song Set entries, backgrounds, announcements | Admin session required on the receiving side; **experimental: see §3.7** |
 
 ---
 
@@ -137,13 +137,16 @@ deployment decisions, it is cataloged under [Residual risks](#residual-risks-ope
   - **Parameterized Queries:** All database interactions with SQLite use parameterized placeholders
     (`?`). No dynamic SQL string concatenation is performed with user input.
 
-### 3.7 Manual Sync (`POST /api/sync/push`, `GET /api/sync/pull`, `GET /api/sync/status`, `POST /api/sync/assets/check`, `POST /api/sync/assets/upload`, `GET /api/sync/assets/{sha256}`)
+### 3.7 Data Sync (`POST /api/sync/push`, `GET /api/sync/pull`, `GET /api/sync/status`, `POST /api/sync/assets/check`, `POST /api/sync/assets/upload`, `GET /api/sync/assets/{sha256}`)
 
-**Status: experimental, not yet verified between two separate machines.** SPEC-47 shipped this
-feature and its Go-level tests pass, but every test (`internal/httpapi/sync_test.go`,
-`tests/smoke-spec-47.test.mjs`) exercises one `httptest` server pushing to and pulling from
-**itself**: none stands up two independent instances and syncs across them. This section
-describes the code as it is, not a verified deployment shape.
+**Status: experimental.** SPEC-47 shipped the feature; SPEC-88 added
+`tests/sync-cors-and-bearer-auth.test.mjs`, which spawns two independent Go API processes with
+separate databases (`helpers/go-api.mjs`) and drives push, pull, CORS preflight, and
+Bearer-token authentication across them (`SPEC-88-04`, line 211), closing the earlier gap where
+every automated test exercised one `httptest` server against itself. It has also been tested
+between a Windows app instance and a separate server instance during development. Neither is the
+same as production use across many independently operated church installations on different
+networks, which has not yet happened.
 
 - **Threats:** Unbounded request bodies causing memory exhaustion, a stale in-flight sync
   colliding with a live presentation, an unauthenticated peer accepting data from a host the
@@ -158,30 +161,41 @@ describes the code as it is, not a verified deployment shape.
     other `/api/admin/*` route uses.
   - **Content-Addressed Assets:** `syncAssetUpload`/`syncAssetDownload` key files by their SHA-256,
     so a corrupted or mismatched upload is detectable by hash rather than trusted on filename alone.
-- **Gaps, named rather than silently carried:**
-  - **No payload size limit on `syncPush` or `syncAssetsCheck`.** Both decode `r.Body` directly
-    with `json.NewDecoder` and no `http.MaxBytesReader` (contrast §3.1's `WEBHOOK_SECRET` endpoint,
-    bounded to 4 MB, and `syncAssetUpload`, bounded to 50 MB at `sync_assets.go:132`). An
-    authenticated admin session, the same bar every other admin write clears, can send an
-    arbitrarily large `sync/push` or `sync/assets/check` body.
-  - **No CORS support anywhere in the Go API.** `requireAdmin` authenticates by reading the
-    `auth_session` cookie (`internal/httpapi/server.go:148`), and cookies are not sent
-    cross-origin by a browser's default `fetch()` (`src/lib/sync/client.ts` sets no `credentials`
-    option). A genuine two-machine sync, the UI's own stated use case, "one laptop running the
-    desktop app, one running the browser build", means the browser tab is on one instance's
-    origin while `remoteUrl` names a different one; without an `Access-Control-Allow-Origin`
-    response and a `credentials: 'include'` request, the browser has no cookie to send and, for the
-    `POST` calls, no successful preflight to complete the request at all. The push/pull protocol
-    itself has not been shown to be reachable across two real origins.
-  - **The "Device Authorization Token" field is not read by the server.** `AdminSyncPage.tsx`
-    lets an operator save a token and sends it as `Authorization: Bearer <token>`
-    (`AdminSyncPage.tsx:137`), but no Go handler, and no code anywhere under `internal/`, reads an
-    `Authorization` header for a sync route (`webhook.go`'s Bearer handling is the unrelated
-    `WEBHOOK_SECRET` path). The field is presented as an authorization control and currently does
-    nothing.
-- **Until the two gaps above close:** treat Manual Sync as usable only where both instances already
-  share a session (practically, the same origin), not as a mechanism for moving data between two
-  independently deployed church laptops. Do not point `IMAGE_URL_ALLOWLIST`-style trust at it.
+  - **Origin Allow-List for Cross-Origin Sync:** `isOriginAllowed()` (`server.go:169-186`) gates
+    every request whose path matches `isCORSPath()` (`/api/sync*`, `/api/auth/login`,
+    `server.go:159-163`). When `SYNC_ALLOWED_ORIGINS` is unset, or the server runs in desktop mode,
+    only loopback origins (`http(s)://localhost:*`, `http(s)://127.0.0.1:*`) are accepted. A
+    configured value is a comma-separated list of exact origins or `host:*` wildcard-port patterns;
+    `*` accepts any origin and the code does not refuse it, so it belongs only on a server that is
+    never reachable from the internet (see residual risks below). An approved cross-origin request
+    gets `Access-Control-Allow-Origin` echoed back and, on `OPTIONS`, a full preflight response
+    (`gate()`, `server.go:204-229`).
+  - **Sign-In Replaces the "Device Authorization Token" Field.** `AdminSyncPage.tsx` signs the
+    operator in to the target instance through `POST /api/auth/login` (`loginRemote`,
+    `AdminSyncPage.tsx:410`) rather than asking for a pre-shared token. The returned signed session
+    is held only in page memory (`inMemoryRemoteToken` state, `AdminSyncPage.tsx:95`) and discarded
+    on page close, remote-URL change, or explicit disconnect; it is never written to `localStorage`
+    or a cookie. Every sync request sends it as `Authorization: Bearer <token>`
+    (`AdminSyncPage.tsx:205, 276, 473`). On the receiving side, `gate()` first tries the
+    `auth_session` cookie; if that is absent, invalid, or not an admin session, it falls back to the
+    `Authorization: Bearer` header on sync paths (`server.go:248-258`), verifying the token the same
+    way as a cookie session (`auth.Verify` then `auth.ValidateAgainstDB`), still requiring the
+    `admin` role, with the same 7-day session lifetime as any other session
+    (`internal/auth/session.go:21`).
+- **Residual risks, named rather than silently carried:**
+  - **No payload size limit on `syncAssetsCheck`.** It decodes `r.Body` directly with
+    `json.NewDecoder` and no `http.MaxBytesReader` (`sync_assets.go:67`). By contrast, `syncPush`
+    is bounded to 50 MB (`http.MaxBytesReader`, `sync.go:192`) and `syncAssetUpload` is bounded to
+    50 MB the same way (`sync_assets.go:168`). An authenticated admin session, the same bar every
+    other admin write clears, can still send an arbitrarily large `sync/assets/check` body.
+  - **No rate limit on the sync endpoints themselves.** Only sign-in is rate limited
+    (`internal/auth/ratelimit.go`); `/api/sync/push`, `/api/sync/pull`, and `/api/sync/assets/*`
+    have no request-rate ceiling beyond requiring a valid admin session.
+  - **Sync transfers are not logged.** Unlike Factory Reset, which logs the acting admin's UID
+    (`admin_reset.go:86`), a push or pull leaves no audit trail of what data moved or who moved it.
+  - **`SYNC_ALLOWED_ORIGINS=*` is dangerous on an internet-reachable server.** It lets any origin
+    the signed-in admin's browser visits complete a cross-origin sync request. Set it to the exact
+    origins you sync between, and never use `*` on a server reachable from the internet.
 
 ### 3.8 Outbound Network & Telemetry Audit
 
@@ -194,7 +208,7 @@ describes the code as it is, not a verified deployment shape.
     `data/song-book/sdah.json`) that seed directly into SQLite.
   - **Bundled Typography:** Web fonts are packaged locally via `@fontsource/geist-sans` and
     `@fontsource/geist-mono`, avoiding third-party font CDN requests.
-  - **Manual Sync is the one deliberate exception**, not telemetry: it is operator-triggered,
+  - **Data Sync is the one deliberate exception**, not telemetry: it is operator-triggered,
     never automatic, and reaches only an address the operator supplies, never Wira Delta
     Indonesia or a third party. See §3.7 for its own threat analysis.
 
@@ -210,10 +224,13 @@ Operators must address the following:
    passwords to local network eavesdroppers.
 2. **Secret Management:** Operators must generate high-entropy strings for `AUTH_SECRET` and
    `WEBHOOK_SECRET` and keep them out of public version control.
-3. **Data Deletion Semantics:** Deleting a service removes its database record and automatically deletes orphaned upload files that are no longer referenced by other services or announcements. Deleting an announcement slide or Background Library image removes only its database record while keeping the image file in `data/uploads/` on disk (operators must purge the file from the filesystem if complete deletion is required). Deleting an uploaded font removes both the database record and the font file from disk. Operators must periodically audit storage if total erasure is mandated by local policy.
+3. **Data Deletion Semantics:** Deleting a service removes its database record and automatically deletes orphaned upload files that are no longer referenced by other services or announcements. Deleting an announcement slide or Background Library image removes only its database record while keeping the image file in `data/uploads/` on disk (operators must purge the file from the filesystem if complete deletion is required). Deleting an uploaded font removes both the database record and the font file from disk. **Factory Reset** (`internal/httpapi/admin_reset.go`), reachable only by an admin who types the confirmation phrase `factory reset`, deletes all service content, sync state, and upload files except uploaded fonts, then reseeds canonical defaults while preserving accounts and settings (`internal/db/factory_reset.go`); the server logs the acting admin's UID (`admin_reset.go:86`). The client purges the browser's IndexedDB offline cache (`worship_deck_offline_db`, SPEC-84) fail-closed on a successful reset, falling back to deleting the whole IndexedDB database if the targeted purge fails (`purgeOfflineStorageStrict`, `AdminSyncPage.tsx:598-602`). Operators must periodically audit storage if total erasure is mandated by local policy.
 4. **Host Security & Backups:** Access control to the physical or virtual host, file permissions for
    `data.db`, and backup storage encryption remain the exclusive responsibility of the operator.
-5. **Manual Sync (§3.7) is experimental.** Do not depend on it as the only path keeping two
-   deployments consistent until cross-machine operation, CORS handling, and the "Device
-   Authorization Token" field are verified or fixed. Treat a second synced instance as a second,
-   independently governed copy of every record it receives.
+5. **Data Sync (§3.7) is experimental.** It has been exercised between two independently spawned
+   Go API instances in automated tests (SPEC-88) and between a Windows app instance and a
+   separate server instance during development, but not yet across many independently operated
+   installations. Set `SYNC_ALLOWED_ORIGINS` to the exact origins you sync between, never `*` on
+   a server reachable from the internet, and mind the residual risks in §3.7 (no size limit on
+   `syncAssetsCheck`, no sync-specific rate limit, transfers not logged). Treat a second synced
+   instance as a second, independently governed copy of every record it receives.
