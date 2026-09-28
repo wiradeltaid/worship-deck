@@ -48,13 +48,13 @@ Bounded operational desktop deliverable.
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** done
 
-- [ ] In `internal/desktop/window_windows.go`:
+- [x] In `internal/desktop/window_windows.go`:
       - Declare `dwmapi.dll` and dynamic procedure `DwmSetWindowAttribute`.
       - Implement `IsWindowsSystemDarkMode` and `SetWindowImmersiveDarkMode`.
       - Invoke theming upon creating the native WebView2 window.
-- [ ] In `package.json`:
+- [x] In `package.json`:
       - Register `tests/desktop-dark-mode-titlebar.test.mjs`.
-- [ ] In `tests/desktop-dark-mode-titlebar.test.mjs`:
+- [x] In `tests/desktop-dark-mode-titlebar.test.mjs`:
       - Implement contract assertions, static AST/regex verifications, and defect injection proofs.

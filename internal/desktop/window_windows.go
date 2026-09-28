@@ -14,11 +14,13 @@ import (
 
 	"github.com/jchv/go-webview2"
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 var (
 	kernel32                          = windows.NewLazySystemDLL("kernel32.dll")
 	user32                            = windows.NewLazySystemDLL("user32.dll")
+	dwmapi                            = windows.NewLazySystemDLL("dwmapi.dll")
 	procFindWindowW                   = user32.NewProc("FindWindowW")
 	procShowWindow                    = user32.NewProc("ShowWindow")
 	procSetForegroundWindow           = user32.NewProc("SetForegroundWindow")
@@ -27,6 +29,7 @@ var (
 	procSendMessageW                  = user32.NewProc("SendMessageW")
 	procLoadIconW                     = user32.NewProc("LoadIconW")
 	procGetModuleHandleW              = kernel32.NewProc("GetModuleHandleW")
+	procDwmSetWindowAttribute         = dwmapi.NewProc("DwmSetWindowAttribute")
 )
 
 const (
@@ -37,6 +40,9 @@ const (
 	WM_SETICON = 0x0080
 	ICON_SMALL = 0
 	ICON_BIG   = 1
+
+	DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19
+	DWMWA_USE_IMMERSIVE_DARK_MODE            = 20
 
 	// DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 is ((DPI_AWARENESS_CONTEXT)-4) in Windows user32.
 	DpiAwarenessContextPerMonitorAwareV2 = ^uintptr(3)
@@ -87,6 +93,60 @@ func SetProcessDpiAwarenessPerMonitorV2() error {
 	ret, _, err := procSetProcessDpiAwarenessContext.Call(DpiAwarenessContextPerMonitorAwareV2)
 	if ret == 0 && err != nil && err != windows.ERROR_SUCCESS {
 		return fmt.Errorf("SetProcessDpiAwarenessContext failed: %w", err)
+	}
+	return nil
+}
+
+// IsWindowsSystemDarkMode inspects the Windows Personalize registry key to detect if app dark mode is active.
+// When AppsUseLightTheme == 0, dark mode is active. If the key is absent or errors, it defaults to false (light mode).
+func IsWindowsSystemDarkMode() bool {
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	defer k.Close()
+
+	val, _, err := k.GetIntegerValue("AppsUseLightTheme")
+	if err != nil {
+		return false
+	}
+	return val == 0
+}
+
+// SetWindowImmersiveDarkMode sets the Win32 non-client title bar immersive dark mode attribute.
+// It tries DWMWA_USE_IMMERSIVE_DARK_MODE (20) first and falls back to DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 (19).
+func SetWindowImmersiveDarkMode(hwnd uintptr, darkMode bool) error {
+	if hwnd == 0 {
+		return nil
+	}
+	if procDwmSetWindowAttribute.Find() != nil {
+		return fmt.Errorf("DwmSetWindowAttribute not supported on this Windows release")
+	}
+
+	var val int32
+	if darkMode {
+		val = 1
+	}
+
+	ret, _, err := procDwmSetWindowAttribute.Call(
+		hwnd,
+		uintptr(DWMWA_USE_IMMERSIVE_DARK_MODE),
+		uintptr(unsafe.Pointer(&val)),
+		uintptr(unsafe.Sizeof(val)),
+	)
+	if ret != 0 {
+		ret, _, err = procDwmSetWindowAttribute.Call(
+			hwnd,
+			uintptr(DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1),
+			uintptr(unsafe.Pointer(&val)),
+			uintptr(unsafe.Sizeof(val)),
+		)
+		if ret != 0 {
+			if err != nil && err != windows.ERROR_SUCCESS {
+				return fmt.Errorf("DwmSetWindowAttribute failed with HRESULT 0x%x: %w", ret, err)
+			}
+			return fmt.Errorf("DwmSetWindowAttribute failed with HRESULT 0x%x", ret)
+		}
 	}
 	return nil
 }
@@ -171,6 +231,12 @@ func RunDesktopWindow(ctx context.Context, serverURL string, options WindowOptio
 		if hIcon != 0 {
 			procSendMessageW.Call(hwnd, WM_SETICON, uintptr(ICON_SMALL), hIcon)
 			procSendMessageW.Call(hwnd, WM_SETICON, uintptr(ICON_BIG), hIcon)
+		}
+
+		// Apply Win32 immersive dark mode title bar if system dark mode is active on launch
+		isDark := IsWindowsSystemDarkMode()
+		if err := SetWindowImmersiveDarkMode(hwnd, isDark); err != nil {
+			log.Printf("[desktop] SetWindowImmersiveDarkMode notice: %v", err)
 		}
 	}
 

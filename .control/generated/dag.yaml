@@ -710,6 +710,7 @@ dag:
   - parallel:
     - SPEC-94-01
     - SPEC-94-02
+  - parallel:
     - SPEC-94-03
 - spec: W1
   order:

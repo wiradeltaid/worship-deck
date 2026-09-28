@@ -3987,7 +3987,7 @@ waves:
           - tests/conscious-factory-reset.test.mjs
 
   - id: SPEC-94
-    status: open
+    status: closed
     release: desktop-dark-mode-congregation-f11-hint-and-installer-metadata
     prd: [operator-turn]
     fr: [FR-16]
@@ -4004,21 +4004,21 @@ waves:
         component: hub
         satisfies: []
         blocked_by: []
-        touches: [desktop]
+        touches: [settings]
         tests:
           - tests/desktop-dark-mode-titlebar.test.mjs
       - id: "SPEC-94-02"
         component: presenter
         satisfies: [FR-16, UC-12]
         blocked_by: []
-        touches: [projector]
+        touches: [present-channel]
         tests:
           - tests/congregation-fullscreen-guidance.test.mjs
       - id: "SPEC-94-03"
         component: hub
         satisfies: []
-        blocked_by: []
-        touches: [installer]
+        blocked_by: ["SPEC-94-01"]
+        touches: [settings]
         tests:
           - tests/installer-pe-metadata.test.mjs
 

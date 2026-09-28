@@ -6,7 +6,9 @@
   #error "MyAppVersion must be supplied via /D from package.json"
 #endif
 #define MyAppPublisher "Wira Delta Indonesia"
-#define MyAppURL "https://github.com/wiradeltaid/worship-deck"
+#define MyAppURL "https://wiradelta.com/worship-deck/"
+#define MyAppSupportURL "https://github.com/wiradeltaid/worship-deck/issues"
+#define MyAppUpdatesURL "https://github.com/wiradeltaid/worship-deck/releases"
 #define MyAppExeName "worship-deck.exe"
 #define MyAppId "{{8B237F02-4A82-41D1-9B5C-27806D678F12}"
 
@@ -16,8 +18,8 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}
-AppUpdatesURL={#MyAppURL}
+AppSupportURL={#MyAppSupportURL}
+AppUpdatesURL={#MyAppUpdatesURL}
 DefaultDirName={autopf}\WorshipDeck
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes

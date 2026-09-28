@@ -65,6 +65,41 @@ export default function ProjectorClient({
     text: string;
   } | null>(null);
 
+  // SPEC-94-02: Ephemeral F11 fullscreen guidance onboarding cue.
+  // Authorized exception to UC-12 room-facing chrome prohibition:
+  // Transient only, auto-dismisses after 5s or upon F11 keydown / fullscreen entry,
+  // and positioned strictly below the blanking layer (z-50).
+  const [showHint, setShowHint] = useState<boolean>(() =>
+    typeof document !== 'undefined' ? !document.fullscreenElement : false
+  );
+
+  useEffect(() => {
+    if (!showHint) return;
+    const timer = setTimeout(() => setShowHint(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showHint]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F11') {
+        setShowHint(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (document.fullscreenElement) {
+        setShowHint(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
   // SPEC-37-02: Hydrate custom fonts in isolated projector window context
   useEffect(() => {
     void hydrateImportedFonts();
@@ -269,6 +304,22 @@ export default function ProjectorClient({
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />
         ) : null}
       </div>
+      {/* Ephemeral F11 fullscreen guidance onboarding banner (SPEC-94-02).
+          Authorized exception to UC-12 room-facing chrome prohibition:
+          Transient only, auto-dismisses in 5s or upon F11/fullscreen, positioned
+          at z-40 strictly below the z-50 emergency blanking layer. */}
+      {showHint && !blank ? (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none select-none">
+          <button
+            type="button"
+            onClick={() => setShowHint(false)}
+            className="pointer-events-auto bg-black/80 text-white/90 rounded-full px-4 py-1.5 text-xs font-medium shadow-lg backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-opacity hover:bg-black/90 focus-visible:outline-white"
+          >
+            <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[11px] font-mono">F11</kbd>
+            <span>Press F11 for full screen · Tekan F11 untuk layar penuh</span>
+          </button>
+        </div>
+      ) : null}
       {/* Outside the transition wrapper on purpose. Blanking has to preserve
           whatever is underneath — slide index and scripture overlay both — so
           it covers rather than replaces, and it must not inherit the wrapper's

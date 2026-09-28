@@ -1,13 +1,13 @@
-asof: '2026-09-27'
+asof: '2026-09-28'
 since: ''
 since_report: ''
-sha: 47edaf8148a72691528f8d5c143488f0f6c8b20f
-registry_dirty: true
+sha: d80e9ab895d83821db3019e8528f6302a243bbc7
+registry_dirty: false
 uncommitted_tickets: []
 promise_progress: 97%
 rtm_rows:
-  green: 665
-  counted: 688
+  green: 697
+  counted: 718
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-12
@@ -386,10 +386,45 @@ work_progress:
   tickets_total: 6
   work_progress: 100%
 - spec: SPEC-87
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 2
   tickets_total: 2
-  work_progress: 0%
+  work_progress: 100%
+- spec: SPEC-88
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-89
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-90
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-91
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-92
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-93
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-94
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
 - spec: W1
   status: closed
   tickets_done: 2
@@ -1344,6 +1379,12 @@ proven:
   test:
   - tests/bilingual-i18n-parity.test.mjs
   closed: '2026-09-27'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-94-02
+  test:
+  - tests/congregation-fullscreen-guidance.test.mjs
+  closed: '2026-09-28'
 moved:
 - id: CAP-1
   kind: CAP
