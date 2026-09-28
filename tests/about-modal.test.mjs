@@ -21,7 +21,7 @@ export function verifyAboutModalLegalCopy(content) {
     'Free software under the MIT License. Source: LICENSE',
     'This installation is operated by the local church administration, not by the publisher. What is stored, and who answers for it: PRIVACY.md',
     'Hymn texts are not covered by the MIT license and are not ours to license. See ATTRIBUTIONS.md',
-    'https://wiradelta.id/worship-deck',
+    'https://wiradelta.com/worship-deck/',
     'support@wiradelta.com',
     'zero telemetry and zero background outbound calls',
   ];

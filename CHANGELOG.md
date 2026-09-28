@@ -15,10 +15,7 @@ belongs under **Unreleased** and stays there until the owner decides.
 
 ## [Unreleased]
 
-### Changed
-- Canonical domain in public documentation and legal texts is now `wiradelta.com`; `security@` reporting-channel guard now rejects both domains.
-
-## [0.1.0] - 2026-09-24
+## [0.1.0] - 2026-09-28
 
 ### Added
 - **Rundown Intake and Parsing:** Form-based pasting supporting natural church rundown formats with automated hymn and scripture detection, with configurable predefined field extraction regexes.
@@ -29,14 +26,25 @@ belongs under **Unreleased** and stays there until the owner decides.
 - **Configurable Service Forms:** Administrator-defined form layouts and dynamic predefined-field catalog for weekly service intake, expandable without code changes.
 - **Dual-Screen Presenter and Congregation Output:** Synchronized operator console (filmstrip, slide run sheet, slide navigation grid), clean congregation screen second-window display with blanking (`B`), and a mobile remote interface for controlling a running service from a smartphone on the local network.
 - **Widescreen 16:9 Slide Geometry:** Native 12192000 x 6858000 EMU PPTX export geometry and 1:1 canvas-to-PowerPoint layout parity, including widescreen and smart-background handling on PPTX import.
-- **Bundled Typography and Custom Font Embedding:** 35 offline font families packaged locally via modular web fonts, plus support for importing custom font files with automated variant pairing and ECMA-376 font embedding for true offline rendering in Microsoft PowerPoint.
+- **Bundled Typography and Custom Font Embedding:** Offline font families packaged locally via modular web fonts, expanded with additional curated presentation typefaces, plus support for importing custom font files with automated variant pairing and ECMA-376 font embedding for true offline rendering in Microsoft PowerPoint. An optional word-wrap toggle controls whether exported PowerPoint text boxes wrap natively.
 - **Offline PowerPoint Deck Export:** Standalone `.pptx` generator creating downloadable presentation decks runnable without internet or active servers.
 - **Authentication and Multi-Role Sessions:** First-run administrator onboarding screen, cryptographic scrypt password hashing, HMAC-SHA256 session cookies with instant revocation, and IP/account rate limiting.
 - **Security and Privacy Baseline:** Published privacy policy, security policy, threat model, third-party font notices, and operator privacy guidance for self-hosting church administrators.
-- **Manual Device Sync (Experimental):** Administrator-initiated push and pull between two instances on the same local network, content-addressing shared image assets by SHA-256. Verified for local communication; cross-machine sync remains experimental.
-- **Offline Desktop Installer (Experimental):** Inno Setup-based Windows installer for running the application on a single desktop machine without setting up a dedicated server.
+- **Offline Desktop Installer:** Inno Setup-based Windows installer for running the application on a single desktop machine without setting up a dedicated server, packaged as a native WebView2 desktop window with its own taskbar and window icons rather than a browser tab. The installer wizard is in English; the app itself remains bilingual (see below). The installer shows the MIT license text before installing and, on uninstall, asks whether to also remove locally stored service data, or keep it for a future reinstall.
+- **In-App About Panel:** A legal About panel inside the app itself, reachable from the operator console, showing the app version, publisher, MIT license, a note that hymn texts are separately licensed, and a support contact.
+- **Desktop Appearance:** The desktop app's title bar follows Windows dark mode, and the congregation screen shows a brief one-time hint on how to enter full screen (`F11`) the first time it opens.
+- **Slide Visibility Toggle:** An eye icon in the run sheet lets the operator hide a slide for one run without deleting it: a hidden slide is skipped on the congregation screen and left out of the exported PowerPoint deck, and can be unhidden the same way.
+- **Emergency Canvas Designer:** A visual, in-the-moment canvas for drafting a replacement slide during a service, including uploading a background image and cropping it to the 16:9 congregation screen, alongside a general offline presentation resilience mode: if the server briefly becomes unreachable mid-service, the presenter keeps projecting from a local cached copy of the rundown, with local emergency edits saved and applied without a live server connection.
+- **Separate Default Backgrounds:** Songs and liturgy/scripture slides can each fall back to their own default background image, instead of sharing one background across every slide type.
+- **Bilingual Service Editing and Presenting:** English/Indonesian parity, checked by automated dictionary tests, across the service editor's run sheet header, offline and emergency-edit banners, song-set lyric actions, slide visibility controls, and the presenter console.
+- **Cross-Machine Cloud Sync (Experimental):** Administrator-initiated push and pull between any two WorshipDeck servers the church controls (for example, a laptop and the church's own server), authenticated on demand with credentials held only in memory for that session, content-addressing shared image assets by SHA-256, and an interactive conflict resolution dialog (keep local, use remote, or save both) when a rundown was edited on both sides. Sync is entirely operator-directed: nothing is pushed or pulled automatically, and the destination is always a WorshipDeck server address the operator enters themselves, never a Wira Delta Indonesia service.
+- **Factory Reset:** From the same Sync screen, an administrator can wipe an instance's local data back to its seeded defaults by typing a confirmation phrase, for repurposing a machine or clearing a demo instance.
+
+### Changed
+- Canonical domain in public documentation, legal texts, and the in-app About panel is now `wiradelta.com`; the `security@` reporting-channel guard rejects both retired domains.
 
 ### Boundaries and Limitations
 - Bundled hymnbook (SDAH) and scripture (KJV) corpora are currently provided in English.
 - Smartphone remote control requires hosting WorshipDeck on a server reachable by devices on the church local network.
-- Manual device sync and the Windows desktop installer are experimental features in this initial release.
+- Cross-machine cloud sync and the Windows desktop installer are experimental features in this initial release.
+- The Sync screen (cross-machine sync and factory reset) is in English only, except for its Factory Reset confirmation dialog.
