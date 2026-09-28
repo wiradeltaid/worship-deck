@@ -3943,6 +3943,49 @@ waves:
         tests:
           - tests/factory-reset.test.mjs
 
+  - id: SPEC-93
+    status: open
+    release: cloud-sync-asset-parity-and-conscious-factory-reset
+    prd: [offline-deck, operator-turn]
+    fr: [FR-20, FR-21, FR-40]
+    size: M
+    depends_on: [SPEC-92]
+    spec_folder: .scratch/SPEC-93-cloud-sync-asset-parity-and-conscious-factory-reset/
+    spec_reviewed:
+      date: '2026-09-28'
+      sha: 'bdacaea123c41b3cbab7c7a1514d077409188ef6'
+      lenses: [structure, prose, edge-case-hunter, security, contract, recovery-state]
+      note: "Terra (kiro-agent). Verdict accept-with-changes. Folded in: (1) replaced loose {32,64} regex with strict discrete validator (?:[a-fA-F0-9]{32}|[a-fA-F0-9]{64}) rejecting 31, 33, 63, 65 chars; (2) made server-side factory reset confirmation mandatory (HTTP 400 on missing or mismatched body); (3) enforced sync outcome fidelity by flagging missing referenced assets as degraded/incomplete with retry rather than false success; (4) added safe basename, stem matching, and body hash validation for upload endpoints with exact basename lookup; (5) hardened factory reset client cache purge to block window reload if IndexedDB purge fails; (6) preserved literal instruction copy 'Type: factory reset to begin resetting'; (7) included physical file availability assertions in test plan."
+    tickets:
+      - id: "SPEC-93-01"
+        component: hub
+        satisfies: [FR-40, UC-32]
+        blocked_by: []
+        touches: [sync, artifacts]
+        tests:
+          - tests/sync-asset-endpoints.test.mjs
+      - id: "SPEC-93-02"
+        component: hub
+        satisfies: [FR-40, UC-32]
+        blocked_by: ["SPEC-93-01"]
+        touches: [sync]
+        tests:
+          - tests/sync-client-dual-hash.test.mjs
+      - id: "SPEC-93-03"
+        component: hub
+        satisfies: [FR-40, UC-32]
+        blocked_by: ["SPEC-93-02"]
+        touches: [sync]
+        tests:
+          - tests/admin-sync-asset-parity.test.mjs
+      - id: "SPEC-93-04"
+        component: hub
+        satisfies: [FR-20, FR-21, UC-14, UC-15]
+        blocked_by: ["SPEC-93-03"]
+        touches: [settings, sync]
+        tests:
+          - tests/conscious-factory-reset.test.mjs
+
 
 
 

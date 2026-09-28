@@ -1697,7 +1697,7 @@ decisions:
 
   - id: DEC-078
     type: course-correction
-    status: applied
+    status: superseded
     accepted_by: "kodesh87 (2026-09-28)"
     title: Administrator Factory Reset Operation Narrows AD-17
     file: .control/decisions/DEC-078-administrator-factory-reset-narrows-ad17.md
@@ -1724,6 +1724,17 @@ decisions:
       - .control/registry/specs.yaml
       - .control/registry/decisions.yaml
       - .scratch/
+
+  - id: DEC-080
+    type: course-correction
+    status: accepted
+    accepted_by: "kodesh87 (2026-09-28)"
+    title: Dual-Hash Asset Identity Protocol and Conscious Factory Reset Confirmation
+    file: .control/decisions/DEC-080-dual-hash-asset-identity-and-conscious-factory-reset.md
+    touches:
+      - .how/_platform/ARCHITECTURE-SPINE.md
+      - .how/registry/SDD-registry.md
+      - .control/registry/decisions.yaml
 
 
 

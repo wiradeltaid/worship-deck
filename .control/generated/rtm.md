@@ -4018,6 +4018,20 @@ rtm:
   FR: FR-20
   DEC: []
   UC: UC-14
+  ticket: SPEC-93-04
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/conscious-factory-reset.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-20
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -4287,6 +4301,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-21
+  DEC: []
+  UC: UC-15
+  ticket: SPEC-93-04
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/conscious-factory-reset.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-9
   FR: FR-21
@@ -7313,6 +7341,20 @@ rtm:
   FR: FR-30
   DEC: []
   UC: UC-14
+  ticket: SPEC-93-04
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/conscious-factory-reset.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-30
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -9803,6 +9845,20 @@ rtm:
   FR: FR-39
   DEC: []
   UC: UC-14
+  ticket: SPEC-93-04
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/conscious-factory-reset.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-1
+  CAP: CAP-9
+  FR: FR-39
+  DEC: []
+  UC: UC-14
   ticket: W11-02
   spec: W11
   release: artifacts-overhaul
@@ -10075,6 +10131,48 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-93-01
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/sync-asset-endpoints.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-93-02
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/sync-client-dual-hash.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-93-03
+  spec: SPEC-93
+  release: cloud-sync-asset-parity-and-conscious-factory-reset
+  test:
+  - tests/admin-sync-asset-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-1
   CAP: CAP-2
   FR: FR-5

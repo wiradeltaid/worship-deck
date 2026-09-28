@@ -1,14 +1,14 @@
 ---
 type: course-correction
 id: DEC-078
-status: applied
+status: superseded
 accepted_by: "kodesh87 (2026-09-28)"
 touches:
   - .how/_platform/ARCHITECTURE-SPINE.md
   - .how/registry/SDD-registry.md
   - .control/registry/decisions.yaml
 supersedes: AD-17
-superseded_by: null
+superseded_by: DEC-080
 created: '2026-09-28'
 ---
 

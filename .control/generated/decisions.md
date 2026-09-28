@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**79 decisions** — applied: 79.
+**80 decisions** — accepted: 1 · applied: 78 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -85,5 +85,6 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-075` | Daily Autopilot mandate for Cross-Machine Cloud Sync with Ephemeral Auth and CORS (SPEC-88) | `applied` | mandate | `.control/memlog/autopilot-DEC-075.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-075-daily-autopilot-mandate-cross-machine-cloud-sync.md` |
 | `DEC-076` | Daily Autopilot mandate for Native Desktop WebView2 Window and Installer Default Seed Staging (SPEC-89) | `applied` | mandate | `.control/memlog/autopilot-DEC-076.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-076-daily-autopilot-mandate-native-desktop-webview2-and-installer-seed-staging.md` |
 | `DEC-077` | Daily Autopilot mandate for Desktop PE Metadata, About Modal, and Full-Fidelity Cloud Sync (SPEC-90, SPEC-91) | `applied` | mandate | `.control/memlog/autopilot-DEC-077.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-077-daily-autopilot-mandate-desktop-pe-metadata-about-modal-and-full-fidelity-sync.md` |
-| `DEC-078` | Administrator Factory Reset Operation Narrows AD-17 | `applied` | course-correction | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-078-administrator-factory-reset-narrows-ad17.md` |
+| `DEC-078` | Administrator Factory Reset Operation Narrows AD-17 | `superseded` | course-correction | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-078-administrator-factory-reset-narrows-ad17.md` |
 | `DEC-079` | Daily Autopilot mandate for Desktop Window Icon, Installer License, Sync Resilience, and Factory Reset (SPEC-… | `applied` | mandate | `.control/memlog/autopilot-DEC-079.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-079-daily-autopilot-mandate-desktop-icon-license-sync-resilience-and-factory-reset.md` |
+| `DEC-080` | Dual-Hash Asset Identity Protocol and Conscious Factory Reset Confirmation | `accepted` | course-correction | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-080-dual-hash-asset-identity-and-conscious-factory-reset.md` |
