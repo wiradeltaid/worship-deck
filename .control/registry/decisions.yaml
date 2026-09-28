@@ -1708,7 +1708,7 @@ decisions:
 
   - id: DEC-079
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-28)"
     title: Daily Autopilot mandate for Desktop Window Icon, Installer License, Sync Resilience, and Factory Reset (SPEC-92)
     file: .control/decisions/DEC-079-daily-autopilot-mandate-desktop-icon-license-sync-resilience-and-factory-reset.md

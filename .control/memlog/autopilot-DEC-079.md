@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-079-daily-autopilot-mandate-desktop-icon-licens
 
 ## Resume
 
-- State: In Progress — All SPEC-92 tickets (01..04) completed and verified green
+- State: Applied — All SPEC-92 tickets (01..04) implemented, verified, peer-reviewed, and ready for maintainer merge
 - Run branch: autopilot/DEC-079
-- Stopped at: All SPEC-92 tickets completed, ready for spec close and final verification
+- Stopped at: Done — all FRs in mandate scope completed and verified
 - Blocked: —
 - Parked: —
-- Next: Close SPEC-92 in specs.yaml, run full regression suite, seal mandate, and submit PR
+- Next: Maintainer review and merge PR into main
 
 ## Decisions
 
