@@ -1774,6 +1774,26 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/
 
+  - id: DEC-083
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-09-30)"
+    title: Daily Autopilot mandate for README Restructure Post v0.1.0 Publication and Go-Live Closure (SPEC-73)
+    file: .control/decisions/DEC-083-daily-autopilot-mandate-readme-restructure-and-go-live-closure.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-07'
+    touches:
+      - .control/memlog/autopilot-DEC-083.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
+
 
 
 

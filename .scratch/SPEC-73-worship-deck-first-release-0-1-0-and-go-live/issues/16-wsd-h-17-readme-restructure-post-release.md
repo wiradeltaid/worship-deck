@@ -15,14 +15,14 @@
 **Blocked by:** 13-wsd-h-13-readme-translations-docs-match-build, 14-wsd-h-14-legal-copies-ops-threat-model-aligned, 15-wsd-h-15-public-facts-file.
 *(External Milestone Prerequisite: Owner B-06 clean Windows VM sign-off and Owner B-07 publication of GitHub Release v0.1.0. This ticket is strictly post-publication work and is excluded from pre-tag release-readiness assertions. Note on ticket numbering: WSD-H-16 does not exist in the ops handover §8.1; the sequence intentionally proceeds from WSD-H-15 to WSD-H-17, and no ticket is missing).*
 
-**Status:** open
+**Status:** closed
 
-- [ ] Confirm Owner B-06 clean-VM test and Owner B-07 release publication completed.
-- [ ] Read `readme-guideline.md` and `plan/worship-deck.md` §14.1.
-- [ ] Move detailed deployment and corpora sections from `README.md` into `docs/`.
-- [ ] Reorder sections so Installation precedes Features, keeping length under 100 lines.
-- [ ] Update download links to point to the published v0.1.0 release asset and `SHA256SUMS`.
-- [ ] Synchronize all 9 `README.<locale>.md` translations.
-- [ ] Add `tests/readme-structure.test.mjs` verifying line count and section sequence. Verify red first, then green.
-- [ ] Add `tests/readme-structure.test.mjs` to `package.json` `scripts.test`.
-- [ ] Verify `npm test` passes cleanly.
+- [x] Confirm Owner B-06 clean-VM test and Owner B-07 release publication completed.
+- [x] Read `readme-guideline.md` and `plan/worship-deck.md` §14.1.
+- [x] Move detailed deployment and corpora sections from `README.md` into `docs/`.
+- [x] Reorder sections so Installation precedes Features, keeping length under 100 lines.
+- [x] Update download links to point to the published v0.1.0 release asset and `SHA256SUMS`.
+- [x] Synchronize all 9 `README.<locale>.md` translations.
+- [x] Add `tests/readme-structure.test.mjs` verifying line count and section sequence. Verify red first, then green.
+- [x] Add `tests/readme-structure.test.mjs` to `package.json` `scripts.test`.
+- [x] Verify `npm test` passes cleanly.

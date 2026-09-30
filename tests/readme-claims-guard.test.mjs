@@ -43,6 +43,10 @@ export const DOCS_FILES = [
   'docs/contributing.md',
   'docs/operator-privacy-template.md',
   'docs/threat-model.md',
+  'docs/customization.md',
+  'docs/corpora.md',
+  'docs/deployment.md',
+  'docs/history.md',
 ];
 
 export const ALL_TARGET_FILES = [...README_FILES, ...DOCS_FILES];
