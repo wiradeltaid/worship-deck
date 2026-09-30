@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**82 decisions** — accepted: 1 · applied: 80 · superseded: 1.
+**83 decisions** — accepted: 2 · applied: 80 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -90,3 +90,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-080` | Dual-Hash Asset Identity Protocol and Conscious Factory Reset Confirmation | `accepted` | course-correction | `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/registry/SDD-registry.md`, `.control/registry/decisions.yaml` | `.control/decisions/DEC-080-dual-hash-asset-identity-and-conscious-factory-reset.md` |
 | `DEC-081` | Daily Autopilot mandate for Cloud Sync Asset Hydration Parity and Conscious Factory Reset (SPEC-93) | `applied` | mandate | `.control/memlog/autopilot-DEC-081.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-081-daily-autopilot-mandate-cloud-sync-asset-parity-and-conscious-factory-reset.md` |
 | `DEC-082` | Daily Autopilot mandate for Desktop Dark Mode Title Bar, Congregation F11 Guidance, and Installer Metadata (S… | `applied` | mandate | `.control/memlog/autopilot-DEC-082.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-082-daily-autopilot-mandate-desktop-dark-mode-congregation-f11-and-installer-metadata.md` |
+| `DEC-083` | Daily Autopilot mandate for README Restructure Post v0.1.0 Publication and Go-Live Closure (SPEC-73) | `accepted` | mandate | `.control/memlog/autopilot-DEC-083.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-083-daily-autopilot-mandate-readme-restructure-and-go-live-closure.md` |
