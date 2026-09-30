@@ -1,6 +1,6 @@
-promise_progress: 97%
+promise_progress: 100%
 rtm_rows:
-  green: 697
+  green: 718
   counted: 718
   excluded_no_uc: 1
 work_progress:
@@ -310,10 +310,10 @@ work_progress:
   tickets_total: 2
   work_progress: 100%
 - spec: SPEC-73
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 16
   tickets_total: 16
-  work_progress: 0%
+  work_progress: 100%
 - spec: SPEC-74
   status: closed
   tickets_done: 1
@@ -497,11 +497,6 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: one
-  active_ids:
-  - DEC-083
-  active_mandate:
-    id: DEC-083
-    status: accepted
-    expires: '2026-10-07'
-    scope: all
+  resolution: none
+  active_ids: []
+  active_mandate: null

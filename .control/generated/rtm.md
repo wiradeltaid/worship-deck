@@ -43,10 +43,10 @@ rtm:
   test:
   - internal/auth/session_test.go
   - internal/httpapi/auth_test.go
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-11
   FR: FR-1
@@ -59,10 +59,10 @@ rtm:
   - internal/httpapi/auth_test.go
   - internal/gate/gate_test.go
   - tests/first-admin-setup.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-11
   FR: FR-1
@@ -1757,10 +1757,10 @@ rtm:
   test:
   - internal/auth/session_test.go
   - internal/httpapi/auth_test.go
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -1773,10 +1773,10 @@ rtm:
   - internal/httpapi/auth_test.go
   - internal/gate/gate_test.go
   - tests/first-admin-setup.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-2
@@ -3867,10 +3867,10 @@ rtm:
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-20
@@ -5114,10 +5114,10 @@ rtm:
   test:
   - tests/installer-version-sync.test.mjs
   - tests/release-artifact-names.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5129,10 +5129,10 @@ rtm:
   test:
   - internal/desktop/desktop_test.go
   - tests/desktop-mode-guard.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5144,10 +5144,10 @@ rtm:
   test:
   - tests/installer-corpora-staging.test.mjs
   - internal/db/bootstrap_test.go
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5158,10 +5158,10 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/changelog-guard.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5172,10 +5172,10 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/attributions-guard.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5187,10 +5187,10 @@ rtm:
   test:
   - tests/doc-citations.test.mjs
   - tests/readme-claims-guard.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5201,10 +5201,10 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/legal-copy-guard.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5215,10 +5215,10 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/public-facts.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5229,10 +5229,10 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/readme-structure.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-29
@@ -5275,10 +5275,10 @@ rtm:
   - tests/artifact-font-catalog.test.mjs
   - tests/smoke-spec-17.test.mjs
   - tests/bundled-fonts-guard.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -5289,10 +5289,10 @@ rtm:
   release: worship-deck-first-release-0-1-0-and-go-live
   test:
   - tests/pptx-bundled-fonts.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -5304,10 +5304,10 @@ rtm:
   test:
   - tests/branding-svg-guard.test.mjs
   - tests/third-party-notices.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-1
   FR: FR-3
@@ -7190,10 +7190,10 @@ rtm:
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-30
@@ -7484,10 +7484,10 @@ rtm:
   test:
   - tests/webhook-auth.test.mjs
   - internal/httpapi/webhook_test.go
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-31
@@ -7851,10 +7851,10 @@ rtm:
   test:
   - tests/webhook-auth.test.mjs
   - internal/httpapi/webhook_test.go
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-38
@@ -9694,10 +9694,10 @@ rtm:
   test:
   - tests/operator-i18n-guard.test.mjs
   - tests/i18n.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-1
   CAP: CAP-9
   FR: FR-39

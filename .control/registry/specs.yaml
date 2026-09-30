@@ -3133,7 +3133,7 @@ waves:
   # Opened 2026-09-24 from user triage notes (handover-rilis-perdana.md).
   # WorshipDeck first release (0.1.0) and go-live work (WSD-H-01 to WSD-H-17).
   - id: SPEC-73
-    status: open
+    status: closed
     release: worship-deck-first-release-0-1-0-and-go-live
     prd: [operator-turn, offline-deck, rundown-to-service]
     fr: [FR-1, FR-18, FR-26, FR-31, FR-40]

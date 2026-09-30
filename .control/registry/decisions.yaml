@@ -1776,7 +1776,7 @@ decisions:
 
   - id: DEC-083
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-09-30)"
     title: Daily Autopilot mandate for README Restructure Post v0.1.0 Publication and Go-Live Closure (SPEC-73)
     file: .control/decisions/DEC-083-daily-autopilot-mandate-readme-restructure-and-go-live-closure.md
