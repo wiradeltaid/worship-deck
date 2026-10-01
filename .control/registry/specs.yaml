@@ -4023,7 +4023,7 @@ waves:
           - tests/installer-pe-metadata.test.mjs
 
   - id: SPEC-95
-    status: open
+    status: closed
     release: onedrive-cloud-connector-and-pptx-sync-prompt
     prd: [offline-deck]
     fr: [FR-14]

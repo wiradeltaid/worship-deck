@@ -7,6 +7,7 @@ var exemptPrefixes = []string{
 	"/api/auth/login",
 	"/api/auth/logout",
 	"/api/setup",
+	"/api/settings/onedrive/callback",
 	"/login",
 	"/assets",
 	"/branding",

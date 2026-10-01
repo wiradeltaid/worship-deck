@@ -33,8 +33,8 @@
 
 **Blocked by:** SPEC-95-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement backend Graph proxy endpoint for folder listing in `internal/httpapi/onedrive_proxy.go`.
-- [ ] Implement `OneDriveFolderPickerModal.tsx` with breadcrumbs, folder selection, and child item metadata.
-- [ ] Wire folder selection submission to update `target_folder_id` and `target_folder_path`.
+- [x] Implement backend Graph proxy endpoint for folder listing in `internal/httpapi/onedrive_proxy.go`.
+- [x] Implement `OneDriveFolderPickerModal.tsx` with breadcrumbs, folder selection, and child item metadata.
+- [x] Wire folder selection submission to update `target_folder_id` and `target_folder_path`.

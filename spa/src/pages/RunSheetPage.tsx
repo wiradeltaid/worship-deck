@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/operator';
+import { RefreshCw } from 'lucide-react';
 import { useSession } from '../lib/auth/SessionProvider';
 import {
   clearCachedSession,
@@ -27,6 +28,16 @@ import {
   type EmergencyPatchRecord,
 } from '@/lib/offline/service-snapshot';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
+import OneDriveSyncPromptModal from '@/components/onedrive/OneDriveSyncPromptModal';
+
+export interface OneDriveStateConfig {
+  connected: boolean;
+  account_email: string;
+  account_name: string;
+  target_folder_id: string;
+  target_folder_path: string;
+  sync_mode: 'ask' | 'always' | 'off';
+}
 
 export default function RunSheetPage() {
   const { id } = useParams();
@@ -39,6 +50,32 @@ export default function RunSheetPage() {
   const [pendingPatches, setPendingPatches] = useState<EmergencyPatchRecord[]>([]);
   const [isReconciling, setIsReconciling] = useState(false);
   const [reconcileError, setReconcileError] = useState<string | null>(null);
+
+  // SPEC-95: OneDrive Sync Integration State
+  const [oneDriveConfig, setOneDriveConfig] = useState<OneDriveStateConfig | null>(null);
+  const [syncPromptOpen, setSyncPromptOpen] = useState(false);
+  const [retainedPptxBlob, setRetainedPptxBlob] = useState<Blob | null>(null);
+  const [retainedFilename, setRetainedFilename] = useState<string>('');
+  const [isDownloadingPptx, setIsDownloadingPptx] = useState(false);
+  const [isUploadingOneDrive, setIsUploadingOneDrive] = useState(false);
+  const [oneDriveToast, setOneDriveToast] = useState<{
+    type: 'info' | 'success' | 'error';
+    message: string;
+    url?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/settings/onedrive', { credentials: 'same-origin' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setOneDriveConfig(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -267,6 +304,95 @@ export default function RunSheetPage() {
     }
   };
 
+  const uploadBlobToOneDrive = async (blob: Blob, filename: string) => {
+    if (!svc?.id) return;
+    setIsUploadingOneDrive(true);
+    setOneDriveToast({
+      type: 'info',
+      message: t('onedrive.upload.progress'),
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, filename);
+
+      const res = await fetch(`/api/services/${svc.id}/onedrive-upload`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+
+      const result = (await res.json()) as { success: boolean; web_url?: string; filename?: string };
+      setOneDriveToast({
+        type: 'success',
+        message: `${t('onedrive.upload.success')}: ${result.filename || filename}`,
+        url: result.web_url,
+      });
+    } catch (err) {
+      setOneDriveToast({
+        type: 'error',
+        message: `${t('onedrive.upload.failed')}: ${err instanceof Error ? err.message : 'Upload failed'}`,
+      });
+    } finally {
+      setIsUploadingOneDrive(false);
+    }
+  };
+
+  const handleDownloadPptx = async (wrap: boolean = true) => {
+    if (!svc?.id) return;
+    setIsDownloadingPptx(true);
+    setOneDriveToast(null);
+
+    const filename = `Service-${svc.id}.pptx`;
+    const pptxUrl = wrap
+      ? `/api/services/${svc.id}/pptx`
+      : `/api/services/${svc.id}/pptx?wrap=false`;
+
+    try {
+      // Step 1: Single-blob generation fetch
+      const res = await fetch(pptxUrl, { credentials: 'same-origin' });
+      if (!res.ok) {
+        throw new Error(`Failed to generate PPTX: HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+
+      // Step 2: Immediate local download to guarantee local offline presentation delivery (AD-1/FR-14)
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+      // Step 3: Retain single-blob reference for OneDrive
+      setRetainedPptxBlob(blob);
+      setRetainedFilename(filename);
+
+      // Step 4: Evaluate OneDrive cloud delivery
+      if (!oneDriveConfig?.connected || oneDriveConfig.sync_mode === 'off') {
+        return;
+      }
+
+      if (oneDriveConfig.sync_mode === 'always') {
+        uploadBlobToOneDrive(blob, filename);
+      } else {
+        // sync_mode === 'ask'
+        setSyncPromptOpen(true);
+      }
+    } catch (err) {
+      console.error('PPTX export error:', err);
+    } finally {
+      setIsDownloadingPptx(false);
+    }
+  };
+
   const actionClass = cn(buttonVariants({ variant: 'outline' }), 'h-auto px-3 py-2');
 
   return (
@@ -385,18 +511,21 @@ export default function RunSheetPage() {
               />
             ) : null}
             <div className="inline-flex rounded-md shadow-xs">
-              <a
-                href={`/api/services/${svc.id}/pptx`}
-                download
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleDownloadPptx(true)}
+                disabled={isDownloadingPptx}
                 aria-label={t('edit.actions.downloadPptx')}
-                className={cn(buttonVariants({ variant: 'outline' }), 'rounded-r-none h-auto px-3 py-2 border-r-0 text-xs font-medium')}
+                className="rounded-r-none h-auto px-3 py-2 border-r-0 text-xs font-medium cursor-pointer"
               >
-                {t('edit.actions.downloadPptx')}
-              </a>
+                {isDownloadingPptx ? 'Exporting…' : t('edit.actions.downloadPptx')}
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   aria-label="PPTX Export Options"
-                  className={cn(buttonVariants({ variant: 'outline' }), 'rounded-l-none h-auto px-2 py-2')}
+                  disabled={isDownloadingPptx}
+                  className={cn(buttonVariants({ variant: 'outline' }), 'rounded-l-none h-auto px-2 py-2 cursor-pointer')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
@@ -404,24 +533,14 @@ export default function RunSheetPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">
                   <DropdownMenuItem
-                    onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = `/api/services/${svc.id}/pptx`;
-                      a.download = '';
-                      a.click();
-                    }}
+                    onClick={() => handleDownloadPptx(true)}
                     className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
                   >
                     <span className="font-medium text-xs">{t('edit.pptx.wordWrapDefault')}</span>
                     <span className="text-muted-foreground text-[10px]">{t('edit.pptx.wordWrapDefaultDesc')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = `/api/services/${svc.id}/pptx?wrap=false`;
-                      a.download = '';
-                      a.click();
-                    }}
+                    onClick={() => handleDownloadPptx(false)}
                     className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
                   >
                     <span className="font-medium text-xs">{t('edit.pptx.wordWrapDisabled')}</span>
@@ -433,6 +552,77 @@ export default function RunSheetPage() {
           </div>
         </div>
       </header>
+
+      {/* SPEC-95: Non-blocking OneDrive Status Banner */}
+      {oneDriveToast && (
+        <div
+          data-testid="onedrive-toast"
+          role="status"
+          className={cn(
+            'mb-6 rounded-md border px-4 py-2.5 text-xs font-medium flex items-center justify-between gap-3 shadow-xs',
+            oneDriveToast.type === 'info' && 'border-sky-500/30 bg-sky-500/10 text-sky-400',
+            oneDriveToast.type === 'success' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+            oneDriveToast.type === 'error' && 'border-destructive/30 bg-destructive/10 text-destructive'
+          )}
+        >
+          <div className="flex items-center gap-2 truncate">
+            {oneDriveToast.type === 'info' && <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />}
+            <span className="truncate">{oneDriveToast.message}</span>
+            {oneDriveToast.url && (
+              <a
+                href={oneDriveToast.url}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:no-underline font-semibold ml-1 shrink-0"
+              >
+                {t('onedrive.upload.open')} ↗
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {oneDriveToast.type === 'error' && retainedPptxBlob && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-[11px] border-destructive/40 hover:bg-destructive/15"
+                onClick={() => uploadBlobToOneDrive(retainedPptxBlob, retainedFilename)}
+              >
+                {t('onedrive.upload.retry')}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setOneDriveToast(null)}
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground text-xs"
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <OneDriveSyncPromptModal
+        open={syncPromptOpen}
+        onClose={() => setSyncPromptOpen(false)}
+        targetFolderPath={oneDriveConfig?.target_folder_path}
+        onConfirmSync={async (alwaysSync) => {
+          if (alwaysSync) {
+            fetch('/api/settings/onedrive', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ sync_mode: 'always' }),
+            }).catch(() => {});
+            setOneDriveConfig((prev) => (prev ? { ...prev, sync_mode: 'always' } : null));
+          }
+          if (retainedPptxBlob) {
+            uploadBlobToOneDrive(retainedPptxBlob, retainedFilename);
+          }
+        }}
+      />
       <EditForm
         id={svc.id}
         initialPayload={svc.raw_payload || ''}

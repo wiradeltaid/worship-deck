@@ -347,6 +347,23 @@ CREATE TABLE IF NOT EXISTS service_announcement_set_slides (
 
 CREATE INDEX IF NOT EXISTS idx_service_ann_slides_service ON service_announcement_set_slides(service_id);
 
+-- SPEC-95: Microsoft OneDrive Cloud Connector & User Token Storage
+CREATE TABLE IF NOT EXISTS onedrive_configs (
+  user_id INTEGER PRIMARY KEY,
+  client_id TEXT NOT NULL DEFAULT '',
+  tenant_id TEXT NOT NULL DEFAULT 'common',
+  access_token TEXT NOT NULL DEFAULT '',
+  refresh_token TEXT NOT NULL DEFAULT '',
+  token_expiry INTEGER NOT NULL DEFAULT 0,
+  account_email TEXT NOT NULL DEFAULT '',
+  account_name TEXT NOT NULL DEFAULT '',
+  target_folder_id TEXT NOT NULL DEFAULT '',
+  target_folder_path TEXT NOT NULL DEFAULT '',
+  sync_mode TEXT NOT NULL DEFAULT 'ask', -- 'ask' | 'always' | 'off'
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
 
 
 
