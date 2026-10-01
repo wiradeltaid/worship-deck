@@ -4,7 +4,7 @@ import { useState } from 'react';
  * Whether a browser could even attempt to fetch `value` as an image.
  *
  * This is deliberately **not** a client-side copy of `isSafeImageUrl`
- * (`src/lib/images.ts`). That policy — the `/api/uploads/<32-hex>.<ext>` shape,
+ * (`src/lib/images.ts`). That policy — the `/api/uploads/<hash>.<ext>` shape (32-hex or 64-hex),
  * the `IMAGE_URL_ALLOWLIST`, the SSRF host blocks — is enforced server-side on
  * save, and part of it reads server-only env, so a copy shipped to the browser
  * would answer differently and become a second, weaker gate. Whatever passes
@@ -15,7 +15,7 @@ import { useState } from 'react';
  * fetch (`data:`, `blob:`, `javascript:`) out of an `<img src>`.
  */
 function isPreviewable(value: string): boolean {
-  // Same-origin path, e.g. `/api/uploads/<32-hex>.jpg`. `//host/x` is
+  // Same-origin path, e.g. `/api/uploads/<hash>.jpg`. `//host/x` is
   // protocol-relative — cross-origin, not a path — so it is not one of these.
   if (value.startsWith('/')) return !value.startsWith('//');
   try {

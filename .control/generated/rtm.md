@@ -116,10 +116,10 @@ rtm:
   release: pptx-dual-hash-upload-resolution-parity
   test:
   - tests/upload-dual-hash-resolution.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-3
   FR: FR-10
@@ -1113,10 +1113,10 @@ rtm:
   release: pptx-dual-hash-upload-resolution-parity
   test:
   - tests/upload-dual-hash-resolution.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14
@@ -1127,10 +1127,10 @@ rtm:
   release: pptx-dual-hash-upload-resolution-parity
   test:
   - tests/pptx-dual-hash-image-embed.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14

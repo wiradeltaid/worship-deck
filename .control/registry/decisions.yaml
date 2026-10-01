@@ -1795,7 +1795,7 @@ decisions:
 
   - id: DEC-084
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-01)"
     title: Daily Autopilot mandate for Microsoft OneDrive Cloud Connector, PPTX Sync Prompt, and Dual-Hash Resolution Parity (SPEC-95, SPEC-96)
     file: .control/decisions/DEC-084-daily-autopilot-mandate-onedrive-connector-and-dual-hash-parity.md

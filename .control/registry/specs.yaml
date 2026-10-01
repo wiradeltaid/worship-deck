@@ -4066,7 +4066,7 @@ waves:
           - tests/onedrive-connector.test.mjs
 
   - id: SPEC-96
-    status: open
+    status: closed
     release: pptx-dual-hash-upload-resolution-parity
     prd: [offline-deck]
     fr: [FR-14, FR-10]

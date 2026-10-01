@@ -14,7 +14,7 @@ export interface CropConfig {
  * One service image field: the picture, the two ways to set it, and the way to
  * unset it.
  *
- * The stored value — always `/api/uploads/<32-hex>.<ext>` — is deliberately not
+ * The stored value — `/api/uploads/<hash>.<ext>` (32-hex legacy or 64-hex SHA-256) — is deliberately not
  * rendered anywhere as editable text. It is a machine-generated name that told
  * the operator nothing while occupying the most prominent line of the card;
  * what they need to see is whether a file is chosen and which picture landed.
