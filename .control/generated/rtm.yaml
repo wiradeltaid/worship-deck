@@ -106,6 +106,20 @@ rtm:
   FR: FR-10
   DEC: []
   UC: UC-7
+  ticket: SPEC-96-01
+  spec: SPEC-96
+  release: pptx-dual-hash-upload-resolution-parity
+  test:
+  - tests/upload-dual-hash-resolution.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-3
+  FR: FR-10
+  DEC: []
+  UC: UC-7
   ticket: W8-05
   spec: W8
   release: hub-service-ops
@@ -1028,6 +1042,90 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
+  ticket: SPEC-95-01
+  spec: SPEC-95
+  release: onedrive-cloud-connector-and-pptx-sync-prompt
+  test:
+  - tests/onedrive-connector.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
+  ticket: SPEC-95-02
+  spec: SPEC-95
+  release: onedrive-cloud-connector-and-pptx-sync-prompt
+  test:
+  - tests/onedrive-connector.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
+  ticket: SPEC-95-03
+  spec: SPEC-95
+  release: onedrive-cloud-connector-and-pptx-sync-prompt
+  test:
+  - tests/onedrive-connector.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
+  ticket: SPEC-95-04
+  spec: SPEC-95
+  release: onedrive-cloud-connector-and-pptx-sync-prompt
+  test:
+  - tests/onedrive-connector.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
+  ticket: SPEC-96-01
+  spec: SPEC-96
+  release: pptx-dual-hash-upload-resolution-parity
+  test:
+  - tests/upload-dual-hash-resolution.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
+  ticket: SPEC-96-02
+  spec: SPEC-96
+  release: pptx-dual-hash-upload-resolution-parity
+  test:
+  - tests/pptx-dual-hash-image-embed.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14

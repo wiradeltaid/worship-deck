@@ -4022,6 +4022,79 @@ waves:
         tests:
           - tests/installer-pe-metadata.test.mjs
 
+  - id: SPEC-95
+    status: open
+    release: onedrive-cloud-connector-and-pptx-sync-prompt
+    prd: [offline-deck]
+    fr: [FR-14]
+    size: M
+    depends_on: [SPEC-94]
+    spec_folder: .scratch/SPEC-95-onedrive-cloud-connector-and-pptx-sync-prompt/
+    spec_reviewed:
+      date: '2026-10-01'
+      sha: '45c86460c91c48351a3aa8e1202ce64d2c56cd31'
+      lenses: [structure, prose, edge-case-hunter, requirement-traceability, api-contract, security-boundary]
+      note: "Terra (kiro-agent) independent advisory triage folded in: (1) anchored traceability to offline-deck FR-14 and UC-18, establishing OneDrive as an optional cloud delivery destination following the guaranteed local offline PPTX export; (2) removed unrelated AD-10 and established AD-1 / FR-14 invariant ensuring local file download is never blocked or invalidated by cloud sync failure; (3) unified single-blob generation contract in RunSheetPage.tsx reusing the exact same PPTX blob for local download and multipart upload with conflictBehavior rename; (4) defined OAuth PKCE lifecycle, state/verifier single-use cache, popup callback postMessage origin check, and per-user SQLite config scoping under AD-5/AD-9; (5) bounded scope by deferring direct cloud-only export and enterprise custom tenant settings."
+    tickets:
+      - id: "SPEC-95-01"
+        component: hub
+        satisfies: [UC-18, FR-14]
+        blocked_by: []
+        touches: [settings]
+        tests:
+          - tests/onedrive-connector.test.mjs
+      - id: "SPEC-95-02"
+        component: hub
+        satisfies: [UC-18, FR-14]
+        blocked_by: ["SPEC-95-01"]
+        touches: [settings]
+        tests:
+          - tests/onedrive-connector.test.mjs
+      - id: "SPEC-95-03"
+        component: hub
+        satisfies: [UC-18, FR-14]
+        blocked_by: ["SPEC-95-02"]
+        touches: [services, settings]
+        tests:
+          - tests/onedrive-connector.test.mjs
+      - id: "SPEC-95-04"
+        component: hub
+        satisfies: [UC-18, FR-14]
+        blocked_by: ["SPEC-95-03"]
+        touches: [services, settings]
+        tests:
+          - tests/onedrive-connector.test.mjs
+
+  - id: SPEC-96
+    status: open
+    release: pptx-dual-hash-upload-resolution-parity
+    prd: [offline-deck]
+    fr: [FR-14, FR-10]
+    size: S
+    depends_on: [SPEC-95]
+    spec_folder: .scratch/SPEC-96-pptx-dual-hash-upload-resolution-parity/
+    spec_reviewed:
+      date: '2026-10-01'
+      sha: '45c86460c91c48351a3aa8e1202ce64d2c56cd31'
+      lenses: [structure, prose, edge-case-hunter, security-boundary, contract-traceability, test-execution, cross-runtime-parity]
+      note: "Terra (kiro-agent) independent advisory triage folded in: (1) aligned traceability to FR-14 (UC-18 PPTX export) and FR-10 (UC-7 orphan cleanup); (2) added explicit deliverable requirement for package.json standard test suite registration; (3) expanded Ticket 01 scope to verify asset-safety.ts and service deletion orphaned upload cleanup on 64-hex files; (4) narrowed parity scope to Node local resolver and PPTX worker dual-hash acceptance matching DEC-080; (5) specified computePlanContext isSafeImageUrl acceptance gate verification and deterministic fixture contract for PPTX embedding tests."
+    tickets:
+      - id: "SPEC-96-01"
+        component: hub
+        satisfies: [UC-18, FR-14, UC-7, FR-10]
+        blocked_by: []
+        touches: [uploads, services]
+        tests:
+          - tests/upload-dual-hash-resolution.test.mjs
+      - id: "SPEC-96-02"
+        component: hub
+        satisfies: [UC-18, FR-14]
+        blocked_by: ["SPEC-96-01"]
+        touches: [pptx, uploads]
+        tests:
+          - tests/pptx-dual-hash-image-embed.test.mjs
+
+
 
 
 

@@ -712,6 +712,22 @@ dag:
     - SPEC-94-02
   - parallel:
     - SPEC-94-03
+- spec: SPEC-95
+  order:
+  - parallel:
+    - SPEC-95-01
+  - parallel:
+    - SPEC-95-02
+  - parallel:
+    - SPEC-95-03
+  - parallel:
+    - SPEC-95-04
+- spec: SPEC-96
+  order:
+  - parallel:
+    - SPEC-96-01
+  - parallel:
+    - SPEC-96-02
 - spec: W1
   order:
   - parallel:
