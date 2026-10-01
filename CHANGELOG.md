@@ -15,6 +15,19 @@ belongs under **Unreleased** and stays there until the owner decides.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-01
+
+### Added
+- **Bilingual Windows Installer:** The Windows desktop installer now natively supports Indonesian alongside English, automatically following the operator's Windows display language while retaining the official English MIT license text.
+- **Dual-Hash PowerPoint Image Embedding Parity:** Full discrete dual-hash support (64-hex SHA-256 and 32-hex legacy MD5) across uploaded images. Sermon graphics, family photos, youth photos, and announcement slide backgrounds uploaded with modern SHA-256 addressing now embed cleanly into exported `.pptx` decks without fallback placeholder boxes.
+- **Orphaned Upload Cleanup for SHA-256 Assets:** Deleting a worship service now correctly unlinks and cleans up associated SHA-256 uploaded media files from disk, preventing disk bloat.
+
+### Changed
+- **Documentation Restructure:** Post-release alignment of public repository documentation, threat model data sync disclosures, and owner-approved privacy and security policies.
+
+### Boundaries and Limitations
+- Direct cloud Microsoft OneDrive OAuth sync has been retired and marked abandoned; operators syncing presentations to OneDrive should save or direct exports to their local Windows OneDrive synchronized folders, which provides reliable, offline-safe cloud syncing without requiring Microsoft Entra ID or Azure application registration.
+
 ## [0.1.0] - 2026-09-28
 
 ### Added

@@ -18,11 +18,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const changelogPath = path.join(root, 'CHANGELOG.md');
+const pkgJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const currentVersion = pkgJson.version || '0.1.0';
 
 /**
  * Extracts a release section replicating the exact logic of .github/workflows/release.yml lines 37-59.
  */
-export function extractChangelogSection(content, version = '0.1.0') {
+export function extractChangelogSection(content, version = currentVersion) {
   const lines = content.split(/\r?\n/);
   let start = -1;
   const versionRegex = new RegExp(`^##\\s+\\[${version.replace(/\./g, '\\.')}\\]`);
@@ -51,9 +53,9 @@ export function extractChangelogSection(content, version = '0.1.0') {
   return text;
 }
 
-export function scanChangelogDefects(content = fs.readFileSync(changelogPath, 'utf8')) {
+export function scanChangelogDefects(content = fs.readFileSync(changelogPath, 'utf8'), version = currentVersion) {
   const violations = [];
-  const section = extractChangelogSection(content, '0.1.0');
+  const section = extractChangelogSection(content, version);
 
   const prohibitedRules = [
     { name: 'internal-id-dec', pattern: /\bDEC-\d+\b/i, desc: 'Internal decision identifier (DEC-)' },
@@ -74,13 +76,13 @@ export function scanChangelogDefects(content = fs.readFileSync(changelogPath, 'u
     const line = lines[i];
     for (const rule of prohibitedRules) {
       if (rule.pattern.test(line)) {
-        violations.push(`Section [0.1.0] line ${i + 1} [${rule.name}]: ${line.trim()} (${rule.desc})`);
+        violations.push(`Section [${version}] line ${i + 1} [${rule.name}]: ${line.trim()} (${rule.desc})`);
       }
     }
   }
 
   // Check preamble for in-app updater
-  const preamble = content.split('## [0.1.0]')[0] || '';
+  const preamble = content.split(`## [${version}]`)[0] || '';
   if (/in-app\s+updater/i.test(preamble) || /\bupdater\b/i.test(preamble)) {
     violations.push(`Preamble contains prohibited reference to in-app updater`);
   }
@@ -88,17 +90,24 @@ export function scanChangelogDefects(content = fs.readFileSync(changelogPath, 'u
   return violations;
 }
 
-test('WSD-H-10: release.yml extraction logic cleanly extracts [0.1.0] section', () => {
+test('WSD-H-10: release.yml extraction logic cleanly extracts release sections', () => {
   const content = fs.readFileSync(changelogPath, 'utf8');
-  const section = extractChangelogSection(content, '0.1.0');
-  assert.ok(section.length > 200, `Extracted section too short (${section.length} chars)`);
-  assert.ok(section.includes('### Added'), 'Section missing ### Added');
-  assert.ok(section.includes('### Boundaries and Limitations'), 'Section missing Boundaries and Limitations');
+  const section010 = extractChangelogSection(content, '0.1.0');
+  assert.ok(section010.length > 200, `Extracted 0.1.0 section too short (${section010.length} chars)`);
+  assert.ok(section010.includes('### Added'), 'Section 0.1.0 missing ### Added');
+  assert.ok(section010.includes('### Boundaries and Limitations'), 'Section 0.1.0 missing Boundaries and Limitations');
+
+  const currentSection = extractChangelogSection(content, currentVersion);
+  assert.ok(currentSection.length > 100, `Extracted ${currentVersion} section too short (${currentSection.length} chars)`);
+  assert.ok(currentSection.includes('### Added'), `Section ${currentVersion} missing ### Added`);
 });
 
-test('WSD-H-10: [0.1.0] section contains zero internal IDs, prohibited terms, or em/en dashes', () => {
-  const violations = scanChangelogDefects();
-  assert.deepEqual(violations, [], `Changelog defects found:\n${violations.join('\n')}`);
+test('WSD-H-10: release sections contain zero internal IDs, prohibited terms, or em/en dashes', () => {
+  const violations010 = scanChangelogDefects(undefined, '0.1.0');
+  assert.deepEqual(violations010, [], `Changelog defects in [0.1.0] found:\n${violations010.join('\n')}`);
+
+  const violationsCurrent = scanChangelogDefects(undefined, currentVersion);
+  assert.deepEqual(violationsCurrent, [], `Changelog defects in [${currentVersion}] found:\n${violationsCurrent.join('\n')}`);
 });
 
 test('WSD-H-10: guard proof — injected DEC-004 in CHANGELOG.md is detected', () => {
