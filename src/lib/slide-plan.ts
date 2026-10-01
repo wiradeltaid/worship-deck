@@ -238,7 +238,7 @@ type PlanContext = {
   announcementInserts: string[];
 };
 
-function computePlanContext(
+export function computePlanContext(
   serviceDate: string,
   parsedData: ParsedRundown,
   images: string[] | SlidePlanMedia

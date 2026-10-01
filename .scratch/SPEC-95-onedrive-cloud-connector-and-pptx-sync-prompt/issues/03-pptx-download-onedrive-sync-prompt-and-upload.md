@@ -43,8 +43,8 @@
 
 **Blocked by:** SPEC-95-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement `POST /api/services/:id/onedrive-upload` endpoint in Go backend with chunked upload session support.
-- [ ] Implement single-blob export pipeline in `RunSheetPage.tsx` honoring active word-wrap variant.
-- [ ] Implement `OneDriveSyncPromptModal.tsx` with bilingual `useT()` localization.
+- [x] Implement `POST /api/services/:id/onedrive-upload` endpoint in Go backend with chunked upload session support.
+- [x] Implement single-blob export pipeline in `RunSheetPage.tsx` honoring active word-wrap variant.
+- [x] Implement `OneDriveSyncPromptModal.tsx` with bilingual `useT()` localization.

@@ -170,7 +170,7 @@ export function isBlockedImageHost(hostname: string): boolean {
 
 /**
  * Safe announcement/PPTX image URL:
- * - Hub-local upload refs: `/api/uploads/<32-hex>.(jpg|jpeg|png|gif|webp)`
+ * - Hub-local upload refs: `/api/uploads/<hash>.(jpg|jpeg|png|gif|webp)` (discrete 32-hex legacy or 64-hex SHA-256)
  * - Otherwise http(s) only
  * - If IMAGE_URL_ALLOWLIST is set (comma-separated hostnames), host must match
  * - Otherwise block localhost / private / link-local / metadata hosts

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import AccountsManager from '@/operator/admin/AccountsManager';
 import WorshipSettings from '@/operator/admin/WorshipSettings';
 import SystemSettings from '@/operator/admin/SystemSettings';
+import OneDriveConnectorCard from '@/components/settings/OneDriveConnectorCard';
 import { useSession } from '../lib/auth/SessionProvider';
 
 export default function AdminPage() {
@@ -57,6 +58,7 @@ export default function AdminPage() {
         initialDays={settings.pptx_retention_days}
         initialLocale={settings.ui_locale}
       />
+      <OneDriveConnectorCard />
     </div>
   );
 }

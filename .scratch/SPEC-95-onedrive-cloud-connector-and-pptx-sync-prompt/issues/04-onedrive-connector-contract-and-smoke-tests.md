@@ -34,8 +34,8 @@
 
 **Blocked by:** SPEC-95-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement `tests/onedrive-connector.test.mjs` with full contract and absence guard coverage.
-- [ ] Register test in `package.json`.
-- [ ] Run test suite to verify all assertions pass.
+- [x] Implement `tests/onedrive-connector.test.mjs` with full contract and absence guard coverage.
+- [x] Register test in `package.json`.
+- [x] Run test suite to verify all assertions pass.

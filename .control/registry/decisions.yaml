@@ -1793,6 +1793,25 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/
 
+  - id: DEC-084
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-10-01)"
+    title: Daily Autopilot mandate for Microsoft OneDrive Cloud Connector, PPTX Sync Prompt, and Dual-Hash Resolution Parity (SPEC-95, SPEC-96)
+    file: .control/decisions/DEC-084-daily-autopilot-mandate-onedrive-connector-and-dual-hash-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-08'
+    touches:
+      - .control/memlog/autopilot-DEC-084.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
 
 
 

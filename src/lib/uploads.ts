@@ -4,9 +4,12 @@ import path from 'path';
 /** Allowed image extensions for hub-local uploads and announcement refs. */
 export const UPLOAD_IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
 
-/** `/api/uploads/<32-hex>.<ext>` produced by POST /api/upload. */
-const LOCAL_UPLOAD_REF =
-  /^\/api\/uploads\/([a-f0-9]{32}\.(?:jpe?g|png|gif|webp))$/i;
+/**
+ * `/api/uploads/<hash>.<ext>` produced by POST /api/upload.
+ * Supports discrete dual-hash: 32-hex legacy random tokens or 64-hex SHA-256 digests (DEC-080).
+ */
+export const LOCAL_UPLOAD_REF =
+  /^\/api\/uploads\/((?:[a-f0-9]{32}|[a-f0-9]{64})\.(?:jpe?g|png|gif|webp))$/i;
 
 export function getUploadsDir(): string {
   return process.env.UPLOADS_DIR || path.join(process.cwd(), 'data', 'uploads');

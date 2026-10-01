@@ -152,6 +152,16 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/sync/assets/upload", s.syncAssetUpload)
 	mux.HandleFunc("GET /api/sync/assets/{sha256}", s.syncAssetDownload)
 	mux.HandleFunc("POST /api/webhook", s.postWebhook)
+
+	// SPEC-95: Microsoft OneDrive Cloud Connector
+	mux.HandleFunc("GET /api/settings/onedrive", s.handleGetOneDriveSettings)
+	mux.HandleFunc("POST /api/settings/onedrive", s.handlePostOneDriveSettings)
+	mux.HandleFunc("GET /api/settings/onedrive/auth-url", s.handleGetOneDriveAuthURL)
+	mux.HandleFunc("GET /api/settings/onedrive/callback", s.handleGetOneDriveCallback)
+	mux.HandleFunc("DELETE /api/settings/onedrive", s.handleDeleteOneDriveSettings)
+	mux.HandleFunc("GET /api/settings/onedrive/folders", s.handleGetOneDriveFolders)
+	mux.HandleFunc("POST /api/services/{id}/onedrive-upload", s.handlePostOneDriveUpload)
+
 	mux.HandleFunc("/", s.fallback)
 	return s.gate(mux)
 }

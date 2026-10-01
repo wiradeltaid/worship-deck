@@ -1,4 +1,4 @@
-asof: '2026-09-28'
+asof: '2026-10-01'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -87,12 +87,7 @@ capabilities:
     actual_start: '2026-09-21'
     actual_end: ''
     state: in-progress
-  waiting_on:
-  - SPEC-73-03
-  - SPEC-73-04
-  - SPEC-73-06
-  - SPEC-73-07
-  - SPEC-73-08
+  waiting_on: []
 - id: CAP-10
   text: Several Bible translations, several Song Books, two language axes
   size: ''
@@ -175,9 +170,7 @@ capabilities:
     actual_start: '2026-09-18'
     actual_end: '2026-09-18'
     state: done
-  waiting_on:
-  - SPEC-73-03
-  - SPEC-73-04
+  waiting_on: []
 - id: CAP-12
   text: Manual Device Sync — keep a second WorshipDeck instance consistent
   size: ''
@@ -294,6 +287,7 @@ capabilities:
     text: Manually delete a Service and its assets, including local files in UPLOADS_DIR
     tickets:
     - SPEC-58-01
+    - SPEC-96-01
     - W8-05
     actual_start: '2026-09-18'
     actual_end: ''
@@ -456,6 +450,12 @@ capabilities:
     - SPEC-81-03
     - SPEC-83-01
     - SPEC-85-04
+    - SPEC-95-01
+    - SPEC-95-02
+    - SPEC-95-03
+    - SPEC-95-04
+    - SPEC-96-01
+    - SPEC-96-02
     - W2-2-1
     - W2-2-2
     - W2-2-3
@@ -1147,16 +1147,5 @@ capabilities:
     actual_start: '2026-09-18'
     actual_end: ''
     state: in-progress
-  waiting_on:
-  - SPEC-73-01
-  - SPEC-73-02
-  - SPEC-73-05
-  - SPEC-73-09
-  - SPEC-73-10
-  - SPEC-73-11
-  - SPEC-73-12
-  - SPEC-73-13
-  - SPEC-73-14
-  - SPEC-73-15
-  - SPEC-73-16
+  waiting_on: []
 uncommitted_tickets: []

@@ -29,10 +29,10 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Update `LOCAL_UPLOAD_REF` in `src/lib/uploads.ts` to discrete dual-hash pattern `(?:[a-f0-9]{32}|[a-f0-9]{64})`.
-- [ ] Verify `localUploadFilename` and `resolveLocalUploadFsPath` with both 32-hex and 64-hex filenames.
-- [ ] Align `asset-safety.ts`, `images.ts`, and `queries.ts` orphaned cleanup to 64-hex upload references.
-- [ ] Register test file in `package.json` script suite.
-- [ ] Add contract and unit tests in `tests/upload-dual-hash-resolution.test.mjs`.
+- [x] Update `LOCAL_UPLOAD_REF` in `src/lib/uploads.ts` to discrete dual-hash pattern `(?:[a-f0-9]{32}|[a-f0-9]{64})`.
+- [x] Verify `localUploadFilename` and `resolveLocalUploadFsPath` with both 32-hex and 64-hex filenames.
+- [x] Align `asset-safety.ts`, `images.ts`, and `queries.ts` orphaned cleanup to 64-hex upload references.
+- [x] Register test file in `package.json` script suite.
+- [x] Add contract and unit tests in `tests/upload-dual-hash-resolution.test.mjs`.

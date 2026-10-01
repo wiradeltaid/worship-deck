@@ -59,9 +59,9 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement `onedrive_configs` SQLite storage and model scoped by `user_id`.
-- [ ] Implement Go HTTP API endpoints under `/api/settings/onedrive` with PKCE authorization, callback exchange, and token redaction guard.
-- [ ] Implement `OneDriveConnectorCard.tsx` with bilingual `useT()` localization.
-- [ ] Bind popup auth flow and postMessage listener.
+- [x] Implement `onedrive_configs` SQLite storage and model scoped by `user_id`.
+- [x] Implement Go HTTP API endpoints under `/api/settings/onedrive` with PKCE authorization, callback exchange, and token redaction guard.
+- [x] Implement `OneDriveConnectorCard.tsx` with bilingual `useT()` localization.
+- [x] Bind popup auth flow and postMessage listener.

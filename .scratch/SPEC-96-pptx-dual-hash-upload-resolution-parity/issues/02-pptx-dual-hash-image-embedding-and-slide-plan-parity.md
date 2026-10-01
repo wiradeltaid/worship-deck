@@ -23,9 +23,9 @@
 
 **Blocked by:** SPEC-96-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Verify `slide-plan.ts` `computePlanContext` preserves 64-hex upload URLs across all photo slots.
-- [ ] Verify `pptx-draw.ts` embeds 64-hex SHA-256 image files from disk.
-- [ ] Register test in `package.json`.
-- [ ] Add regression tests in `tests/pptx-dual-hash-image-embed.test.mjs` confirming PPTX generation embeds SHA-256 images into presentation media parts without fallback box.
+- [x] Verify `slide-plan.ts` `computePlanContext` preserves 64-hex upload URLs across all photo slots.
+- [x] Verify `pptx-draw.ts` embeds 64-hex SHA-256 image files from disk.
+- [x] Register test in `package.json`.
+- [x] Add regression tests in `tests/pptx-dual-hash-image-embed.test.mjs` confirming PPTX generation embeds SHA-256 images into presentation media parts without fallback box.
