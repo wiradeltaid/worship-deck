@@ -202,6 +202,143 @@ test('SPEC-100-02: Calibrated 16:9 stage container containment proof (zero clipp
   assert.ok(scaledHeight <= 842.4, `Scaled height (${scaledHeight}) must not exceed container maxAllowedHeight (842.4)`);
 });
 
+test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation synchronization lifecycle', async () => {
+  const { paginateScriptureVerses } = await import(new URL('../src/lib/scripture-format.ts', import.meta.url).href);
+  const { applyRemoteIntent } = await import(new URL('../src/lib/presenter-remote-client.ts', import.meta.url).href);
+
+  // Simulated Presenter state container
+  let loadedScripture = null;
+  let scripturePageIndex = 0;
+  let activeOverlay = null;
+  const broadcasts = [];
+
+  const broadcastFn = (msg) => {
+    broadcasts.push(msg);
+    if (msg.type === 'scripture') {
+      activeOverlay = msg;
+    }
+  };
+
+  const setScriptureAndSync = (data) => {
+    const baseRef = data.reference;
+    const verses = data.verses || [{ verse: 1, text: data.text }];
+    const isWholeChapter = Boolean(data.is_whole_chapter || !baseRef.includes(':'));
+    const typographyMode = isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
+    const effectiveMode = data.mode || 'per-verse';
+
+    loadedScripture = { reference: baseRef, verses, typographyMode };
+    scripturePageIndex = 0;
+
+    const pages = paginateScriptureVerses(baseRef, verses, effectiveMode, typographyMode);
+    const firstPage = pages[0];
+    const newOverlay = {
+      reference: baseRef,
+      displayReference: firstPage.displayReference,
+      text: firstPage.text,
+      mode: effectiveMode,
+      verses: firstPage.verses,
+      currentPage: firstPage.page,
+      totalPages: firstPage.totalPages,
+      typographyMode: firstPage.typographyMode,
+      isContinuation: firstPage.isContinuation,
+      continuationIndex: firstPage.continuationIndex,
+      continuationCount: firstPage.continuationCount,
+    };
+    broadcastFn({
+      type: 'scripture',
+      ...newOverlay,
+      planIdentity: 'plan-xyz',
+    });
+  };
+
+  // Construct 15 synthetic verses (~3-4 pages)
+  const syntheticVerses = Array.from({ length: 15 }, (_, i) => ({
+    verse: i + 1,
+    text: `Verse content for line-budget verification test number ${i + 1} with sufficient length to span multiple lines.`,
+  }));
+
+  // 1. Remote intent delivers whole chapter
+  const accepted = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'John 4',
+      text: syntheticVerses.map((v) => `(${v.verse}) ${v.text}`).join('\n'),
+      verses: syntheticVerses,
+      is_whole_chapter: true,
+      planIdentity: 'plan-xyz',
+    },
+    'plan-xyz',
+    {
+      broadcast: broadcastFn,
+      setIndexAndSync: () => {},
+      setBlankAndSync: () => {},
+      setTransitionAndSync: () => {},
+      setBackgroundAndSync: () => {},
+      setScriptureAndSync,
+    }
+  );
+
+  assert.equal(accepted, true);
+  assert.ok(loadedScripture !== null);
+  assert.equal(loadedScripture.reference, 'John 4');
+  assert.equal(loadedScripture.typographyMode, 'chapter');
+
+  // Verify page 1 broadcast
+  assert.equal(activeOverlay.currentPage, 1);
+  assert.ok(activeOverlay.totalPages >= 3, `Expected >= 3 pages, got ${activeOverlay.totalPages}`);
+  assert.equal(activeOverlay.typographyMode, 'chapter');
+
+  // 2. Simulate Next Page navigation: page 1 -> page 2
+  const pages = paginateScriptureVerses(
+    loadedScripture.reference,
+    loadedScripture.verses,
+    'per-verse',
+    loadedScripture.typographyMode
+  );
+  scripturePageIndex = 1;
+  const page2 = pages[scripturePageIndex];
+  broadcastFn({
+    type: 'scripture',
+    reference: loadedScripture.reference,
+    displayReference: page2.displayReference,
+    text: page2.text,
+    mode: 'per-verse',
+    verses: page2.verses,
+    currentPage: page2.page,
+    totalPages: page2.totalPages,
+    typographyMode: page2.typographyMode,
+    isContinuation: page2.isContinuation,
+    continuationIndex: page2.continuationIndex,
+    continuationCount: page2.continuationCount,
+    planIdentity: 'plan-xyz',
+  });
+
+  assert.equal(activeOverlay.currentPage, 2);
+  assert.equal(activeOverlay.typographyMode, 'chapter');
+
+  // 3. Simulate Prev Page navigation: page 2 -> page 1
+  scripturePageIndex = 0;
+  const page1Again = pages[scripturePageIndex];
+  broadcastFn({
+    type: 'scripture',
+    reference: loadedScripture.reference,
+    displayReference: page1Again.displayReference,
+    text: page1Again.text,
+    mode: 'per-verse',
+    verses: page1Again.verses,
+    currentPage: page1Again.page,
+    totalPages: page1Again.totalPages,
+    typographyMode: page1Again.typographyMode,
+    isContinuation: page1Again.isContinuation,
+    continuationIndex: page1Again.continuationIndex,
+    continuationCount: page1Again.continuationCount,
+    planIdentity: 'plan-xyz',
+  });
+
+  assert.equal(activeOverlay.currentPage, 1);
+  assert.equal(activeOverlay.displayReference, page1Again.displayReference);
+});
+
 test('SPEC-100-02 Defect Injection Proof: verifyTypographyModePreservation fails if mode is omitted', () => {
   const presentChannelPath = path.join(ROOT, 'src', 'lib', 'present-channel.ts');
   const src = fs.readFileSync(presentChannelPath, 'utf8');

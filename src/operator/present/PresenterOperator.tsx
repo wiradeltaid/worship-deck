@@ -529,6 +529,9 @@ export default function PresenterOperator({
     }
     return 'per-verse';
   });
+  const scriptureModeRef = useRef<ScriptureDisplayMode>(scriptureMode);
+  scriptureModeRef.current = scriptureMode;
+
   const [loadedScripture, setLoadedScripture] = useState<{
     reference: string;
     verses: Array<{ verse: number; text: string }>;
@@ -854,7 +857,7 @@ export default function PresenterOperator({
       const isWholeChapter = Boolean(data.is_whole_chapter || !baseRef.includes(':'));
       const typographyMode: ScriptureTypographyMode =
         isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
-      const effectiveMode = data.mode || scriptureMode;
+      const effectiveMode = data.mode || scriptureModeRef.current;
 
       setLoadedScripture({ reference: baseRef, verses, typographyMode });
       setScripturePageIndex(0);
@@ -881,7 +884,7 @@ export default function PresenterOperator({
         planIdentity: planIdentityRef.current,
       });
     },
-    [scriptureMode, broadcast, setScriptureOverlay]
+    [broadcast, setScriptureOverlay]
   );
 
   const visibilityController = useMemo(() => {
@@ -1107,6 +1110,7 @@ export default function PresenterOperator({
     setBlankAndSync,
     setTransitionAndSync,
     setBackgroundAndSync,
+    setScriptureAndSync,
     broadcast,
   ]);
 
