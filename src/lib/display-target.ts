@@ -308,6 +308,14 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
   return fallbackToSingleScreen();
 }
 
+/**
+ * Synchronously retrieves basic display geometry from window.screen without awaiting
+ * promises, preserving browser transient user activation for window.open calls.
+ */
+export function getSynchronousScreens(): ScreenInfo[] {
+  return fallbackToSingleScreen();
+}
+
 function fallbackToSingleScreen(): ScreenInfo[] {
   if (typeof window === 'undefined' || !window.screen) {
     return [

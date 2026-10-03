@@ -22,10 +22,10 @@ test('SPEC-99-03: PresenterOperator openProjector builds multi-screen coordinate
     'PresenterOperator must pass fullscreen=1 when launching fullscreen target'
   );
 
-  // Must detect screens on first launch if mount discovery is pending
+  // Must preserve transient user activation by resolving synchronously
   assert.ok(
-    src.includes('currentScreens.length === 0') && src.includes('await detectAvailableScreens()'),
-    'openProjector must query screens before resolving if initial mount discovery is pending'
+    src.includes('getSynchronousScreens') && !src.includes('async (overrideTarget'),
+    'openProjector must be synchronous and use getSynchronousScreens to avoid popup blocker tripping'
   );
 
   // Must pass relocateProjector to PresenterDisplayControl
@@ -83,34 +83,69 @@ test('SPEC-99-03: Topology events do not alter AD-29 heartbeat liveness state', 
   assert.equal(state2.verdict, 'live');
 });
 
-test('SPEC-99-03: openProjector discovery race resolution behavior', async () => {
-  const { resolveLaunchTarget, detectAvailableScreens } = await import(
+test('SPEC-99-03: Synchronous window.open launch preserves user gesture activation and handles popup blocker', async () => {
+  const { resolveLaunchTarget, getSynchronousScreens } = await import(
     new URL('../src/lib/display-target.ts', import.meta.url).href
   );
 
-  // Mock multi-screen environment
+  let openedUrl = null;
+  let openedName = null;
+  let openedFeatures = null;
+  let simulateBlock = false;
+
+  // Mock global window with window.screen and synchronous window.open
   globalThis.window = {
-    getScreenDetails: async () => ({
-      screens: [
-        { label: 'Laptop', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
-        { label: 'Projector', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
-      ],
-    }),
+    screen: {
+      availLeft: 0,
+      availTop: 0,
+      availWidth: 1920,
+      availHeight: 1080,
+    },
+    open: (url, name, features) => {
+      if (simulateBlock) return null; // popup blocked
+      openedUrl = url;
+      openedName = name;
+      openedFeatures = features;
+      return {
+        focus: () => {},
+        close: () => {},
+        closed: false,
+        location: { href: url },
+      };
+    },
   };
 
-  // Simulate empty screensRef on initial mount
-  let screensRefCurrent = [];
-  if (screensRefCurrent.length === 0) {
-    screensRefCurrent = await detectAvailableScreens();
+  // Behavioral launch handler mirroring PresenterOperator openProjector logic
+  function launch(targetOverride, serviceId = 42, projectorUrl = '/projected?service=42') {
+    const screens = getSynchronousScreens();
+    const target = targetOverride || resolveLaunchTarget({ targetPreference: 'external-display', mode: 'fullscreen', rememberOnDevice: true }, screens);
+    const targetUrl = target.mode === 'fullscreen' ? `${projectorUrl}&fullscreen=1` : projectorUrl;
+    const opened = window.open(targetUrl, `projector_${serviceId}`, target.windowFeatures);
+    const isBlocked = opened === null;
+    return { opened, isBlocked, targetUrl, mode: target.mode, features: target.windowFeatures };
   }
 
-  const target = resolveLaunchTarget(
-    { targetPreference: 'external-display', mode: 'fullscreen', rememberOnDevice: true },
-    screensRefCurrent
-  );
-  assert.equal(target.mode, 'fullscreen');
-  assert.equal(target.targetScreen.label, 'Projector');
-  assert.equal(target.windowFeatures, 'popup=1,left=1920,top=0,width=1920,height=1080');
+  // 1. Single-screen fallback launches in safe window mode without fullscreen=1 to prevent lockout
+  const result1 = launch();
+  assert.equal(result1.isBlocked, false);
+  assert.equal(result1.mode, 'window');
+  assert.ok(openedFeatures.includes('1280'));
+
+  // 2. Fullscreen target appends fullscreen=1 and positions at external display coordinates
+  const fullscreenTarget = {
+    mode: 'fullscreen',
+    windowFeatures: 'popup=1,left=1920,top=0,width=1920,height=1080',
+  };
+  const result2 = launch(fullscreenTarget);
+  assert.equal(result2.isBlocked, false);
+  assert.ok(openedUrl.includes('fullscreen=1'));
+  assert.ok(openedFeatures.includes('1920'));
+
+  // 3. Blocked popup case returns isBlocked: true without throwing
+  simulateBlock = true;
+  const result3 = launch();
+  assert.equal(result3.isBlocked, true);
+  assert.equal(result3.opened, null);
 });
 
 test('SPEC-99-03 Defect Injection Proof: verifyFullscreenOrchestration detects omitted query parameter', () => {

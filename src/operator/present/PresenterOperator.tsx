@@ -147,6 +147,7 @@ import {
   getDisplayTargetConfig,
   detectAvailableScreens,
   subscribeScreenTopology,
+  getSynchronousScreens,
   type ResolvedLaunchTarget,
   type ScreenInfo,
   DEFAULT_WINDOW_FEATURES,
@@ -689,7 +690,7 @@ export default function PresenterOperator({
     };
   }, []);
 
-  const openProjector = useCallback(async (overrideTarget?: ResolvedLaunchTarget) => {
+  const openProjector = useCallback((overrideTarget?: ResolvedLaunchTarget) => {
     const existing = projectorRef.current;
     if (existing && !existing.closed && !overrideTarget) {
       if (livenessRef.current.verdict === 'lost') {
@@ -700,14 +701,9 @@ export default function PresenterOperator({
       return;
     }
 
-    // Ensure display discovery is queried before resolving if mount effect is still pending
-    let currentScreens = screensRef.current;
-    if (currentScreens.length === 0) {
-      currentScreens = await detectAvailableScreens();
-      screensRef.current = currentScreens;
-      setAvailableScreens(currentScreens);
-    }
-
+    // Always resolve screens synchronously to preserve browser transient user activation
+    // during user click gestures, preventing browser popup blockers from intercepting window.open.
+    const currentScreens = screensRef.current.length > 0 ? screensRef.current : getSynchronousScreens();
     const config = getDisplayTargetConfig();
     const target = overrideTarget || resolveLaunchTarget(config, currentScreens);
 
