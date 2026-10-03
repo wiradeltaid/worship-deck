@@ -7,7 +7,7 @@ artifact: .control/decisions/DEC-086-daily-autopilot-mandate-scripture-ergonomic
 ## Resume
 
 - State: In Progress — Starting implementation of SPEC-98 tickets
-- Run branch: autopilot/DEC-086
+- Run branch: autopilot/DEC-086 (PR #138)
 - Stopped at: Mandate opened and verified green
 - Blocked: —
 - Parked: —
