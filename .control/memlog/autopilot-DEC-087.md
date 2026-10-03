@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-087-daily-autopilot-mandate-congregation-displa
 
 ## Resume
 
-- State: In Progress — SPEC-100 closed, ready for peer review
-- Run branch: autopilot/DEC-087
-- Stopped at: Finished SPEC-100, ready for peer review
+- State: Applied — All SPEC-99 and SPEC-100 tickets implemented, verified, peer-reviewed, and ready for maintainer merge
+- Run branch: autopilot/DEC-087 (PR #140)
+- Stopped at: Done — all FRs and specs in mandate scope completed and verified
 - Blocked: —
 - Parked: —
-- Next: Peer review SPEC-100 with Terra and proceed to Finish
+- Next: Maintainer review and merge PR #140 into main
 
 ## Decisions
 
@@ -29,3 +29,5 @@ artifact: .control/decisions/DEC-087-daily-autopilot-mandate-congregation-displa
 - Preflight verification: PASS — `validate.py --check --baseline` green, Go test suite passed (exit 0), `npm test` passed (exit 0), working tree clean.
 - Peer Review: Terra independent review of PR #139 completed with verdict Accept.
 - SPEC-99 Peer Review: Terra independent review of SPEC-99 completed with verdict APPROVE.
+- SPEC-100 Peer Review: Terra independent review of SPEC-100 completed with verdict APPROVE.
+- Full Suite Verification: PASS — Go test suite passed (exit 0), typecheck passed (exit 0), SPA build passed (exit 0), public repo guard passed (5/5 pass), full `npm test` passed (exit 0, 150+ suites green).

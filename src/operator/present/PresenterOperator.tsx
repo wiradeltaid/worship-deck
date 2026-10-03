@@ -1725,7 +1725,16 @@ export default function PresenterOperator({
     (newIdx: number) => {
       if (!loadedScripture || newIdx < 0 || newIdx >= scripturePages.length) return;
       setScripturePageIndex(newIdx);
-      const activePage = scripturePages[newIdx];
+      const activePage = resolveScripturePageOverlay(
+        {
+          reference: loadedScripture.reference,
+          verses: loadedScripture.verses,
+          typographyMode: loadedScripture.typographyMode,
+          mode: scriptureMode,
+          pages: scripturePages,
+        },
+        newIdx
+      );
       if (activePage) {
         const newOverlay: ScriptureOverlay = {
           reference: loadedScripture.reference,

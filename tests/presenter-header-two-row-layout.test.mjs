@@ -57,8 +57,8 @@ export function scanPresenterHeaderLayout(presenterPath = presenterOperatorPath)
     if (!row1Snippet.includes('All slides') && !row1Snippet.includes("t('presenter.allSlides')")) {
       findings.push('presenter-header-row-1 must contain "All slides" button');
     }
-    if (!row1Snippet.includes("t('presenter.openCongregationScreen')")) {
-      findings.push('presenter-header-row-1 must contain openCongregationScreen button');
+    if (!row1Snippet.includes("t('presenter.openCongregationScreen')") && !row1Snippet.includes('<PresenterDisplayControl')) {
+      findings.push('presenter-header-row-1 must contain openCongregationScreen button or PresenterDisplayControl');
     }
     if (!row1Snippet.includes('setRemoteDialogOpen')) {
       findings.push('presenter-header-row-1 must contain remote code dialog trigger');

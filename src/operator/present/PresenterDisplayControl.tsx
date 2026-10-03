@@ -182,14 +182,14 @@ export default memo(function PresenterDisplayControl({
     if (liveness === 'live') {
       return {
         buttonLabel: t('presenter.displayTarget.active'),
-        buttonIcon: <CheckCircle2 className="size-4 text-emerald-400" />,
+        buttonIcon: <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />,
         buttonVariant: 'outline' as const,
       };
     }
     if (liveness === 'lost') {
       return {
         buttonLabel: t('presenter.displayTarget.reopen'),
-        buttonIcon: <AlertTriangle className="size-4 text-amber-400" />,
+        buttonIcon: <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />,
         buttonVariant: 'outline' as const,
       };
     }
@@ -280,7 +280,7 @@ export default memo(function PresenterDisplayControl({
               >
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium text-foreground">{t('presenter.displayTarget.openExternal')}</span>
-                  <span className="text-[10px] text-amber-500">
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400">
                     {t('presenter.displayTarget.windowSafe')} (1 Screen detected)
                   </span>
                 </div>
@@ -311,7 +311,7 @@ export default memo(function PresenterDisplayControl({
             >
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium text-foreground">{t('presenter.displayTarget.openWindow')}</span>
-                <span className="text-[10px] text-emerald-500">
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400">
                   {t('presenter.displayTarget.windowSafe')}
                 </span>
               </div>

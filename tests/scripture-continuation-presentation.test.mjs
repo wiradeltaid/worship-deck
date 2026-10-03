@@ -330,6 +330,53 @@ test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation s
   });
   assert.equal(activeOverlay.currentPage, 1);
   assert.equal(activeOverlay.displayReference, page1Again.displayReference);
+
+  // 4. Lossless text preservation across all installed pages
+  const originalCombinedText = syntheticVerses.map((v) => v.text).join('');
+  const reconstructedFromChunks = installedPassageState.pages.flatMap((p) => p.verses).map((v) => v.text).join('');
+  assert.equal(reconstructedFromChunks, originalCombinedText, 'Passage chunks must losslessly preserve all verse text');
+});
+
+test('SPEC-100-02: Omitted remote mode preserves presenter currentMode (e.g. inline)', async () => {
+  const { installScripturePassage } = await import(
+    new URL('../src/lib/scripture-format.ts', import.meta.url).href
+  );
+  const { applyRemoteIntent } = await import(new URL('../src/lib/presenter-remote-client.ts', import.meta.url).href);
+
+  let capturedPassage = null;
+  const handlers = {
+    broadcast: () => {},
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    setScriptureAndSync: (data) => {
+      const { passage } = installScripturePassage({
+        reference: data.reference,
+        verses: data.verses,
+        text: data.text,
+        isWholeChapter: data.is_whole_chapter,
+        mode: data.mode,
+        currentMode: 'inline', // Presenter is currently set to inline
+      });
+      capturedPassage = passage;
+    },
+  };
+
+  applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'John 4',
+      text: 'Verse text',
+      // mode intentionally omitted
+      planIdentity: 'plan-123',
+    },
+    'plan-123',
+    handlers
+  );
+
+  assert.ok(capturedPassage !== null);
+  assert.equal(capturedPassage.mode, 'inline', 'Omitted remote mode must default to presenter currentMode (inline)');
 });
 
 test('SPEC-100-02 Defect Injection Proof: verifyTypographyModePreservation fails if mode is omitted', () => {

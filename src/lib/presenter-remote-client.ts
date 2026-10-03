@@ -104,7 +104,9 @@ export function applyRemoteIntent(
         const verses = Array.isArray((intent as any).verses)
           ? (intent as any).verses
           : [{ verse: 1, text: intent.text }];
-        const mode = (intent as any).mode === 'inline' ? 'inline' : 'per-verse';
+        const rawMode = (intent as any).mode;
+        const explicitMode: 'per-verse' | 'inline' | undefined =
+          rawMode === 'inline' || rawMode === 'per-verse' ? rawMode : undefined;
         const isWholeChapter = Boolean((intent as any).is_whole_chapter || !intent.reference.includes(':'));
         const typographyMode =
           (intent as any).typographyMode ||
@@ -115,14 +117,15 @@ export function applyRemoteIntent(
             reference: intent.reference,
             text: intent.text,
             verses,
-            mode,
+            mode: explicitMode,
             is_whole_chapter: isWholeChapter,
           });
           return true;
         }
 
         // Normalize incoming remote scripture through the canonical visual line-budget paginator
-        const chunks = paginateScriptureVerses(intent.reference, verses, mode, typographyMode);
+        const fallbackMode = explicitMode || 'per-verse';
+        const chunks = paginateScriptureVerses(intent.reference, verses, fallbackMode, typographyMode);
         const activeChunk = chunks[0] || {
           page: 1,
           totalPages: 1,
@@ -140,7 +143,7 @@ export function applyRemoteIntent(
           reference: intent.reference,
           displayReference: activeChunk.displayReference,
           text: activeChunk.text,
-          mode,
+          mode: fallbackMode,
           verses: activeChunk.verses,
           currentPage: activeChunk.page,
           totalPages: activeChunk.totalPages,
