@@ -72,10 +72,10 @@
 
 **Blocked by:** `SPEC-99-01`
 
-**Status:** open
+**Status:** closed
 
-- [ ] Create `<src/operator/present/PresenterDisplayControl.tsx>` implementing the split-button pattern.
-- [ ] Implement dropdown menu with multi-screen target radio selections, live retargeting, and utility actions.
-- [ ] Integrate into `PresenterOperator.tsx` header row 1.
-- [ ] Add bilingual translations in English and Indonesian catalogues.
-- [ ] Add component test suite in `tests/presenter-congregation-display-control.test.mjs`.
+- [x] Create `<src/operator/present/PresenterDisplayControl.tsx>` implementing the split-button pattern.
+- [x] Implement dropdown menu with multi-screen target radio selections, live retargeting, and utility actions.
+- [x] Integrate into `PresenterOperator.tsx` header row 1.
+- [x] Add bilingual translations in English and Indonesian catalogues.
+- [x] Add component test suite in `tests/presenter-congregation-display-control.test.mjs`.

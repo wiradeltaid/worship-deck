@@ -1397,10 +1397,10 @@ rtm:
   release: scripture-line-budget-pagination-and-long-verse-resilience
   test:
   - tests/scripture-line-budget-pagination.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1411,10 +1411,10 @@ rtm:
   release: scripture-line-budget-pagination-and-long-verse-resilience
   test:
   - tests/scripture-continuation-presentation.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1791,10 +1791,10 @@ rtm:
   release: congregation-display-target-and-window-mode-selection
   test:
   - tests/display-target-resolver.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1805,10 +1805,10 @@ rtm:
   release: congregation-display-target-and-window-mode-selection
   test:
   - tests/presenter-congregation-display-control.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1819,10 +1819,10 @@ rtm:
   release: congregation-display-target-and-window-mode-selection
   test:
   - tests/congregation-screen-placement.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

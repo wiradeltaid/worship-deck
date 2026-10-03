@@ -49,10 +49,10 @@
 
 **Blocked by:** `SPEC-99-02`
 
-**Status:** open
+**Status:** closed
 
-- [ ] Connect `openProjector` to multi-screen window placement coordinate calculations.
-- [ ] Implement `?fullscreen=1` query handling and fallback in `ProjectorClient.tsx`.
-- [ ] Implement clean window relocation flow on target switch.
-- [ ] Add topology disconnect advisory notice preserving AD-29 liveness independence.
-- [ ] Add integration test suite in `tests/congregation-screen-placement.test.mjs`.
+- [x] Connect `openProjector` to multi-screen window placement coordinate calculations.
+- [x] Implement `?fullscreen=1` query handling and fallback in `ProjectorClient.tsx`.
+- [x] Implement clean window relocation flow on target switch.
+- [x] Add topology disconnect advisory notice preserving AD-29 liveness independence.
+- [x] Add integration test suite in `tests/congregation-screen-placement.test.mjs`.

@@ -24,12 +24,16 @@ export type SlidePatch = {
 
 export type ScriptureOverlay = {
   reference: string;
+  displayReference: string;
   text: string;
   mode: 'per-verse' | 'inline';
   verses: Array<{ verse: number; text: string }>;
   currentPage: number;
   totalPages: number;
-  displayReference: string;
+  typographyMode: 'chapter' | 'verse';
+  isContinuation: boolean;
+  continuationIndex: number;
+  continuationCount: number;
 };
 
 export type PresentMessage =
@@ -82,17 +86,10 @@ export type PresentMessage =
       background: string | null;
       planIdentity: string;
     }
-  | {
+  | ({
       type: 'scripture';
-      reference: string;
-      text: string;
-      mode: 'per-verse' | 'inline';
-      verses: Array<{ verse: number; text: string }>;
-      currentPage: number;
-      totalPages: number;
-      displayReference: string;
       planIdentity: string;
-    }
+    } & ScriptureOverlay)
   | { type: 'clear-scripture'; planIdentity: string };
 
 /**

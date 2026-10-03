@@ -92,9 +92,9 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Create `<src/lib/display-target.ts>` with display types, screen detection, and resolution logic.
-- [ ] Implement multi-screen identification and smart fallback to window mode when external displays are absent.
-- [ ] Implement `localStorage` intent persistence with `rememberOnDevice` support.
-- [ ] Add unit test suite in `tests/display-target-resolver.test.mjs`.
+- [x] Create `<src/lib/display-target.ts>` with display types, screen detection, and resolution logic.
+- [x] Implement multi-screen identification and smart fallback to window mode when external displays are absent.
+- [x] Implement `localStorage` intent persistence with `rememberOnDevice` support.
+- [x] Add unit test suite in `tests/display-target-resolver.test.mjs`.

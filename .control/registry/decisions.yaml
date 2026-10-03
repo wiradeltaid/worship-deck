@@ -1852,7 +1852,7 @@ decisions:
 
   - id: DEC-087
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-03)"
     title: Daily Autopilot mandate for Congregation Display Target, Window Mode Selection, and Scripture Line-Budget Pagination (SPEC-99, SPEC-100)
     file: .control/decisions/DEC-087-daily-autopilot-mandate-congregation-display-target-and-scripture-line-budget-pagination.md

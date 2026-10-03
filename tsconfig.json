@@ -18,5 +18,5 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
-  "exclude": ["node_modules", "spa/dist"]
+  "exclude": ["node_modules", "spa/dist", "dist", "dist-desktop"]
 }

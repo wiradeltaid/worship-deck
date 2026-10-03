@@ -1,0 +1,467 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+test('SPEC-99-01: Module exports required types, constants, and functions', async () => {
+  const mod = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  assert.equal(typeof mod.resolveLaunchTarget, 'function', 'resolveLaunchTarget must be exported');
+  assert.equal(typeof mod.getDisplayTargetConfig, 'function', 'getDisplayTargetConfig must be exported');
+  assert.equal(typeof mod.saveDisplayTargetConfig, 'function', 'saveDisplayTargetConfig must be exported');
+  assert.equal(typeof mod.detectAvailableScreens, 'function', 'detectAvailableScreens must be exported');
+  assert.equal(typeof mod.createScreenFingerprint, 'function', 'createScreenFingerprint must be exported');
+  assert.equal(typeof mod.DEFAULT_DISPLAY_TARGET_CONFIG, 'object', 'DEFAULT_DISPLAY_TARGET_CONFIG must be exported');
+  assert.equal(mod.DEFAULT_DISPLAY_TARGET_CONFIG.targetPreference, 'external-display');
+  assert.equal(mod.DEFAULT_DISPLAY_TARGET_CONFIG.mode, 'fullscreen');
+  assert.equal(mod.DEFAULT_DISPLAY_TARGET_CONFIG.rememberOnDevice, true);
+});
+
+test('SPEC-99-01: createScreenFingerprint generates deterministic string', async () => {
+  const { createScreenFingerprint } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  const fp1 = createScreenFingerprint({
+    label: 'Epson Projector',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+  });
+  assert.equal(fp1, 'Epson Projector_1920_0_1920x1080');
+
+  // Fallback label if empty
+  const fp2 = createScreenFingerprint({
+    label: '',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1280,
+    availHeight: 720,
+  });
+  assert.equal(fp2, 'Display_0_0_1280x720');
+});
+
+test('SPEC-99-01: resolveLaunchTarget resolves to external display in multi-screen setup', async () => {
+  const { resolveLaunchTarget } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  const primaryScreen = {
+    id: 'Laptop_0_0_1920x1080',
+    label: 'Built-in Display',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+  };
+  const projectorScreen = {
+    id: 'Epson Projector_1920_0_1920x1080',
+    label: 'Epson Projector',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+  };
+
+  const config = {
+    targetPreference: 'external-display',
+    mode: 'fullscreen',
+    rememberOnDevice: true,
+  };
+
+  const resolved = resolveLaunchTarget(config, [primaryScreen, projectorScreen]);
+  assert.equal(resolved.mode, 'fullscreen');
+  assert.deepEqual(resolved.targetScreen, projectorScreen);
+  assert.equal(resolved.fallbackReason, undefined);
+  assert.equal(resolved.windowFeatures, 'popup=1,left=1920,top=0,width=1920,height=1080');
+});
+
+test('SPEC-99-01: resolveLaunchTarget matches specific display by rememberedScreenId', async () => {
+  const { resolveLaunchTarget } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  const primaryScreen = {
+    id: 'Laptop_0_0_1920x1080',
+    label: 'Built-in Display',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+  };
+  const projector1 = {
+    id: 'Sanctuary Projector_1920_0_1920x1080',
+    label: 'Sanctuary Projector',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+  };
+  const lobbyTv = {
+    id: 'Lobby TV_3840_0_1920x1080',
+    label: 'Lobby TV',
+    availLeft: 3840,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+  };
+
+  const config = {
+    targetPreference: 'specific-display',
+    rememberedScreenId: 'Lobby TV_3840_0_1920x1080',
+    mode: 'fullscreen',
+    rememberOnDevice: true,
+  };
+
+  const resolved = resolveLaunchTarget(config, [primaryScreen, projector1, lobbyTv]);
+  assert.equal(resolved.mode, 'fullscreen');
+  assert.deepEqual(resolved.targetScreen, lobbyTv);
+  assert.equal(resolved.windowFeatures, 'popup=1,left=3840,top=0,width=1920,height=1080');
+});
+
+test('SPEC-99-01: resolveLaunchTarget falls back to other external display when specific display is disconnected', async () => {
+  const { resolveLaunchTarget } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  const primaryScreen = {
+    id: 'Laptop_0_0_1920x1080',
+    label: 'Built-in Display',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+  };
+  const sanctuaryProjector = {
+    id: 'Sanctuary Projector_1920_0_1920x1080',
+    label: 'Sanctuary Projector',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+  };
+
+  // User wanted 'Lobby TV' which was unplugged, but Sanctuary Projector is connected
+  const config = {
+    targetPreference: 'specific-display',
+    rememberedScreenId: 'Lobby TV_missing',
+    mode: 'fullscreen',
+    rememberOnDevice: true,
+  };
+
+  const resolved = resolveLaunchTarget(config, [primaryScreen, sanctuaryProjector]);
+  assert.equal(resolved.mode, 'fullscreen');
+  assert.deepEqual(resolved.targetScreen, sanctuaryProjector);
+  assert.equal(resolved.fallbackReason, 'specific-screen-missing');
+  assert.equal(resolved.windowFeatures, 'popup=1,left=1920,top=0,width=1920,height=1080');
+});
+
+test('SPEC-99-01: resolveLaunchTarget automatically falls back to safe Window Mode when single screen', async () => {
+  const { resolveLaunchTarget } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  const primaryScreen = {
+    id: 'Laptop_0_0_1920x1080',
+    label: 'Built-in Display',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+  };
+
+  // Preference is external display, but only 1 display is connected (e.g. testing at home)
+  const config = {
+    targetPreference: 'external-display',
+    mode: 'fullscreen',
+    rememberOnDevice: true,
+  };
+
+  const resolved = resolveLaunchTarget(config, [primaryScreen]);
+  assert.equal(resolved.mode, 'window', 'Must downgrade to window mode to prevent operator lockout');
+  assert.equal(resolved.fallbackReason, 'single-display-safe-fallback');
+  assert.equal(resolved.windowFeatures, 'popup=1,width=1280,height=720,left=120,top=120');
+  assert.deepEqual(resolved.targetScreen, primaryScreen);
+});
+
+test('SPEC-99-01: resolveLaunchTarget respects explicit window-mode preference even with external displays', async () => {
+  const { resolveLaunchTarget } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+  const primaryScreen = {
+    id: 'Laptop_0_0_1920x1080',
+    label: 'Built-in Display',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+  };
+  const externalScreen = {
+    id: 'HDMI_1920_0_1920x1080',
+    label: 'External HDMI',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+  };
+
+  const config = {
+    targetPreference: 'window-mode',
+    mode: 'window',
+    rememberOnDevice: true,
+  };
+
+  const resolved = resolveLaunchTarget(config, [primaryScreen, externalScreen]);
+  assert.equal(resolved.mode, 'window');
+  assert.equal(resolved.fallbackReason, 'user-window-preference');
+  assert.equal(resolved.windowFeatures, 'popup=1,width=1280,height=720,left=120,top=120');
+});
+
+test('SPEC-99-01: localStorage intent persistence preserves external-display preference across single-screen fallback', async () => {
+  const { getDisplayTargetConfig, saveDisplayTargetConfig, DEFAULT_DISPLAY_TARGET_CONFIG } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  // Mock localStorage
+  const storage = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+    clear: () => storage.clear(),
+  };
+
+  // 1. Initially returns default
+  assert.deepEqual(getDisplayTargetConfig(), DEFAULT_DISPLAY_TARGET_CONFIG);
+
+  // 2. User sets preference to specific-display
+  const customConfig = {
+    targetPreference: 'specific-display',
+    mode: 'fullscreen',
+    rememberedScreenId: 'Epson_1920_0',
+    rememberOnDevice: true,
+  };
+  saveDisplayTargetConfig(customConfig);
+  assert.deepEqual(getDisplayTargetConfig(), customConfig);
+
+  // 3. User sets rememberOnDevice: false
+  const ephemeralConfig = {
+    targetPreference: 'window-mode',
+    mode: 'window',
+    rememberOnDevice: false,
+  };
+  saveDisplayTargetConfig(ephemeralConfig);
+  // Stored config still retains customConfig because rememberOnDevice is false
+  assert.deepEqual(getDisplayTargetConfig(), customConfig);
+
+  // 4. Corrupt JSON in localStorage falls back safely to default without throwing
+  storage.set('worship-deck:display-target-preference', 'not valid json {{{');
+  assert.deepEqual(getDisplayTargetConfig(), DEFAULT_DISPLAY_TARGET_CONFIG);
+});
+
+test('SPEC-99-01: detectAvailableScreens gracefully degrades when window.getScreenDetails is missing', async () => {
+  const { detectAvailableScreens } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // Mock window.screen without getScreenDetails
+  globalThis.window = {
+    screen: {
+      availLeft: 0,
+      availTop: 0,
+      availWidth: 1920,
+      availHeight: 1040,
+    },
+  };
+
+  const screens = await detectAvailableScreens();
+  assert.equal(screens.length, 1);
+  assert.equal(screens[0].isPrimary, true);
+  assert.equal(screens[0].availWidth, 1920);
+  assert.equal(screens[0].availHeight, 1040);
+});
+
+test('SPEC-99-01: resolveLaunchTarget handles external-as-primary topology using isInternal flag', async () => {
+  const { resolveLaunchTarget, isExternalScreen } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // User docked laptop: Projector/Monitor set as Primary (isPrimary: true, isInternal: false)
+  // Laptop built-in screen set as Secondary (isPrimary: false, isInternal: true)
+  const externalPrimaryMonitor = {
+    id: 'Projector_0_0_1920x1080',
+    label: 'External Projector',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+    isInternal: false,
+  };
+  const builtInSecondaryLaptop = {
+    id: 'Builtin_1920_0_1920x1080',
+    label: 'Internal Display',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+    isInternal: true,
+  };
+
+  assert.equal(isExternalScreen(externalPrimaryMonitor), true, 'externalPrimaryMonitor must be recognized as external screen');
+  assert.equal(isExternalScreen(builtInSecondaryLaptop), false, 'builtInSecondaryLaptop must be recognized as internal screen');
+
+  const config = {
+    targetPreference: 'external-display',
+    mode: 'fullscreen',
+    rememberOnDevice: true,
+  };
+
+  // Must route to the physical external display even though it is marked primary in the OS
+  const resolved = resolveLaunchTarget(config, [externalPrimaryMonitor, builtInSecondaryLaptop]);
+  assert.equal(resolved.mode, 'fullscreen');
+  assert.deepEqual(resolved.targetScreen, externalPrimaryMonitor);
+});
+
+test('SPEC-99-01: detectAvailableScreens builds index-independent fingerprints for unlabeled screens', async () => {
+  const { detectAvailableScreens } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // Order A
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: '', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+        { label: '', availLeft: 1920, availTop: 0, availWidth: 2560, availHeight: 1440, isPrimary: false },
+      ],
+    }),
+  };
+  const screensA = await detectAvailableScreens();
+
+  // Order B (swapped array order returned by browser)
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: '', availLeft: 1920, availTop: 0, availWidth: 2560, availHeight: 1440, isPrimary: false },
+        { label: '', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+      ],
+    }),
+  };
+  const screensB = await detectAvailableScreens();
+
+  // The 2560x1440 screen must have identical ID regardless of array index
+  const screenA_2k = screensA.find((s) => s.availWidth === 2560);
+  const screenB_2k = screensB.find((s) => s.availWidth === 2560);
+  assert.ok(screenA_2k && screenB_2k);
+  assert.equal(screenA_2k.id, screenB_2k.id, 'Screen fingerprint must be index-independent');
+  assert.equal(screenA_2k.label, screenB_2k.label, 'Screen label must be index-independent');
+});
+
+test('SPEC-99-01: detectAvailableScreens preserves undefined isInternal and falls back safely', async () => {
+  const { detectAvailableScreens, isExternalScreen } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // Browser returns primary screen with no isInternal property
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: 'Builtin Display', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+      ],
+    }),
+  };
+
+  const detected = await detectAvailableScreens();
+  assert.equal(detected.length, 1);
+  assert.equal(detected[0].isInternal, undefined, 'Missing isInternal must remain undefined, not converted to false');
+  assert.equal(isExternalScreen(detected[0]), false, 'Primary display with undefined isInternal must not be classified as external');
+});
+
+test('SPEC-99-01: getSynchronousScreens immediately returns fresh cached screens across page loads', async () => {
+  const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  const cachedMultiScreens = [
+    { id: 'Laptop', label: 'Laptop', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+    { id: 'Projector', label: 'Epson', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+  ];
+
+  const storage = new Map();
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify({ screens: cachedMultiScreens, timestamp: Date.now() }));
+
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+  };
+
+  const syncScreens = getSynchronousScreens();
+  assert.equal(syncScreens.length, 2, 'Must synchronously return fresh cached multi-screen topology');
+  assert.equal(syncScreens[1].label, 'Epson');
+});
+
+test('SPEC-99-01: getSynchronousScreens purges legacy timestamp-free cache and falls back safely', async () => {
+  const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  // Legacy format without timestamp
+  const legacyData = [
+    { id: 'OldProjector', label: 'Old Projector', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+  ];
+
+  const storage = new Map();
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(legacyData));
+
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+  };
+  globalThis.window = {
+    screen: { availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080 },
+  };
+
+  const syncScreens = getSynchronousScreens();
+  assert.equal(syncScreens.length, 1, 'Legacy cache must be purged in favor of single-screen fallback');
+  assert.equal(syncScreens[0].isPrimary, true);
+  assert.equal(storage.has(CACHED_SCREENS_STORAGE_KEY), false, 'Legacy cache must be removed from storage');
+});
+
+test('SPEC-99-01: getSynchronousScreens ignores stale cached topology and falls back safely', async () => {
+  const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY, CACHED_SCREENS_TTL_MS } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  // Cached 10 minutes ago (> 5m TTL)
+  const staleData = {
+    screens: [
+      { id: 'OldProjector', label: 'Old Projector', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+    ],
+    timestamp: Date.now() - (CACHED_SCREENS_TTL_MS + 60000),
+  };
+
+  const storage = new Map();
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(staleData));
+
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+  };
+  globalThis.window = {
+    screen: { availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080 },
+  };
+
+  const syncScreens = getSynchronousScreens();
+  assert.equal(syncScreens.length, 1, 'Stale cache must be ignored in favor of single-screen fallback');
+  assert.equal(syncScreens[0].isPrimary, true);
+});
+
+test('SPEC-99-01 Defect Injection Proof: Unchecked fullscreen on single-screen locks out operator', () => {
+  // Guard proof: A defective resolver that ignores screen count and launches fullscreen on 1-screen
+  function defectiveResolver(config, screens) {
+    const s = screens[0];
+    return {
+      mode: config.mode,
+      targetScreen: s,
+      windowFeatures: `popup=1,left=${s.availLeft},top=${s.availTop},width=${s.availWidth},height=${s.availHeight}`,
+    };
+  }
+
+  const singleScreen = [{ availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true }];
+  const defectiveResult = defectiveResolver({ targetPreference: 'external-display', mode: 'fullscreen' }, singleScreen);
+
+  // Defective resolver launches fullscreen on primary screen covering operator view
+  assert.equal(
+    defectiveResult.mode === 'fullscreen' && defectiveResult.targetScreen.isPrimary === true,
+    true,
+    'INJECTED DEFECT: Defective resolver causes single-screen operator lockout'
+  );
+});
