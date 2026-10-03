@@ -1,11 +1,58 @@
 export type ScriptureDisplayMode = 'per-verse' | 'inline';
+export type ScriptureTypographyMode = 'chapter' | 'verse';
+
+export interface ScriptureVerseItem {
+  verse: number;
+  text: string;
+  label?: string;
+  isContinuation?: boolean;
+  continuationIndex?: number;
+  continuationCount?: number;
+}
 
 export interface ScripturePageChunk {
   page: number; // 1-based
   totalPages: number;
-  verses: Array<{ verse: number; text: string }>;
+  verses: ScriptureVerseItem[];
   text: string;
   displayReference: string;
+  typographyMode: ScriptureTypographyMode;
+  isContinuation: boolean;
+  continuationIndex: number;
+  continuationCount: number;
+}
+
+export const CHARS_PER_LINE = 60;
+export const HARD_LINES = 10;
+export const TARGET_LINES = 8;
+export const ISOLATE_AT_CHARACTERS = 450;
+export const INLINE_MAX_SOURCE_VERSES = 12;
+
+/**
+ * Calculates conservative segmented visual line count for a set of verses.
+ */
+export function estimateScriptureLines(
+  verses: ScriptureVerseItem[],
+  mode: ScriptureDisplayMode = 'per-verse'
+): number {
+  if (!verses || verses.length === 0) return 0;
+  if (mode === 'per-verse') {
+    let totalLines = 0;
+    for (const v of verses) {
+      const label = v.label !== undefined ? (v.label.endsWith(' ') ? v.label : `${v.label} `) : `(${v.verse}) `;
+      const fullText = label + v.text;
+      const segments = fullText.split('\n');
+      for (const seg of segments) {
+        totalLines += Math.max(1, Math.ceil(seg.length / CHARS_PER_LINE));
+      }
+    }
+    return totalLines;
+  }
+  // Inline mode: joined text
+  const joinedText = verses
+    .map((v) => (v.label !== undefined ? (v.label.endsWith(' ') ? v.label : `${v.label} `) : `(${v.verse}) `) + v.text)
+    .join('; ');
+  return Math.max(1, Math.ceil(joinedText.length / CHARS_PER_LINE));
 }
 
 export type ParsedRef = {
@@ -147,27 +194,95 @@ export function getCanonicalScriptureKey(ref: string, translation = 'KJV'): stri
  * - 'inline': (1) Verse text; (2) Next verse
  */
 export function formatScriptureText(
-  verses: Array<{ verse: number; text: string }>,
+  verses: ScriptureVerseItem[],
   mode: ScriptureDisplayMode = 'per-verse'
 ): string {
   if (!verses || verses.length === 0) return '';
+  const renderItem = (v: ScriptureVerseItem) => {
+    const prefix = v.label !== undefined ? (v.label.endsWith(' ') ? v.label : `${v.label} `) : `(${v.verse}) `;
+    return prefix + v.text;
+  };
   if (mode === 'per-verse') {
-    return verses.map((v) => `(${v.verse}) ${v.text}`).join('\n');
+    return verses.map(renderItem).join('\n');
   }
-  return verses.map((v) => `(${v.verse}) ${v.text}`).join('; ');
+  return verses.map(renderItem).join('; ');
+}
+
+function partitionLongVerse(
+  v: ScriptureVerseItem,
+  mode: ScriptureDisplayMode
+): ScriptureVerseItem[][] {
+  const fullText = v.text;
+  const fragmentsText: string[] = [];
+  let remaining = fullText;
+  let isFirst = true;
+
+  while (remaining.length > 0) {
+    const label = isFirst ? (v.label !== undefined ? v.label : `(${v.verse})`) : `(${v.verse}, continued)`;
+    const maxChars = TARGET_LINES * CHARS_PER_LINE - (label.length + 1);
+
+    if (remaining.length <= maxChars) {
+      fragmentsText.push(remaining);
+      break;
+    }
+
+    // Find break point at last space within maxChars
+    let breakIdx = remaining.lastIndexOf(' ', maxChars);
+    if (breakIdx <= 0) {
+      // Pathological unbroken token: break at maxChars boundary
+      breakIdx = maxChars;
+      fragmentsText.push(remaining.slice(0, breakIdx));
+      remaining = remaining.slice(breakIdx);
+    } else {
+      // Include space in current fragment so concatenating .join('') strictly restores exact text
+      fragmentsText.push(remaining.slice(0, breakIdx + 1));
+      remaining = remaining.slice(breakIdx + 1);
+    }
+    isFirst = false;
+  }
+
+  const count = fragmentsText.length;
+  return fragmentsText.map((fText, idx) => {
+    const isCont = idx > 0;
+    const label = isCont ? `(${v.verse}, continued)` : (v.label !== undefined ? v.label : `(${v.verse})`);
+    return [
+      {
+        verse: v.verse,
+        text: fText,
+        label,
+        isContinuation: isCont,
+        continuationIndex: idx + 1,
+        continuationCount: count,
+      },
+    ];
+  });
 }
 
 /**
- * Chunks passage verses into sequential projection-safe pages.
- * Threshold: verse count > 8 OR character count > 900 triggers pagination.
+ * Chunks passage verses into sequential projection-safe pages using visual line budgets.
+ * - HARD_LINES = 10 normal ceiling
+ * - TARGET_LINES = 8 continuation ceiling
+ * - ISOLATE_AT_CHARACTERS = 450 both-sides sealed isolation
  */
 export function paginateScriptureVerses(
   baseReference: string,
-  verses: Array<{ verse: number; text: string }>,
+  verses: ScriptureVerseItem[],
   mode: ScriptureDisplayMode = 'per-verse',
-  maxVersesPerPage = 8,
+  typographyModeOrMaxVerses?: ScriptureTypographyMode | number,
   maxCharsPerPage = 900
 ): ScripturePageChunk[] {
+  let typographyMode: ScriptureTypographyMode | undefined;
+  let legacyMaxVerses: number | undefined;
+
+  if (typeof typographyModeOrMaxVerses === 'string') {
+    typographyMode = typographyModeOrMaxVerses;
+  } else if (typeof typographyModeOrMaxVerses === 'number') {
+    legacyMaxVerses = typographyModeOrMaxVerses;
+  }
+
+  const resolvedTypographyMode: ScriptureTypographyMode =
+    typographyMode || (verses && verses.length > 4 ? 'chapter' : 'verse');
+
   if (!verses || verses.length === 0) {
     return [
       {
@@ -176,40 +291,139 @@ export function paginateScriptureVerses(
         verses: [],
         text: '',
         displayReference: baseReference,
+        typographyMode: resolvedTypographyMode,
+        isContinuation: false,
+        continuationIndex: 1,
+        continuationCount: 1,
       },
     ];
   }
 
-  const singlePageText = formatScriptureText(verses, mode);
-  if (verses.length <= maxVersesPerPage && singlePageText.length <= maxCharsPerPage) {
-    return [
-      {
-        page: 1,
-        totalPages: 1,
-        verses,
-        text: singlePageText,
-        displayReference: baseReference,
-      },
-    ];
+  // Backward compatibility: If caller explicitly provided numeric maxVerses (legacy SPEC-98 behavior)
+  if (legacyMaxVerses !== undefined) {
+    const singlePageText = formatScriptureText(verses, mode);
+    if (verses.length <= legacyMaxVerses && singlePageText.length <= maxCharsPerPage) {
+      return [
+        {
+          page: 1,
+          totalPages: 1,
+          verses,
+          text: singlePageText,
+          displayReference: baseReference,
+          typographyMode: resolvedTypographyMode,
+          isContinuation: false,
+          continuationIndex: 1,
+          continuationCount: 1,
+        },
+      ];
+    }
+
+    const legacyChunks: ScriptureVerseItem[][] = [];
+    let curChunk: ScriptureVerseItem[] = [];
+    let curLen = 0;
+
+    for (const v of verses) {
+      const verseFormattedLen = `(${v.verse}) ${v.text}`.length + (mode === 'per-verse' ? 1 : 2);
+      const wouldExceedVerses = curChunk.length >= legacyMaxVerses;
+      const wouldExceedChars = curChunk.length > 0 && curLen + verseFormattedLen > maxCharsPerPage;
+
+      if (wouldExceedVerses || wouldExceedChars) {
+        legacyChunks.push(curChunk);
+        curChunk = [v];
+        curLen = verseFormattedLen;
+      } else {
+        curChunk.push(v);
+        curLen += verseFormattedLen;
+      }
+    }
+
+    if (curChunk.length > 0) {
+      legacyChunks.push(curChunk);
+    }
+
+    const totalPages = legacyChunks.length;
+    return legacyChunks.map((chunk, idx) => {
+      const page = idx + 1;
+      const firstV = chunk[0].verse;
+      const lastV = chunk[chunk.length - 1].verse;
+      let displayReference = baseReference;
+      if (totalPages > 1) {
+        if (firstV === lastV) {
+          displayReference = `${baseReference} (${firstV})`;
+        } else {
+          displayReference = `${baseReference} (${firstV}-${lastV})`;
+        }
+      }
+      return {
+        page,
+        totalPages,
+        verses: chunk,
+        text: formatScriptureText(chunk, mode),
+        displayReference,
+        typographyMode: resolvedTypographyMode,
+        isContinuation: false,
+        continuationIndex: 1,
+        continuationCount: 1,
+      };
+    });
   }
 
-  // Chunking by verse count and character limit
-  const chunks: Array<Array<{ verse: number; text: string }>> = [];
-  let currentChunk: Array<{ verse: number; text: string }> = [];
-  let currentLen = 0;
+  const chunks: ScriptureVerseItem[][] = [];
+  let currentChunk: ScriptureVerseItem[] = [];
 
   for (const v of verses) {
-    const verseFormattedLen = `(${v.verse}) ${v.text}`.length + (mode === 'per-verse' ? 1 : 2);
-    const wouldExceedVerses = currentChunk.length >= maxVersesPerPage;
-    const wouldExceedChars = currentChunk.length > 0 && currentLen + verseFormattedLen > maxCharsPerPage;
+    const isLongVerse = v.text.length >= ISOLATE_AT_CHARACTERS;
 
-    if (wouldExceedVerses || wouldExceedChars) {
+    if (isLongVerse) {
+      // 1. Pre-flush any accumulated prior verses
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+      }
+
+      // 2. Isolate long verse
+      const vLines = estimateScriptureLines([v], mode);
+      if (vLines <= HARD_LINES) {
+        chunks.push([
+          {
+            ...v,
+            label: v.label !== undefined ? v.label : `(${v.verse}) `,
+            isContinuation: false,
+            continuationIndex: 1,
+            continuationCount: 1,
+          },
+        ]);
+      } else {
+        // Partition into continuation fragments
+        const subChunks = partitionLongVerse(v, mode);
+        chunks.push(...subChunks);
+      }
+
+      // 3. Post-flush: currentChunk remains empty so subsequent verses start on a new page
+      continue;
+    }
+
+    // Normal verse accumulation within line budget
+    const candidateChunk = [...currentChunk, v];
+    const candidateLines = estimateScriptureLines(candidateChunk, mode);
+    const wouldExceedInline = mode === 'inline' && candidateChunk.length > INLINE_MAX_SOURCE_VERSES;
+
+    if (currentChunk.length > 0 && (candidateLines > HARD_LINES || wouldExceedInline)) {
       chunks.push(currentChunk);
-      currentChunk = [v];
-      currentLen = verseFormattedLen;
+      const vAloneLines = estimateScriptureLines([v], mode);
+      if (vAloneLines > HARD_LINES) {
+        const subChunks = partitionLongVerse(v, mode);
+        chunks.push(...subChunks);
+        currentChunk = [];
+      } else {
+        currentChunk = [v];
+      }
+    } else if (currentChunk.length === 0 && candidateLines > HARD_LINES) {
+      const subChunks = partitionLongVerse(v, mode);
+      chunks.push(...subChunks);
+      currentChunk = [];
     } else {
       currentChunk.push(v);
-      currentLen += verseFormattedLen;
     }
   }
 
@@ -220,22 +434,35 @@ export function paginateScriptureVerses(
   const totalPages = chunks.length;
   return chunks.map((chunk, idx) => {
     const page = idx + 1;
-    const firstV = chunk[0].verse;
-    const lastV = chunk[chunk.length - 1].verse;
+    const firstV = chunk[0];
+    const lastV = chunk[chunk.length - 1];
+    const isCont = Boolean(firstV.isContinuation || (firstV.continuationIndex && firstV.continuationIndex > 1));
+    const cIndex = firstV.continuationIndex || 1;
+    const cCount = firstV.continuationCount || 1;
+
     let displayReference = baseReference;
-    if (totalPages > 1) {
-      if (firstV === lastV) {
-        displayReference = `${baseReference} (${firstV})`;
+    if (cCount > 1) {
+      displayReference = isCont
+        ? `${baseReference} (${firstV.verse}, continued)`
+        : `${baseReference} (${firstV.verse})`;
+    } else if (totalPages > 1) {
+      if (firstV.verse === lastV.verse) {
+        displayReference = `${baseReference} (${firstV.verse})`;
       } else {
-        displayReference = `${baseReference} (${firstV}-${lastV})`;
+        displayReference = `${baseReference} (${firstV.verse}-${lastV.verse})`;
       }
     }
+
     return {
       page,
       totalPages,
       verses: chunk,
       text: formatScriptureText(chunk, mode),
       displayReference,
+      typographyMode: resolvedTypographyMode,
+      isContinuation: isCont,
+      continuationIndex: cIndex,
+      continuationCount: cCount,
     };
   });
 }
