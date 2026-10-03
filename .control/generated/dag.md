@@ -4,6 +4,12 @@
 
 ```yaml
 dag:
+- spec: SPEC-100
+  order:
+  - parallel:
+    - SPEC-100-01
+  - parallel:
+    - SPEC-100-02
 - spec: SPEC-12
   order:
   - parallel:

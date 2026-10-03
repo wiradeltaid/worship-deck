@@ -1392,6 +1392,34 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-100-01
+  spec: SPEC-100
+  release: scripture-line-budget-pagination-and-long-verse-resilience
+  test:
+  - tests/scripture-line-budget-pagination.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-100-02
+  spec: SPEC-100
+  release: scripture-line-budget-pagination-and-long-verse-resilience
+  test:
+  - tests/scripture-continuation-presentation.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation

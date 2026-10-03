@@ -4208,6 +4208,35 @@ waves:
         tests:
           - tests/congregation-screen-placement.test.mjs
 
+  - id: SPEC-100
+    status: open
+    release: scripture-line-budget-pagination-and-long-verse-resilience
+    prd: [operator-turn]
+    fr: [FR-16, FR-19]
+    size: S
+    depends_on: [SPEC-99]
+    spec_folder: .scratch/SPEC-100-scripture-line-budget-pagination-and-long-verse-resilience/
+    spec_reviewed:
+      date: '2026-10-03'
+      sha: '6b399c31b24e1110116f6f63406ed86e303d55b3'
+      lenses: [structure, prose, edge-case-hunter, state-propagation, cross-window-sync, rendering-geometry]
+      note: "Terra (kiro-agent) independent advisory triage folded in: (1) replaced coarse 8-verse/900-char chunker with conservative segmented visual line-budgeting (CHARS_PER_LINE = 60, target 8 lines, hard ceiling 10 lines) ensuring font scale >= 0.917 (4.4cqh) and adjacent page delta <= 0.08 across declared KJV and TB fixtures; (2) established both-sides sealed isolation for long verses (>= 450 chars), preventing surrounding verses from co-locating on the isolated slide; (3) established lossless source-text continuation splitting for ultra-long verses (> 10 lines) in both per-verse and inline modes where fragments.map(f => f.text).join('') strictly preserves original verse text; (4) single-origin typographyMode ('chapter' vs 'verse') derived once on acquisition, durable across loadedScripture, chunks, IndexedDB cache, wire messages, and reload sync; (5) end-to-end operator Next/Prev page navigation lifecycle with projector synchronization; (6) non-optional ScriptureOverlay wire contract across all producers; (7) stage safety net (78cqh) guaranteed zero-clipping."
+    tickets:
+      - id: "SPEC-100-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [scripture]
+        tests:
+          - tests/scripture-line-budget-pagination.test.mjs
+      - id: "SPEC-100-02"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-19]
+        blocked_by: ["SPEC-100-01"]
+        touches: [present-channel, scripture]
+        tests:
+          - tests/scripture-continuation-presentation.test.mjs
+
 
 
 
