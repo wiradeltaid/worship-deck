@@ -41,10 +41,10 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Support chapter-only references without colon in Go and TypeScript parsers with full alias normalization.
-- [ ] Query and return all verses for whole chapter in `/api/scripture`.
-- [ ] Format canonical reference without artificial verse numbers for full chapters.
-- [ ] Return structured `verses` array alongside formatted text in API response.
-- [ ] Maintain 100% backward compatibility for standard verse range lookups.
+- [x] Support chapter-only references without colon in Go and TypeScript parsers with full alias normalization.
+- [x] Query and return all verses for whole chapter in `/api/scripture`.
+- [x] Format canonical reference without artificial verse numbers for full chapters.
+- [x] Return structured `verses` array alongside formatted text in API response.
+- [x] Maintain 100% backward compatibility for standard verse range lookups.

@@ -1,7 +1,16 @@
 import { getDb } from './db';
 
+export type ScriptureVerse = {
+  verse: number;
+  text: string;
+};
+
 export type ScripturePassage = {
   reference: string;
+  chapter?: number;
+  isWholeChapter?: boolean;
+  is_whole_chapter?: boolean;
+  verses?: ScriptureVerse[];
   text: string;
   translation: string;
 };
@@ -17,53 +26,8 @@ export function stripVerseMarkup(text: string): string {
   return text.replace(/@\d+/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-type ParsedRef = {
-  book: string;
-  chapter: number;
-  verseStart: number;
-  verseEnd: number;
-};
-
-/** Strip placeholder prefixes operators often leave in the field (e.g. from UI copy). */
-function normalizeScriptureInput(raw: string): string {
-  return decodeURIComponent(raw)
-    .replace(/\+/g, ' ')
-    .trim()
-    .replace(/^(?:e\.g\.|eg\.|example:)\s*/i, '')
-    .trim();
-}
-
-/** Parse refs like `John 4:23`, `Song of Solomon 1:1`, `Hakim-hakim 2:16`. */
-export function parseScriptureRef(raw: string): ParsedRef | null {
-  const value = normalizeScriptureInput(raw);
-  if (!value) return null;
-
-  const colon = value.lastIndexOf(':');
-  if (colon <= 0) return null;
-  const before = value.slice(0, colon).trim();
-  const after = value.slice(colon + 1).trim();
-  const space = before.search(/\s+\S+$/);
-  if (space < 0) return null;
-  const book = before.slice(0, space).replace(/\s+/g, ' ').trim();
-  const chapter = Number(before.slice(space + 1).trim());
-  const span = after.match(/^(\d+)(?:\s*[-–]\s*(\d+)|\s*,\s*(\d+))?$/);
-  if (!span) return null;
-  const verseStart = Number(span[1]);
-  const verseEnd = Number(span[2] || span[3] || span[1]);
-  if (
-    !book ||
-    !Number.isInteger(chapter) ||
-    !Number.isInteger(verseStart) ||
-    !Number.isInteger(verseEnd) ||
-    chapter <= 0 ||
-    verseStart <= 0 ||
-    verseEnd < verseStart
-  ) {
-    return null;
-  }
-
-  return { book, chapter, verseStart, verseEnd };
-}
+import { parseScriptureRef, type ParsedRef } from './scripture-format';
+export { parseScriptureRef, type ParsedRef };
 
 type BookName = { id: number; name: string; shortName: string };
 
@@ -99,7 +63,7 @@ export function suggestBooks(
 ): ScriptureBookSuggestion[] {
   const cap =
     limit <= 0 || limit > DEFAULT_SUGGEST_LIMIT ? DEFAULT_SUGGEST_LIMIT : limit;
-  if (parseScriptureRef(q)) return [];
+  if (q.includes(':') && parseScriptureRef(q)) return [];
   let input = normalizeBookKey(q);
   if (!input) return [];
   const fields = input.split(' ');
@@ -223,33 +187,72 @@ export function lookupScripture(
   if (matched == null) return null;
 
   const db = getDb();
-  const rows = db
-    .prepare(
-      `SELECT verse, verse_text FROM bible_verses
-       WHERE book_id = ? AND chapter = ? AND verse >= ? AND verse <= ?
-         AND translation_code = ?
-       ORDER BY verse ASC`
-    )
-    .all(
-      matched.id,
-      parsed.chapter,
-      parsed.verseStart,
-      parsed.verseEnd,
-      code
-    ) as {
-    verse: number;
-    verse_text: string;
-  }[];
+  let rows: Array<{ verse: number; verse_text: string }>;
+  if (parsed.isWholeChapter) {
+    rows = db
+      .prepare(
+        `SELECT verse, verse_text FROM bible_verses
+         WHERE book_id = ? AND chapter = ? AND translation_code = ?
+         ORDER BY verse ASC`
+      )
+      .all(matched.id, parsed.chapter, code) as Array<{
+      verse: number;
+      verse_text: string;
+    }>;
+  } else {
+    rows = db
+      .prepare(
+        `SELECT verse, verse_text FROM bible_verses
+         WHERE book_id = ? AND chapter = ? AND verse >= ? AND verse <= ?
+           AND translation_code = ?
+         ORDER BY verse ASC`
+      )
+      .all(
+        matched.id,
+        parsed.chapter,
+        parsed.verseStart,
+        parsed.verseEnd,
+        code
+      ) as Array<{
+      verse: number;
+      verse_text: string;
+    }>;
+  }
 
   if (rows.length === 0) return null;
 
-  const text = rows.map((r) => stripVerseMarkup(r.verse_text)).join(' ');
+  const verses = rows.map((r) => ({
+    verse: r.verse,
+    text: stripVerseMarkup(r.verse_text),
+  }));
+
+  if (parsed.isWholeChapter) {
+    const text = verses.map((v) => `(${v.verse}) ${v.text}`).join('\n');
+    const reference = `${matched.canonicalName} ${parsed.chapter}`;
+    return {
+      reference,
+      chapter: parsed.chapter,
+      isWholeChapter: true,
+      is_whole_chapter: true,
+      verses,
+      text,
+      translation: code,
+    };
+  }
+
+  const text = verses.map((v) => v.text).join(' ');
   const reference =
     parsed.verseStart === parsed.verseEnd
       ? `${matched.canonicalName} ${parsed.chapter}:${parsed.verseStart}`
       : `${matched.canonicalName} ${parsed.chapter}:${parsed.verseStart}-${parsed.verseEnd}`;
 
-  return { reference, text, translation: code };
+  return {
+    reference,
+    chapter: parsed.chapter,
+    verses,
+    text,
+    translation: code,
+  };
 }
 
 /** Book suggestions for the named translation. Operator autocomplete only. */

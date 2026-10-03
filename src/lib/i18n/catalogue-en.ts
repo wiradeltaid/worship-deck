@@ -264,6 +264,13 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'presenter.scripture.translation': 'Translation',
   'presenter.scripture.defaultMissing':
     'The configured default is not installed; this session is using the shipped fallback.',
+  'presenter.scripture.mode': 'Display Mode',
+  'presenter.scripture.modePerVerse': 'Per verse',
+  'presenter.scripture.modeInline': 'Inline',
+  'presenter.scripture.pagePrev': 'Prev page',
+  'presenter.scripture.pageNext': 'Next page',
+  'presenter.scripture.pageIndicator': 'Page {current} / {total}',
+  'presenter.scripture.offlineCachedNotice': 'Displayed from offline cache',
   'presenter.noRundownText': 'No rundown text provided',
   'presenter.openCongregationScreen': 'Open congregation screen',
   'presenter.congregationScreenBlocked':

@@ -1833,7 +1833,7 @@ decisions:
 
   - id: DEC-086
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-03)"
     title: Daily Autopilot mandate for Scripture Ergonomics, Whole Chapter, Display Modes, and Offline Caching (SPEC-98)
     file: .control/decisions/DEC-086-daily-autopilot-mandate-scripture-ergonomics-whole-chapter-display-modes-and-offline-caching.md

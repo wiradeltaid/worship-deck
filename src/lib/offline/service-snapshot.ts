@@ -14,6 +14,7 @@
  */
 
 import { resolveEffectiveBackgroundImage } from '@/lib/artifacts/render-model';
+import { getCanonicalScriptureKey } from '@/lib/scripture-format';
 
 export type OfflineSnapshotStatus = 'warming' | 'ready' | 'degraded';
 
@@ -40,6 +41,7 @@ export type OfflineReadiness = {
   cached: number;
   failed: number;
   message: string;
+  scriptures?: { total: number; cached: number; failed: number };
 };
 
 export type ReadinessListener = (readiness: OfflineReadiness) => void;
@@ -74,10 +76,11 @@ export function subscribeServiceReadiness(
 }
 
 export const DB_NAME = 'worship_deck_offline_db';
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 const SNAPSHOT_STORE = 'service_snapshots';
 const MEDIA_STORE = 'media_cache';
 const OUTBOX_STORE = 'emergency_outbox';
+const SCRIPTURE_STORE = 'scripture_cache';
 const MAX_CACHED_SERVICES = 4;
 
 let cacheEpoch = 0;
@@ -100,11 +103,21 @@ export type EmergencyPatchRecord = {
   patchedArtifact: any;
 };
 
+export type ScriptureCacheRecord = {
+  cache_key: string;
+  reference: string;
+  translation: string;
+  verses: Array<{ verse: number; text: string }>;
+  text: string;
+  cached_at: number;
+};
+
 // In-memory fallback stores for non-browser/test environments
 const inMemorySnapshots = new Map<string, OfflineServiceSnapshot>();
 const inMemoryMedia = new Map<string, Blob>();
 const activeObjectUrls = new Set<string>();
 const inMemoryOutbox: EmergencyPatchRecord[] = [];
+const inMemoryScriptures = new Map<string, ScriptureCacheRecord>();
 
 function isIndexedDBAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined';
@@ -127,10 +140,125 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(OUTBOX_STORE)) {
         db.createObjectStore(OUTBOX_STORE, { keyPath: 'id', autoIncrement: true });
       }
+      if (!db.objectStoreNames.contains(SCRIPTURE_STORE)) {
+        db.createObjectStore(SCRIPTURE_STORE, { keyPath: 'cache_key' });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+export function getScriptureCacheKey(ref: string, translation: string): string {
+  return getCanonicalScriptureKey(ref, translation);
+}
+
+/**
+ * Enforces canonical cache key derivation at the persistence boundary,
+ * preventing any raw or alias-duplicated keys from entering storage.
+ */
+export async function cacheScripturePassage(entry: ScriptureCacheRecord): Promise<void> {
+  const normKey = getScriptureCacheKey(entry.reference, entry.translation);
+  const record: ScriptureCacheRecord = {
+    ...entry,
+    cache_key: normKey,
+    cached_at: entry.cached_at || Date.now(),
+  };
+
+  inMemoryScriptures.set(normKey, record);
+
+  if (!isIndexedDBAvailable()) return;
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(SCRIPTURE_STORE, 'readwrite');
+      tx.objectStore(SCRIPTURE_STORE).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // Non-blocking fallback to in-memory
+  }
+}
+
+export async function getCachedScripturePassage(
+  ref: string,
+  translation: string
+): Promise<ScriptureCacheRecord | null> {
+  const key = getScriptureCacheKey(ref, translation);
+
+  const mem = inMemoryScriptures.get(key);
+  if (mem) return mem;
+
+  if (!isIndexedDBAvailable()) return null;
+  try {
+    const db = await openDb();
+    return await new Promise<ScriptureCacheRecord | null>((resolve, reject) => {
+      const tx = db.transaction(SCRIPTURE_STORE, 'readonly');
+      const req = tx.objectStore(SCRIPTURE_STORE).get(key);
+      req.onsuccess = () => resolve((req.result as ScriptureCacheRecord) || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+export function extractRequiredScriptureRefs(serviceData: any): string[] {
+  if (!serviceData || typeof serviceData !== 'object') return [];
+  const refs = new Set<string>();
+
+  const check = (val: unknown) => {
+    if (typeof val === 'string') {
+      const s = val.trim();
+      if (s && !s.startsWith('http://') && !s.startsWith('https://')) {
+        refs.add(s);
+      }
+    }
+  };
+
+  if (serviceData.field_values && typeof serviceData.field_values === 'object') {
+    check(serviceData.field_values.scripture_reference);
+    check(serviceData.field_values.theme_verse);
+  }
+  if (serviceData.parsed_data && typeof serviceData.parsed_data === 'object') {
+    check(serviceData.parsed_data.theme_verse);
+    check(serviceData.parsed_data.verse_reading);
+  }
+  return Array.from(refs);
+}
+
+/**
+ * Resolves the target Bible translation for scripture auto-warming:
+ * checks service-level configuration, falls back to runtime API default, and defaults to 'KJV'.
+ */
+export async function resolveDefaultBibleTranslation(serviceData?: any): Promise<string> {
+  const fromService =
+    serviceData?.bible_translation?.trim?.() ||
+    serviceData?.translation?.trim?.() ||
+    serviceData?.field_values?.bible_translation?.trim?.() ||
+    serviceData?.parsed_data?.bible_translation?.trim?.();
+  if (fromService) return fromService.toUpperCase();
+
+  if (typeof fetch !== 'undefined') {
+    try {
+      const res = await fetch('/api/bible-translations');
+      if (res.ok) {
+        const body = (await res.json().catch(() => ({}))) as {
+          default_bible_translation_resolved?: string;
+          default_bible_translation?: string;
+        };
+        const resolved =
+          body.default_bible_translation_resolved?.trim?.() ||
+          body.default_bible_translation?.trim?.();
+        if (resolved) return resolved.toUpperCase();
+      }
+    } catch {
+      // offline / mock environment
+    }
+  }
+
+  return 'KJV';
 }
 
 /**
@@ -502,12 +630,13 @@ export function clearInMemoryOfflineStore(): void {
   revokeMediaUrls();
   inMemorySnapshots.clear();
   inMemoryMedia.clear();
+  inMemoryScriptures.clear();
   inMemoryOutbox.length = 0;
   activeWarmingMediaClaims.clear();
 }
 
 /**
- * Completely purges all offline snapshots, cached media blobs, and emergency outbox
+ * Completely purges all offline snapshots, cached media blobs, emergency outbox, and scripture cache
  * across both IndexedDB and in-memory stores. If strict is true (e.g. on Factory Reset),
  * any storage or transaction failure is propagated instead of being swallowed.
  */
@@ -517,10 +646,11 @@ export async function clearOfflineStorage(strict = false): Promise<void> {
     try {
       const db = await openDb();
       await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction([SNAPSHOT_STORE, MEDIA_STORE, OUTBOX_STORE], 'readwrite');
+        const tx = db.transaction([SNAPSHOT_STORE, MEDIA_STORE, OUTBOX_STORE, SCRIPTURE_STORE], 'readwrite');
         tx.objectStore(SNAPSHOT_STORE).clear();
         tx.objectStore(MEDIA_STORE).clear();
         tx.objectStore(OUTBOX_STORE).clear();
+        tx.objectStore(SCRIPTURE_STORE).clear();
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error || new Error('clearOfflineStorage transaction failed'));
         tx.onabort = () => reject(tx.error || new Error('clearOfflineStorage transaction aborted'));
@@ -581,13 +711,59 @@ export async function warmServiceSnapshot(
 
   claimWarmingMedia(mediaUrls);
   try {
+    // Pre-cache canonical scriptures
+    const scriptureRefs = extractRequiredScriptureRefs(serviceData);
+    let scripturesCached = 0;
+    let scripturesFailed = 0;
+    const translation = await resolveDefaultBibleTranslation(serviceData);
+    for (const ref of scriptureRefs) {
+      if (cacheEpoch !== epoch || warmingGenerationMap.get(normId) !== currentGen) {
+        break;
+      }
+      try {
+        if (typeof fetch !== 'undefined') {
+          const res = await fetch(
+            `/api/scripture?ref=${encodeURIComponent(ref)}&translation=${encodeURIComponent(translation)}`
+          );
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data && data.reference && data.text) {
+              await cacheScripturePassage({
+                cache_key: getScriptureCacheKey(ref, translation),
+                reference: data.reference,
+                translation: data.translation || translation,
+                verses: data.verses || [{ verse: 1, text: data.text }],
+                text: data.text,
+                cached_at: Date.now(),
+              });
+              scripturesCached++;
+              continue;
+            }
+          }
+        }
+        scripturesFailed++;
+      } catch {
+        scripturesFailed++;
+      }
+    }
+
+    const scriptureSummary =
+      scriptureRefs.length > 0
+        ? { total: scriptureRefs.length, cached: scripturesCached, failed: scripturesFailed }
+        : undefined;
+
     if (total === 0) {
+      const zeroStatus: OfflineSnapshotStatus = scripturesFailed === 0 ? 'ready' : 'degraded';
       const readyState: OfflineReadiness = {
-        status: 'ready',
+        status: zeroStatus,
         total: 0,
         cached: 0,
-        failed: 0,
-        message: 'Offline Ready (0 external assets)',
+        failed: scripturesFailed,
+        message:
+          zeroStatus === 'ready'
+            ? 'Offline Ready (0 external assets)'
+            : `Degraded: ${scripturesFailed} scripture(s) failed`,
+        scriptures: scriptureSummary,
       };
       if (cacheEpoch !== epoch || warmingGenerationMap.get(normId) !== currentGen) {
         return readyState;
@@ -597,7 +773,7 @@ export async function warmServiceSnapshot(
           ...serviceData,
           id: normId,
           cached_at: Date.now(),
-          status: 'ready',
+          status: zeroStatus,
           total_assets: 0,
           cached_assets: 0,
           failed_assets: [],
@@ -631,6 +807,7 @@ export async function warmServiceSnapshot(
         total,
         cached: cachedCount,
         failed,
+        scriptures: scriptureSummary,
         message:
           status === 'ready'
             ? total === 0
@@ -638,7 +815,9 @@ export async function warmServiceSnapshot(
               : `Offline Ready: ${cachedCount}/${total} assets`
             : status === 'warming'
             ? `Warming: ${cachedCount}/${total} assets`
-            : `Degraded: ${failed} assets failed`,
+            : failedUrls.length > 0
+            ? `Degraded: ${failedUrls.length} assets failed`
+            : `Degraded: ${scripturesFailed} scripture(s) failed`,
       };
       if (cacheEpoch !== epoch || warmingGenerationMap.get(normId) !== currentGen) {
         return state;
@@ -678,14 +857,16 @@ export async function warmServiceSnapshot(
           break;
         }
         cachedCount++;
-        notify('warming', failedUrls.length);
+        notify('warming', failedUrls.length + scripturesFailed);
       } catch {
         failedUrls.push(url);
       }
     }
 
-    const finalStatus: OfflineSnapshotStatus = failedUrls.length === 0 ? 'ready' : 'degraded';
-    const finalState = notify(finalStatus, failedUrls.length);
+    const finalStatus: OfflineSnapshotStatus =
+      failedUrls.length === 0 && scripturesFailed === 0 ? 'ready' : 'degraded';
+    const totalFailed = failedUrls.length + scripturesFailed;
+    const finalState = notify(finalStatus, totalFailed);
 
     if (cacheEpoch === epoch && warmingGenerationMap.get(normId) === currentGen) {
       await saveServiceSnapshot(

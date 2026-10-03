@@ -9,13 +9,49 @@
  * - Standard passages (120-200 chars): 4.8cqh
  * - Longer passages (> 200 chars): 3.5cqh with bounded max-height to ensure containment.
  */
-export function getScriptureScaling(text: string): {
+export function getScriptureScaling(
+  text: string,
+  verseCount?: number
+): {
   fontSizeStyle: string;
   tailwindClass: string;
   minHeightStyle: string;
   charCount: number;
 } {
   const len = text.trim().length;
+  if (typeof verseCount === 'number') {
+    if (verseCount === 1 || len < 60) {
+      return {
+        fontSizeStyle: '8.5cqh',
+        tailwindClass: 'font-medium tracking-tight',
+        minHeightStyle: '38cqh',
+        charCount: len,
+      };
+    }
+    if (verseCount <= 4 || len < 120) {
+      return {
+        fontSizeStyle: '6.5cqh',
+        tailwindClass: 'font-normal',
+        minHeightStyle: '28cqh',
+        charCount: len,
+      };
+    }
+    if (verseCount <= 8 || len < 200) {
+      return {
+        fontSizeStyle: '4.8cqh',
+        tailwindClass: 'font-normal',
+        minHeightStyle: '20cqh',
+        charCount: len,
+      };
+    }
+    return {
+      fontSizeStyle: '3.5cqh',
+      tailwindClass: 'font-normal',
+      minHeightStyle: 'auto',
+      charCount: len,
+    };
+  }
+
   if (len < 60) {
     return {
       fontSizeStyle: '8.5cqh',

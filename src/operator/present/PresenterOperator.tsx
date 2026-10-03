@@ -82,12 +82,22 @@ import {
   slidePatchOf,
   type PresentMessage,
   type SlidePatch,
+  type ScriptureOverlay,
 } from '@/lib/present-channel';
+import {
+  type ScriptureDisplayMode,
+  type ScripturePageChunk,
+  formatScriptureText,
+  paginateScriptureVerses,
+} from '@/lib/scripture-format';
 import {
   clearEmergencyPatches,
   getEmergencyPatches,
   revertEmergencyPatches,
   saveEmergencyPatch,
+  cacheScripturePassage,
+  getCachedScripturePassage,
+  getScriptureCacheKey,
   type EmergencyPatchRecord,
 } from '@/lib/offline/service-snapshot';
 import {
@@ -497,22 +507,30 @@ export default function PresenterOperator({
     Array<{ code: string; name: string }>
   >([]);
   const [bibleDefaultMissing, setBibleDefaultMissing] = useState(false);
+  const [scriptureMode, setScriptureMode] = useState<ScriptureDisplayMode>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('worship_deck_scripture_mode');
+        if (saved === 'inline' || saved === 'per-verse') return saved;
+      } catch {}
+    }
+    return 'per-verse';
+  });
+  const [loadedScripture, setLoadedScripture] = useState<{
+    reference: string;
+    verses: Array<{ verse: number; text: string }>;
+  } | null>(null);
+  const [scripturePageIndex, setScripturePageIndex] = useState<number>(0);
   const [projectorBlocked, setProjectorBlocked] = useState(false);
   const [remoteState, setRemoteState] =
     useState<PresenterRemoteConnectionState>('idle');
   const [remoteCode, setRemoteCode] = useState<string | null>(null);
   const [remoteDialogOpen, setRemoteDialogOpen] = useState(false);
   const [remoteActionBusy, setRemoteActionBusy] = useState(false);
-  const [scriptureOverlay, setScriptureOverlayState] = useState<{
-    reference: string;
-    text: string;
-  } | null>(null);
-  const scriptureOverlayRef = useRef<{
-    reference: string;
-    text: string;
-  } | null>(null);
+  const [scriptureOverlay, setScriptureOverlayState] = useState<ScriptureOverlay | null>(null);
+  const scriptureOverlayRef = useRef<ScriptureOverlay | null>(null);
   const setScriptureOverlay = useCallback(
-    (val: { reference: string; text: string } | null) => {
+    (val: ScriptureOverlay | null) => {
       scriptureOverlayRef.current = val;
       setScriptureOverlayState(val);
     },
@@ -670,12 +688,20 @@ export default function PresenterOperator({
 
   const broadcast = useCallback((msg: PresentMessage) => {
     if (msg.type === 'scripture') {
-      setScriptureOverlay({ reference: msg.reference, text: msg.text });
+      setScriptureOverlay({
+        reference: msg.reference,
+        displayReference: msg.displayReference,
+        text: msg.text,
+        mode: msg.mode,
+        verses: msg.verses,
+        currentPage: msg.currentPage,
+        totalPages: msg.totalPages,
+      });
     } else if (msg.type === 'clear-scripture' || msg.type === 'sync') {
       setScriptureOverlay(null);
     }
     channelRef.current?.postMessage(msg);
-  }, []);
+  }, [setScriptureOverlay]);
 
   const setIndexAndSync = useCallback(
     (next: number) => {
@@ -1363,16 +1389,59 @@ export default function PresenterOperator({
   const pushScripture = async () => {
     setScriptureBusy(true);
     setScriptureError(null);
+    const trimmedRef = scriptureRef.trim();
+    const translation = scriptureTranslation || 'KJV';
     try {
-      const params = new URLSearchParams({ ref: scriptureRef.trim() });
+      const params = new URLSearchParams({ ref: trimmedRef });
       if (scriptureTranslation) params.set('translation', scriptureTranslation);
-      const res = await fetch(`/api/scripture?${params.toString()}`);
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        reference?: string;
-        text?: string;
-      };
-      if (!res.ok) {
+      let res: Response | null = null;
+      let networkError = false;
+      try {
+        res = await fetch(`/api/scripture?${params.toString()}`);
+      } catch {
+        networkError = true;
+      }
+
+      if (networkError || (res && res.status >= 500)) {
+        // Network or 5xx error: attempt Plan B offline cache fallback
+        const cached = await getCachedScripturePassage(trimmedRef, translation);
+        if (cached) {
+          const baseRef = cached.reference;
+          const verses =
+            Array.isArray(cached.verses) && cached.verses.length > 0
+              ? cached.verses
+              : [{ verse: 1, text: cached.text }];
+          setLoadedScripture({ reference: baseRef, verses });
+          setScripturePageIndex(0);
+
+          const pages = paginateScriptureVerses(baseRef, verses, scriptureMode);
+          const firstPage = pages[0];
+          const newOverlay: ScriptureOverlay = {
+            reference: baseRef,
+            displayReference: firstPage.displayReference,
+            text: firstPage.text,
+            mode: scriptureMode,
+            verses: firstPage.verses,
+            currentPage: firstPage.page,
+            totalPages: firstPage.totalPages,
+          };
+          setScriptureOverlay(newOverlay);
+          broadcast({
+            type: 'scripture',
+            ...newOverlay,
+            planIdentity: planIdentityRef.current,
+          });
+          toast.info(t('presenter.scripture.offlineCachedNotice'));
+          return;
+        }
+        // Cache miss: fail closed
+        setScriptureError(t('presenter.scripture.lookupFailed'));
+        return;
+      }
+
+      // If res is 400 or 404: FAIL CLOSED IMMEDIATELY (no cache fallback!)
+      if (res && !res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
         setScriptureError(
           data.error ||
             (res.status === 404
@@ -1381,15 +1450,61 @@ export default function PresenterOperator({
         );
         return;
       }
+
+      if (!res) {
+        setScriptureError(t('presenter.scripture.lookupFailed'));
+        return;
+      }
+
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        reference?: string;
+        text?: string;
+        is_whole_chapter?: boolean;
+        chapter?: number;
+        verses?: Array<{ verse: number; text: string }>;
+        translation?: string;
+      };
+
       if (!data.reference || !data.text) {
         setScriptureError(t('presenter.scripture.lookupFailed'));
         return;
       }
-      setScriptureOverlay({ reference: data.reference, text: data.text });
+
+      const baseRef = data.reference;
+      const verses =
+        Array.isArray(data.verses) && data.verses.length > 0
+          ? data.verses
+          : [{ verse: 1, text: data.text }];
+
+      // Cache asynchronously into scripture_cache
+      void cacheScripturePassage({
+        cache_key: getScriptureCacheKey(trimmedRef, translation),
+        reference: baseRef,
+        translation: data.translation || translation,
+        verses,
+        text: data.text,
+        cached_at: Date.now(),
+      });
+
+      setLoadedScripture({ reference: baseRef, verses });
+      setScripturePageIndex(0);
+
+      const pages = paginateScriptureVerses(baseRef, verses, scriptureMode);
+      const firstPage = pages[0];
+      const newOverlay: ScriptureOverlay = {
+        reference: baseRef,
+        displayReference: firstPage.displayReference,
+        text: firstPage.text,
+        mode: scriptureMode,
+        verses: firstPage.verses,
+        currentPage: firstPage.page,
+        totalPages: firstPage.totalPages,
+      };
+      setScriptureOverlay(newOverlay);
       broadcast({
         type: 'scripture',
-        reference: data.reference,
-        text: data.text,
+        ...newOverlay,
         planIdentity: planIdentityRef.current,
       });
     } catch {
@@ -1398,6 +1513,80 @@ export default function PresenterOperator({
       setScriptureBusy(false);
     }
   };
+
+  const scripturePages = useMemo(() => {
+    if (!loadedScripture) return [];
+    return paginateScriptureVerses(
+      loadedScripture.reference,
+      loadedScripture.verses,
+      scriptureMode
+    );
+  }, [loadedScripture, scriptureMode]);
+
+  const handleModeChange = useCallback(
+    (mode: ScriptureDisplayMode) => {
+      setScriptureMode(mode);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('worship_deck_scripture_mode', mode);
+        } catch {}
+      }
+      if (loadedScripture) {
+        const pages = paginateScriptureVerses(
+          loadedScripture.reference,
+          loadedScripture.verses,
+          mode
+        );
+        const validIdx = Math.min(scripturePageIndex, Math.max(0, pages.length - 1));
+        setScripturePageIndex(validIdx);
+        const activePage = pages[validIdx];
+        if (activePage) {
+          const newOverlay: ScriptureOverlay = {
+            reference: loadedScripture.reference,
+            displayReference: activePage.displayReference,
+            text: activePage.text,
+            mode,
+            verses: activePage.verses,
+            currentPage: activePage.page,
+            totalPages: activePage.totalPages,
+          };
+          setScriptureOverlay(newOverlay);
+          broadcast({
+            type: 'scripture',
+            ...newOverlay,
+            planIdentity: planIdentityRef.current,
+          });
+        }
+      }
+    },
+    [loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast]
+  );
+
+  const handlePageChange = useCallback(
+    (newIdx: number) => {
+      if (!loadedScripture || newIdx < 0 || newIdx >= scripturePages.length) return;
+      setScripturePageIndex(newIdx);
+      const activePage = scripturePages[newIdx];
+      if (activePage) {
+        const newOverlay: ScriptureOverlay = {
+          reference: loadedScripture.reference,
+          displayReference: activePage.displayReference,
+          text: activePage.text,
+          mode: scriptureMode,
+          verses: activePage.verses,
+          currentPage: activePage.page,
+          totalPages: activePage.totalPages,
+        };
+        setScriptureOverlay(newOverlay);
+        broadcast({
+          type: 'scripture',
+          ...newOverlay,
+          planIdentity: planIdentityRef.current,
+        });
+      }
+    },
+    [loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast]
+  );
 
   return (
     <div className="dark flex min-h-dvh flex-col overflow-y-auto bg-background text-foreground">
@@ -1651,8 +1840,10 @@ export default function PresenterOperator({
               ) : null}
               {scriptureOverlay ? (
                 <ScriptureOverlayView
-                  reference={scriptureOverlay.reference}
+                  reference={scriptureOverlay.displayReference || scriptureOverlay.reference}
                   text={scriptureOverlay.text}
+                  mode={scriptureOverlay.mode}
+                  verseCount={scriptureOverlay.verses?.length}
                 />
               ) : current ? (
                 <SlideView
@@ -1760,18 +1951,6 @@ export default function PresenterOperator({
               onClick={toggleBlank}
             >
               {blank ? t('presenter.resumeScreen') : t('presenter.blankScreen')}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setScriptureOverlay(null);
-                broadcast({
-                  type: 'clear-scripture',
-                  planIdentity: planIdentityRef.current,
-                });
-              }}
-            >
-              {t('presenter.clearScripture')}
             </Button>
 
             {/* Live-only, and it has to read that way at a glance. An operator
@@ -1990,7 +2169,7 @@ export default function PresenterOperator({
             </div>
           </section>
 
-          <section className={`p-3 ${PANEL_CLASS}`}>
+          <section className={`p-3 ${PANEL_CLASS}`} data-slot="presenter-scripture-panel">
             <h2 className="mb-2 text-sm font-semibold">
               {t('presenter.scripture.title')}
             </h2>
@@ -2030,6 +2209,37 @@ export default function PresenterOperator({
                 ) : null}
               </div>
             ) : null}
+            <div className="mb-2" data-testid="presenter-scripture-mode-selector">
+              <Label className="mb-1 block text-xs font-medium text-muted-foreground">
+                {t('presenter.scripture.mode')}
+              </Label>
+              <div className="grid grid-cols-2 gap-1 rounded-md border border-input p-0.5 bg-muted/30">
+                <button
+                  type="button"
+                  data-testid="presenter-scripture-mode-per-verse"
+                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                    scriptureMode === 'per-verse'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => handleModeChange('per-verse')}
+                >
+                  {t('presenter.scripture.modePerVerse')}
+                </button>
+                <button
+                  type="button"
+                  data-testid="presenter-scripture-mode-inline"
+                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                    scriptureMode === 'inline'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  onClick={() => handleModeChange('inline')}
+                >
+                  {t('presenter.scripture.modeInline')}
+                </button>
+              </div>
+            </div>
             <div className="mb-2">
               <ScriptureRefAutocomplete
                 value={scriptureRef}
@@ -2045,15 +2255,74 @@ export default function PresenterOperator({
                 }}
               />
             </div>
-            <Button
-              size="sm"
-              onClick={() => void pushScripture()}
-              disabled={scriptureBusy || !scriptureRef.trim()}
+            <div
+              className="flex flex-wrap items-center gap-2"
+              data-testid="presenter-scripture-actions"
             >
-              {scriptureBusy
-                ? t('presenter.scripture.lookingUp')
-                : t('presenter.scripture.push')}
-            </Button>
+              <Button
+                size="sm"
+                data-testid="presenter-push-scripture-button"
+                onClick={() => void pushScripture()}
+                disabled={scriptureBusy || !scriptureRef.trim()}
+              >
+                {scriptureBusy
+                  ? t('presenter.scripture.lookingUp')
+                  : t('presenter.scripture.push')}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="presenter-clear-scripture-button"
+                onClick={() => {
+                  setLoadedScripture(null);
+                  setScripturePageIndex(0);
+                  setScriptureOverlay(null);
+                  broadcast({
+                    type: 'clear-scripture',
+                    planIdentity: planIdentityRef.current,
+                  });
+                }}
+              >
+                {t('presenter.clearScripture')}
+              </Button>
+            </div>
+            {scripturePages.length > 1 && (
+              <div
+                className="mt-2 flex items-center justify-between gap-2 rounded-md border border-border/60 bg-muted/20 px-2 py-1.5"
+                data-testid="presenter-scripture-paging"
+              >
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  data-testid="presenter-scripture-prev-page"
+                  className="h-7 px-2 text-xs"
+                  disabled={scripturePageIndex <= 0}
+                  onClick={() => handlePageChange(scripturePageIndex - 1)}
+                >
+                  {t('presenter.scripture.pagePrev')}
+                </Button>
+                <span
+                  className="text-xs font-medium text-muted-foreground"
+                  data-testid="presenter-scripture-page-indicator"
+                >
+                  {t('presenter.scripture.pageIndicator')
+                    .replace('{current}', String(scripturePageIndex + 1))
+                    .replace('{total}', String(scripturePages.length))}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  data-testid="presenter-scripture-next-page"
+                  className="h-7 px-2 text-xs"
+                  disabled={scripturePageIndex >= scripturePages.length - 1}
+                  onClick={() => handlePageChange(scripturePageIndex + 1)}
+                >
+                  {t('presenter.scripture.pageNext')}
+                </Button>
+              </div>
+            )}
             {scriptureError && (
               <p className="mt-2 text-xs text-amber-300">{scriptureError}</p>
             )}

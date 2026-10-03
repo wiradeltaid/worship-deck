@@ -4,6 +4,8 @@ import { getScriptureScaling, computeScriptureFitScale } from '@/lib/scripture-s
 export interface ScriptureOverlayViewProps {
   reference: string;
   text: string;
+  mode?: 'per-verse' | 'inline';
+  verseCount?: number;
   style?: CSSProperties;
 }
 
@@ -12,9 +14,11 @@ const SCRIPTURE_FIT_SCALE_VAR = '--scripture-fit-scale';
 export default function ScriptureOverlayView({
   reference,
   text,
+  mode,
+  verseCount,
   style,
 }: ScriptureOverlayViewProps) {
-  const scaling = getScriptureScaling(text);
+  const scaling = getScriptureScaling(text, verseCount);
   const stageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -146,7 +150,7 @@ export default function ScriptureOverlayView({
             <p
               ref={textRef}
               data-slot="scripture-text"
-              className={`italic leading-relaxed text-balance ${scaling.tailwindClass}`}
+              className={`italic leading-relaxed text-balance ${mode === 'per-verse' ? 'whitespace-pre-wrap' : ''} ${scaling.tailwindClass}`}
               style={{
                 fontSize: `calc(${scaling.fontSizeStyle} * var(${SCRIPTURE_FIT_SCALE_VAR}, 1))`,
                 lineHeight: 1.35,
