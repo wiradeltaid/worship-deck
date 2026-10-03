@@ -344,6 +344,24 @@ test('SPEC-99-01: detectAvailableScreens builds index-independent fingerprints f
   assert.equal(screenA_2k.label, screenB_2k.label, 'Screen label must be index-independent');
 });
 
+test('SPEC-99-01: detectAvailableScreens preserves undefined isInternal and falls back safely', async () => {
+  const { detectAvailableScreens, isExternalScreen } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // Browser returns primary screen with no isInternal property
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: 'Builtin Display', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+      ],
+    }),
+  };
+
+  const detected = await detectAvailableScreens();
+  assert.equal(detected.length, 1);
+  assert.equal(detected[0].isInternal, undefined, 'Missing isInternal must remain undefined, not converted to false');
+  assert.equal(isExternalScreen(detected[0]), false, 'Primary display with undefined isInternal must not be classified as external');
+});
+
 test('SPEC-99-01 Defect Injection Proof: Unchecked fullscreen on single-screen locks out operator', () => {
   // Guard proof: A defective resolver that ignores screen count and launches fullscreen on 1-screen
   function defectiveResolver(config, screens) {

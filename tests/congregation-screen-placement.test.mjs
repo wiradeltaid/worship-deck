@@ -83,6 +83,36 @@ test('SPEC-99-03: Topology events do not alter AD-29 heartbeat liveness state', 
   assert.equal(state2.verdict, 'live');
 });
 
+test('SPEC-99-03: openProjector discovery race resolution behavior', async () => {
+  const { resolveLaunchTarget, detectAvailableScreens } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  // Mock multi-screen environment
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: 'Laptop', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+        { label: 'Projector', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+      ],
+    }),
+  };
+
+  // Simulate empty screensRef on initial mount
+  let screensRefCurrent = [];
+  if (screensRefCurrent.length === 0) {
+    screensRefCurrent = await detectAvailableScreens();
+  }
+
+  const target = resolveLaunchTarget(
+    { targetPreference: 'external-display', mode: 'fullscreen', rememberOnDevice: true },
+    screensRefCurrent
+  );
+  assert.equal(target.mode, 'fullscreen');
+  assert.equal(target.targetScreen.label, 'Projector');
+  assert.equal(target.windowFeatures, 'popup=1,left=1920,top=0,width=1920,height=1080');
+});
+
 test('SPEC-99-03 Defect Injection Proof: verifyFullscreenOrchestration detects omitted query parameter', () => {
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const src = fs.readFileSync(presenterPath, 'utf8');

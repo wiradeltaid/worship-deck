@@ -107,6 +107,23 @@ test('SPEC-99-02: PresenterDisplayControl source guards for split-button and acc
   );
 });
 
+test('SPEC-99-02: Live relocation to primary display includes laptopWarning in confirmation message', () => {
+  const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  // Verify that primary-display selection prepends laptopWarning to confirmMsg before prompt
+  assert.ok(
+    src.includes("value === 'primary-display'") &&
+      src.includes('laptopWarning') &&
+      src.includes('relocateConfirm'),
+    'PresenterDisplayControl must combine laptopWarning and relocateConfirm when targeting primary display'
+  );
+  assert.ok(
+    src.includes("liveness === 'live' || value === 'primary-display'"),
+    'Confirmation must guard both live relocation and primary-display targeting'
+  );
+});
+
 test('SPEC-99-02: PresenterOperator imports and renders PresenterDisplayControl in header row 1', () => {
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const src = fs.readFileSync(presenterPath, 'utf8');

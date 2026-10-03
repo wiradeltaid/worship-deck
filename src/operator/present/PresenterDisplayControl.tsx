@@ -119,20 +119,17 @@ export default memo(function PresenterDisplayControl({
         if (found) targetLabel = found.label;
       }
 
-      // 1. If currently live, confirm before relocating
-      if (liveness === 'live') {
-        const confirmMsg = t('presenter.displayTarget.relocateConfirm').replace('{screen}', targetLabel);
+      // Prepare confirmation message, ensuring primary-display fullscreen always includes laptopWarning
+      let confirmMsg = t('presenter.displayTarget.relocateConfirm').replace('{screen}', targetLabel);
+      if (value === 'primary-display') {
+        confirmMsg = `${t('presenter.displayTarget.laptopWarning')}\n\n${confirmMsg}`;
+      }
+
+      // Prompt confirmation if currently live (relocation) or if targeting primary display
+      if (liveness === 'live' || value === 'primary-display') {
         if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
           if (!window.confirm(confirmMsg)) {
             return; // Cancelled: keep existing window and configuration
-          }
-        }
-      } else if (value === 'primary-display') {
-        // Confirm primary fullscreen warning if not already live
-        const warningMsg = `${t('presenter.displayTarget.laptopWarning')}\n\n${t('presenter.displayTarget.relocateConfirm').replace('{screen}', targetLabel)}`;
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-          if (!window.confirm(warningMsg)) {
-            return;
           }
         }
       }

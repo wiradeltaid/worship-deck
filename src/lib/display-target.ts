@@ -278,7 +278,7 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
 
       const screenDetails = await win.getScreenDetails();
       if (screenDetails && Array.isArray(screenDetails.screens) && screenDetails.screens.length > 0) {
-        return screenDetails.screens.map((s: any, idx: number) => {
+        return screenDetails.screens.map((s: any) => {
           const availLeft = typeof s.availLeft === 'number' ? s.availLeft : (typeof s.left === 'number' ? s.left : 0);
           const availTop = typeof s.availTop === 'number' ? s.availTop : (typeof s.top === 'number' ? s.top : 0);
           const availWidth = typeof s.availWidth === 'number' ? s.availWidth : (typeof s.width === 'number' ? s.width : 1920);
@@ -296,7 +296,7 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
             availWidth,
             availHeight,
             isPrimary: Boolean(s.isPrimary),
-            isInternal: Boolean(s.isInternal),
+            isInternal: typeof s.isInternal === 'boolean' ? s.isInternal : undefined,
           };
         });
       }
