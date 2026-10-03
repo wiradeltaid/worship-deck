@@ -32,11 +32,11 @@
 
 **Blocked by:** SPEC-97-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement Playwright real-browser integration tests across 100%–175% zoom matrix.
-- [ ] Assert panel width ratio is within 62%–68% on all desktop viewports with zero horizontal overflow.
-- [ ] Assert sub-`lg` viewports stack vertically.
-- [ ] Implement structural scanning for decoupled layout and testid attributes.
-- [ ] Implement defect injection with guaranteed `try/finally` file restoration.
-- [ ] Register test file and aliases (`smoke:spec-97` and `test:smoke-spec-97`) in `package.json`.
+- [x] Implement Playwright real-browser integration tests across 100%–175% zoom matrix.
+- [x] Assert panel width ratio is within 62%–68% on all desktop viewports with zero horizontal overflow.
+- [x] Assert sub-`lg` viewports stack vertically.
+- [x] Implement structural scanning for decoupled layout and testid attributes.
+- [x] Implement defect injection with guaranteed `try/finally` file restoration.
+- [x] Register test file and aliases (`smoke:spec-97` and `test:smoke-spec-97`) in `package.json`.

@@ -4095,7 +4095,7 @@ waves:
           - tests/pptx-dual-hash-image-embed.test.mjs
 
   - id: SPEC-97
-    status: open
+    status: closed
     release: presenter-zoom-layout-proportions-resilience
     prd: [operator-turn]
     fr: [FR-16]

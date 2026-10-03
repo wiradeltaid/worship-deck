@@ -21,10 +21,10 @@
 
 **Blocked by:** SPEC-97-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Apply `max-w-[var(--presenter-stage)]` directly to the Current slide media container with clean alignment.
-- [ ] Allow filmstrip and slide list to utilize full left panel width.
-- [ ] Explicitly permit page-level vertical scroll on short viewports while preserving internal scroll containment.
-- [ ] Maintain Next slide 16:9 ratio and intentional right-panel framing.
-- [ ] Verify scroll containment for filmstrip, slide list, and right-panel tabs.
+- [x] Apply `max-w-[var(--presenter-stage)]` directly to the Current slide media container with clean alignment.
+- [x] Allow filmstrip and slide list to utilize full left panel width.
+- [x] Explicitly permit page-level vertical scroll on short viewports while preserving internal scroll containment.
+- [x] Maintain Next slide 16:9 ratio and intentional right-panel framing.
+- [x] Verify scroll containment for filmstrip, slide list, and right-panel tabs.
