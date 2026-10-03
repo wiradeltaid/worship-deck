@@ -19,9 +19,9 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Transition `<main>` to 65/35 desktop proportion contract above `lg` breakpoint.
-- [ ] Retain `min-w-0` on both left and right panel containers.
-- [ ] Ensure vertical column stacking is maintained below `lg`.
-- [ ] Add `data-testid` markers for main layout and both panels.
+- [x] Transition `<main>` to 65/35 desktop proportion contract above `lg` breakpoint.
+- [x] Retain `min-w-0` on both left and right panel containers.
+- [x] Ensure vertical column stacking is maintained below `lg`.
+- [x] Add `data-testid` markers for main layout and both panels.

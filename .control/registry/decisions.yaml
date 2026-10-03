@@ -1814,7 +1814,7 @@ decisions:
 
   - id: DEC-085
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-03)"
     title: Daily Autopilot mandate for Presenter Zoom Layout Proportions Resilience (SPEC-97)
     file: .control/decisions/DEC-085-daily-autopilot-mandate-presenter-zoom-layout-proportions-resilience.md

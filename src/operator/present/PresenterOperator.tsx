@@ -1606,9 +1606,13 @@ export default function PresenterOperator({
 
       <main
         style={STAGE_VARS}
-        className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col gap-4 p-4 lg:flex-row"
+        data-testid="presenter-main-layout"
+        className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col gap-4 p-4 lg:grid lg:grid-cols-[minmax(24rem,13fr)_minmax(18rem,7fr)]"
       >
-        <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:grow-0 lg:basis-[var(--presenter-stage)]">
+        <div
+          data-testid="presenter-left-panel"
+          className="flex min-h-0 min-w-0 flex-col gap-3"
+        >
           {/* Blanking is announced *around* the stage, never over it: the whole
               point of the control is that the congregation loses the slide and
               the operator does not, so current and next keep rendering exactly
@@ -1634,7 +1638,8 @@ export default function PresenterOperator({
               ) : null}
             </p>
             <div
-              className={`aspect-video w-full overflow-hidden rounded-lg border bg-black relative ${
+              data-testid="presenter-current-slide-frame"
+              className={`aspect-video w-full max-w-[var(--presenter-stage)] mx-auto overflow-hidden rounded-lg border bg-black relative ${
                 blank ? 'border-amber-400/70' : 'border-border'
               }`}
             >
@@ -1960,12 +1965,18 @@ export default function PresenterOperator({
           </section>
         </div>
 
-        <aside className="flex min-h-0 min-w-0 flex-col gap-4 lg:flex-1 lg:basis-[18rem]">
+        <aside
+          data-testid="presenter-right-panel"
+          className="flex min-h-0 min-w-0 flex-col gap-4"
+        >
           <section>
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Next
             </p>
-            <div className="aspect-video w-full max-w-[32rem] overflow-hidden rounded-lg border border-border bg-black">
+            <div
+              data-testid="presenter-next-slide-frame"
+              className="aspect-video w-full max-w-[32rem] overflow-hidden rounded-lg border border-border bg-black"
+            >
               {next ? (
                 <SlideView
                   slide={next}
