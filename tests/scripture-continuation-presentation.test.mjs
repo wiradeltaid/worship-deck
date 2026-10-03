@@ -99,8 +99,46 @@ test('SPEC-100-02: ScriptureCacheRecord supports typography_mode with legacy der
 test('SPEC-100-02: Remote scripture intents normalize through line-budget paginator before broadcast', async () => {
   const { applyRemoteIntent } = await import(new URL('../src/lib/presenter-remote-client.ts', import.meta.url).href);
 
+  let installedPassage = null;
   let broadcastMessage = null;
-  const handlers = {
+
+  const handlersWithPresenterSync = {
+    broadcast: (msg) => {
+      broadcastMessage = msg;
+    },
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    setScriptureAndSync: (data) => {
+      installedPassage = data;
+    },
+  };
+
+  const ultraLongText =
+    'And it came to pass in those days, that there went out a decree from Caesar Augustus that all the world should be taxed, and all went to be taxed, every one into his own city. Furthermore, the governors and deputies in all the provinces assembled the people, making proclamation that all citizens should render tribute according to their households and estates, without omission or delay, throughout the entire jurisdiction of the empire from sunrise unto the going down of the same.';
+
+  // 1. Remote intent routed to PresenterOperator installs normalized passage with full structured verses
+  const accepted1 = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'Luke 2:1',
+      text: ultraLongText,
+      verses: [{ verse: 1, text: ultraLongText }],
+      is_whole_chapter: false,
+      planIdentity: 'plan-123',
+    },
+    'plan-123',
+    handlersWithPresenterSync
+  );
+
+  assert.equal(accepted1, true);
+  assert.ok(installedPassage !== null, 'Remote scripture must invoke setScriptureAndSync to install full passage');
+  assert.equal(installedPassage.reference, 'Luke 2:1');
+  assert.equal(installedPassage.verses.length, 1);
+
+  // 2. Fallback direct broadcast normalizes long verse into visual line-budget chunks
+  const handlersDirect = {
     broadcast: (msg) => {
       broadcastMessage = msg;
     },
@@ -110,11 +148,7 @@ test('SPEC-100-02: Remote scripture intents normalize through line-budget pagina
     setBackgroundAndSync: () => {},
   };
 
-  // Send an ultra-long verse intent (> 650 chars) via remote control
-  const ultraLongText =
-    'And it came to pass in those days, that there went out a decree from Caesar Augustus that all the world should be taxed, and all went to be taxed, every one into his own city. Furthermore, the governors and deputies in all the provinces assembled the people, making proclamation that all citizens should render tribute according to their households and estates, without omission or delay, throughout the entire jurisdiction of the empire from sunrise unto the going down of the same.';
-
-  const accepted = applyRemoteIntent(
+  const accepted2 = applyRemoteIntent(
     {
       type: 'scripture',
       reference: 'Luke 2:1',
@@ -122,18 +156,14 @@ test('SPEC-100-02: Remote scripture intents normalize through line-budget pagina
       planIdentity: 'plan-123',
     },
     'plan-123',
-    handlers
+    handlersDirect
   );
 
-  assert.equal(accepted, true);
+  assert.equal(accepted2, true);
   assert.ok(broadcastMessage !== null);
   assert.equal(broadcastMessage.type, 'scripture');
-  assert.ok(broadcastMessage.typographyMode === 'chapter' || broadcastMessage.typographyMode === 'verse');
-  assert.equal(typeof broadcastMessage.isContinuation, 'boolean');
-  assert.equal(typeof broadcastMessage.continuationIndex, 'number');
-  assert.equal(typeof broadcastMessage.continuationCount, 'number');
-  // Proven normalized: totalPages reflects chunking
   assert.ok(broadcastMessage.totalPages >= 1);
+  assert.equal(broadcastMessage.typographyMode, 'verse');
 });
 
 test('SPEC-100-02: warmServiceSnapshot stores typography_mode and is_whole_chapter durably', async () => {

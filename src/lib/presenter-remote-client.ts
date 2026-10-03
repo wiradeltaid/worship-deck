@@ -22,6 +22,9 @@ export type PresenterRemoteIntent =
       type: 'scripture';
       reference: string;
       text: string;
+      verses?: Array<{ verse: number; text: string }>;
+      is_whole_chapter?: boolean;
+      mode?: 'per-verse' | 'inline';
       planIdentity: string;
     }
   | { type: 'clear-scripture'; planIdentity: string };
@@ -31,6 +34,13 @@ export interface PresenterActionHandlers {
   setBlankAndSync: (blank: boolean) => void;
   setTransitionAndSync: (transition: SlideTransition) => void;
   setBackgroundAndSync: (background: string | null) => void;
+  setScriptureAndSync?: (data: {
+    reference: string;
+    text: string;
+    verses?: Array<{ verse: number; text: string }>;
+    mode?: 'per-verse' | 'inline';
+    is_whole_chapter?: boolean;
+  }) => void;
   broadcast: (msg: PresentMessage) => void;
 }
 
@@ -95,9 +105,21 @@ export function applyRemoteIntent(
           ? (intent as any).verses
           : [{ verse: 1, text: intent.text }];
         const mode = (intent as any).mode === 'inline' ? 'inline' : 'per-verse';
+        const isWholeChapter = Boolean((intent as any).is_whole_chapter || !intent.reference.includes(':'));
         const typographyMode =
           (intent as any).typographyMode ||
-          ((intent as any).is_whole_chapter || !intent.reference.includes(':') || verses.length > 4 ? 'chapter' : 'verse');
+          (isWholeChapter || verses.length > 4 ? 'chapter' : 'verse');
+
+        if (typeof handlers.setScriptureAndSync === 'function') {
+          handlers.setScriptureAndSync({
+            reference: intent.reference,
+            text: intent.text,
+            verses,
+            mode,
+            is_whole_chapter: isWholeChapter,
+          });
+          return true;
+        }
 
         // Normalize incoming remote scripture through the canonical visual line-budget paginator
         const chunks = paginateScriptureVerses(intent.reference, verses, mode, typographyMode);

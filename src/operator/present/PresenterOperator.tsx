@@ -838,6 +838,52 @@ export default function PresenterOperator({
     setBlankAndSync(!blankRef.current);
   }, [setBlankAndSync]);
 
+  const setScriptureAndSync = useCallback(
+    (data: {
+      reference: string;
+      text: string;
+      verses?: Array<{ verse: number; text: string }>;
+      mode?: ScriptureDisplayMode;
+      is_whole_chapter?: boolean;
+    }) => {
+      const baseRef = data.reference;
+      const verses =
+        Array.isArray(data.verses) && data.verses.length > 0
+          ? data.verses
+          : [{ verse: 1, text: data.text }];
+      const isWholeChapter = Boolean(data.is_whole_chapter || !baseRef.includes(':'));
+      const typographyMode: ScriptureTypographyMode =
+        isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
+      const effectiveMode = data.mode || scriptureMode;
+
+      setLoadedScripture({ reference: baseRef, verses, typographyMode });
+      setScripturePageIndex(0);
+
+      const pages = paginateScriptureVerses(baseRef, verses, effectiveMode, typographyMode);
+      const firstPage = pages[0];
+      const newOverlay: ScriptureOverlay = {
+        reference: baseRef,
+        displayReference: firstPage.displayReference,
+        text: firstPage.text,
+        mode: effectiveMode,
+        verses: firstPage.verses,
+        currentPage: firstPage.page,
+        totalPages: firstPage.totalPages,
+        typographyMode: firstPage.typographyMode,
+        isContinuation: firstPage.isContinuation,
+        continuationIndex: firstPage.continuationIndex,
+        continuationCount: firstPage.continuationCount,
+      };
+      setScriptureOverlay(newOverlay);
+      broadcast({
+        type: 'scripture',
+        ...newOverlay,
+        planIdentity: planIdentityRef.current,
+      });
+    },
+    [scriptureMode, broadcast, setScriptureOverlay]
+  );
+
   const visibilityController = useMemo(() => {
     return createSlideVisibilityController({
       getSlides: () => activeSlidesRef.current,
@@ -1039,6 +1085,7 @@ export default function PresenterOperator({
         setBlankAndSync,
         setTransitionAndSync,
         setBackgroundAndSync,
+        setScriptureAndSync,
         broadcast,
       },
       onCode: (code) => {
