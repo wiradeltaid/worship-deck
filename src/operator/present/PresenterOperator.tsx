@@ -689,7 +689,7 @@ export default function PresenterOperator({
     };
   }, []);
 
-  const openProjector = useCallback((overrideTarget?: ResolvedLaunchTarget) => {
+  const openProjector = useCallback(async (overrideTarget?: ResolvedLaunchTarget) => {
     const existing = projectorRef.current;
     if (existing && !existing.closed && !overrideTarget) {
       if (livenessRef.current.verdict === 'lost') {
@@ -700,8 +700,16 @@ export default function PresenterOperator({
       return;
     }
 
+    // Ensure display discovery is queried before resolving if mount effect is still pending
+    let currentScreens = screensRef.current;
+    if (currentScreens.length === 0) {
+      currentScreens = await detectAvailableScreens();
+      screensRef.current = currentScreens;
+      setAvailableScreens(currentScreens);
+    }
+
     const config = getDisplayTargetConfig();
-    const target = overrideTarget || resolveLaunchTarget(config, screensRef.current);
+    const target = overrideTarget || resolveLaunchTarget(config, currentScreens);
 
     // If an existing window was open and we are retargeting/relocating, cleanly close old handle
     if (existing && !existing.closed) {

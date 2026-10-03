@@ -270,6 +270,80 @@ test('SPEC-99-01: detectAvailableScreens gracefully degrades when window.getScre
   assert.equal(screens[0].availHeight, 1040);
 });
 
+test('SPEC-99-01: resolveLaunchTarget handles external-as-primary topology using isInternal flag', async () => {
+  const { resolveLaunchTarget, isExternalScreen } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // User docked laptop: Projector/Monitor set as Primary (isPrimary: true, isInternal: false)
+  // Laptop built-in screen set as Secondary (isPrimary: false, isInternal: true)
+  const externalPrimaryMonitor = {
+    id: 'Projector_0_0_1920x1080',
+    label: 'External Projector',
+    availLeft: 0,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: true,
+    isInternal: false,
+  };
+  const builtInSecondaryLaptop = {
+    id: 'Builtin_1920_0_1920x1080',
+    label: 'Internal Display',
+    availLeft: 1920,
+    availTop: 0,
+    availWidth: 1920,
+    availHeight: 1080,
+    isPrimary: false,
+    isInternal: true,
+  };
+
+  assert.equal(isExternalScreen(externalPrimaryMonitor), true, 'externalPrimaryMonitor must be recognized as external screen');
+  assert.equal(isExternalScreen(builtInSecondaryLaptop), false, 'builtInSecondaryLaptop must be recognized as internal screen');
+
+  const config = {
+    targetPreference: 'external-display',
+    mode: 'fullscreen',
+    rememberOnDevice: true,
+  };
+
+  // Must route to the physical external display even though it is marked primary in the OS
+  const resolved = resolveLaunchTarget(config, [externalPrimaryMonitor, builtInSecondaryLaptop]);
+  assert.equal(resolved.mode, 'fullscreen');
+  assert.deepEqual(resolved.targetScreen, externalPrimaryMonitor);
+});
+
+test('SPEC-99-01: detectAvailableScreens builds index-independent fingerprints for unlabeled screens', async () => {
+  const { detectAvailableScreens } = await import(new URL('../src/lib/display-target.ts', import.meta.url).href);
+
+  // Order A
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: '', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+        { label: '', availLeft: 1920, availTop: 0, availWidth: 2560, availHeight: 1440, isPrimary: false },
+      ],
+    }),
+  };
+  const screensA = await detectAvailableScreens();
+
+  // Order B (swapped array order returned by browser)
+  globalThis.window = {
+    getScreenDetails: async () => ({
+      screens: [
+        { label: '', availLeft: 1920, availTop: 0, availWidth: 2560, availHeight: 1440, isPrimary: false },
+        { label: '', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+      ],
+    }),
+  };
+  const screensB = await detectAvailableScreens();
+
+  // The 2560x1440 screen must have identical ID regardless of array index
+  const screenA_2k = screensA.find((s) => s.availWidth === 2560);
+  const screenB_2k = screensB.find((s) => s.availWidth === 2560);
+  assert.ok(screenA_2k && screenB_2k);
+  assert.equal(screenA_2k.id, screenB_2k.id, 'Screen fingerprint must be index-independent');
+  assert.equal(screenA_2k.label, screenB_2k.label, 'Screen label must be index-independent');
+});
+
 test('SPEC-99-01 Defect Injection Proof: Unchecked fullscreen on single-screen locks out operator', () => {
   // Guard proof: A defective resolver that ignores screen count and launches fullscreen on 1-screen
   function defectiveResolver(config, screens) {

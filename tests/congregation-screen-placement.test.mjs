@@ -22,6 +22,12 @@ test('SPEC-99-03: PresenterOperator openProjector builds multi-screen coordinate
     'PresenterOperator must pass fullscreen=1 when launching fullscreen target'
   );
 
+  // Must detect screens on first launch if mount discovery is pending
+  assert.ok(
+    src.includes('currentScreens.length === 0') && src.includes('await detectAvailableScreens()'),
+    'openProjector must query screens before resolving if initial mount discovery is pending'
+  );
+
   // Must pass relocateProjector to PresenterDisplayControl
   assert.ok(
     src.includes('onRelocate='),

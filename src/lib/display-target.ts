@@ -70,6 +70,17 @@ export function createScreenFingerprint(screen: Partial<ScreenInfo>): string {
 }
 
 /**
+ * Classifies whether a screen is physically external (projector, TV, external HDMI/DisplayPort).
+ * Honors `isInternal === false` over `isPrimary` to support external-as-primary topologies.
+ */
+export function isExternalScreen(screen: ScreenInfo): boolean {
+  if (typeof screen.isInternal === 'boolean') {
+    return !screen.isInternal;
+  }
+  return !screen.isPrimary;
+}
+
+/**
  * Resolves the concrete display target, mode, and window features from user intent
  * and currently connected display topology.
  */
@@ -89,7 +100,7 @@ export function resolveLaunchTarget(
   }
 
   const primaryScreen = effectiveScreens.find((s) => s.isPrimary) || effectiveScreens[0];
-  const externalScreens = effectiveScreens.filter((s) => !s.isPrimary);
+  const externalScreens = effectiveScreens.filter(isExternalScreen);
   const hasExternalDisplay = externalScreens.length > 0;
 
   // 1. Explicit window mode
@@ -272,7 +283,10 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
           const availTop = typeof s.availTop === 'number' ? s.availTop : (typeof s.top === 'number' ? s.top : 0);
           const availWidth = typeof s.availWidth === 'number' ? s.availWidth : (typeof s.width === 'number' ? s.width : 1920);
           const availHeight = typeof s.availHeight === 'number' ? s.availHeight : (typeof s.height === 'number' ? s.height : 1080);
-          const label = s.label && s.label.trim() ? s.label.trim() : `Display ${idx + 1} (${availWidth}x${availHeight})`;
+          // Index-independent fallback label based on physical display geometry
+          const label = s.label && s.label.trim()
+            ? s.label.trim()
+            : `Display (${availWidth}x${availHeight} @ ${availLeft},${availTop})`;
 
           return {
             id: createScreenFingerprint({ label, availLeft, availTop, availWidth, availHeight }),

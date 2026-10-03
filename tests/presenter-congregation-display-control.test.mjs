@@ -95,6 +95,16 @@ test('SPEC-99-02: PresenterDisplayControl source guards for split-button and acc
     false,
     'Must not use raw HTML <select>'
   );
+
+  // Must use relocateConfirm and laptopWarning keys
+  assert.ok(
+    src.includes('relocateConfirm'),
+    'Must use presenter.displayTarget.relocateConfirm translation'
+  );
+  assert.ok(
+    src.includes('laptopWarning'),
+    'Must use presenter.displayTarget.laptopWarning translation'
+  );
 });
 
 test('SPEC-99-02: PresenterOperator imports and renders PresenterDisplayControl in header row 1', () => {

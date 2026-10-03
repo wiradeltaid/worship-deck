@@ -33,6 +33,7 @@ import {
   detectAvailableScreens,
   subscribeScreenTopology,
   resolveLaunchTarget,
+  isExternalScreen,
 } from '@/lib/display-target';
 import type { LivenessVerdict } from '@/lib/projector-liveness';
 
@@ -100,9 +101,42 @@ export default memo(function PresenterDisplayControl({
     [liveness, onRelocate, screens]
   );
 
+  // External and primary screen categorization
+  const externalScreens = useMemo(() => screens.filter(isExternalScreen), [screens]);
+  const primaryScreen = useMemo(() => screens.find((s) => s.isPrimary), [screens]);
+
   // Target radio selection handler
   const handleSelectRadio = useCallback(
     (value: string) => {
+      // Determine screen label/name for confirmation message
+      let targetLabel = t('presenter.displayTarget.openWindow');
+      if (value === 'primary-display') {
+        targetLabel = primaryScreen ? primaryScreen.label : t('presenter.displayTarget.primaryDisplay');
+      } else if (value === 'external-default') {
+        targetLabel = externalScreens[0] ? externalScreens[0].label : t('presenter.displayTarget.openExternal');
+      } else if (value !== 'window-mode') {
+        const found = screens.find((s) => s.id === value);
+        if (found) targetLabel = found.label;
+      }
+
+      // 1. If currently live, confirm before relocating
+      if (liveness === 'live') {
+        const confirmMsg = t('presenter.displayTarget.relocateConfirm').replace('{screen}', targetLabel);
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+          if (!window.confirm(confirmMsg)) {
+            return; // Cancelled: keep existing window and configuration
+          }
+        }
+      } else if (value === 'primary-display') {
+        // Confirm primary fullscreen warning if not already live
+        const warningMsg = `${t('presenter.displayTarget.laptopWarning')}\n\n${t('presenter.displayTarget.relocateConfirm').replace('{screen}', targetLabel)}`;
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+          if (!window.confirm(warningMsg)) {
+            return;
+          }
+        }
+      }
+
       if (value === 'window-mode') {
         handleConfigChange({
           ...config,
@@ -132,7 +166,7 @@ export default memo(function PresenterDisplayControl({
         });
       }
     },
-    [config, handleConfigChange]
+    [config, externalScreens, handleConfigChange, liveness, primaryScreen, screens, t]
   );
 
   // Compute radio group active value
@@ -175,9 +209,6 @@ export default memo(function PresenterDisplayControl({
       buttonVariant: 'default' as const,
     };
   }, [liveness, resolvedTarget, t]);
-
-  const externalScreens = useMemo(() => screens.filter((s) => !s.isPrimary), [screens]);
-  const primaryScreen = useMemo(() => screens.find((s) => s.isPrimary), [screens]);
 
   return (
     <div
