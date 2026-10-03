@@ -266,6 +266,13 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'presenter.scripture.translation': 'Terjemahan',
   'presenter.scripture.defaultMissing':
     'Default yang dikonfigurasi belum terpasang; sesi ini memakai cadangan yang dikirim.',
+  'presenter.scripture.mode': 'Mode Tampilan',
+  'presenter.scripture.modePerVerse': 'Per baris',
+  'presenter.scripture.modeInline': 'Digabung',
+  'presenter.scripture.pagePrev': 'Halaman sebelumnya',
+  'presenter.scripture.pageNext': 'Halaman berikutnya',
+  'presenter.scripture.pageIndicator': 'Halaman {current} / {total}',
+  'presenter.scripture.offlineCachedNotice': 'Ditampilkan dari cache offline',
   'presenter.noRundownText': 'Tidak ada teks susunan acara',
   'presenter.openCongregationScreen': 'Buka layar jemaat',
   'presenter.congregationScreenBlocked':

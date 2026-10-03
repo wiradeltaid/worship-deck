@@ -11,6 +11,7 @@ import {
   slidePatchOf,
   syncPatchesOf,
   type PresentMessage,
+  type ScriptureOverlay,
 } from '@/lib/present-channel';
 import { validateProjectorSlidePatchAdmission } from '@/lib/emergency-canvas';
 import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
@@ -60,10 +61,7 @@ export default function ProjectorClient({
   );
   const [blank, setBlank] = useState(false);
   const [stalePlan, setStalePlan] = useState(false);
-  const [overlay, setOverlay] = useState<{
-    reference: string;
-    text: string;
-  } | null>(null);
+  const [overlay, setOverlay] = useState<ScriptureOverlay | null>(null);
 
   // SPEC-94-02: Ephemeral F11 fullscreen guidance onboarding cue.
   // Authorized exception to UC-12 room-facing chrome prohibition:
@@ -203,7 +201,15 @@ export default function ProjectorClient({
           }
         }
       } else if (msg.type === 'scripture') {
-        setOverlay({ reference: msg.reference, text: msg.text });
+        setOverlay({
+          reference: msg.displayReference || msg.reference,
+          text: msg.text,
+          mode: msg.mode,
+          verses: msg.verses,
+          currentPage: msg.currentPage,
+          totalPages: msg.totalPages,
+          displayReference: msg.displayReference,
+        });
       } else if (msg.type === 'clear-scripture') {
         setOverlay(null);
       }
@@ -297,8 +303,10 @@ export default function ProjectorClient({
       >
         {overlay ? (
           <ScriptureOverlayView
-            reference={overlay.reference}
+            reference={overlay.displayReference || overlay.reference}
             text={overlay.text}
+            mode={overlay.mode}
+            verseCount={overlay.verses?.length}
           />
         ) : slide ? (
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />

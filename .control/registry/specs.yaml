@@ -4130,7 +4130,7 @@ waves:
         tests:
           - tests/presenter-panel-geometry.test.mjs
   - id: SPEC-98
-    status: open
+    status: closed
     release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
     prd: [operator-turn, offline-deck]
     fr: [FR-14, FR-16, FR-19]

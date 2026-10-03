@@ -49,10 +49,10 @@
 
 **Blocked by:** SPEC-98-02
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement mode selector in `PresenterOperator.tsx` (Per baris vs Digabung) with `localStorage` persistence.
-- [ ] Format verse text deterministically according to active mode in both preview and projector.
-- [ ] Implement long-passage pagination policy with operator page navigation controls.
-- [ ] Upgrade `getScriptureScaling` and `ScriptureOverlayView` with proportional formulas and 16:9 containment.
-- [ ] Synchronize authoritative `ScriptureOverlay` across BroadcastChannel (`scripture` and `sync`).
+- [x] Implement mode selector in `PresenterOperator.tsx` (Per baris vs Digabung) with `localStorage` persistence.
+- [x] Format verse text deterministically according to active mode in both preview and projector.
+- [x] Implement long-passage pagination policy with operator page navigation controls.
+- [x] Upgrade `getScriptureScaling` and `ScriptureOverlayView` with proportional formulas and 16:9 containment.
+- [x] Synchronize authoritative `ScriptureOverlay` across BroadcastChannel (`scripture` and `sync`).

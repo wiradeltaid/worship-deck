@@ -1141,10 +1141,10 @@ rtm:
   release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
   test:
   - tests/scripture-offline-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-5
   FR: FR-14
@@ -1749,10 +1749,10 @@ rtm:
   release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
   test:
   - tests/scripture-controls-ergonomics.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1923,10 +1923,10 @@ rtm:
   release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
   test:
   - tests/scripture-chapter-lookup.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -1937,10 +1937,10 @@ rtm:
   release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
   test:
   - tests/scripture-display-modes-and-scaling.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -4739,10 +4739,10 @@ rtm:
   release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
   test:
   - tests/scripture-chapter-lookup.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -4753,10 +4753,10 @@ rtm:
   release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
   test:
   - tests/scripture-display-modes-and-scaling.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22

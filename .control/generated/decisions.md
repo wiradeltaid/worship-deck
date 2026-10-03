@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**85 decisions** — accepted: 1 · applied: 83 · superseded: 1.
+**86 decisions** — accepted: 1 · applied: 84 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -93,3 +93,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-083` | Daily Autopilot mandate for README Restructure Post v0.1.0 Publication and Go-Live Closure (SPEC-73) | `applied` | mandate | `.control/memlog/autopilot-DEC-083.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-083-daily-autopilot-mandate-readme-restructure-and-go-live-closure.md` |
 | `DEC-084` | Daily Autopilot mandate for Microsoft OneDrive Cloud Connector, PPTX Sync Prompt, and Dual-Hash Resolution Pa… | `applied` | mandate | `.control/memlog/autopilot-DEC-084.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-084-daily-autopilot-mandate-onedrive-connector-and-dual-hash-parity.md` |
 | `DEC-085` | Daily Autopilot mandate for Presenter Zoom Layout Proportions Resilience (SPEC-97) | `applied` | mandate | `.control/memlog/autopilot-DEC-085.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-085-daily-autopilot-mandate-presenter-zoom-layout-proportions-resilience.md` |
+| `DEC-086` | Daily Autopilot mandate for Scripture Ergonomics, Whole Chapter, Display Modes, and Offline Caching (SPEC-98) | `applied` | mandate | `.control/memlog/autopilot-DEC-086.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-086-daily-autopilot-mandate-scripture-ergonomics-whole-chapter-display-modes-and-offline-caching.md` |

@@ -40,35 +40,48 @@ func normalize(s string) string {
 
 // ParseRef splits a typed reference into a book part and verse numbers.
 // The book part is not capped at two words and may contain hyphens.
-func ParseRef(raw string) (bookPart string, chapter, start, end int, ok bool) {
+// Supports both colon-based references (Book C:V, Book C:V-V) and whole-chapter references (Book C).
+func ParseRef(raw string) (bookPart string, chapter, start, end int, isWholeChapter, ok bool) {
 	value := strings.TrimSpace(strings.ReplaceAll(raw, "+", " "))
 	value = stripExamplePrefix(value)
 	if value == "" {
-		return "", 0, 0, 0, false
+		return "", 0, 0, 0, false, false
 	}
 	// Walk from the end looking for chapter:verse so the book name can be
 	// any length, including hyphenated Indonesian names.
 	colon := strings.LastIndex(value, ":")
-	if colon <= 0 {
-		return "", 0, 0, 0, false
+	if colon > 0 {
+		before := strings.TrimSpace(value[:colon])
+		after := strings.TrimSpace(value[colon+1:])
+		space := strings.LastIndexFunc(before, unicode.IsSpace)
+		if space < 0 {
+			return "", 0, 0, 0, false, false
+		}
+		bookPart = strings.TrimSpace(before[:space])
+		chapterStr := strings.TrimSpace(before[space+1:])
+		chapter, okCh := atoiPositive(chapterStr)
+		if !okCh {
+			return "", 0, 0, 0, false, false
+		}
+		start, end, okV := parseVerseSpan(after)
+		if !okV || bookPart == "" {
+			return "", 0, 0, 0, false, false
+		}
+		return bookPart, chapter, start, end, false, true
 	}
-	before := strings.TrimSpace(value[:colon])
-	after := strings.TrimSpace(value[colon+1:])
-	space := strings.LastIndexFunc(before, unicode.IsSpace)
-	if space < 0 {
-		return "", 0, 0, 0, false
+
+	// No colon: check for whole-chapter reference "<Book> <Chapter>"
+	space := strings.LastIndexFunc(value, unicode.IsSpace)
+	if space <= 0 {
+		return "", 0, 0, 0, false, false
 	}
-	bookPart = strings.TrimSpace(before[:space])
-	chapterStr := strings.TrimSpace(before[space+1:])
+	bookPart = strings.TrimSpace(value[:space])
+	chapterStr := strings.TrimSpace(value[space+1:])
 	chapter, okCh := atoiPositive(chapterStr)
-	if !okCh {
-		return "", 0, 0, 0, false
+	if !okCh || bookPart == "" {
+		return "", 0, 0, 0, false, false
 	}
-	start, end, okV := parseVerseSpan(after)
-	if !okV || bookPart == "" {
-		return "", 0, 0, 0, false
-	}
-	return bookPart, chapter, start, end, true
+	return bookPart, chapter, 0, 0, true, true
 }
 
 func parseVerseSpan(after string) (start, end int, ok bool) {
@@ -192,8 +205,10 @@ func SuggestBooks(q string, names []BookName, aliases []Alias, limit int) []Book
 	if limit <= 0 || limit > defaultSuggestLimit {
 		limit = defaultSuggestLimit
 	}
-	if _, _, _, _, ok := ParseRef(q); ok {
-		return nil
+	if strings.Contains(q, ":") {
+		if _, _, _, _, _, ok := ParseRef(q); ok {
+			return nil
+		}
 	}
 	input := normalize(q)
 	if input == "" {

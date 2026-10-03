@@ -22,6 +22,16 @@ export type SlidePatch = {
   patchRevision: number;
 };
 
+export type ScriptureOverlay = {
+  reference: string;
+  text: string;
+  mode: 'per-verse' | 'inline';
+  verses: Array<{ verse: number; text: string }>;
+  currentPage: number;
+  totalPages: number;
+  displayReference: string;
+};
+
 export type PresentMessage =
   | {
       type: 'sync';
@@ -29,7 +39,7 @@ export type PresentMessage =
       blank: boolean;
       transition: SlideTransition;
       background?: string | null;
-      scripture?: { reference: string; text: string } | null;
+      scripture?: ScriptureOverlay | null;
       planIdentity: string;
       patches?: SlidePatch[];
     }
@@ -76,6 +86,11 @@ export type PresentMessage =
       type: 'scripture';
       reference: string;
       text: string;
+      mode: 'per-verse' | 'inline';
+      verses: Array<{ verse: number; text: string }>;
+      currentPage: number;
+      totalPages: number;
+      displayReference: string;
       planIdentity: string;
     }
   | { type: 'clear-scripture'; planIdentity: string };

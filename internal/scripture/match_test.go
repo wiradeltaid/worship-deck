@@ -19,23 +19,28 @@ func TestParseRefLongNames(t *testing.T) {
 		in             string
 		book           string
 		ch, start, end int
+		isWhole        bool
 	}{
-		{"John 4:23", "John", 4, 23, 23},
-		{"Song of Solomon 1:1", "Song of Solomon", 1, 1, 1},
-		{"Kisah Para Rasul 1:8", "Kisah Para Rasul", 1, 8, 8},
-		{"Hakim-hakim 2:16", "Hakim-hakim", 2, 16, 16},
-		{"1 Raja-raja 3:5", "1 Raja-raja", 3, 5, 5},
-		{"e.g. Acts 18:9,10", "Acts", 18, 9, 10},
-		{"John+4:23", "John", 4, 23, 23},
+		{"John 4:23", "John", 4, 23, 23, false},
+		{"Song of Solomon 1:1", "Song of Solomon", 1, 1, 1, false},
+		{"Kisah Para Rasul 1:8", "Kisah Para Rasul", 1, 8, 8, false},
+		{"Hakim-hakim 2:16", "Hakim-hakim", 2, 16, 16, false},
+		{"1 Raja-raja 3:5", "1 Raja-raja", 3, 5, 5, false},
+		{"e.g. Acts 18:9,10", "Acts", 18, 9, 10, false},
+		{"John+4:23", "John", 4, 23, 23, false},
+		{"John 4", "John", 4, 0, 0, true},
+		{"Song of Solomon 2", "Song of Solomon", 2, 0, 0, true},
+		{"1 Korintus 13", "1 Korintus", 13, 0, 0, true},
+		{"Mazmur 23", "Mazmur", 23, 0, 0, true},
 	}
 	for _, c := range cases {
-		book, ch, start, end, ok := ParseRef(c.in)
+		book, ch, start, end, isWhole, ok := ParseRef(c.in)
 		if !ok {
 			t.Fatalf("ParseRef(%q) failed", c.in)
 		}
-		if book != c.book || ch != c.ch || start != c.start || end != c.end {
-			t.Fatalf("ParseRef(%q)=%q %d:%d-%d want %q %d:%d-%d",
-				c.in, book, ch, start, end, c.book, c.ch, c.start, c.end)
+		if book != c.book || ch != c.ch || start != c.start || end != c.end || isWhole != c.isWhole {
+			t.Fatalf("ParseRef(%q)=%q %d:%d-%d (whole=%v) want %q %d:%d-%d (whole=%v)",
+				c.in, book, ch, start, end, isWhole, c.book, c.ch, c.start, c.end, c.isWhole)
 		}
 	}
 }

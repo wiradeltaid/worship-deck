@@ -56,10 +56,10 @@
 
 **Blocked by:** SPEC-98-03
 
-**Status:** open
+**Status:** closed
 
-- [ ] Bump IndexedDB to v3 with `scripture_cache` object store in `service-snapshot.ts`.
-- [ ] Implement authoritative service scripture pre-fetching during `warmServiceSnapshot`.
-- [ ] Integrate scripture pre-fetch counts into `OfflineReadiness` and badge display.
-- [ ] Enforce fail-closed cache fallback semantics preserving SCN-4.
-- [ ] Verify seamless offline presentation when network connectivity is dropped.
+- [x] Bump IndexedDB to v3 with `scripture_cache` object store in `service-snapshot.ts`.
+- [x] Implement authoritative service scripture pre-fetching during `warmServiceSnapshot`.
+- [x] Integrate scripture pre-fetch counts into `OfflineReadiness` and badge display.
+- [x] Enforce fail-closed cache fallback semantics preserving SCN-4.
+- [x] Verify seamless offline presentation when network connectivity is dropped.

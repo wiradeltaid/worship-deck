@@ -90,10 +90,19 @@ export function applyRemoteIntent(
     }
     case 'scripture': {
       if (typeof intent.reference === 'string' && typeof intent.text === 'string') {
+        const verses = Array.isArray((intent as any).verses)
+          ? (intent as any).verses
+          : [{ verse: 1, text: intent.text }];
+        const mode = (intent as any).mode === 'inline' ? 'inline' : 'per-verse';
         handlers.broadcast({
           type: 'scripture',
           reference: intent.reference,
+          displayReference: (intent as any).displayReference || intent.reference,
           text: intent.text,
+          mode,
+          verses,
+          currentPage: (intent as any).currentPage || 1,
+          totalPages: (intent as any).totalPages || 1,
           planIdentity: currentPlanIdentity,
         });
         return true;

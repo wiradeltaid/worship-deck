@@ -24,9 +24,9 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Remove Clear Scripture button from `presenter-header-row-1`.
-- [ ] Render Clear Scripture button adjacent to Push button in Scripture panel with `data-testid="presenter-scripture-actions"`.
-- [ ] Connect clear action to state reset and idempotent BroadcastChannel broadcast.
-- [ ] Verify test IDs and responsive layout.
+- [x] Remove Clear Scripture button from `presenter-header-row-1`.
+- [x] Render Clear Scripture button adjacent to Push button in Scripture panel with `data-testid="presenter-scripture-actions"`.
+- [x] Connect clear action to state reset and idempotent BroadcastChannel broadcast.
+- [x] Verify test IDs and responsive layout.

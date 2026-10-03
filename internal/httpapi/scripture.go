@@ -1,6 +1,8 @@
 ﻿package httpapi
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -144,8 +146,22 @@ func (s *Server) listTranslationCodes() ([]string, error) {
 	return out, rows.Err()
 }
 
-func (s *Server) lookupScripture(ref, code string) (map[string]string, bool) {
-	bookPart, chapter, start, end, ok := scripture.ParseRef(ref)
+type ScriptureVerse struct {
+	Verse int    `json:"verse"`
+	Text  string `json:"text"`
+}
+
+type ScriptureResponse struct {
+	Reference      string           `json:"reference"`
+	Chapter        int              `json:"chapter,omitempty"`
+	IsWholeChapter bool             `json:"is_whole_chapter,omitempty"`
+	Verses         []ScriptureVerse `json:"verses,omitempty"`
+	Text           string           `json:"text"`
+	Translation    string           `json:"translation"`
+}
+
+func (s *Server) lookupScripture(ref, code string) (any, bool) {
+	bookPart, chapter, start, end, isWholeChapter, ok := scripture.ParseRef(ref)
 	if !ok {
 		return nil, false
 	}
@@ -153,16 +169,30 @@ func (s *Server) lookupScripture(ref, code string) (map[string]string, bool) {
 	if !ok {
 		return nil, false
 	}
-	rows, err := s.DB.Query(
-		`SELECT verse, verse_text FROM bible_verses
-		  WHERE book_id = ? AND chapter = ? AND verse >= ? AND verse <= ? AND translation_code = ?
-		  ORDER BY verse ASC`,
-		bookID, chapter, start, end, code,
-	)
+
+	var rows *sql.Rows
+	var err error
+	if isWholeChapter {
+		rows, err = s.DB.Query(
+			`SELECT verse, verse_text FROM bible_verses
+			  WHERE book_id = ? AND chapter = ? AND translation_code = ?
+			  ORDER BY verse ASC`,
+			bookID, chapter, code,
+		)
+	} else {
+		rows, err = s.DB.Query(
+			`SELECT verse, verse_text FROM bible_verses
+			  WHERE book_id = ? AND chapter = ? AND verse >= ? AND verse <= ? AND translation_code = ?
+			  ORDER BY verse ASC`,
+			bookID, chapter, start, end, code,
+		)
+	}
 	if err != nil {
 		return nil, false
 	}
 	defer rows.Close()
+
+	var verses []ScriptureVerse
 	var texts []string
 	for rows.Next() {
 		var verse int
@@ -170,19 +200,40 @@ func (s *Server) lookupScripture(ref, code string) (map[string]string, bool) {
 		if err := rows.Scan(&verse, &text); err != nil {
 			return nil, false
 		}
-		texts = append(texts, stripVerseMarkup(text))
+		cleanText := stripVerseMarkup(text)
+		verses = append(verses, ScriptureVerse{Verse: verse, Text: cleanText})
+		texts = append(texts, cleanText)
 	}
-	if len(texts) == 0 {
+	if len(verses) == 0 {
 		return nil, false
 	}
+
+	if isWholeChapter {
+		reference := canonical + " " + strconv.Itoa(chapter)
+		var lines []string
+		for _, v := range verses {
+			lines = append(lines, fmt.Sprintf("(%d) %s", v.Verse, v.Text))
+		}
+		return ScriptureResponse{
+			Reference:      reference,
+			Chapter:        chapter,
+			IsWholeChapter: true,
+			Verses:         verses,
+			Text:           strings.Join(lines, "\n"),
+			Translation:    code,
+		}, true
+	}
+
 	reference := canonical + " " + strconv.Itoa(chapter) + ":" + strconv.Itoa(start)
 	if start != end {
 		reference += "-" + strconv.Itoa(end)
 	}
-	return map[string]string{
-		"reference":   reference,
-		"text":        strings.Join(texts, " "),
-		"translation": code,
+	return ScriptureResponse{
+		Reference:   reference,
+		Chapter:     chapter,
+		Verses:      verses,
+		Text:        strings.Join(texts, " "),
+		Translation: code,
 	}, true
 }
 
