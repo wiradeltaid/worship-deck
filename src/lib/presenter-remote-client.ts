@@ -1,5 +1,6 @@
 import type { SlideTransition } from './transitions';
 import type { PresentMessage } from './present-channel';
+import { paginateScriptureVerses } from './scripture-format';
 
 export type PresenterRemoteIntent =
   | {
@@ -96,24 +97,35 @@ export function applyRemoteIntent(
         const mode = (intent as any).mode === 'inline' ? 'inline' : 'per-verse';
         const typographyMode =
           (intent as any).typographyMode ||
-          ((intent as any).is_whole_chapter || verses.length > 4 ? 'chapter' : 'verse');
-        const isContinuation = Boolean((intent as any).isContinuation);
-        const continuationIndex = (intent as any).continuationIndex || 1;
-        const continuationCount = (intent as any).continuationCount || 1;
+          ((intent as any).is_whole_chapter || !intent.reference.includes(':') || verses.length > 4 ? 'chapter' : 'verse');
+
+        // Normalize incoming remote scripture through the canonical visual line-budget paginator
+        const chunks = paginateScriptureVerses(intent.reference, verses, mode, typographyMode);
+        const activeChunk = chunks[0] || {
+          page: 1,
+          totalPages: 1,
+          verses,
+          text: intent.text,
+          displayReference: intent.reference,
+          typographyMode,
+          isContinuation: false,
+          continuationIndex: 1,
+          continuationCount: 1,
+        };
 
         handlers.broadcast({
           type: 'scripture',
           reference: intent.reference,
-          displayReference: (intent as any).displayReference || intent.reference,
-          text: intent.text,
+          displayReference: activeChunk.displayReference,
+          text: activeChunk.text,
           mode,
-          verses,
-          currentPage: (intent as any).currentPage || 1,
-          totalPages: (intent as any).totalPages || 1,
-          typographyMode,
-          isContinuation,
-          continuationIndex,
-          continuationCount,
+          verses: activeChunk.verses,
+          currentPage: activeChunk.page,
+          totalPages: activeChunk.totalPages,
+          typographyMode: activeChunk.typographyMode,
+          isContinuation: activeChunk.isContinuation,
+          continuationIndex: activeChunk.continuationIndex,
+          continuationCount: activeChunk.continuationCount,
           planIdentity: currentPlanIdentity,
         });
         return true;

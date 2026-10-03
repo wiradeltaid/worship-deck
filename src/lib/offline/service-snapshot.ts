@@ -743,13 +743,21 @@ export async function warmServiceSnapshot(
           if (res.ok) {
             const data = await res.json().catch(() => ({}));
             if (data && data.reference && data.text) {
+              const verses = data.verses || [{ verse: 1, text: data.text }];
+              const isWholeChapter = Boolean(data.is_whole_chapter || !ref.includes(':'));
+              const typographyMode =
+                data.typography_mode ||
+                (isWholeChapter || verses.length > 4 ? 'chapter' : 'verse');
+
               await cacheScripturePassage({
                 cache_key: getScriptureCacheKey(ref, translation),
                 reference: data.reference,
                 translation: data.translation || translation,
-                verses: data.verses || [{ verse: 1, text: data.text }],
+                verses,
                 text: data.text,
                 cached_at: Date.now(),
+                typography_mode: typographyMode,
+                is_whole_chapter: isWholeChapter,
               });
               scripturesCached++;
               continue;

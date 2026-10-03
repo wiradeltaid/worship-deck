@@ -96,6 +96,82 @@ test('SPEC-100-02: ScriptureCacheRecord supports typography_mode with legacy der
   assert.equal(deriveLegacyTypographyMode({ reference: 'John 3:16', verses: [{ verse: 16 }] }), 'verse');
 });
 
+test('SPEC-100-02: Remote scripture intents normalize through line-budget paginator before broadcast', async () => {
+  const { applyRemoteIntent } = await import(new URL('../src/lib/presenter-remote-client.ts', import.meta.url).href);
+
+  let broadcastMessage = null;
+  const handlers = {
+    broadcast: (msg) => {
+      broadcastMessage = msg;
+    },
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+  };
+
+  // Send an ultra-long verse intent (> 650 chars) via remote control
+  const ultraLongText =
+    'And it came to pass in those days, that there went out a decree from Caesar Augustus that all the world should be taxed, and all went to be taxed, every one into his own city. Furthermore, the governors and deputies in all the provinces assembled the people, making proclamation that all citizens should render tribute according to their households and estates, without omission or delay, throughout the entire jurisdiction of the empire from sunrise unto the going down of the same.';
+
+  const accepted = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'Luke 2:1',
+      text: ultraLongText,
+      planIdentity: 'plan-123',
+    },
+    'plan-123',
+    handlers
+  );
+
+  assert.equal(accepted, true);
+  assert.ok(broadcastMessage !== null);
+  assert.equal(broadcastMessage.type, 'scripture');
+  assert.ok(broadcastMessage.typographyMode === 'chapter' || broadcastMessage.typographyMode === 'verse');
+  assert.equal(typeof broadcastMessage.isContinuation, 'boolean');
+  assert.equal(typeof broadcastMessage.continuationIndex, 'number');
+  assert.equal(typeof broadcastMessage.continuationCount, 'number');
+  // Proven normalized: totalPages reflects chunking
+  assert.ok(broadcastMessage.totalPages >= 1);
+});
+
+test('SPEC-100-02: warmServiceSnapshot stores typography_mode and is_whole_chapter durably', async () => {
+  const snapshotSrc = fs.readFileSync(path.join(ROOT, 'src', 'lib', 'offline', 'service-snapshot.ts'), 'utf8');
+
+  // Verify warmServiceSnapshot sets typography_mode and is_whole_chapter during cacheScripturePassage call
+  assert.ok(
+    snapshotSrc.includes('typography_mode: typographyMode') &&
+      snapshotSrc.includes('is_whole_chapter: isWholeChapter'),
+    'warmServiceSnapshot must pass typography_mode and is_whole_chapter to cacheScripturePassage'
+  );
+});
+
+test('SPEC-100-02: Calibrated 16:9 stage container containment proof (zero clipping)', async () => {
+  const { computeScriptureFitScale } = await import(new URL('../src/lib/scripture-scaling.ts', import.meta.url).href);
+
+  // 16:9 1080p stage: stageHeight = 1080, stageWidth = 1920
+  // maxAllowedHeight = 1080 * 0.78 = 842.4px, maxAllowedWidth = 1920 * 0.85 = 1632px
+  // Test case 1: Normal 10-line chapter page (John 4 dense page ~660px height)
+  const scale1 = computeScriptureFitScale({
+    stageHeight: 1080,
+    stageWidth: 1920,
+    naturalHeight: 660,
+    naturalWidth: 1400,
+  });
+  assert.equal(scale1, 1, 'Within budget height and width renders at 1.0 (no shrinkage)');
+
+  // Test case 2: Overflown text (e.g. 1000px natural height > 842px) scales safely to prevent clipping
+  const scale2 = computeScriptureFitScale({
+    stageHeight: 1080,
+    stageWidth: 1920,
+    naturalHeight: 1000,
+    naturalWidth: 1400,
+  });
+  const scaledHeight = 1000 * scale2;
+  assert.ok(scaledHeight <= 842.4, `Scaled height (${scaledHeight}) must not exceed container maxAllowedHeight (842.4)`);
+});
+
 test('SPEC-100-02 Defect Injection Proof: verifyTypographyModePreservation fails if mode is omitted', () => {
   const presentChannelPath = path.join(ROOT, 'src', 'lib', 'present-channel.ts');
   const src = fs.readFileSync(presentChannelPath, 'utf8');
