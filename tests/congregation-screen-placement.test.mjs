@@ -184,6 +184,20 @@ test('SPEC-99-03: Lost projector handle is cleanly closed and reopened on target
   assert.equal(openedNew, true, 'New window must be opened on target display');
 });
 
+test('SPEC-99-03: closeProjector immediately transitions liveness out of live via handle-closed', async () => {
+  const { INITIAL_LIVENESS_STATE, nextLivenessState } = await import(
+    new URL('../src/lib/projector-liveness.ts', import.meta.url).href
+  );
+
+  // 1. Projector is currently live
+  const liveState = nextLivenessState(INITIAL_LIVENESS_STATE, { type: 'ack' }, 1000);
+  assert.equal(liveState.verdict, 'live');
+
+  // 2. Explicit close triggers handle-closed event, immediately terminating live state
+  const closedState = nextLivenessState(liveState, { type: 'handle-closed' }, 1000);
+  assert.equal(closedState.verdict, 'lost', 'Explicit close must immediately transition verdict out of live');
+});
+
 test('SPEC-99-03 Defect Injection Proof: verifyFullscreenOrchestration detects omitted query parameter', () => {
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const src = fs.readFileSync(presenterPath, 'utf8');

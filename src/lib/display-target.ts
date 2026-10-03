@@ -335,14 +335,21 @@ export function getSynchronousScreens(): ScreenInfo[] {
       const raw = storage.getItem(CACHED_SCREENS_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Support { screens, timestamp } envelope or legacy array
-        const screens = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.screens) ? parsed.screens : null);
-        const timestamp = typeof parsed?.timestamp === 'number' ? parsed.timestamp : 0;
-        const isFresh = timestamp === 0 || Date.now() - timestamp < CACHED_SCREENS_TTL_MS;
-
-        if (screens && screens.length > 0 && isFresh) {
-          return screens;
+        // Strictly require valid { screens, timestamp } envelope with active TTL.
+        // Legacy bare arrays lacking timestamp are treated as stale and purged.
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          !Array.isArray(parsed) &&
+          typeof parsed.timestamp === 'number'
+        ) {
+          const isFresh = Date.now() - parsed.timestamp < CACHED_SCREENS_TTL_MS;
+          if (isFresh && Array.isArray(parsed.screens) && parsed.screens.length > 0) {
+            return parsed.screens;
+          }
         }
+        // Purge legacy bare array or expired cache so safe single-screen fallback applies
+        storage.removeItem(CACHED_SCREENS_STORAGE_KEY);
       }
     } catch {}
   }

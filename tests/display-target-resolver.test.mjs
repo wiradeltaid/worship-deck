@@ -362,7 +362,7 @@ test('SPEC-99-01: detectAvailableScreens preserves undefined isInternal and fall
   assert.equal(isExternalScreen(detected[0]), false, 'Primary display with undefined isInternal must not be classified as external');
 });
 
-test('SPEC-99-01: getSynchronousScreens immediately returns cached screens across page loads', async () => {
+test('SPEC-99-01: getSynchronousScreens immediately returns fresh cached screens across page loads', async () => {
   const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY } = await import(
     new URL('../src/lib/display-target.ts', import.meta.url).href
   );
@@ -373,7 +373,7 @@ test('SPEC-99-01: getSynchronousScreens immediately returns cached screens acros
   ];
 
   const storage = new Map();
-  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(cachedMultiScreens));
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify({ screens: cachedMultiScreens, timestamp: Date.now() }));
 
   globalThis.localStorage = {
     getItem: (k) => storage.get(k) ?? null,
@@ -382,8 +382,36 @@ test('SPEC-99-01: getSynchronousScreens immediately returns cached screens acros
   };
 
   const syncScreens = getSynchronousScreens();
-  assert.equal(syncScreens.length, 2, 'Must synchronously return cached multi-screen topology');
+  assert.equal(syncScreens.length, 2, 'Must synchronously return fresh cached multi-screen topology');
   assert.equal(syncScreens[1].label, 'Epson');
+});
+
+test('SPEC-99-01: getSynchronousScreens purges legacy timestamp-free cache and falls back safely', async () => {
+  const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  // Legacy format without timestamp
+  const legacyData = [
+    { id: 'OldProjector', label: 'Old Projector', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+  ];
+
+  const storage = new Map();
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(legacyData));
+
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+  };
+  globalThis.window = {
+    screen: { availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080 },
+  };
+
+  const syncScreens = getSynchronousScreens();
+  assert.equal(syncScreens.length, 1, 'Legacy cache must be purged in favor of single-screen fallback');
+  assert.equal(syncScreens[0].isPrimary, true);
+  assert.equal(storage.has(CACHED_SCREENS_STORAGE_KEY), false, 'Legacy cache must be removed from storage');
 });
 
 test('SPEC-99-01: getSynchronousScreens ignores stale cached topology and falls back safely', async () => {

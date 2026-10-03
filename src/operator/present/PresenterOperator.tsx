@@ -750,14 +750,13 @@ export default function PresenterOperator({
   }, [openProjector]);
 
   const closeProjector = useCallback(() => {
-    const existing = projectorRef.current;
-    if (existing && !existing.closed) {
+    if (projectorRef.current && !projectorRef.current.closed) {
       try {
-        existing.close();
+        projectorRef.current.close();
       } catch {}
+      dispatchLiveness({ type: 'handle-closed' });
     }
     projectorRef.current = null;
-    dispatchLiveness({ type: 'opened' });
   }, [dispatchLiveness]);
 
   const broadcast = useCallback((msg: PresentMessage) => {
