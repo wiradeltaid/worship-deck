@@ -386,6 +386,36 @@ test('SPEC-99-01: getSynchronousScreens immediately returns cached screens acros
   assert.equal(syncScreens[1].label, 'Epson');
 });
 
+test('SPEC-99-01: getSynchronousScreens ignores stale cached topology and falls back safely', async () => {
+  const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY, CACHED_SCREENS_TTL_MS } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  // Cached 10 minutes ago (> 5m TTL)
+  const staleData = {
+    screens: [
+      { id: 'OldProjector', label: 'Old Projector', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+    ],
+    timestamp: Date.now() - (CACHED_SCREENS_TTL_MS + 60000),
+  };
+
+  const storage = new Map();
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(staleData));
+
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+  };
+  globalThis.window = {
+    screen: { availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080 },
+  };
+
+  const syncScreens = getSynchronousScreens();
+  assert.equal(syncScreens.length, 1, 'Stale cache must be ignored in favor of single-screen fallback');
+  assert.equal(syncScreens[0].isPrimary, true);
+});
+
 test('SPEC-99-01 Defect Injection Proof: Unchecked fullscreen on single-screen locks out operator', () => {
   // Guard proof: A defective resolver that ignores screen count and launches fullscreen on 1-screen
   function defectiveResolver(config, screens) {

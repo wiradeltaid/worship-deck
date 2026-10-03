@@ -300,11 +300,14 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
           };
         });
 
-        // Cache detected screens to localStorage for immediate synchronous retrieval on subsequent clicks
+        // Cache detected screens with timestamp to localStorage for immediate synchronous retrieval
         const storage = getStorage();
         if (storage) {
           try {
-            storage.setItem(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(detected));
+            storage.setItem(
+              CACHED_SCREENS_STORAGE_KEY,
+              JSON.stringify({ screens: detected, timestamp: Date.now() })
+            );
           } catch {}
         }
         return detected;
@@ -318,10 +321,12 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
 }
 
 export const CACHED_SCREENS_STORAGE_KEY = 'worship-deck:cached-screens';
+export const CACHED_SCREENS_TTL_MS = 5 * 60 * 1000;
 
 /**
- * Synchronously retrieves cached display geometry from previous discovery or falls back
- * to window.screen without awaiting promises, preserving browser transient user activation for window.open.
+ * Synchronously retrieves cached display geometry from previous discovery (if fresh)
+ * or falls back to window.screen without awaiting promises, preserving browser transient
+ * user activation for window.open.
  */
 export function getSynchronousScreens(): ScreenInfo[] {
   const storage = getStorage();
@@ -330,8 +335,13 @@ export function getSynchronousScreens(): ScreenInfo[] {
       const raw = storage.getItem(CACHED_SCREENS_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        // Support { screens, timestamp } envelope or legacy array
+        const screens = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.screens) ? parsed.screens : null);
+        const timestamp = typeof parsed?.timestamp === 'number' ? parsed.timestamp : 0;
+        const isFresh = timestamp === 0 || Date.now() - timestamp < CACHED_SCREENS_TTL_MS;
+
+        if (screens && screens.length > 0 && isFresh) {
+          return screens;
         }
       }
     } catch {}

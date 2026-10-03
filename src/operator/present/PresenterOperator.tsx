@@ -692,22 +692,33 @@ export default function PresenterOperator({
 
   const openProjector = useCallback((overrideTarget?: ResolvedLaunchTarget) => {
     const existing = projectorRef.current;
-    const isLost = livenessRef.current.verdict === 'lost';
-
-    // If an existing window is open, alive, and not being retargeted, focus it.
-    // If the window was lost, do not shortcut to focus/stale reload; close and reopen
-    // cleanly on the resolved target display with full coordinates and fullscreen parameters.
-    if (existing && !existing.closed && !overrideTarget && !isLost) {
-      existing.focus();
-      dispatchLiveness({ type: 'opened' });
-      return;
-    }
-
-    // Always resolve screens synchronously to preserve browser transient user activation
-    // during user click gestures, preventing browser popup blockers from intercepting window.open.
     const currentScreens = screensRef.current.length > 0 ? screensRef.current : getSynchronousScreens();
     const config = getDisplayTargetConfig();
     const target = overrideTarget || resolveLaunchTarget(config, currentScreens);
+
+    const targetUrl = target.mode === 'fullscreen'
+      ? (projectorUrl.includes('?') ? `${projectorUrl}&fullscreen=1` : `${projectorUrl}?fullscreen=1`)
+      : projectorUrl;
+
+    // If an existing window is open and not being relocated to a different screen:
+    // A healthy window is focused; a lost/frozen window is navigated back to the projector route (AD-29)
+    if (existing && !existing.closed && !overrideTarget) {
+      if (livenessRef.current.verdict === 'lost') {
+        try {
+          existing.location.href = targetUrl;
+        } catch {
+          try {
+            existing.close();
+          } catch {}
+          projectorRef.current = null;
+        }
+      }
+      if (projectorRef.current) {
+        existing.focus();
+        dispatchLiveness({ type: 'opened' });
+        return;
+      }
+    }
 
     // If an existing window was open and we are retargeting/relocating, cleanly close old handle
     if (existing && !existing.closed) {
@@ -716,10 +727,6 @@ export default function PresenterOperator({
       } catch {}
       projectorRef.current = null;
     }
-
-    const targetUrl = target.mode === 'fullscreen'
-      ? (projectorUrl.includes('?') ? `${projectorUrl}&fullscreen=1` : `${projectorUrl}?fullscreen=1`)
-      : projectorUrl;
 
     const opened = window.open(
       targetUrl,
