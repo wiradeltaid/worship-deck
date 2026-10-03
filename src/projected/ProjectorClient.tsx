@@ -71,6 +71,25 @@ export default function ProjectorClient({
     typeof document !== 'undefined' ? !document.fullscreenElement : false
   );
 
+  // SPEC-94-02 / SPEC-99-03: Fullscreen orchestration & F11 guidance cue.
+  // When ?fullscreen=1 is present, attempt programmatic fullscreen immediately.
+  // If blocked by browser activation policy, preserve floating F11 guidance cue.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (
+      params.get('fullscreen') === '1' &&
+      typeof document !== 'undefined' &&
+      !document.fullscreenElement
+    ) {
+      if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function') {
+        document.documentElement.requestFullscreen().catch(() => {
+          setShowHint(true);
+        });
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!showHint) return;
     const timer = setTimeout(() => setShowHint(false), 5000);
@@ -320,7 +339,12 @@ export default function ProjectorClient({
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none select-none">
           <button
             type="button"
-            onClick={() => setShowHint(false)}
+            onClick={() => {
+              if (typeof document !== 'undefined' && document.documentElement?.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+              }
+              setShowHint(false);
+            }}
             className="pointer-events-auto bg-black/80 text-white/90 rounded-full px-4 py-1.5 text-xs font-medium shadow-lg backdrop-blur-sm flex items-center gap-2 cursor-pointer transition-opacity hover:bg-black/90 focus-visible:outline-white"
           >
             <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[11px] font-mono">F11</kbd>

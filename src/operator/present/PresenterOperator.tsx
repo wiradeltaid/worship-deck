@@ -143,6 +143,15 @@ import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadg
 import SlideGridDialog from './SlideGridDialog';
 import PresenterDisplayControl from './PresenterDisplayControl';
 import {
+  resolveLaunchTarget,
+  getDisplayTargetConfig,
+  detectAvailableScreens,
+  subscribeScreenTopology,
+  type ResolvedLaunchTarget,
+  type ScreenInfo,
+  DEFAULT_WINDOW_FEATURES,
+} from '@/lib/display-target';
+import {
   PRESENTER_TONE_CLASS,
   activePresenterEntry,
   buildPresenterEntries,
@@ -660,9 +669,29 @@ export default function PresenterOperator({
    * advertises must actually be able to reattach a frozen projector, not just
    * bring an unresponsive window to the front.
    */
-  const openProjector = useCallback(() => {
+  const [availableScreens, setAvailableScreens] = useState<ScreenInfo[]>([]);
+  const screensRef = useRef<ScreenInfo[]>([]);
+  screensRef.current = availableScreens;
+
+  useEffect(() => {
+    let mounted = true;
+    detectAvailableScreens().then((s) => {
+      if (mounted) setAvailableScreens(s);
+    });
+    const unsubscribe = subscribeScreenTopology(() => {
+      detectAvailableScreens().then((s) => {
+        if (mounted) setAvailableScreens(s);
+      });
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const openProjector = useCallback((overrideTarget?: ResolvedLaunchTarget) => {
     const existing = projectorRef.current;
-    if (existing && !existing.closed) {
+    if (existing && !existing.closed && !overrideTarget) {
       if (livenessRef.current.verdict === 'lost') {
         existing.location.href = projectorUrl;
       }
@@ -670,10 +699,26 @@ export default function PresenterOperator({
       dispatchLiveness({ type: 'opened' });
       return;
     }
+
+    const config = getDisplayTargetConfig();
+    const target = overrideTarget || resolveLaunchTarget(config, screensRef.current);
+
+    // If an existing window was open and we are retargeting/relocating, cleanly close old handle
+    if (existing && !existing.closed) {
+      try {
+        existing.close();
+      } catch {}
+      projectorRef.current = null;
+    }
+
+    const targetUrl = target.mode === 'fullscreen'
+      ? (projectorUrl.includes('?') ? `${projectorUrl}&fullscreen=1` : `${projectorUrl}?fullscreen=1`)
+      : projectorUrl;
+
     const opened = window.open(
-      projectorUrl,
+      targetUrl,
       projectorWindowName(serviceId),
-      PROJECTOR_FEATURES
+      target.windowFeatures || DEFAULT_WINDOW_FEATURES
     );
     projectorRef.current = opened;
     // `null` means the popup blocker ate it — surface the plain link instead of
@@ -687,10 +732,16 @@ export default function PresenterOperator({
     dispatchLiveness({ type: 'opened' });
   }, [projectorUrl, serviceId, dispatchLiveness]);
 
+  const relocateProjector = useCallback((newTarget: ResolvedLaunchTarget) => {
+    openProjector(newTarget);
+  }, [openProjector]);
+
   const closeProjector = useCallback(() => {
     const existing = projectorRef.current;
     if (existing && !existing.closed) {
-      existing.close();
+      try {
+        existing.close();
+      } catch {}
     }
     projectorRef.current = null;
     dispatchLiveness({ type: 'opened' });
@@ -1643,6 +1694,7 @@ export default function PresenterOperator({
               liveness={liveness.verdict}
               presentationLock={presentationLock}
               onOpenOrFocus={openProjector}
+              onRelocate={relocateProjector}
               onCloseProjector={closeProjector}
             />
             <Button
