@@ -91,6 +91,8 @@ import {
   formatScriptureText,
   paginateScriptureVerses,
   parseScriptureRef,
+  installScripturePassage,
+  resolveScripturePageOverlay,
 } from '@/lib/scripture-format';
 import {
   clearEmergencyPatches,
@@ -849,33 +851,34 @@ export default function PresenterOperator({
       mode?: ScriptureDisplayMode;
       is_whole_chapter?: boolean;
     }) => {
-      const baseRef = data.reference;
-      const verses =
-        Array.isArray(data.verses) && data.verses.length > 0
-          ? data.verses
-          : [{ verse: 1, text: data.text }];
-      const isWholeChapter = Boolean(data.is_whole_chapter || !baseRef.includes(':'));
-      const typographyMode: ScriptureTypographyMode =
-        isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
-      const effectiveMode = data.mode || scriptureModeRef.current;
+      const { passage, initialOverlay } = installScripturePassage({
+        reference: data.reference,
+        verses: data.verses,
+        text: data.text,
+        isWholeChapter: data.is_whole_chapter,
+        mode: data.mode,
+        currentMode: scriptureModeRef.current,
+      });
 
-      setLoadedScripture({ reference: baseRef, verses, typographyMode });
+      setLoadedScripture({
+        reference: passage.reference,
+        verses: passage.verses,
+        typographyMode: passage.typographyMode,
+      });
       setScripturePageIndex(0);
 
-      const pages = paginateScriptureVerses(baseRef, verses, effectiveMode, typographyMode);
-      const firstPage = pages[0];
       const newOverlay: ScriptureOverlay = {
-        reference: baseRef,
-        displayReference: firstPage.displayReference,
-        text: firstPage.text,
-        mode: effectiveMode,
-        verses: firstPage.verses,
-        currentPage: firstPage.page,
-        totalPages: firstPage.totalPages,
-        typographyMode: firstPage.typographyMode,
-        isContinuation: firstPage.isContinuation,
-        continuationIndex: firstPage.continuationIndex,
-        continuationCount: firstPage.continuationCount,
+        reference: passage.reference,
+        displayReference: initialOverlay.displayReference,
+        text: initialOverlay.text,
+        mode: passage.mode,
+        verses: initialOverlay.verses,
+        currentPage: initialOverlay.page,
+        totalPages: initialOverlay.totalPages,
+        typographyMode: initialOverlay.typographyMode,
+        isContinuation: initialOverlay.isContinuation,
+        continuationIndex: initialOverlay.continuationIndex,
+        continuationCount: initialOverlay.continuationCount,
       };
       setScriptureOverlay(newOverlay);
       broadcast({

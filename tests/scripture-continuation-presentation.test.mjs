@@ -203,12 +203,13 @@ test('SPEC-100-02: Calibrated 16:9 stage container containment proof (zero clipp
 });
 
 test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation synchronization lifecycle', async () => {
-  const { paginateScriptureVerses } = await import(new URL('../src/lib/scripture-format.ts', import.meta.url).href);
+  const { installScripturePassage, resolveScripturePageOverlay } = await import(
+    new URL('../src/lib/scripture-format.ts', import.meta.url).href
+  );
   const { applyRemoteIntent } = await import(new URL('../src/lib/presenter-remote-client.ts', import.meta.url).href);
 
-  // Simulated Presenter state container
-  let loadedScripture = null;
-  let scripturePageIndex = 0;
+  // Simulated Presenter state container using real pure helpers
+  let installedPassageState = null;
   let activeOverlay = null;
   const broadcasts = [];
 
@@ -219,34 +220,30 @@ test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation s
     }
   };
 
+  const currentMode = 'per-verse';
   const setScriptureAndSync = (data) => {
-    const baseRef = data.reference;
-    const verses = data.verses || [{ verse: 1, text: data.text }];
-    const isWholeChapter = Boolean(data.is_whole_chapter || !baseRef.includes(':'));
-    const typographyMode = isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
-    const effectiveMode = data.mode || 'per-verse';
-
-    loadedScripture = { reference: baseRef, verses, typographyMode };
-    scripturePageIndex = 0;
-
-    const pages = paginateScriptureVerses(baseRef, verses, effectiveMode, typographyMode);
-    const firstPage = pages[0];
-    const newOverlay = {
-      reference: baseRef,
-      displayReference: firstPage.displayReference,
-      text: firstPage.text,
-      mode: effectiveMode,
-      verses: firstPage.verses,
-      currentPage: firstPage.page,
-      totalPages: firstPage.totalPages,
-      typographyMode: firstPage.typographyMode,
-      isContinuation: firstPage.isContinuation,
-      continuationIndex: firstPage.continuationIndex,
-      continuationCount: firstPage.continuationCount,
-    };
+    const { passage, initialOverlay } = installScripturePassage({
+      reference: data.reference,
+      verses: data.verses,
+      text: data.text,
+      isWholeChapter: data.is_whole_chapter,
+      mode: data.mode,
+      currentMode,
+    });
+    installedPassageState = passage;
     broadcastFn({
       type: 'scripture',
-      ...newOverlay,
+      reference: passage.reference,
+      displayReference: initialOverlay.displayReference,
+      text: initialOverlay.text,
+      mode: passage.mode,
+      verses: initialOverlay.verses,
+      currentPage: initialOverlay.page,
+      totalPages: initialOverlay.totalPages,
+      typographyMode: initialOverlay.typographyMode,
+      isContinuation: initialOverlay.isContinuation,
+      continuationIndex: initialOverlay.continuationIndex,
+      continuationCount: initialOverlay.continuationCount,
       planIdentity: 'plan-xyz',
     });
   };
@@ -257,7 +254,7 @@ test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation s
     text: `Verse content for line-budget verification test number ${i + 1} with sufficient length to span multiple lines.`,
   }));
 
-  // 1. Remote intent delivers whole chapter
+  // 1. Remote intent delivers whole chapter with mode omitted
   const accepted = applyRemoteIntent(
     {
       type: 'scripture',
@@ -279,30 +276,27 @@ test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation s
   );
 
   assert.equal(accepted, true);
-  assert.ok(loadedScripture !== null);
-  assert.equal(loadedScripture.reference, 'John 4');
-  assert.equal(loadedScripture.typographyMode, 'chapter');
+  assert.ok(installedPassageState !== null);
+  assert.equal(installedPassageState.reference, 'John 4');
+  assert.equal(installedPassageState.typographyMode, 'chapter');
+  assert.equal(installedPassageState.mode, 'per-verse', 'Must default to currentMode when remote intent omits mode');
 
-  // Verify page 1 broadcast
+  // Verify page 1 initial broadcast
   assert.equal(activeOverlay.currentPage, 1);
   assert.ok(activeOverlay.totalPages >= 3, `Expected >= 3 pages, got ${activeOverlay.totalPages}`);
   assert.equal(activeOverlay.typographyMode, 'chapter');
 
-  // 2. Simulate Next Page navigation: page 1 -> page 2
-  const pages = paginateScriptureVerses(
-    loadedScripture.reference,
-    loadedScripture.verses,
-    'per-verse',
-    loadedScripture.typographyMode
-  );
-  scripturePageIndex = 1;
-  const page2 = pages[scripturePageIndex];
+  // 2. Next Page navigation: page 1 -> page 2 using real resolveScripturePageOverlay
+  const page2 = resolveScripturePageOverlay(installedPassageState, 1);
+  assert.ok(page2 !== null);
+  assert.equal(page2.page, 2);
+  assert.equal(page2.typographyMode, 'chapter');
   broadcastFn({
     type: 'scripture',
-    reference: loadedScripture.reference,
+    reference: installedPassageState.reference,
     displayReference: page2.displayReference,
     text: page2.text,
-    mode: 'per-verse',
+    mode: installedPassageState.mode,
     verses: page2.verses,
     currentPage: page2.page,
     totalPages: page2.totalPages,
@@ -312,19 +306,19 @@ test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation s
     continuationCount: page2.continuationCount,
     planIdentity: 'plan-xyz',
   });
-
   assert.equal(activeOverlay.currentPage, 2);
-  assert.equal(activeOverlay.typographyMode, 'chapter');
 
-  // 3. Simulate Prev Page navigation: page 2 -> page 1
-  scripturePageIndex = 0;
-  const page1Again = pages[scripturePageIndex];
+  // 3. Prev Page navigation: page 2 -> page 1 using real resolveScripturePageOverlay
+  const page1Again = resolveScripturePageOverlay(installedPassageState, 0);
+  assert.ok(page1Again !== null);
+  assert.equal(page1Again.page, 1);
+  assert.equal(page1Again.typographyMode, 'chapter');
   broadcastFn({
     type: 'scripture',
-    reference: loadedScripture.reference,
+    reference: installedPassageState.reference,
     displayReference: page1Again.displayReference,
     text: page1Again.text,
-    mode: 'per-verse',
+    mode: installedPassageState.mode,
     verses: page1Again.verses,
     currentPage: page1Again.page,
     totalPages: page1Again.totalPages,
@@ -334,7 +328,6 @@ test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation s
     continuationCount: page1Again.continuationCount,
     planIdentity: 'plan-xyz',
   });
-
   assert.equal(activeOverlay.currentPage, 1);
   assert.equal(activeOverlay.displayReference, page1Again.displayReference);
 });

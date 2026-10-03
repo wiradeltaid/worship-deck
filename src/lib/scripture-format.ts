@@ -466,3 +466,81 @@ export function paginateScriptureVerses(
     };
   });
 }
+
+export interface InstalledScripturePassage {
+  reference: string;
+  verses: ScriptureVerseItem[];
+  typographyMode: ScriptureTypographyMode;
+  mode: ScriptureDisplayMode;
+  pages: ScripturePageChunk[];
+}
+
+/**
+ * Pure helper that normalizes an acquired scripture passage, computes typographyMode,
+ * chunks the passage according to visual line budget, and returns the installed passage
+ * state alongside the initial page overlay payload.
+ */
+export function installScripturePassage({
+  reference,
+  verses,
+  text,
+  isWholeChapter,
+  mode,
+  currentMode,
+}: {
+  reference: string;
+  verses?: ScriptureVerseItem[];
+  text?: string;
+  isWholeChapter?: boolean;
+  mode?: ScriptureDisplayMode;
+  currentMode: ScriptureDisplayMode;
+}): {
+  passage: InstalledScripturePassage;
+  initialOverlay: ScripturePageChunk;
+} {
+  const normVerses =
+    Array.isArray(verses) && verses.length > 0
+      ? verses
+      : [{ verse: 1, text: text || '' }];
+  const wholeChapter = Boolean(isWholeChapter || !reference.includes(':'));
+  const typographyMode: ScriptureTypographyMode =
+    wholeChapter || normVerses.length > 4 ? 'chapter' : 'verse';
+  const effectiveMode = mode || currentMode;
+
+  const pages = paginateScriptureVerses(reference, normVerses, effectiveMode, typographyMode);
+  const initialOverlay = pages[0] || {
+    page: 1,
+    totalPages: 1,
+    verses: normVerses,
+    text: text || '',
+    displayReference: reference,
+    typographyMode,
+    isContinuation: false,
+    continuationIndex: 1,
+    continuationCount: 1,
+  };
+
+  return {
+    passage: {
+      reference,
+      verses: normVerses,
+      typographyMode,
+      mode: effectiveMode,
+      pages,
+    },
+    initialOverlay,
+  };
+}
+
+/**
+ * Pure helper that resolves the page chunk overlay for a specific page index.
+ */
+export function resolveScripturePageOverlay(
+  passage: InstalledScripturePassage,
+  pageIndex: number
+): ScripturePageChunk | null {
+  if (!passage || !passage.pages || passage.pages.length === 0) return null;
+  const clampedIndex = Math.min(Math.max(0, pageIndex), passage.pages.length - 1);
+  return passage.pages[clampedIndex] || null;
+}
+
