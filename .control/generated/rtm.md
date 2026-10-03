@@ -1136,6 +1136,20 @@ rtm:
   FR: FR-14
   DEC: []
   UC: UC-18
+  ticket: SPEC-98-04
+  spec: SPEC-98
+  release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+  test:
+  - tests/scripture-offline-resilience.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-5
+  FR: FR-14
+  DEC: []
+  UC: UC-18
   ticket: W2-2-1
   spec: W2
   release: go-spa-cutover
@@ -1730,6 +1744,20 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-98-01
+  spec: SPEC-98
+  release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live
@@ -1843,6 +1871,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-98-02
+  spec: SPEC-98
+  release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+  test:
+  - tests/scripture-chapter-lookup.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-98-03
+  spec: SPEC-98
+  release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+  test:
+  - tests/scripture-display-modes-and-scaling.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -4631,6 +4687,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-98-02
+  spec: SPEC-98
+  release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+  test:
+  - tests/scripture-chapter-lookup.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-98-03
+  spec: SPEC-98
+  release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+  test:
+  - tests/scripture-display-modes-and-scaling.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22

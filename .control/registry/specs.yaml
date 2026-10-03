@@ -4129,6 +4129,49 @@ waves:
         touches: [present-channel]
         tests:
           - tests/presenter-panel-geometry.test.mjs
+  - id: SPEC-98
+    status: open
+    release: scripture-ergonomics-whole-chapter-display-modes-and-offline-caching
+    prd: [operator-turn, offline-deck]
+    fr: [FR-14, FR-16, FR-19]
+    size: M
+    depends_on: [SPEC-97]
+    spec_folder: .scratch/SPEC-98-scripture-ergonomics-whole-chapter-display-modes-and-offline-caching/
+    spec_reviewed:
+      date: '2026-10-03'
+      sha: 'de44c2ccbf73c471984fbd18c7aa4f6c2adb06c1'
+      lenses: [structure, prose, edge-case-hunter, architecture-traceability, channel-contract, offline-cache-and-migration, acceptance]
+      note: "Terra (kiro-agent) independent advisory triage folded in: (1) corrected AD-1/FR-14 traceability to clarify browser scripture caching as a Plan B operational resilience enhancement rather than a Plan A offline guarantee (which is reserved for PPTX); (2) established deterministic pagination policy for full chapters and long passages (>8 verses / >900 chars) with operator page navigation controls to eliminate micro-font collapse; (3) formalized authoritative ScriptureOverlay type across direct broadcast and mount-time sync.scripture recovery with canonical pre-formatted text; (4) defined canonical service scripture extraction fields, translation resolution, and readiness accounting; (5) established fail-closed SCN-4 semantics for 4xx/misses vs offline 5xx cache fallback; (6) made clear-scripture button always accessible as an idempotent emergency clear action; (7) established deterministic verse numbering across display modes."
+    tickets:
+      - id: "SPEC-98-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/scripture-controls-ergonomics.test.mjs
+      - id: "SPEC-98-02"
+        component: presenter
+        satisfies: [UC-13, FR-16]
+        blocked_by: []
+        touches: [scripture]
+        tests:
+          - tests/scripture-chapter-lookup.test.mjs
+      - id: "SPEC-98-03"
+        component: presenter
+        satisfies: [UC-13, FR-16, FR-19]
+        blocked_by: ["SPEC-98-01", "SPEC-98-02"]
+        touches: [scripture, present-channel]
+        tests:
+          - tests/scripture-display-modes-and-scaling.test.mjs
+      - id: "SPEC-98-04"
+        component: presenter
+        satisfies: [UC-18, FR-14, FR-16]
+        blocked_by: ["SPEC-98-03"]
+        touches: [services, scripture, present-channel]
+        tests:
+          - tests/scripture-offline-resilience.test.mjs
+
 
 
 
