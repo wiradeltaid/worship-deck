@@ -61,10 +61,10 @@
 
 **Blocked by:** SPEC-100-01
 
-**Status:** open
+**Status:** closed
 
-- [ ] Stabilize whole-chapter presentation base font to `4.8cqh` with calibrated `0.917` floor and adjacent delta `<= 0.08`.
-- [ ] Add `typography_mode` to `ScriptureCacheRecord` with legacy read derivation fallback.
-- [ ] Implement end-to-end `[Next Page]` / `[Prev Page]` navigation lifecycle with projector synchronization.
-- [ ] Reconcile render geometry (`lineHeight: 1.28`) and add `overflow-wrap: anywhere`.
-- [ ] Add integration tests in `tests/scripture-continuation-presentation.test.mjs`.
+- [x] Stabilize whole-chapter presentation base font to `4.8cqh` with calibrated `0.917` floor and adjacent delta `<= 0.08`.
+- [x] Add `typography_mode` to `ScriptureCacheRecord` with legacy read derivation fallback.
+- [x] Implement end-to-end `[Next Page]` / `[Prev Page]` navigation lifecycle with projector synchronization.
+- [x] Reconcile render geometry (`lineHeight: 1.28`) and add `overflow-wrap: anywhere`.
+- [x] Add integration tests in `tests/scripture-continuation-presentation.test.mjs`.

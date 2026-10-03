@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-087-daily-autopilot-mandate-congregation-displa
 
 ## Resume
 
-- State: In Progress — SPEC-100-01 implemented and verified, continuing to SPEC-100-02
+- State: In Progress — SPEC-100 closed, ready for peer review
 - Run branch: autopilot/DEC-087
-- Stopped at: Finished SPEC-100-01, continuing to SPEC-100-02
+- Stopped at: Finished SPEC-100, ready for peer review
 - Blocked: —
 - Parked: —
-- Next: SPEC-100-02 (Presentation Surface Line-Budget Scaling & Scripture Overlay Continuation Rendering)
+- Next: Peer review SPEC-100 with Terra and proceed to Finish
 
 ## Decisions
 
@@ -22,6 +22,7 @@ artifact: .control/decisions/DEC-087-daily-autopilot-mandate-congregation-displa
 | I-2 (SPEC-99-02) | PresenterDisplayControl.tsx | Accessible split button pattern with dynamic liveness state, multi-screen radio selector, and bilingual translations | monolithic single-purpose button with hardcoded popup launch | low | src/operator/present/PresenterDisplayControl.tsx, src/operator/present/PresenterOperator.tsx, src/lib/i18n/keys.ts, src/lib/i18n/catalogue-en.ts, src/lib/i18n/catalogue-id.ts, tests/presenter-congregation-display-control.test.mjs |
 | I-3 (SPEC-99-03) | PresenterOperator.tsx, ProjectorClient.tsx | Multi-screen placement coordinates, live retargeting window relocation, fullscreen query orchestration, and F11 fallback | rigid popup placement on primary screen with operator lockout | low | src/operator/present/PresenterOperator.tsx, src/projected/ProjectorClient.tsx, tests/congregation-screen-placement.test.mjs |
 | I-4 (SPEC-100-01) | scripture-format.ts | Conservative visual line estimation (CHARS_PER_LINE = 60, HARD_LINES = 10), both-sides sealed isolation (>= 450 chars), and lossless continuation splitting | naive 8-verse/900-char chunking causing micro-font collapse on narrative chapters | low | src/lib/scripture-format.ts, tests/scripture-line-budget-pagination.test.mjs |
+| I-5 (SPEC-100-02) | scripture-scaling.ts, ScriptureOverlayView.tsx, present-channel.ts, PresenterOperator.tsx, ProjectorClient.tsx | Chapter presentation base font stabilization (4.8cqh, 0.917 floor, 1.28 line-height), non-optional wire contract, and durable typographyMode caching | unstable per-page font ballooning on short tail verses | low | src/lib/scripture-scaling.ts, src/components/ScriptureOverlayView.tsx, src/lib/present-channel.ts, src/operator/present/PresenterOperator.tsx, src/projected/ProjectorClient.tsx, src/lib/offline/service-snapshot.ts, tests/scripture-continuation-presentation.test.mjs |
 
 ## Smoke Test Results
 

@@ -94,6 +94,13 @@ export function applyRemoteIntent(
           ? (intent as any).verses
           : [{ verse: 1, text: intent.text }];
         const mode = (intent as any).mode === 'inline' ? 'inline' : 'per-verse';
+        const typographyMode =
+          (intent as any).typographyMode ||
+          ((intent as any).is_whole_chapter || verses.length > 4 ? 'chapter' : 'verse');
+        const isContinuation = Boolean((intent as any).isContinuation);
+        const continuationIndex = (intent as any).continuationIndex || 1;
+        const continuationCount = (intent as any).continuationCount || 1;
+
         handlers.broadcast({
           type: 'scripture',
           reference: intent.reference,
@@ -103,6 +110,10 @@ export function applyRemoteIntent(
           verses,
           currentPage: (intent as any).currentPage || 1,
           totalPages: (intent as any).totalPages || 1,
+          typographyMode,
+          isContinuation,
+          continuationIndex,
+          continuationCount,
           planIdentity: currentPlanIdentity,
         });
         return true;

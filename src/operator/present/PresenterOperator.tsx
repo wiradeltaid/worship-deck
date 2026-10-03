@@ -86,9 +86,11 @@ import {
 } from '@/lib/present-channel';
 import {
   type ScriptureDisplayMode,
+  type ScriptureTypographyMode,
   type ScripturePageChunk,
   formatScriptureText,
   paginateScriptureVerses,
+  parseScriptureRef,
 } from '@/lib/scripture-format';
 import {
   clearEmergencyPatches,
@@ -530,6 +532,7 @@ export default function PresenterOperator({
   const [loadedScripture, setLoadedScripture] = useState<{
     reference: string;
     verses: Array<{ verse: number; text: string }>;
+    typographyMode: ScriptureTypographyMode;
   } | null>(null);
   const [scripturePageIndex, setScripturePageIndex] = useState<number>(0);
   const [projectorBlocked, setProjectorBlocked] = useState(false);
@@ -769,6 +772,10 @@ export default function PresenterOperator({
         verses: msg.verses,
         currentPage: msg.currentPage,
         totalPages: msg.totalPages,
+        typographyMode: msg.typographyMode,
+        isContinuation: msg.isContinuation,
+        continuationIndex: msg.continuationIndex,
+        continuationCount: msg.continuationCount,
       });
     } else if (msg.type === 'clear-scripture' || msg.type === 'sync') {
       setScriptureOverlay(null);
@@ -1463,6 +1470,7 @@ export default function PresenterOperator({
     setScriptureBusy(true);
     setScriptureError(null);
     const trimmedRef = scriptureRef.trim();
+    const parsedRef = parseScriptureRef(trimmedRef);
     const translation = scriptureTranslation || 'KJV';
     try {
       const params = new URLSearchParams({ ref: trimmedRef });
@@ -1484,10 +1492,15 @@ export default function PresenterOperator({
             Array.isArray(cached.verses) && cached.verses.length > 0
               ? cached.verses
               : [{ verse: 1, text: cached.text }];
-          setLoadedScripture({ reference: baseRef, verses });
+          const typographyMode: ScriptureTypographyMode =
+            cached.typography_mode ||
+            (cached.is_whole_chapter || cached.reference.indexOf(':') === -1 || verses.length > 4
+              ? 'chapter'
+              : 'verse');
+          setLoadedScripture({ reference: baseRef, verses, typographyMode });
           setScripturePageIndex(0);
 
-          const pages = paginateScriptureVerses(baseRef, verses, scriptureMode);
+          const pages = paginateScriptureVerses(baseRef, verses, scriptureMode, typographyMode);
           const firstPage = pages[0];
           const newOverlay: ScriptureOverlay = {
             reference: baseRef,
@@ -1497,6 +1510,10 @@ export default function PresenterOperator({
             verses: firstPage.verses,
             currentPage: firstPage.page,
             totalPages: firstPage.totalPages,
+            typographyMode: firstPage.typographyMode,
+            isContinuation: firstPage.isContinuation,
+            continuationIndex: firstPage.continuationIndex,
+            continuationCount: firstPage.continuationCount,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1550,6 +1567,9 @@ export default function PresenterOperator({
           ? data.verses
           : [{ verse: 1, text: data.text }];
 
+      const isWholeChapter = Boolean(data.is_whole_chapter || parsedRef?.isWholeChapter);
+      const typographyMode: ScriptureTypographyMode = isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
+
       // Cache asynchronously into scripture_cache
       void cacheScripturePassage({
         cache_key: getScriptureCacheKey(trimmedRef, translation),
@@ -1558,12 +1578,14 @@ export default function PresenterOperator({
         verses,
         text: data.text,
         cached_at: Date.now(),
+        typography_mode: typographyMode,
+        is_whole_chapter: isWholeChapter,
       });
 
-      setLoadedScripture({ reference: baseRef, verses });
+      setLoadedScripture({ reference: baseRef, verses, typographyMode });
       setScripturePageIndex(0);
 
-      const pages = paginateScriptureVerses(baseRef, verses, scriptureMode);
+      const pages = paginateScriptureVerses(baseRef, verses, scriptureMode, typographyMode);
       const firstPage = pages[0];
       const newOverlay: ScriptureOverlay = {
         reference: baseRef,
@@ -1573,6 +1595,10 @@ export default function PresenterOperator({
         verses: firstPage.verses,
         currentPage: firstPage.page,
         totalPages: firstPage.totalPages,
+        typographyMode: firstPage.typographyMode,
+        isContinuation: firstPage.isContinuation,
+        continuationIndex: firstPage.continuationIndex,
+        continuationCount: firstPage.continuationCount,
       };
       setScriptureOverlay(newOverlay);
       broadcast({
@@ -1592,7 +1618,8 @@ export default function PresenterOperator({
     return paginateScriptureVerses(
       loadedScripture.reference,
       loadedScripture.verses,
-      scriptureMode
+      scriptureMode,
+      loadedScripture.typographyMode
     );
   }, [loadedScripture, scriptureMode]);
 
@@ -1608,7 +1635,8 @@ export default function PresenterOperator({
         const pages = paginateScriptureVerses(
           loadedScripture.reference,
           loadedScripture.verses,
-          mode
+          mode,
+          loadedScripture.typographyMode
         );
         const validIdx = Math.min(scripturePageIndex, Math.max(0, pages.length - 1));
         setScripturePageIndex(validIdx);
@@ -1622,6 +1650,10 @@ export default function PresenterOperator({
             verses: activePage.verses,
             currentPage: activePage.page,
             totalPages: activePage.totalPages,
+            typographyMode: activePage.typographyMode,
+            isContinuation: activePage.isContinuation,
+            continuationIndex: activePage.continuationIndex,
+            continuationCount: activePage.continuationCount,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1649,6 +1681,10 @@ export default function PresenterOperator({
           verses: activePage.verses,
           currentPage: activePage.page,
           totalPages: activePage.totalPages,
+          typographyMode: activePage.typographyMode,
+          isContinuation: activePage.isContinuation,
+          continuationIndex: activePage.continuationIndex,
+          continuationCount: activePage.continuationCount,
         };
         setScriptureOverlay(newOverlay);
         broadcast({
@@ -1916,6 +1952,10 @@ export default function PresenterOperator({
                   text={scriptureOverlay.text}
                   mode={scriptureOverlay.mode}
                   verseCount={scriptureOverlay.verses?.length}
+                  typographyMode={scriptureOverlay.typographyMode}
+                  isContinuation={scriptureOverlay.isContinuation}
+                  continuationIndex={scriptureOverlay.continuationIndex}
+                  continuationCount={scriptureOverlay.continuationCount}
                 />
               ) : current ? (
                 <SlideView

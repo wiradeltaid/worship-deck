@@ -11,7 +11,8 @@
  */
 export function getScriptureScaling(
   text: string,
-  verseCount?: number
+  verseCount?: number,
+  typographyMode?: 'chapter' | 'verse'
 ): {
   fontSizeStyle: string;
   tailwindClass: string;
@@ -19,6 +20,18 @@ export function getScriptureScaling(
   charCount: number;
 } {
   const len = text.trim().length;
+
+  // Chapter presentation stabilizes on 4.8cqh base font across all pages,
+  // preventing tail pages from blowing up to 6.5/8.5cqh.
+  if (typographyMode === 'chapter') {
+    return {
+      fontSizeStyle: '4.8cqh',
+      tailwindClass: 'font-normal',
+      minHeightStyle: '20cqh',
+      charCount: len,
+    };
+  }
+
   if (typeof verseCount === 'number') {
     if (verseCount === 1 || len < 60) {
       return {

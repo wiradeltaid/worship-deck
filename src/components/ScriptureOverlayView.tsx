@@ -6,6 +6,10 @@ export interface ScriptureOverlayViewProps {
   text: string;
   mode?: 'per-verse' | 'inline';
   verseCount?: number;
+  typographyMode?: 'chapter' | 'verse';
+  isContinuation?: boolean;
+  continuationIndex?: number;
+  continuationCount?: number;
   style?: CSSProperties;
 }
 
@@ -16,9 +20,13 @@ export default function ScriptureOverlayView({
   text,
   mode,
   verseCount,
+  typographyMode,
+  isContinuation,
+  continuationIndex,
+  continuationCount,
   style,
 }: ScriptureOverlayViewProps) {
-  const scaling = getScriptureScaling(text, verseCount);
+  const scaling = getScriptureScaling(text, verseCount, typographyMode);
   const stageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -153,12 +161,21 @@ export default function ScriptureOverlayView({
               className={`italic leading-relaxed text-balance ${mode === 'per-verse' ? 'whitespace-pre-wrap' : ''} ${scaling.tailwindClass}`}
               style={{
                 fontSize: `calc(${scaling.fontSizeStyle} * var(${SCRIPTURE_FIT_SCALE_VAR}, 1))`,
-                lineHeight: 1.35,
+                lineHeight: typographyMode === 'chapter' ? 1.28 : 1.35,
+                overflowWrap: 'anywhere',
               }}
             >
               {text}
             </p>
           </div>
+          {(isContinuation || (continuationCount && continuationCount > 1)) && (
+            <p
+              data-slot="scripture-continuation"
+              className="mt-1 text-[11px] font-mono tracking-wider opacity-60"
+            >
+              Part {continuationIndex || 1} of {continuationCount || 1}
+            </p>
+          )}
         </div>
       </div>
     </div>

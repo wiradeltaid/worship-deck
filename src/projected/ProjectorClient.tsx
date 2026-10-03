@@ -221,13 +221,17 @@ export default function ProjectorClient({
         }
       } else if (msg.type === 'scripture') {
         setOverlay({
-          reference: msg.displayReference || msg.reference,
+          reference: msg.reference,
+          displayReference: msg.displayReference || msg.reference,
           text: msg.text,
           mode: msg.mode,
           verses: msg.verses,
           currentPage: msg.currentPage,
           totalPages: msg.totalPages,
-          displayReference: msg.displayReference,
+          typographyMode: msg.typographyMode,
+          isContinuation: msg.isContinuation,
+          continuationIndex: msg.continuationIndex,
+          continuationCount: msg.continuationCount,
         });
       } else if (msg.type === 'clear-scripture') {
         setOverlay(null);
@@ -326,6 +330,10 @@ export default function ProjectorClient({
             text={overlay.text}
             mode={overlay.mode}
             verseCount={overlay.verses?.length}
+            typographyMode={overlay.typographyMode}
+            isContinuation={overlay.isContinuation}
+            continuationIndex={overlay.continuationIndex}
+            continuationCount={overlay.continuationCount}
           />
         ) : slide ? (
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />

@@ -110,6 +110,8 @@ export type ScriptureCacheRecord = {
   verses: Array<{ verse: number; text: string }>;
   text: string;
   cached_at: number;
+  typography_mode?: 'chapter' | 'verse';
+  is_whole_chapter?: boolean;
 };
 
 // In-memory fallback stores for non-browser/test environments
@@ -187,8 +189,21 @@ export async function getCachedScripturePassage(
 ): Promise<ScriptureCacheRecord | null> {
   const key = getScriptureCacheKey(ref, translation);
 
+  const normalize = (cached: ScriptureCacheRecord | null): ScriptureCacheRecord | null => {
+    if (!cached) return null;
+    if (!cached.typography_mode) {
+      cached.typography_mode =
+        cached.is_whole_chapter ||
+        cached.reference.indexOf(':') === -1 ||
+        (cached.verses && cached.verses.length > 4)
+          ? 'chapter'
+          : 'verse';
+    }
+    return cached;
+  };
+
   const mem = inMemoryScriptures.get(key);
-  if (mem) return mem;
+  if (mem) return normalize(mem);
 
   if (!isIndexedDBAvailable()) return null;
   try {
@@ -196,8 +211,8 @@ export async function getCachedScripturePassage(
     return await new Promise<ScriptureCacheRecord | null>((resolve, reject) => {
       const tx = db.transaction(SCRIPTURE_STORE, 'readonly');
       const req = tx.objectStore(SCRIPTURE_STORE).get(key);
-      req.onsuccess = () => resolve((req.result as ScriptureCacheRecord) || null);
-      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve(normalize((req.result as ScriptureCacheRecord) || null));
+      req.onerror = () => reject(tx.error || req.error);
     });
   } catch {
     return null;
