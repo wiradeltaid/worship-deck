@@ -2214,30 +2214,36 @@ export default function PresenterOperator({
                 {t('presenter.scripture.mode')}
               </Label>
               <div className="grid grid-cols-2 gap-1 rounded-md border border-input p-0.5 bg-muted/30">
-                <button
+                <Button
                   type="button"
+                  size="xs"
+                  variant={scriptureMode === 'per-verse' ? 'default' : 'ghost'}
                   data-testid="presenter-scripture-mode-per-verse"
-                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  className={cn(
+                    'h-6 text-xs font-medium',
                     scriptureMode === 'per-verse'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      ? 'shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  )}
                   onClick={() => handleModeChange('per-verse')}
                 >
                   {t('presenter.scripture.modePerVerse')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="xs"
+                  variant={scriptureMode === 'inline' ? 'default' : 'ghost'}
                   data-testid="presenter-scripture-mode-inline"
-                  className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  className={cn(
+                    'h-6 text-xs font-medium',
                     scriptureMode === 'inline'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      ? 'shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  )}
                   onClick={() => handleModeChange('inline')}
                 >
                   {t('presenter.scripture.modeInline')}
-                </button>
+                </Button>
               </div>
             </div>
             <div className="mb-2">

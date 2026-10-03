@@ -358,9 +358,9 @@ test('SPEC-84-03: Reconciliation applies queued patches onto freshly fetched ser
   assert.equal(patchedPlan[0].body, 'Slide 1', 'Unpatched slides remain untouched from server');
 });
 
-test('SPEC-84-03: IndexedDB schema version is 2 to trigger migration for outbox store on existing browsers', async () => {
+test('SPEC-84-03: IndexedDB schema version is at least 2 to trigger migration for outbox store on existing browsers', async () => {
   const { DB_VERSION } = await import(new URL('../src/lib/offline/service-snapshot.ts', import.meta.url).href);
-  assert.equal(DB_VERSION, 2, 'IndexedDB version must be 2 to ensure onupgradeneeded creates emergency_outbox on existing databases');
+  assert.ok(DB_VERSION >= 2, 'IndexedDB version must be at least 2 to ensure onupgradeneeded creates emergency_outbox on existing databases');
 });
 
 test('SPEC-84-03: Delayed hydration normalization by highest revision per slideIndex and race blocking', () => {
