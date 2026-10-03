@@ -1831,6 +1831,25 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/
 
+  - id: DEC-086
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-03)"
+    title: Daily Autopilot mandate for Scripture Ergonomics, Whole Chapter, Display Modes, and Offline Caching (SPEC-98)
+    file: .control/decisions/DEC-086-daily-autopilot-mandate-scripture-ergonomics-whole-chapter-display-modes-and-offline-caching.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-10'
+    touches:
+      - .control/memlog/autopilot-DEC-086.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
 
 
 
