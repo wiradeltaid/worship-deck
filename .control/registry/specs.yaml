@@ -4094,6 +4094,43 @@ waves:
         tests:
           - tests/pptx-dual-hash-image-embed.test.mjs
 
+  - id: SPEC-97
+    status: open
+    release: presenter-zoom-layout-proportions-resilience
+    prd: [operator-turn]
+    fr: [FR-16]
+    size: S
+    depends_on: [SPEC-96]
+    spec_folder: .scratch/SPEC-97-presenter-zoom-layout-proportions-resilience/
+    spec_reviewed:
+      date: '2026-10-03'
+      sha: '980ceeae7bd8dfc45ff66bd0e723c68ce8af5820'
+      lenses: [structure, prose, edge-case-hunter, testability, responsive-layout, traceability]
+      note: "Terra (kiro-agent) independent advisory triage folded in: (1) resolved high-zoom/short-viewport vertical behavior conflict by explicitly permitting page-level vertical scroll on short desktop viewports while preserving strict internal scroll containment and zero horizontal overflow; (2) audited and documented AD-24 (operator chrome closed to room-facing) and AD-30 (process roles) traces with exact spine references (.how/_platform/ARCHITECTURE-SPINE.md:205 and :262); (3) elevated regression verification to real-browser integration testing with Playwright across the 100%-175% zoom matrix; (4) sharpened subjective acceptance criteria to strict 62%-68% panel bounding-box width ratio band; (5) mandated try/finally restoration on defect injection guards; (6) added both smoke:spec-97 and test:smoke-spec-97 alias registrations in package.json."
+    tickets:
+      - id: "SPEC-97-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-panel-geometry.test.mjs
+      - id: "SPEC-97-02"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-97-01"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-panel-geometry.test.mjs
+      - id: "SPEC-97-03"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-97-02"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-panel-geometry.test.mjs
+
+
 
 
 

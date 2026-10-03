@@ -1683,6 +1683,48 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-97-01
+  spec: SPEC-97
+  release: presenter-zoom-layout-proportions-resilience
+  test:
+  - tests/presenter-panel-geometry.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-97-02
+  spec: SPEC-97
+  release: presenter-zoom-layout-proportions-resilience
+  test:
+  - tests/presenter-panel-geometry.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-97-03
+  spec: SPEC-97
+  release: presenter-zoom-layout-proportions-resilience
+  test:
+  - tests/presenter-panel-geometry.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: W7-02
   spec: W7
   release: presenter-live

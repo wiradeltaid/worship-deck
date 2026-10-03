@@ -248,7 +248,7 @@ test('WSD-H-15: all derived public facts match their sources exactly', () => {
 test('WSD-H-15: guard proof — injected mismatch in docs/public-facts.yaml is detected', () => {
   const original = fs.readFileSync(manifestPath, 'utf8');
   try {
-    const mutated = original.replace('value: "0.1.0"', 'value: "9.9.9"');
+    const mutated = original.replace(/value:\s*"[^"]+"/, 'value: "9.9.9"');
     assert.notEqual(mutated, original);
     fs.writeFileSync(manifestPath, mutated);
 
@@ -266,7 +266,7 @@ test('WSD-H-15: guard proof — injected mismatch in source file is detected', (
   const target = path.join(root, 'package.json');
   const original = fs.readFileSync(target, 'utf8');
   try {
-    const mutated = original.replace('"version": "0.1.0"', '"version": "0.9.9"');
+    const mutated = original.replace(/"version":\s*"[^"]+"/, '"version": "0.9.9"');
     assert.notEqual(mutated, original);
     fs.writeFileSync(target, mutated);
 

@@ -3,7 +3,7 @@
 
 facts:
   - id: product_version
-    value: "0.1.0"
+    value: "0.1.1"
     derived_from:
       file: package.json
       pattern: '"version":\s*"([^"]+)"'
