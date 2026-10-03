@@ -4173,7 +4173,7 @@ waves:
           - tests/scripture-offline-resilience.test.mjs
 
   - id: SPEC-99
-    status: open
+    status: closed
     release: congregation-display-target-and-window-mode-selection
     prd: [operator-turn]
     fr: [FR-15, FR-16]
@@ -4209,7 +4209,7 @@ waves:
           - tests/congregation-screen-placement.test.mjs
 
   - id: SPEC-100
-    status: open
+    status: closed
     release: scripture-line-budget-pagination-and-long-verse-resilience
     prd: [operator-turn]
     fr: [FR-16, FR-19]

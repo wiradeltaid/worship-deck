@@ -86,9 +86,13 @@ import {
 } from '@/lib/present-channel';
 import {
   type ScriptureDisplayMode,
+  type ScriptureTypographyMode,
   type ScripturePageChunk,
   formatScriptureText,
   paginateScriptureVerses,
+  parseScriptureRef,
+  installScripturePassage,
+  resolveScripturePageOverlay,
 } from '@/lib/scripture-format';
 import {
   clearEmergencyPatches,
@@ -141,6 +145,17 @@ import {
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
 import SlideGridDialog from './SlideGridDialog';
+import PresenterDisplayControl from './PresenterDisplayControl';
+import {
+  resolveLaunchTarget,
+  getDisplayTargetConfig,
+  detectAvailableScreens,
+  subscribeScreenTopology,
+  getSynchronousScreens,
+  type ResolvedLaunchTarget,
+  type ScreenInfo,
+  DEFAULT_WINDOW_FEATURES,
+} from '@/lib/display-target';
 import {
   PRESENTER_TONE_CLASS,
   activePresenterEntry,
@@ -516,9 +531,13 @@ export default function PresenterOperator({
     }
     return 'per-verse';
   });
+  const scriptureModeRef = useRef<ScriptureDisplayMode>(scriptureMode);
+  scriptureModeRef.current = scriptureMode;
+
   const [loadedScripture, setLoadedScripture] = useState<{
     reference: string;
     verses: Array<{ verse: number; text: string }>;
+    typographyMode: ScriptureTypographyMode;
   } | null>(null);
   const [scripturePageIndex, setScripturePageIndex] = useState<number>(0);
   const [projectorBlocked, setProjectorBlocked] = useState(false);
@@ -659,20 +678,68 @@ export default function PresenterOperator({
    * advertises must actually be able to reattach a frozen projector, not just
    * bring an unresponsive window to the front.
    */
-  const openProjector = useCallback(() => {
+  const [availableScreens, setAvailableScreens] = useState<ScreenInfo[]>([]);
+  const screensRef = useRef<ScreenInfo[]>([]);
+  screensRef.current = availableScreens;
+
+  useEffect(() => {
+    let mounted = true;
+    detectAvailableScreens().then((s) => {
+      if (mounted) setAvailableScreens(s);
+    });
+    const unsubscribe = subscribeScreenTopology(() => {
+      detectAvailableScreens().then((s) => {
+        if (mounted) setAvailableScreens(s);
+      });
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const openProjector = useCallback((overrideTarget?: ResolvedLaunchTarget) => {
     const existing = projectorRef.current;
-    if (existing && !existing.closed) {
+    const currentScreens = screensRef.current.length > 0 ? screensRef.current : getSynchronousScreens();
+    const config = getDisplayTargetConfig();
+    const target = overrideTarget || resolveLaunchTarget(config, currentScreens);
+
+    const targetUrl = target.mode === 'fullscreen'
+      ? (projectorUrl.includes('?') ? `${projectorUrl}&fullscreen=1` : `${projectorUrl}?fullscreen=1`)
+      : projectorUrl;
+
+    // If an existing window is open and not being relocated to a different screen:
+    // A healthy window is focused; a lost/frozen window is navigated back to the projector route (AD-29)
+    if (existing && !existing.closed && !overrideTarget) {
       if (livenessRef.current.verdict === 'lost') {
-        existing.location.href = projectorUrl;
+        try {
+          existing.location.href = targetUrl;
+        } catch {
+          try {
+            existing.close();
+          } catch {}
+          projectorRef.current = null;
+        }
       }
-      existing.focus();
-      dispatchLiveness({ type: 'opened' });
-      return;
+      if (projectorRef.current) {
+        existing.focus();
+        dispatchLiveness({ type: 'opened' });
+        return;
+      }
     }
+
+    // If an existing window was open and we are retargeting/relocating, cleanly close old handle
+    if (existing && !existing.closed) {
+      try {
+        existing.close();
+      } catch {}
+      projectorRef.current = null;
+    }
+
     const opened = window.open(
-      projectorUrl,
+      targetUrl,
       projectorWindowName(serviceId),
-      PROJECTOR_FEATURES
+      target.windowFeatures || DEFAULT_WINDOW_FEATURES
     );
     projectorRef.current = opened;
     // `null` means the popup blocker ate it — surface the plain link instead of
@@ -686,6 +753,20 @@ export default function PresenterOperator({
     dispatchLiveness({ type: 'opened' });
   }, [projectorUrl, serviceId, dispatchLiveness]);
 
+  const relocateProjector = useCallback((newTarget: ResolvedLaunchTarget) => {
+    openProjector(newTarget);
+  }, [openProjector]);
+
+  const closeProjector = useCallback(() => {
+    if (projectorRef.current && !projectorRef.current.closed) {
+      try {
+        projectorRef.current.close();
+      } catch {}
+      dispatchLiveness({ type: 'handle-closed' });
+    }
+    projectorRef.current = null;
+  }, [dispatchLiveness]);
+
   const broadcast = useCallback((msg: PresentMessage) => {
     if (msg.type === 'scripture') {
       setScriptureOverlay({
@@ -696,6 +777,10 @@ export default function PresenterOperator({
         verses: msg.verses,
         currentPage: msg.currentPage,
         totalPages: msg.totalPages,
+        typographyMode: msg.typographyMode,
+        isContinuation: msg.isContinuation,
+        continuationIndex: msg.continuationIndex,
+        continuationCount: msg.continuationCount,
       });
     } else if (msg.type === 'clear-scripture' || msg.type === 'sync') {
       setScriptureOverlay(null);
@@ -757,6 +842,53 @@ export default function PresenterOperator({
   const toggleBlank = useCallback(() => {
     setBlankAndSync(!blankRef.current);
   }, [setBlankAndSync]);
+
+  const setScriptureAndSync = useCallback(
+    (data: {
+      reference: string;
+      text: string;
+      verses?: Array<{ verse: number; text: string }>;
+      mode?: ScriptureDisplayMode;
+      is_whole_chapter?: boolean;
+    }) => {
+      const { passage, initialOverlay } = installScripturePassage({
+        reference: data.reference,
+        verses: data.verses,
+        text: data.text,
+        isWholeChapter: data.is_whole_chapter,
+        mode: data.mode,
+        currentMode: scriptureModeRef.current,
+      });
+
+      setLoadedScripture({
+        reference: passage.reference,
+        verses: passage.verses,
+        typographyMode: passage.typographyMode,
+      });
+      setScripturePageIndex(0);
+
+      const newOverlay: ScriptureOverlay = {
+        reference: passage.reference,
+        displayReference: initialOverlay.displayReference,
+        text: initialOverlay.text,
+        mode: passage.mode,
+        verses: initialOverlay.verses,
+        currentPage: initialOverlay.page,
+        totalPages: initialOverlay.totalPages,
+        typographyMode: initialOverlay.typographyMode,
+        isContinuation: initialOverlay.isContinuation,
+        continuationIndex: initialOverlay.continuationIndex,
+        continuationCount: initialOverlay.continuationCount,
+      };
+      setScriptureOverlay(newOverlay);
+      broadcast({
+        type: 'scripture',
+        ...newOverlay,
+        planIdentity: planIdentityRef.current,
+      });
+    },
+    [broadcast, setScriptureOverlay]
+  );
 
   const visibilityController = useMemo(() => {
     return createSlideVisibilityController({
@@ -959,6 +1091,7 @@ export default function PresenterOperator({
         setBlankAndSync,
         setTransitionAndSync,
         setBackgroundAndSync,
+        setScriptureAndSync,
         broadcast,
       },
       onCode: (code) => {
@@ -980,6 +1113,7 @@ export default function PresenterOperator({
     setBlankAndSync,
     setTransitionAndSync,
     setBackgroundAndSync,
+    setScriptureAndSync,
     broadcast,
   ]);
 
@@ -1390,6 +1524,7 @@ export default function PresenterOperator({
     setScriptureBusy(true);
     setScriptureError(null);
     const trimmedRef = scriptureRef.trim();
+    const parsedRef = parseScriptureRef(trimmedRef);
     const translation = scriptureTranslation || 'KJV';
     try {
       const params = new URLSearchParams({ ref: trimmedRef });
@@ -1411,10 +1546,15 @@ export default function PresenterOperator({
             Array.isArray(cached.verses) && cached.verses.length > 0
               ? cached.verses
               : [{ verse: 1, text: cached.text }];
-          setLoadedScripture({ reference: baseRef, verses });
+          const typographyMode: ScriptureTypographyMode =
+            cached.typography_mode ||
+            (cached.is_whole_chapter || cached.reference.indexOf(':') === -1 || verses.length > 4
+              ? 'chapter'
+              : 'verse');
+          setLoadedScripture({ reference: baseRef, verses, typographyMode });
           setScripturePageIndex(0);
 
-          const pages = paginateScriptureVerses(baseRef, verses, scriptureMode);
+          const pages = paginateScriptureVerses(baseRef, verses, scriptureMode, typographyMode);
           const firstPage = pages[0];
           const newOverlay: ScriptureOverlay = {
             reference: baseRef,
@@ -1424,6 +1564,10 @@ export default function PresenterOperator({
             verses: firstPage.verses,
             currentPage: firstPage.page,
             totalPages: firstPage.totalPages,
+            typographyMode: firstPage.typographyMode,
+            isContinuation: firstPage.isContinuation,
+            continuationIndex: firstPage.continuationIndex,
+            continuationCount: firstPage.continuationCount,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1477,6 +1621,9 @@ export default function PresenterOperator({
           ? data.verses
           : [{ verse: 1, text: data.text }];
 
+      const isWholeChapter = Boolean(data.is_whole_chapter || parsedRef?.isWholeChapter);
+      const typographyMode: ScriptureTypographyMode = isWholeChapter || verses.length > 4 ? 'chapter' : 'verse';
+
       // Cache asynchronously into scripture_cache
       void cacheScripturePassage({
         cache_key: getScriptureCacheKey(trimmedRef, translation),
@@ -1485,12 +1632,14 @@ export default function PresenterOperator({
         verses,
         text: data.text,
         cached_at: Date.now(),
+        typography_mode: typographyMode,
+        is_whole_chapter: isWholeChapter,
       });
 
-      setLoadedScripture({ reference: baseRef, verses });
+      setLoadedScripture({ reference: baseRef, verses, typographyMode });
       setScripturePageIndex(0);
 
-      const pages = paginateScriptureVerses(baseRef, verses, scriptureMode);
+      const pages = paginateScriptureVerses(baseRef, verses, scriptureMode, typographyMode);
       const firstPage = pages[0];
       const newOverlay: ScriptureOverlay = {
         reference: baseRef,
@@ -1500,6 +1649,10 @@ export default function PresenterOperator({
         verses: firstPage.verses,
         currentPage: firstPage.page,
         totalPages: firstPage.totalPages,
+        typographyMode: firstPage.typographyMode,
+        isContinuation: firstPage.isContinuation,
+        continuationIndex: firstPage.continuationIndex,
+        continuationCount: firstPage.continuationCount,
       };
       setScriptureOverlay(newOverlay);
       broadcast({
@@ -1519,7 +1672,8 @@ export default function PresenterOperator({
     return paginateScriptureVerses(
       loadedScripture.reference,
       loadedScripture.verses,
-      scriptureMode
+      scriptureMode,
+      loadedScripture.typographyMode
     );
   }, [loadedScripture, scriptureMode]);
 
@@ -1535,7 +1689,8 @@ export default function PresenterOperator({
         const pages = paginateScriptureVerses(
           loadedScripture.reference,
           loadedScripture.verses,
-          mode
+          mode,
+          loadedScripture.typographyMode
         );
         const validIdx = Math.min(scripturePageIndex, Math.max(0, pages.length - 1));
         setScripturePageIndex(validIdx);
@@ -1549,6 +1704,10 @@ export default function PresenterOperator({
             verses: activePage.verses,
             currentPage: activePage.page,
             totalPages: activePage.totalPages,
+            typographyMode: activePage.typographyMode,
+            isContinuation: activePage.isContinuation,
+            continuationIndex: activePage.continuationIndex,
+            continuationCount: activePage.continuationCount,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1566,7 +1725,16 @@ export default function PresenterOperator({
     (newIdx: number) => {
       if (!loadedScripture || newIdx < 0 || newIdx >= scripturePages.length) return;
       setScripturePageIndex(newIdx);
-      const activePage = scripturePages[newIdx];
+      const activePage = resolveScripturePageOverlay(
+        {
+          reference: loadedScripture.reference,
+          verses: loadedScripture.verses,
+          typographyMode: loadedScripture.typographyMode,
+          mode: scriptureMode,
+          pages: scripturePages,
+        },
+        newIdx
+      );
       if (activePage) {
         const newOverlay: ScriptureOverlay = {
           reference: loadedScripture.reference,
@@ -1576,6 +1744,10 @@ export default function PresenterOperator({
           verses: activePage.verses,
           currentPage: activePage.page,
           totalPages: activePage.totalPages,
+          typographyMode: activePage.typographyMode,
+          isContinuation: activePage.isContinuation,
+          continuationIndex: activePage.continuationIndex,
+          continuationCount: activePage.continuationCount,
         };
         setScriptureOverlay(newOverlay);
         broadcast({
@@ -1629,14 +1801,13 @@ export default function PresenterOperator({
             >
               {t('presenter.allSlides')}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openProjector}
-              className="h-8 text-xs font-medium"
-            >
-              {t('presenter.openCongregationScreen')}
-            </Button>
+            <PresenterDisplayControl
+              liveness={liveness.verdict}
+              presentationLock={presentationLock}
+              onOpenOrFocus={openProjector}
+              onRelocate={relocateProjector}
+              onCloseProjector={closeProjector}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -1844,6 +2015,10 @@ export default function PresenterOperator({
                   text={scriptureOverlay.text}
                   mode={scriptureOverlay.mode}
                   verseCount={scriptureOverlay.verses?.length}
+                  typographyMode={scriptureOverlay.typographyMode}
+                  isContinuation={scriptureOverlay.isContinuation}
+                  continuationIndex={scriptureOverlay.continuationIndex}
+                  continuationCount={scriptureOverlay.continuationCount}
                 />
               ) : current ? (
                 <SlideView

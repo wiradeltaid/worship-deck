@@ -53,9 +53,9 @@
 
 **Blocked by:** none
 
-**Status:** open
+**Status:** closed
 
-- [ ] Implement conservative segmented visual line estimation (`CHARS_PER_LINE = 60`) in `src/lib/scripture-format.ts`.
-- [ ] Implement deterministic line-budget chunking (`hardLines: 10`, `targetLines: 8`).
-- [ ] Implement both-sides sealed long-verse isolation (>= 450 chars) and word-boundary continuation splitting (> 10 lines) with lossless text preservation.
-- [ ] Add comprehensive unit tests in `tests/scripture-line-budget-pagination.test.mjs`.
+- [x] Implement conservative segmented visual line estimation (`CHARS_PER_LINE = 60`) in `src/lib/scripture-format.ts`.
+- [x] Implement deterministic line-budget chunking (`hardLines: 10`, `targetLines: 8`).
+- [x] Implement both-sides sealed long-verse isolation (>= 450 chars) and word-boundary continuation splitting (> 10 lines) with lossless text preservation.
+- [x] Add comprehensive unit tests in `tests/scripture-line-budget-pagination.test.mjs`.

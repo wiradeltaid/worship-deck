@@ -243,6 +243,8 @@ export default function RemoteOperator({
         error?: string;
         reference?: string;
         text?: string;
+        is_whole_chapter?: boolean;
+        verses?: Array<{ verse: number; text: string }>;
       };
       if (!res.ok) {
         setScriptureError(
@@ -261,6 +263,8 @@ export default function RemoteOperator({
         type: 'scripture',
         reference: data.reference,
         text: data.text,
+        verses: data.verses,
+        is_whole_chapter: data.is_whole_chapter,
         planIdentity: planIdentityRef.current,
       });
       setScriptureRef('');
