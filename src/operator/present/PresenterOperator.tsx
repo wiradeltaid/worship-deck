@@ -141,6 +141,7 @@ import {
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
 import SlideGridDialog from './SlideGridDialog';
+import PresenterDisplayControl from './PresenterDisplayControl';
 import {
   PRESENTER_TONE_CLASS,
   activePresenterEntry,
@@ -685,6 +686,15 @@ export default function PresenterOperator({
     // service (`AD-29`, Review finding [High, blocking]).
     dispatchLiveness({ type: 'opened' });
   }, [projectorUrl, serviceId, dispatchLiveness]);
+
+  const closeProjector = useCallback(() => {
+    const existing = projectorRef.current;
+    if (existing && !existing.closed) {
+      existing.close();
+    }
+    projectorRef.current = null;
+    dispatchLiveness({ type: 'opened' });
+  }, [dispatchLiveness]);
 
   const broadcast = useCallback((msg: PresentMessage) => {
     if (msg.type === 'scripture') {
@@ -1629,14 +1639,12 @@ export default function PresenterOperator({
             >
               {t('presenter.allSlides')}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openProjector}
-              className="h-8 text-xs font-medium"
-            >
-              {t('presenter.openCongregationScreen')}
-            </Button>
+            <PresenterDisplayControl
+              liveness={liveness.verdict}
+              presentationLock={presentationLock}
+              onOpenOrFocus={openProjector}
+              onCloseProjector={closeProjector}
+            />
             <Button
               variant="outline"
               size="sm"
