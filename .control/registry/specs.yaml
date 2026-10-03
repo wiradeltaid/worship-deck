@@ -4172,6 +4172,43 @@ waves:
         tests:
           - tests/scripture-offline-resilience.test.mjs
 
+  - id: SPEC-99
+    status: open
+    release: congregation-display-target-and-window-mode-selection
+    prd: [operator-turn]
+    fr: [FR-15, FR-16]
+    size: S
+    depends_on: [SPEC-98]
+    spec_folder: .scratch/SPEC-99-congregation-display-target-and-window-mode-selection/
+    spec_reviewed:
+      date: '2026-10-03'
+      sha: '5c3c1260d38d568dc2726bd549ebe9fdbcdc5381'
+      lenses: [structure, prose, edge-case-hunter, traceability, ux-safety, architecture]
+      note: "Terra (kiro-agent) independent advisory triage folded in: (1) corrected requirement traceability from FR-19 (verse search) to FR-15 (fullscreen presentation mode) and FR-16 (two-screen presenter controls); (2) replaced abstract external-display role with concrete multi-screen identification (ScreenInfo id/label/availLeft/availTop/availWidth/availHeight) and rememberedScreenId matching; (3) defined browser-realistic fullscreen contract distinguishing display bounds placement from confirmed fullscreen with tactile F11 guidance fallback; (4) specified live retargeting flow cleanly closing existing window before reopening on new target; (5) established user-initiated window-management permission lifecycle with non-blocking fallback; (6) formalized persistent intent semantics with rememberOnDevice and corrupt storage resilience; (7) preserved strict architectural independence of AD-29 heartbeat liveness from display topology events; (8) aligned geometry to available screen metrics (avail*)."
+    tickets:
+      - id: "SPEC-99-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/display-target-resolver.test.mjs
+      - id: "SPEC-99-02"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-99-01"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-congregation-display-control.test.mjs
+      - id: "SPEC-99-03"
+        component: presenter
+        satisfies: [UC-12, FR-15, FR-16]
+        blocked_by: ["SPEC-99-02"]
+        touches: [present-channel]
+        tests:
+          - tests/congregation-screen-placement.test.mjs
+
+
 
 
 
