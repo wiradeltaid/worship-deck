@@ -692,10 +692,12 @@ export default function PresenterOperator({
 
   const openProjector = useCallback((overrideTarget?: ResolvedLaunchTarget) => {
     const existing = projectorRef.current;
-    if (existing && !existing.closed && !overrideTarget) {
-      if (livenessRef.current.verdict === 'lost') {
-        existing.location.href = projectorUrl;
-      }
+    const isLost = livenessRef.current.verdict === 'lost';
+
+    // If an existing window is open, alive, and not being retargeted, focus it.
+    // If the window was lost, do not shortcut to focus/stale reload; close and reopen
+    // cleanly on the resolved target display with full coordinates and fullscreen parameters.
+    if (existing && !existing.closed && !overrideTarget && !isLost) {
       existing.focus();
       dispatchLiveness({ type: 'opened' });
       return;

@@ -92,8 +92,8 @@ export default memo(function PresenterDisplayControl({
       setConfig(newConfig);
       saveDisplayTargetConfig(newConfig);
 
-      // If already active/live, trigger live relocation
-      if (liveness === 'live' && onRelocate) {
+      // If already active/live or lost, trigger retargeting relocation
+      if ((liveness === 'live' || liveness === 'lost') && onRelocate) {
         const newResolved = resolveLaunchTarget(newConfig, screens);
         onRelocate(newResolved);
       }

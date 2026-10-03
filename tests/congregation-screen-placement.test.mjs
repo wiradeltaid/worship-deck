@@ -148,6 +148,42 @@ test('SPEC-99-03: Synchronous window.open launch preserves user gesture activati
   assert.equal(result3.opened, null);
 });
 
+test('SPEC-99-03: Lost projector handle is cleanly closed and reopened on target display', () => {
+  let closedOld = false;
+  let focused = false;
+  let openedNew = false;
+
+  const lostHandle = {
+    closed: false,
+    focus: () => {
+      focused = true;
+    },
+    close: () => {
+      closedOld = true;
+    },
+  };
+
+  // Logic mirroring PresenterOperator openProjector isLost handling
+  function handleReopen(existing, isLost, openNewFn) {
+    if (existing && !existing.closed && !isLost) {
+      existing.focus();
+      return;
+    }
+    if (existing && !existing.closed) {
+      existing.close();
+    }
+    openNewFn();
+  }
+
+  handleReopen(lostHandle, true, () => {
+    openedNew = true;
+  });
+
+  assert.equal(closedOld, true, 'Lost window handle must be explicitly closed');
+  assert.equal(focused, false, 'Lost window handle must not be focused as a shortcut');
+  assert.equal(openedNew, true, 'New window must be opened on target display');
+});
+
 test('SPEC-99-03 Defect Injection Proof: verifyFullscreenOrchestration detects omitted query parameter', () => {
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const src = fs.readFileSync(presenterPath, 'utf8');

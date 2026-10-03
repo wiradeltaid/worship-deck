@@ -362,6 +362,30 @@ test('SPEC-99-01: detectAvailableScreens preserves undefined isInternal and fall
   assert.equal(isExternalScreen(detected[0]), false, 'Primary display with undefined isInternal must not be classified as external');
 });
 
+test('SPEC-99-01: getSynchronousScreens immediately returns cached screens across page loads', async () => {
+  const { getSynchronousScreens, CACHED_SCREENS_STORAGE_KEY } = await import(
+    new URL('../src/lib/display-target.ts', import.meta.url).href
+  );
+
+  const cachedMultiScreens = [
+    { id: 'Laptop', label: 'Laptop', availLeft: 0, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: true },
+    { id: 'Projector', label: 'Epson', availLeft: 1920, availTop: 0, availWidth: 1920, availHeight: 1080, isPrimary: false },
+  ];
+
+  const storage = new Map();
+  storage.set(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(cachedMultiScreens));
+
+  globalThis.localStorage = {
+    getItem: (k) => storage.get(k) ?? null,
+    setItem: (k, v) => storage.set(k, String(v)),
+    removeItem: (k) => storage.delete(k),
+  };
+
+  const syncScreens = getSynchronousScreens();
+  assert.equal(syncScreens.length, 2, 'Must synchronously return cached multi-screen topology');
+  assert.equal(syncScreens[1].label, 'Epson');
+});
+
 test('SPEC-99-01 Defect Injection Proof: Unchecked fullscreen on single-screen locks out operator', () => {
   // Guard proof: A defective resolver that ignores screen count and launches fullscreen on 1-screen
   function defectiveResolver(config, screens) {

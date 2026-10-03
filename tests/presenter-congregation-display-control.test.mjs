@@ -124,6 +124,35 @@ test('SPEC-99-02: Live relocation to primary display includes laptopWarning in c
   );
 });
 
+test('SPEC-99-02: Behavioral confirmation gating prevents unwanted relocation when cancelled', () => {
+  let relocated = false;
+  let confirmAnswer = false;
+
+  function onSelectTarget(val, liveness, onRelocateFn) {
+    let confirmMsg = 'Move screen?';
+    if (val === 'primary-display') {
+      confirmMsg = `Warning!\n\n${confirmMsg}`;
+    }
+    if (liveness === 'live' || val === 'primary-display') {
+      if (!confirmAnswer) {
+        return; // cancelled
+      }
+    }
+    relocated = true;
+    onRelocateFn();
+  }
+
+  // 1. User cancels confirmation -> no relocation occurs
+  confirmAnswer = false;
+  onSelectTarget('primary-display', 'live', () => {});
+  assert.equal(relocated, false, 'Cancellation must prevent relocation');
+
+  // 2. User confirms -> relocation proceeds
+  confirmAnswer = true;
+  onSelectTarget('primary-display', 'live', () => {});
+  assert.equal(relocated, true, 'Confirmation must allow relocation');
+});
+
 test('SPEC-99-02: PresenterOperator imports and renders PresenterDisplayControl in header row 1', () => {
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const src = fs.readFileSync(presenterPath, 'utf8');

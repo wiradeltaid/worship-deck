@@ -278,7 +278,7 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
 
       const screenDetails = await win.getScreenDetails();
       if (screenDetails && Array.isArray(screenDetails.screens) && screenDetails.screens.length > 0) {
-        return screenDetails.screens.map((s: any) => {
+        const detected = screenDetails.screens.map((s: any) => {
           const availLeft = typeof s.availLeft === 'number' ? s.availLeft : (typeof s.left === 'number' ? s.left : 0);
           const availTop = typeof s.availTop === 'number' ? s.availTop : (typeof s.top === 'number' ? s.top : 0);
           const availWidth = typeof s.availWidth === 'number' ? s.availWidth : (typeof s.width === 'number' ? s.width : 1920);
@@ -299,6 +299,15 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
             isInternal: typeof s.isInternal === 'boolean' ? s.isInternal : undefined,
           };
         });
+
+        // Cache detected screens to localStorage for immediate synchronous retrieval on subsequent clicks
+        const storage = getStorage();
+        if (storage) {
+          try {
+            storage.setItem(CACHED_SCREENS_STORAGE_KEY, JSON.stringify(detected));
+          } catch {}
+        }
+        return detected;
       }
     } catch {
       // Permission denied or API threw: gracefully fallback
@@ -308,11 +317,25 @@ export async function detectAvailableScreens(): Promise<ScreenInfo[]> {
   return fallbackToSingleScreen();
 }
 
+export const CACHED_SCREENS_STORAGE_KEY = 'worship-deck:cached-screens';
+
 /**
- * Synchronously retrieves basic display geometry from window.screen without awaiting
- * promises, preserving browser transient user activation for window.open calls.
+ * Synchronously retrieves cached display geometry from previous discovery or falls back
+ * to window.screen without awaiting promises, preserving browser transient user activation for window.open.
  */
 export function getSynchronousScreens(): ScreenInfo[] {
+  const storage = getStorage();
+  if (storage) {
+    try {
+      const raw = storage.getItem(CACHED_SCREENS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
   return fallbackToSingleScreen();
 }
 
