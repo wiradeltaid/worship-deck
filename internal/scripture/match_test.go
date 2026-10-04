@@ -98,9 +98,9 @@ func TestSuggestBooksPrefixAndAlias(t *testing.T) {
 		t.Fatal("a complete ref must not open the suggestion list")
 	}
 
-	chapter := SuggestBooks("John 3", names(), nil, 20)
-	if len(chapter) != 1 || chapter[0].Name != "John" {
-		t.Fatalf("trailing chapter is stripped: %#v", chapter)
+	// SPEC-104-03: complete book and chapter suppresses suggestions
+	if SuggestBooks("John 3", names(), nil, 20) != nil {
+		t.Fatal("a complete book and chapter must not open the suggestion list (SPEC-104-03)")
 	}
 
 	if SuggestBooks("xx", names(), nil, 20) != nil {
@@ -202,5 +202,42 @@ func TestDefectInjectionTranslationSuffixWithoutComma(t *testing.T) {
 	bookClean, chClean, startClean, endClean, isWholeClean, okClean := ParseRef("Hebrews 1:1, 2, NKJV")
 	if !okClean || bookClean != "Hebrews" || chClean != 1 || startClean != 1 || endClean != 2 || isWholeClean {
 		t.Fatalf("ParseRef('Hebrews 1:1, 2, NKJV') failed: %q %d:%d-%d ok=%v", bookClean, chClean, startClean, endClean, okClean)
+	}
+}
+
+func TestSuggestBooksSuppression(t *testing.T) {
+	names := []BookName{
+		{ID: 40, Name: "Matthew", ShortName: "Matt"},
+		{ID: 46, Name: "1 Corinthians", ShortName: "1 Cor"},
+	}
+	aliases := []Alias{
+		{BookID: 40, Alias: "Mat"},
+		{BookID: 46, Alias: "1Cor"},
+	}
+
+	// Active book queries should return suggestions
+	if res := SuggestBooks("mat", names, aliases, 10); len(res) == 0 {
+		t.Fatalf("expected suggestions for 'mat', got nil")
+	}
+	if res := SuggestBooks("Matthew", names, aliases, 10); len(res) == 0 {
+		t.Fatalf("expected suggestions for 'Matthew', got nil")
+	}
+	if res := SuggestBooks("1 Cor", names, aliases, 10); len(res) == 0 {
+		t.Fatalf("expected suggestions for '1 Cor', got nil")
+	}
+
+	// Complete book + chapter/verse queries must be suppressed (return nil)
+	suppressedQueries := []string{
+		"Matthew 4",
+		"Mat 4",
+		"Matthew 0",
+		"Matthew 4:1",
+		"1 Corinthians 13",
+		"1 Cor 13",
+	}
+	for _, q := range suppressedQueries {
+		if res := SuggestBooks(q, names, aliases, 10); len(res) != 0 {
+			t.Fatalf("expected no suggestions for %q, got %v", q, res)
+		}
 	}
 }

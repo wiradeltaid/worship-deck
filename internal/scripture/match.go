@@ -235,6 +235,18 @@ func MatchBook(bookPart string, names []BookName, aliases []Alias) (id int, cano
 
 const defaultSuggestLimit = 20
 
+func isNumeric(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // SuggestBooks returns books whose name, short name, or scoped alias starts
 // with q. A complete chapter:verse reference yields no suggestions — the
 // operator has already left the book-picking step. Ambiguous prefixes return
@@ -243,24 +255,34 @@ func SuggestBooks(q string, names []BookName, aliases []Alias, limit int) []Book
 	if limit <= 0 || limit > defaultSuggestLimit {
 		limit = defaultSuggestLimit
 	}
-	if strings.Contains(q, ":") {
-		if _, _, _, _, _, ok := ParseRef(q); ok {
-			return nil
-		}
+	if _, _, _, _, _, ok := ParseRef(q); ok {
+		return nil
 	}
 	input := normalize(q)
 	if input == "" {
 		return nil
 	}
 	fields := strings.Fields(input)
-	if len(fields) >= 2 {
-		if _, ok := atoiPositive(fields[len(fields)-1]); ok {
-			input = strings.Join(fields[:len(fields)-1], " ")
-		}
-	}
-	if input == "" {
+	if len(fields) == 0 {
 		return nil
 	}
+
+	// SPEC-104-03: Suppress suggestions when user has specified a chapter number
+	// (e.g. "Matthew 4", "Matthew 0", "1 Corinthians 13", "1 Cor 13").
+	isLeadingNum := isNumeric(fields[0])
+	lastField := fields[len(fields)-1]
+	lastIsNum := isNumeric(lastField)
+
+	if isLeadingNum {
+		if len(fields) >= 3 && lastIsNum {
+			return nil
+		}
+	} else {
+		if len(fields) >= 2 && lastIsNum {
+			return nil
+		}
+	}
+
 	byID := map[int]BookName{}
 	for _, n := range names {
 		byID[n.ID] = n

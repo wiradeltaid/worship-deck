@@ -4359,7 +4359,7 @@ waves:
           - tests/display-target-resolver.test.mjs
 
   - id: SPEC-104
-    status: open
+    status: closed
     release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
     prd: [operator-turn]
     fr: [FR-16, FR-19]

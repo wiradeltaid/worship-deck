@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-13, FR-19]
 **Blocked by:** ["SPEC-104-02"]
-**Status:** open
+**Status:** done
 
 **What to build:** In `src/components/ScriptureRefAutocomplete.tsx`, `internal/scripture/match.go`, `internal/scripture/match_test.go`, and `tests/scripture-controls-ergonomics.test.mjs`:
 
