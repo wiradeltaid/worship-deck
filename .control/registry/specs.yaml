@@ -4394,6 +4394,42 @@ waves:
         tests:
           - tests/scripture-controls-ergonomics.test.mjs
 
+  - id: SPEC-105
+    status: open
+    release: presenter-session-recovery-and-run-sheet-smart-resume
+    prd: [operator-turn]
+    fr: [FR-16, FR-17]
+    size: S
+    depends_on: [SPEC-104]
+    spec_folder: .scratch/SPEC-105-presenter-session-recovery-and-run-sheet-smart-resume/
+    spec_reviewed:
+      date: '2026-10-04'
+      sha: '117b9f39cf2fbd8fe048dfc204b526dc110c89a2'
+      lenses: [structure, prose, edge-case-hunter, architectural-boundary, state-machine-lifecycle, fail-closed-inspection]
+      note: "Terra advisory review folded in: (1) Ticket 01 complete V1 recovery schema with activeSessionId, full runtime shape validation, future timestamp rejection, and fail-closed peekPresenterSession requiring currentPlanIdentity; (2) Ticket 02 pre-sync hydration ordering guarantee ensuring no default index 0 is broadcast, continuous persistence of all visible state (index, blank, scripture overlay, live transition, live background), WebRTC guest media reload safety fallback to deck, and activeSessionId authority defense; (3) Ticket 03 accessible split-button in RunSheet with human 1-based indexing, clean URL navigation without ?reset=1 query residue, and accurate FR-16/FR-17 traceability."
+    tickets:
+      - id: "SPEC-105-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-session-recovery.test.mjs
+      - id: "SPEC-105-02"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-105-01"]
+        touches: [present-channel, scripture]
+        tests:
+          - tests/presenter-reload-recovery.test.mjs
+      - id: "SPEC-105-03"
+        component: hub
+        satisfies: [UC-5, FR-16, FR-17]
+        blocked_by: ["SPEC-105-02"]
+        touches: [services]
+        tests:
+          - tests/run-sheet-smart-resume.test.mjs
+
 
 
 
