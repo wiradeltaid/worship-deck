@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** SPEC-106-01
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/operator/present/PresenterGuestFeedControl.tsx`, `src/lib/i18n/operator.tsx`, and `tests/presenter-guest-feed-controls.test.mjs`:
 

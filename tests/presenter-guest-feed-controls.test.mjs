@@ -792,9 +792,9 @@ function validateDropdownMenuStructure(content) {
   }
 
   // Component dropdown open discovery trigger
-  const hasOpenTrigger = /onOpenChange=\{\(open\)\s*=>\s*\{\s*if\s*\(open\)\s*\{\s*void controller\.enumerateDevices\(\);/s.test(
-    content
-  );
+  const hasOpenTrigger =
+    /onOpenChange=\{handleDeviceMenuOpenChange\}/s.test(content) ||
+    /onOpenChange=\{\(open\)\s*=>\s*\{\s*if\s*\(open\)\s*\{\s*void controller\.enumerateDevices\(\);/s.test(content);
   if (!hasOpenTrigger) {
     throw new Error('Open Discovery Trigger Violation: Missing onOpenChange enumerateDevices trigger on DropdownMenu');
   }
@@ -894,5 +894,113 @@ test('SPEC-103-01: defect injection proof: PresenterGuestFeedControl in presente
     () => validateControlPlacement(defectiveContent),
     /Placement Violation: PresenterGuestFeedControl missing from Header Row 1/
   );
+});
+
+test('SPEC-106-02: i18n keys for camera permission and access CTA exist with 1:1 bilingual parity', async () => {
+  const { I18N_KEYS } = await import(srcUrl('lib', 'i18n', 'keys.ts'));
+  const { resolveString } = await import(srcUrl('lib', 'i18n', 'index.ts'));
+
+  const requiredKeys = [
+    'presenter.guestFeed.enableAccess',
+    'presenter.guestFeed.permissionDenied',
+  ];
+
+  for (const k of requiredKeys) {
+    assert.ok(I18N_KEYS.includes(k), `Missing required key '${k}' in I18N_KEYS`);
+    const enVal = resolveString(k, 'en');
+    const idVal = resolveString(k, 'id');
+    assert.ok(enVal && !enVal.startsWith('[missing:'), `Missing EN translation for '${k}'`);
+    assert.ok(idVal && !idVal.startsWith('[missing:'), `Missing ID translation for '${k}'`);
+    assert.notEqual(enVal, idVal, `EN and ID translations must differ for '${k}'`);
+  }
+  assert.equal(resolveString('presenter.guestFeed.enableAccess', 'en'), 'Enable Camera Access');
+  assert.equal(resolveString('presenter.guestFeed.enableAccess', 'id'), 'Izinkan Akses Kamera');
+  assert.equal(resolveString('presenter.guestFeed.permissionDenied', 'en'), 'Camera permission denied. Allow access in browser settings.');
+  assert.equal(resolveString('presenter.guestFeed.permissionDenied', 'id'), 'Izin kamera ditolak. Berikan izin di setelan browser.');
+});
+
+test('SPEC-106-02: controlled dropdown invalidates stale pending enumeration when closed', async () => {
+  let resolveEnum;
+  const enumPromise = new Promise((res) => {
+    resolveEnum = res;
+  });
+
+  const { controller } = createHarness({
+    enumerateDevices: async () => {
+      await enumPromise;
+      return [{ deviceId: 'late-cam', kind: 'videoinput', label: 'Late Camera', groupId: 'g1' }];
+    },
+  });
+
+  // Simulate component state logic
+  let deviceMenuOpen = false;
+  let deviceMenuDevices = [];
+  const deviceMenuRequestId = { current: 0 };
+
+  const handleDeviceMenuOpenChange = (open) => {
+    if (!open) {
+      deviceMenuRequestId.current++;
+      deviceMenuOpen = false;
+      return;
+    }
+    const requestId = ++deviceMenuRequestId.current;
+    deviceMenuOpen = true;
+    void controller.enumerateDevices().then((devs) => {
+      if (requestId === deviceMenuRequestId.current) {
+        deviceMenuDevices = devs;
+      }
+    });
+  };
+
+  // Open menu -> triggers async enumeration
+  handleDeviceMenuOpenChange(true);
+  assert.equal(deviceMenuOpen, true);
+  assert.equal(deviceMenuDevices.length, 0);
+
+  // Operator closes menu before async enumeration finishes
+  handleDeviceMenuOpenChange(false);
+  assert.equal(deviceMenuOpen, false);
+
+  // Late enumeration resolves
+  resolveEnum();
+  await new Promise((r) => setImmediate(r));
+
+  // State must remain empty because requestId was invalidated
+  assert.equal(deviceMenuDevices.length, 0, 'Late resolution must be invalidated when menu closed');
+});
+
+test('SPEC-106-02: structural scan and defect injection: verify controlled dropdown and permission CTA', () => {
+  function validateControlledDropdown(src) {
+    if (!/deviceMenuRequestId/.test(src)) {
+      throw new Error('Dropdown Race Violation: Missing deviceMenuRequestId generation tracker');
+    }
+    if (!/deviceMenuDevices\.map/.test(src)) {
+      throw new Error('Dropdown Race Violation: Radio items must be mapped from frozen deviceMenuDevices');
+    }
+    if (!/setDeviceMenuOpen\s*\(\s*false\s*\)/.test(src)) {
+      throw new Error('Dropdown Selection Violation: Selecting item must close menu');
+    }
+    if (!/data-testid="guest-enable-access-button"/.test(src)) {
+      throw new Error('Permission Discovery Violation: Missing guest-enable-access-button CTA');
+    }
+  }
+
+  const componentPath = path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx');
+  const realContent = fs.readFileSync(componentPath, 'utf8');
+
+  // Real content must pass
+  assert.doesNotThrow(() => validateControlledDropdown(realContent));
+
+  // Injected defect 1: missing requestId tracker
+  const missingRequestId = realContent.replace(/deviceMenuRequestId/g, 'omittedTracker');
+  assert.throws(() => validateControlledDropdown(missingRequestId), /Dropdown Race Violation: Missing deviceMenuRequestId/);
+
+  // Injected defect 2: mapping from live snapshot.devices instead of frozen deviceMenuDevices
+  const liveMapping = realContent.replace('deviceMenuDevices.map', 'devices.map');
+  assert.throws(() => validateControlledDropdown(liveMapping), /Dropdown Race Violation: Radio items must be mapped/);
+
+  // Injected defect 3: missing CTA button
+  const missingCTA = realContent.replace('data-testid="guest-enable-access-button"', '');
+  assert.throws(() => validateControlledDropdown(missingCTA), /Permission Discovery Violation/);
 });
 

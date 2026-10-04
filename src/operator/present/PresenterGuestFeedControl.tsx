@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   Video,
   VideoOff,
@@ -22,6 +22,7 @@ import {
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import type { CaptureDeviceOption } from '@/lib/capture-broker';
 import type {
   PresenterGuestFeedController,
   PresenterGuestFeedSnapshot,
@@ -43,12 +44,34 @@ export default memo(function PresenterGuestFeedControl({
     controller.getSnapshot()
   );
 
+  const [deviceMenuOpen, setDeviceMenuOpen] = useState(false);
+  const [deviceMenuDevices, setDeviceMenuDevices] = useState<CaptureDeviceOption[]>([]);
+  const deviceMenuRequestId = useRef(0);
+
   useEffect(() => {
     void controller.enumerateDevices();
     return controller.subscribe((next) => {
       setSnapshot(next);
+      if (!deviceMenuOpen) {
+        setDeviceMenuDevices(next.devices);
+      }
     });
-  }, [controller]);
+  }, [controller, deviceMenuOpen]);
+
+  const handleDeviceMenuOpenChange = (open: boolean) => {
+    if (!open) {
+      deviceMenuRequestId.current++;
+      setDeviceMenuOpen(false);
+      return;
+    }
+    const requestId = ++deviceMenuRequestId.current;
+    setDeviceMenuOpen(true);
+    void controller.enumerateDevices().then((devs) => {
+      if (requestId === deviceMenuRequestId.current) {
+        setDeviceMenuDevices(devs);
+      }
+    });
+  };
 
   // Window focus listener for hotkey availability warning
   useEffect(() => {
@@ -72,10 +95,11 @@ export default memo(function PresenterGuestFeedControl({
   } = snapshot;
 
   const isGuestActive = uiState === 'guest-pending' || uiState === 'confirmed-live';
+  const hasUsableDevices = devices.length > 0 && devices.some((d) => Boolean(d.deviceId));
   const selectedDevice = devices.find((d) => d.deviceId === selectedDeviceId);
   const selectedLabel = selectedDevice
     ? selectedDevice.label
-    : devices.length === 0
+    : !hasUsableDevices
     ? t('presenter.guestFeed.noDevices')
     : t('presenter.guestFeed.selectDevice');
 
@@ -95,11 +119,8 @@ export default memo(function PresenterGuestFeedControl({
 
       {/* Device Picker via shadcn DropdownMenu */}
       <DropdownMenu
-        onOpenChange={(open) => {
-          if (open) {
-            void controller.enumerateDevices();
-          }
-        }}
+        open={deviceMenuOpen}
+        onOpenChange={handleDeviceMenuOpenChange}
       >
         <DropdownMenuTrigger
           render={
@@ -123,18 +144,34 @@ export default memo(function PresenterGuestFeedControl({
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          {devices.length === 0 ? (
-            <div className="p-2 text-muted-foreground text-xs">
-              {t('presenter.guestFeed.noDevices')}
+          {deviceMenuDevices.length === 0 ? (
+            <div className="flex flex-col gap-2 p-2 text-xs">
+              <span className="text-muted-foreground">
+                {t('presenter.guestFeed.noDevices')}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                data-testid="guest-enable-access-dropdown-button"
+                onClick={() => void controller.requestPermission()}
+                className="h-7 w-full gap-1 px-2 text-xs"
+              >
+                <Camera className="size-3" />
+                <span>{t('presenter.guestFeed.enableAccess')}</span>
+              </Button>
             </div>
           ) : (
             <DropdownMenuRadioGroup
               value={selectedDeviceId || ''}
               onValueChange={(val) => {
-                if (val) controller.selectDevice(val);
+                if (val) {
+                  controller.selectDevice(val);
+                  setDeviceMenuOpen(false);
+                }
               }}
             >
-              {devices.map((d) => (
+              {deviceMenuDevices.map((d) => (
                 <DropdownMenuRadioItem
                   key={d.deviceId}
                   value={d.deviceId}
@@ -147,6 +184,21 @@ export default memo(function PresenterGuestFeedControl({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Enable Camera Access CTA when no devices discovered */}
+      {!hasUsableDevices && (uiState === 'idle' || uiState === 'error') && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="guest-enable-access-button"
+          onClick={() => void controller.requestPermission()}
+          className="h-7 gap-1 px-2 text-xs"
+        >
+          <Camera className="size-3" />
+          <span>{t('presenter.guestFeed.enableAccess')}</span>
+        </Button>
+      )}
 
       {/* Arm / Disarm Button */}
       {uiState === 'idle' || uiState === 'error' || uiState === 'arming' ? (

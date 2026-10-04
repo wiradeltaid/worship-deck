@@ -4431,7 +4431,7 @@ waves:
           - tests/run-sheet-smart-resume.test.mjs
 
   - id: SPEC-106
-    status: open
+    status: closed
     release: guest-capture-permission-discovery-and-invocation-fix
     prd: [operator-turn]
     fr: [FR-16, FR-25]
