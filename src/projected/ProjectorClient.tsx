@@ -574,22 +574,17 @@ export default function ProjectorClient({
             overlayPhase === 'active' ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          {(() => {
-            const overlay = activeOverlay;
-            return (
-              <ScriptureOverlayView
-                reference={overlay.displayReference || overlay.reference}
-                text={overlay.text}
-                mode={overlay.mode}
-                verseCount={overlay.verses?.length}
-                typographyMode={overlay.typographyMode}
-                isContinuation={overlay.isContinuation}
-                continuationIndex={overlay.continuationIndex}
-                continuationCount={overlay.continuationCount}
-                estimatedVisualLines={overlay.estimatedVisualLines}
-              />
-            );
-          })()}
+          <ScriptureOverlayView
+            reference={activeOverlay.displayReference || activeOverlay.reference}
+            text={activeOverlay.text}
+            mode={activeOverlay.mode /* mode={overlay.mode} */}
+            verseCount={activeOverlay.verses?.length}
+            typographyMode={activeOverlay.typographyMode}
+            isContinuation={activeOverlay.isContinuation}
+            continuationIndex={activeOverlay.continuationIndex}
+            continuationCount={activeOverlay.continuationCount}
+            estimatedVisualLines={activeOverlay.estimatedVisualLines}
+          />
         </div>
       ) : null}
 
