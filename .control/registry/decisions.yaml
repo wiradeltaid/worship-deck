@@ -1891,6 +1891,26 @@ decisions:
       - .how/presenter/SDD-presenter.md
       - .scratch/
 
+  - id: DEC-089
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-04)"
+    title: Daily Autopilot mandate for Guest Speaker HDMI Video Capture Input (SPEC-101) and Presenter Display Crash, Scripture Density & Warming Resilience (SPEC-102)
+    file: .control/decisions/DEC-089-daily-autopilot-mandate-guest-speaker-hdmi-and-presenter-resilience.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-11'
+    touches:
+      - .control/memlog/autopilot-DEC-089.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-101-guest-speaker-hdmi-video-capture-input/
+      - .scratch/SPEC-102-presenter-display-crash-scripture-density-and-warming-resilience/
+
 
 
 
