@@ -140,6 +140,14 @@ export default function ProjectorClient({
     }, 300);
   };
 
+  const setOverlay = (scripture: ScriptureOverlay | null) => {
+    if (scripture) {
+      applyScriptureOverlay(scripture);
+    } else {
+      clearScriptureOverlay();
+    }
+  };
+
   const [guestStream, setGuestStream] = useState<any>(null);
   const [isGuestIntent, setIsGuestIntent] = useState(false);
   const bridgeRef = useRef<ProjectorGuestMediaBridge | null>(null);
@@ -352,10 +360,8 @@ export default function ProjectorClient({
           setOutgoingPhase('hidden');
           setActiveOverlay(nextScripture);
           setOverlayPhase(nextScripture ? 'active' : 'hidden');
-        } else if (nextScripture) {
-          applyScriptureOverlay(nextScripture);
-        } else if (activeOverlayRef.current) {
-          clearScriptureOverlay();
+        } else {
+          setOverlay(msg.scripture ?? null);
         }
         isInitialSyncRef.current = false;
 
@@ -568,17 +574,22 @@ export default function ProjectorClient({
             overlayPhase === 'active' ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <ScriptureOverlayView
-            reference={activeOverlay.displayReference || activeOverlay.reference}
-            text={activeOverlay.text}
-            mode={activeOverlay.mode}
-            verseCount={activeOverlay.verses?.length}
-            typographyMode={activeOverlay.typographyMode}
-            isContinuation={activeOverlay.isContinuation}
-            continuationIndex={activeOverlay.continuationIndex}
-            continuationCount={activeOverlay.continuationCount}
-            estimatedVisualLines={activeOverlay.estimatedVisualLines}
-          />
+          {(() => {
+            const overlay = activeOverlay;
+            return (
+              <ScriptureOverlayView
+                reference={overlay.displayReference || overlay.reference}
+                text={overlay.text}
+                mode={overlay.mode}
+                verseCount={overlay.verses?.length}
+                typographyMode={overlay.typographyMode}
+                isContinuation={overlay.isContinuation}
+                continuationIndex={overlay.continuationIndex}
+                continuationCount={overlay.continuationCount}
+                estimatedVisualLines={overlay.estimatedVisualLines}
+              />
+            );
+          })()}
         </div>
       ) : null}
 

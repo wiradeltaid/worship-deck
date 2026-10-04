@@ -505,54 +505,50 @@ export default function RunSheetPage() {
 
           {/* Row 2: Primary Controls (Present with primary visual prominence, Preview, Remote) */}
           <div data-testid="header-primary-controls" className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
-            {sessionInfo.hasSession ? (
-              <div className="inline-flex rounded-md shadow-xs">
-                <Link
-                  href={`/services/${svc.id}/present`}
+            <Link
+              href={`/services/${svc.id}/present`}
+              className={cn(
+                buttonVariants({ variant: 'default' }),
+                sessionInfo.hasSession
+                  ? 'rounded-r-none px-3.5 border-r border-primary-foreground/20'
+                  : 'px-4',
+                'h-9 font-bold shadow-xs'
+              )}
+              title={sessionInfo.hasSession && sessionInfo.isBlank ? 'Screen is blanked' : undefined}
+            >
+              {sessionInfo.hasSession
+                ? `Resume (Slide ${sessionInfo.slideNumber})`
+                : t('edit.actions.present')}
+            </Link>
+            {sessionInfo.hasSession && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Presentation Launch Options"
                   className={cn(
                     buttonVariants({ variant: 'default' }),
-                    'rounded-r-none h-9 px-3.5 font-bold border-r border-primary-foreground/20'
+                    'rounded-l-none -ml-2 h-9 px-2 cursor-pointer'
                   )}
-                  title={sessionInfo.isBlank ? 'Screen is blanked' : undefined}
                 >
-                  Resume (Slide {sessionInfo.slideNumber})
-                </Link>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    aria-label="Presentation Launch Options"
-                    className={cn(
-                      buttonVariants({ variant: 'default' }),
-                      'rounded-l-none h-9 px-2 cursor-pointer'
-                    )}
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/services/${svc.id}/present`)}
+                    className="cursor-pointer font-medium"
                   >
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/services/${svc.id}/present`)}
-                      className="cursor-pointer font-medium"
-                    >
-                      Resume (Slide {sessionInfo.slideNumber})
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        clearPresenterSession(svc.id);
-                        navigate(`/services/${svc.id}/present`);
-                      }}
-                      className="cursor-pointer text-destructive focus:text-destructive"
-                    >
-                      Start from Beginning (Slide 1)
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ) : (
-              <Link
-                href={`/services/${svc.id}/present`}
-                className={cn(buttonVariants({ variant: 'default' }), 'h-9 px-4 font-bold shadow-xs')}
-              >
-                {t('edit.actions.present')}
-              </Link>
+                    Resume (Slide {sessionInfo.slideNumber})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      clearPresenterSession(svc.id);
+                      navigate(`/services/${svc.id}/present`);
+                    }}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    Start from Beginning (Slide 1)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             <Link
               href={`/services/${svc.id}/slideshow`}

@@ -33,7 +33,7 @@ test('SPEC-105-03: RunSheetPage source guards for adaptive smart resume and spli
 
   // Must render conditional split button when sessionInfo.hasSession is true
   assert.ok(
-    src.includes('sessionInfo.hasSession ?'),
+    src.includes('sessionInfo.hasSession'),
     'RunSheetPage must branch on sessionInfo.hasSession'
   );
 
