@@ -36,6 +36,23 @@ export type ScriptureOverlay = {
   continuationCount: number;
 };
 
+export type ProjectedSource =
+  | { kind: 'deck' }
+  | { kind: 'guest'; guestSessionId: string };
+
+export type ProjectorMediaStatusReason =
+  | 'opener-unavailable'
+  | 'consumer-attach-failed'
+  | 'video-error';
+
+export type ProjectorMediaStatusMessage = {
+  type: 'projector-media-status';
+  guestSessionId: string;
+  guestAttemptId: string;
+  state: 'attached' | 'unavailable';
+  reason?: ProjectorMediaStatusReason;
+};
+
 export type PresentMessage =
   | {
       type: 'sync';
@@ -46,6 +63,8 @@ export type PresentMessage =
       scripture?: ScriptureOverlay | null;
       planIdentity: string;
       patches?: SlidePatch[];
+      projection?: ProjectedSource;
+      guestAttemptId?: string | null;
     }
   | {
       type: 'slide-patch';
@@ -55,32 +74,9 @@ export type PresentMessage =
       planIdentity: string;
     }
   | { type: 'request-sync' }
-  /**
-   * The projector reporting its own liveness, and nothing else (`AD-29`).
-   * Sent unprompted by the projector window for as long as it is mounted;
-   * the presenter only ever observes it. It carries no `index`, no `blank`,
-   * no `transition`, no `planIdentity` and no other shared state, which is
-   * what puts it outside this file's own header contract above rather than
-   * in tension with it — that contract governs every message that touches
-   * shared state, and this one touches none. `request-sync` already is the
-   * projector's first hello (`ProjectorClient.tsx`'s mount-time post), so
-   * this is not a second one: it is the same announcement, repeated for as
-   * long as the window lives. Idempotent by construction — two in one
-   * window, or one arriving late, both mean only "something was alive at
-   * that moment" — so no sequence number or request/response pairing may
-   * be layered over it.
-   */
   | { type: 'projector-alive' }
   | { type: 'blank'; blank: boolean; planIdentity: string }
-  /**
-   * A live-only override of the deck's configured transition. Nothing stores
-   * it: it exists for the length of a Presenter session and no longer.
-   */
   | { type: 'transition'; transition: SlideTransition; planIdentity: string }
-  /**
-   * A live-only override of the Verse/Reff background (AD-34). Nothing stores
-   * it: it exists for the length of a Presenter session and no longer.
-   */
   | {
       type: 'background';
       background: string | null;
@@ -90,7 +86,8 @@ export type PresentMessage =
       type: 'scripture';
       planIdentity: string;
     } & ScriptureOverlay)
-  | { type: 'clear-scripture'; planIdentity: string };
+  | { type: 'clear-scripture'; planIdentity: string }
+  | ProjectorMediaStatusMessage;
 
 /**
  * The blank state a message asserts, or `null` when it says nothing about it —
@@ -218,13 +215,85 @@ export function isProjectorMessage(msg: PresentMessage): boolean {
 }
 
 /**
+ * Resolves the projected source asserted by a message.
+ *
+ * Fail-closed policy:
+ * - Returns null for non-sync messages.
+ * - Missing or malformed projection defaults to { kind: 'deck' }.
+ * - When projection asserts kind === 'guest', guestSessionId must be a non-empty string
+ *   and guestAttemptId must be a non-empty string; otherwise fails closed to { kind: 'deck' }.
+ */
+export function projectionOf(msg: PresentMessage): ProjectedSource | null {
+  if (!msg || typeof msg !== 'object') return null;
+  if (msg.type !== 'sync') return null;
+
+  const raw = (msg as { projection?: unknown }).projection;
+  if (!raw || typeof raw !== 'object') {
+    return { kind: 'deck' };
+  }
+
+  const p = raw as { kind?: unknown; guestSessionId?: unknown };
+  if (p.kind === 'guest') {
+    const sessId = typeof p.guestSessionId === 'string' ? p.guestSessionId.trim() : '';
+    const attId =
+      typeof (msg as { guestAttemptId?: unknown }).guestAttemptId === 'string'
+        ? ((msg as { guestAttemptId?: unknown }).guestAttemptId as string).trim()
+        : '';
+    if (sessId.length > 0 && attId.length > 0) {
+      return { kind: 'guest', guestSessionId: sessId };
+    }
+    return { kind: 'deck' };
+  }
+
+  return { kind: 'deck' };
+}
+
+export const CLOSED_PROJECTOR_MEDIA_REASONS = new Set<string>([
+  'opener-unavailable',
+  'consumer-attach-failed',
+  'video-error',
+]);
+
+/**
+ * Validates a projector-media-status telemetry message against closed shape and reasons.
+ */
+export function isProjectorMediaStatus(
+  msg: any
+): msg is ProjectorMediaStatusMessage {
+  if (!msg || typeof msg !== 'object') return false;
+  if (msg.type !== 'projector-media-status') return false;
+  if (
+    typeof msg.guestSessionId !== 'string' ||
+    msg.guestSessionId.trim().length === 0
+  ) {
+    return false;
+  }
+  if (
+    typeof msg.guestAttemptId !== 'string' ||
+    msg.guestAttemptId.trim().length === 0
+  ) {
+    return false;
+  }
+  if (msg.state !== 'attached' && msg.state !== 'unavailable') {
+    return false;
+  }
+  if (
+    msg.reason !== undefined &&
+    !CLOSED_PROJECTOR_MEDIA_REASONS.has(msg.reason)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * The plan identity a shared-state message asserts, or `null` when the
  * message is projector-originated (AD-29: no shared state) or the field is
  * missing. A missing field is not "match whatever I hold" — AD-10 is
  * fail-closed, so the receiver must refuse.
  */
 export function sharedStatePlanIdentity(msg: PresentMessage): string | null {
-  if (isProjectorMessage(msg)) return null;
+  if (isProjectorMessage(msg) || isProjectorMediaStatus(msg)) return null;
   const value: unknown = (msg as { planIdentity?: unknown }).planIdentity;
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
