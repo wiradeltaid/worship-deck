@@ -177,7 +177,7 @@ export default memo(function PresenterGuestFeedControl({
         <Badge
           variant="outline"
           data-testid="guest-ready-badge"
-          className="border-blue-500/40 bg-blue-500/10 text-[10px] text-blue-400"
+          className="border-blue-500/40 bg-blue-500/10 text-[10px] text-blue-600 dark:text-blue-400"
         >
           {t('presenter.guestFeed.ready')}
         </Badge>
@@ -187,7 +187,7 @@ export default memo(function PresenterGuestFeedControl({
         <Badge
           variant="outline"
           data-testid="guest-pending-badge"
-          className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-400 animate-pulse"
+          className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400 animate-pulse"
         >
           {t('presenter.guestFeed.waitingProjector')}
         </Badge>
@@ -244,7 +244,7 @@ export default memo(function PresenterGuestFeedControl({
         <span
           role="status"
           data-testid="guest-stale-warning"
-          className="flex items-center gap-1 text-[11px] text-amber-400"
+          className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400"
         >
           <AlertCircle className="size-3" />
           {t('presenter.guestFeed.staleDevice')}

@@ -213,8 +213,8 @@ test('SPEC-85-02: 16:9 Aspect Ratio Preservation across diverse viewports and as
 test('SPEC-85-02: computeScriptureFitScale dynamically scales down overflowing text and prevents oscillation', () => {
   const stageHeight = 1080;
   const stageWidth = 1920;
-  // Net content box: 78cqh height and 88cqw width (100cqw - 4cqw*2 stage padding - 2cqw*2 container padding)
-  const maxAllowedHeight = stageHeight * 0.78; // 842.4px
+  // Net content box: 82cqh height (SPEC-102-02) and 88cqw width (100cqw - 4cqw*2 stage padding - 2cqw*2 container padding)
+  const maxAllowedHeight = stageHeight * 0.82; // 885.6px
   const maxAllowedWidth = stageWidth * 0.88;  // 1689.6px
 
   // Case 1: Normal verse fitting comfortably within budget
@@ -351,8 +351,8 @@ test('SPEC-85-02: Structural scan verifies aspect containment guards in Scriptur
 test('SPEC-85-02: Defect injection proof — re-introducing max-w-5xl triggers guard finding', () => {
   const rawView = fs.readFileSync(scriptureViewPath, 'utf8');
   const defectiveSrc = rawView.replace(
-    'className="flex max-h-[78cqh] w-full items-center',
-    'className="flex max-h-[78cqh] w-full max-w-5xl items-center'
+    'className="flex max-h-[82cqh] w-full items-center',
+    'className="flex max-h-[82cqh] w-full max-w-5xl items-center'
   );
   const findings = scanScriptureAspectContainmentGuards({ viewSrc: defectiveSrc });
   assert.ok(

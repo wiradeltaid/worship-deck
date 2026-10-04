@@ -579,13 +579,14 @@ export default function PresenterOperator({
           projectionRef.current = snap.projection;
           guestAttemptIdRef.current = snap.guestAttemptId;
         }
+        const activeOverlay = scriptureOverlayRef.current;
         channelRef.current?.postMessage({
           type: 'sync',
           index: indexRef.current,
           blank: blankRef.current,
           transition: transitionRef.current,
           background: backgroundRef.current,
-          scripture: scriptureOverlayRef.current,
+          scripture: activeOverlay,
           planIdentity: planIdentityRef.current,
           patches: patchesRef.current,
           projection: projectionRef.current,
