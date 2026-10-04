@@ -1950,6 +1950,25 @@ decisions:
       - .scratch/SPEC-104-presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics/
       - .scratch/SPEC-105-presenter-session-recovery-and-run-sheet-smart-resume/
 
+  - id: DEC-092
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-04)"
+    title: Daily Autopilot mandate for Guest Video Capture Permission Discovery, Web API Receiver Binding, and Dropdown Click Resilience (SPEC-106)
+    file: .control/decisions/DEC-092-daily-autopilot-mandate-guest-capture-permission-and-invocation.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-11'
+    touches:
+      - .control/memlog/autopilot-DEC-092.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-106-guest-capture-permission-discovery-and-invocation-fix/
+
 
 
 

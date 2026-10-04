@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**91 decisions** — accepted: 1 · applied: 89 · superseded: 1.
+**92 decisions** — accepted: 2 · applied: 89 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -99,3 +99,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-089` | Daily Autopilot mandate for Guest Speaker HDMI Video Capture Input (SPEC-101) and Presenter Display Crash, Sc… | `applied` | mandate | `.control/memlog/autopilot-DEC-089.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-101-guest-speaker-hdmi-video-capture-input/`, `.scratch/SPEC-102-presenter-display-crash-scripture-density-and-warming-resilience/` | `.control/decisions/DEC-089-daily-autopilot-mandate-guest-speaker-hdmi-and-presenter-resilience.md` |
 | `DEC-090` | Daily Autopilot mandate for Presenter Unified Display, Capture Discovery, Fullscreen Navigation, and Scriptur… | `applied` | mandate | `.control/memlog/autopilot-DEC-090.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-103-presenter-unified-display-capture-discovery-and-scripture-normalization/` | `.control/decisions/DEC-090-daily-autopilot-mandate-unified-display-and-scripture-normalization.md` |
 | `DEC-091` | Daily Autopilot mandate for Presenter Blank Transition, Scripture Overlay, and Session Recovery (SPEC-104 & S… | `applied` | mandate | `.control/memlog/autopilot-DEC-091.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-104-presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics/`, `.scratch/SPEC-105-presenter-session-recovery-and-run-sheet-smart-resume/` | `.control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-and-session-recovery.md` |
+| `DEC-092` | Daily Autopilot mandate for Guest Video Capture Permission Discovery, Web API Receiver Binding, and Dropdown… | `accepted` | mandate | `.control/memlog/autopilot-DEC-092.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-106-guest-capture-permission-discovery-and-invocation-fix/` | `.control/decisions/DEC-092-daily-autopilot-mandate-guest-capture-permission-and-invocation.md` |
