@@ -88,6 +88,8 @@ export type PresentMessage =
       planIdentity: string;
     } & ScriptureOverlay)
   | { type: 'clear-scripture'; planIdentity: string }
+  | { type: 'nav-next'; serviceId: string; planIdentity: string }
+  | { type: 'nav-prev'; serviceId: string; planIdentity: string }
   | ProjectorMediaStatusMessage;
 
 /**
@@ -213,6 +215,54 @@ export function syncPatchesOf(msg: PresentMessage): SlidePatch[] | null {
  */
 export function isProjectorMessage(msg: PresentMessage): boolean {
   return msg.type === 'request-sync' || msg.type === 'projector-alive';
+}
+
+/**
+ * Detects interactive or editable DOM elements (and their descendants) to prevent
+ * projector keyboard shortcuts from intercepting focused user interactions.
+ */
+export function isInteractiveOrEditableElement(target: unknown): boolean {
+  if (!target || typeof target !== 'object') return false;
+  const el = target as {
+    tagName?: string;
+    isContentEditable?: boolean;
+    closest?: (selector: string) => unknown;
+  };
+  if (el.isContentEditable === true) return true;
+  const tag = (el.tagName || '').toUpperCase();
+  if (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    tag === 'BUTTON' ||
+    tag === 'A'
+  ) {
+    return true;
+  }
+  if (typeof el.closest === 'function') {
+    const interactive = el.closest(
+      'button, a[href], input, textarea, select, [contenteditable="true"], [role="button"], [role="link"]'
+    );
+    if (interactive) return true;
+  }
+  return false;
+}
+
+/**
+ * Validates a navigation message from the projector against strict string fields.
+ */
+export function isValidNavMessage(
+  msg: unknown
+): msg is { type: 'nav-next' | 'nav-prev'; serviceId: string; planIdentity: string } {
+  if (!msg || typeof msg !== 'object') return false;
+  const m = msg as Record<string, unknown>;
+  if (m.type !== 'nav-next' && m.type !== 'nav-prev') return false;
+  return (
+    typeof m.serviceId === 'string' &&
+    m.serviceId.trim().length > 0 &&
+    typeof m.planIdentity === 'string' &&
+    m.planIdentity.trim().length > 0
+  );
 }
 
 /**

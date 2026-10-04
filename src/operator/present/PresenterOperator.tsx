@@ -79,6 +79,7 @@ import {
 import {
   isProjectorMessage,
   isProjectorMediaStatus,
+  isValidNavMessage,
   openPresentChannel,
   slidePatchOf,
   type PresentMessage,
@@ -879,6 +880,12 @@ export default function PresenterOperator({
     [setIndexAndSync]
   );
 
+  const manualNavigateRef = useRef(manualNavigate);
+  manualNavigateRef.current = manualNavigate;
+  useEffect(() => {
+    manualNavigateRef.current = manualNavigate;
+  }, [manualNavigate]);
+
   /**
    * Blanks or restores the projector. Takes the state it wants rather than
    * flipping whatever the receiver happens to hold, so a projector that missed
@@ -1081,6 +1088,21 @@ export default function PresenterOperator({
       if (!msg || typeof msg !== 'object') return;
       if (isProjectorMediaStatus(msg)) {
         guestFeedControllerRef.current?.handleProjectorMediaStatus(msg);
+        return;
+      }
+      if (isValidNavMessage(msg)) {
+        if (
+          msg.serviceId === String(serviceId) &&
+          msg.planIdentity === planIdentityRef.current
+        ) {
+          const currentSlides = activeSlidesRef.current;
+          const currentIndex = indexRef.current;
+          const direction = msg.type === 'nav-next' ? 1 : -1;
+          const targetIndex = findNextVisibleIndex(currentSlides, currentIndex, direction);
+          if (targetIndex !== currentIndex) {
+            manualNavigateRef.current(targetIndex);
+          }
+        }
         return;
       }
       // Only a genuine projector-originated message is evidence of life

@@ -1512,7 +1512,7 @@ rtm:
   test:
   - tests/present-channel.test.mjs
   - tests/projected-shell.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
