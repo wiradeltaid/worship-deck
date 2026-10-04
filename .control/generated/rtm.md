@@ -1612,10 +1612,10 @@ rtm:
   test:
   - tests/capture-broker-device-enumeration.test.mjs
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1626,10 +1626,10 @@ rtm:
   release: guest-capture-permission-discovery-and-invocation-fix
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

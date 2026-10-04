@@ -156,6 +156,19 @@ export class PresenterGuestFeedController {
     }
   }
 
+  public async requestPermission(): Promise<CaptureDeviceOption[]> {
+    try {
+      const devices = await this.broker.requestPermission();
+      this.errorMessage = null;
+      this.notify();
+      return devices;
+    } catch (err: any) {
+      this.errorMessage = err?.message || 'Permission request failed';
+      this.notify();
+      return [];
+    }
+  }
+
   public async arm(deviceId?: string): Promise<void> {
     this.errorMessage = null;
     this.uiState = 'arming';
@@ -165,6 +178,7 @@ export class PresenterGuestFeedController {
       await this.broker.arm(deviceId);
       // Success handled in broker snapshot
     } catch (err: any) {
+      console.error('Guest capture arm failed:', err);
       this.uiState = 'error';
       this.errorMessage = err?.message || 'Arm failed';
       this.notify();

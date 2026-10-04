@@ -268,6 +268,8 @@ export const I18N_KEYS = [
   'presenter.guestFeed.selectDevice',
   'presenter.guestFeed.noDevices',
   'presenter.guestFeed.fallbackLabel',
+  'presenter.guestFeed.enableAccess',
+  'presenter.guestFeed.permissionDenied',
   'presenter.guestFeed.arm',
   'presenter.guestFeed.disarm',
   'presenter.guestFeed.arming',

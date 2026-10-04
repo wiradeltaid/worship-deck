@@ -477,3 +477,163 @@ test('guard proof: no-auto-arm invariant fails if broker captures without explic
   defectBrokerInit(mockMediaDevices);
   assert.equal(gumCalled, true, 'Defect correctly triggered auto-arm failure');
 });
+
+test('SPEC-106-01: CaptureBroker preserves native Web API receiver binding and avoids Illegal invocation', async () => {
+  const nativeMediaDevices = {
+    async enumerateDevices() {
+      if (this !== nativeMediaDevices) {
+        throw new TypeError("Failed to execute 'enumerateDevices' on 'MediaDevices': Illegal invocation");
+      }
+      return [
+        { deviceId: 'cam-live', kind: 'videoinput', label: 'USB Live Cam', groupId: 'g1' },
+      ];
+    },
+    async getUserMedia(constraints) {
+      if (this !== nativeMediaDevices) {
+        throw new TypeError("Failed to execute 'getUserMedia' on 'MediaDevices': Illegal invocation");
+      }
+      return new MockStream([new MockTrack('video')]);
+    },
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices: nativeMediaDevices,
+    createVideoElement: () => {
+      const v = new MockVideoElement();
+      queueMicrotask(() => v.simulateReady(1920, 1080));
+      return v;
+    },
+  });
+
+  // Verify enumerateDevices does not throw Illegal invocation
+  const devices = await broker.enumerateDevices();
+  assert.equal(devices.length, 1);
+  assert.equal(devices[0].deviceId, 'cam-live');
+
+  // Verify arm / getUserMedia does not throw Illegal invocation
+  await broker.arm('cam-live');
+  assert.equal(broker.getSnapshot().state, 'ready');
+});
+
+test('SPEC-106-01: requestPermission invokes getUserMedia({ video: true, audio: false }), guarantees probe track cleanup, and updates devices', async () => {
+  let gumConstraints = null;
+  let probeTrack = null;
+  let enumCalled = false;
+
+  const mediaDevices = {
+    async getUserMedia(constraints) {
+      gumConstraints = constraints;
+      probeTrack = new MockTrack('video');
+      return new MockStream([probeTrack]);
+    },
+    async enumerateDevices() {
+      enumCalled = true;
+      return [
+        { deviceId: 'newly-granted-cam', kind: 'videoinput', label: 'UGREEN 4K Card', groupId: 'g1' },
+      ];
+    },
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices,
+    createVideoElement: () => new MockVideoElement(),
+  });
+
+  const discovered = await broker.requestPermission();
+
+  assert.deepEqual(gumConstraints, { video: true, audio: false });
+  assert.equal(probeTrack.stopped, true, 'Probe track must be stopped in finally block');
+  assert.equal(enumCalled, true);
+  assert.equal(discovered.length, 1);
+  assert.equal(discovered[0].deviceId, 'newly-granted-cam');
+  assert.equal(broker.getSnapshot().devices[0].deviceId, 'newly-granted-cam');
+  assert.equal(broker.getSnapshot().error, null);
+});
+
+test('SPEC-106-01: requestPermission guarantees probe track cleanup even if enumeration fails', async () => {
+  let probeTrack = null;
+  const mediaDevices = {
+    async getUserMedia() {
+      probeTrack = new MockTrack('video');
+      return new MockStream([probeTrack]);
+    },
+    async enumerateDevices() {
+      throw new Error('Hardware enum failure after permission');
+    },
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices,
+    createVideoElement: () => new MockVideoElement(),
+  });
+
+  await assert.rejects(() => broker.requestPermission(), /Hardware enum failure after permission/);
+  assert.equal(probeTrack.stopped, true, 'Probe track must be stopped even if enumerateDevices throws');
+});
+
+test('SPEC-106-01: requestPermission maps NotAllowedError to PERMISSION_DENIED without unhandled rejection', async () => {
+  const notAllowedErr = new Error('Permission dismissed or blocked by user');
+  notAllowedErr.name = 'NotAllowedError';
+
+  const mediaDevices = {
+    async getUserMedia() {
+      throw notAllowedErr;
+    },
+    async enumerateDevices() {
+      return [];
+    },
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices,
+    createVideoElement: () => new MockVideoElement(),
+  });
+
+  await assert.rejects(
+    () => broker.requestPermission(),
+    (err) => err instanceof CaptureBrokerError && err.code === 'PERMISSION_DENIED'
+  );
+
+  const snap = broker.getSnapshot();
+  assert.equal(snap.error?.code, 'PERMISSION_DENIED');
+  assert.match(snap.error?.message, /Camera permission was denied/);
+});
+
+test('SPEC-106-01: PresenterGuestFeedController requestPermission delegates and catches errors without unhandled rejection', async () => {
+  const notAllowedErr = new Error('Permission denied');
+  notAllowedErr.name = 'NotAllowedError';
+
+  const mediaDevices = {
+    async getUserMedia() {
+      throw notAllowedErr;
+    },
+    async enumerateDevices() {
+      return [];
+    },
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices,
+    createVideoElement: () => new MockVideoElement(),
+  });
+
+  const { PresenterGuestFeedController } = await import(
+    srcUrl('operator', 'present', 'presenter-guest-feed-controller.ts')
+  );
+
+  const controller = new PresenterGuestFeedController({
+    broker,
+    broadcastSync: () => {},
+  });
+
+  // Call controller.requestPermission() - must NOT throw unhandled rejection
+  const result = await controller.requestPermission();
+  assert.deepEqual(result, []);
+  assert.match(controller.getSnapshot().errorMessage, /permission was denied/i);
+});
+

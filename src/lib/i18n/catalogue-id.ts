@@ -299,6 +299,9 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'presenter.guestFeed.selectDevice': 'Pilih perangkat capture',
   'presenter.guestFeed.noDevices': 'Tidak ada perangkat capture video ditemukan',
   'presenter.guestFeed.fallbackLabel': 'Perangkat Capture {index}',
+  'presenter.guestFeed.enableAccess': 'Izinkan Akses Kamera',
+  'presenter.guestFeed.permissionDenied':
+    'Izin kamera ditolak. Berikan izin di setelan browser.',
   'presenter.guestFeed.arm': 'Siapkan Capture',
   'presenter.guestFeed.disarm': 'Lepas Capture',
   'presenter.guestFeed.arming': 'Menyiapkan…',

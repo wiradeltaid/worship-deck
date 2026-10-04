@@ -297,6 +297,9 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'presenter.guestFeed.selectDevice': 'Select capture device',
   'presenter.guestFeed.noDevices': 'No video capture devices found',
   'presenter.guestFeed.fallbackLabel': 'Capture Device {index}',
+  'presenter.guestFeed.enableAccess': 'Enable Camera Access',
+  'presenter.guestFeed.permissionDenied':
+    'Camera permission denied. Allow access in browser settings.',
   'presenter.guestFeed.arm': 'Arm Capture',
   'presenter.guestFeed.disarm': 'Disarm Capture',
   'presenter.guestFeed.arming': 'Arming…',
