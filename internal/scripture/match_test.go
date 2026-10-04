@@ -1,6 +1,10 @@
 package scripture
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"unicode"
+)
 
 func names() []BookName {
 	return []BookName{
@@ -113,10 +117,19 @@ func TestParseRefTranslationSuffix(t *testing.T) {
 		ok             bool
 	}{
 		{"Hebrews 1:1, 2 (NKJV)", "Hebrews", 1, 1, 2, false, true},
+		{"Hebrews 1:1, 2 (NKJV).", "Hebrews", 1, 1, 2, false, true},
+		{"Hebrews 1:1, 2, NKJV", "Hebrews", 1, 1, 2, false, true},
+		{"Hebrews 1:1, 2, NKJV.", "Hebrews", 1, 1, 2, false, true},
+		{"Hebrews 1:1,2,NKJV", "Hebrews", 1, 1, 2, false, true},
+		{"1 Korintus 13, TB", "1 Korintus", 13, 0, 0, true, true},
+		{"1 Korintus 13, TB.", "1 Korintus", 13, 0, 0, true, true},
+		{"John 3:16, KJV", "John", 3, 16, 16, false, true},
+		{"John 3:16, KJV;", "John", 3, 16, 16, false, true},
 		{"1 Korintus 13 (TB)", "1 Korintus", 13, 0, 0, true, true},
 		{"John 3:16 KJV", "John", 3, 16, 16, false, true},
 		{"Yohanes 3:16 (TB)", "Yohanes", 3, 16, 16, false, true},
 		{"Romans 8:28 (ESV)", "Romans", 8, 28, 28, false, true},
+		{"John 3:16, sermon notes", "", 0, 0, 0, false, false},
 		{"John 3:16 (sermon notes)", "", 0, 0, 0, false, false},
 		{"John 3:16 (commentary)", "", 0, 0, 0, false, false},
 	}
@@ -132,5 +145,62 @@ func TestParseRefTranslationSuffix(t *testing.T) {
 					c.in, book, ch, start, end, isWhole, c.book, c.ch, c.start, c.end, c.isWhole)
 			}
 		}
+	}
+}
+
+func TestDefectInjectionTranslationSuffixWithoutComma(t *testing.T) {
+	// 1. Defect proof: a whitespace-only stripper fails to strip no-space comma translation suffix
+	whitespaceOnlyStrip := func(val string) string {
+		val = strings.TrimSpace(val)
+		upper := strings.ToUpper(val)
+		for _, code := range supportedTranslations {
+			if strings.HasSuffix(upper, code) {
+				prefix := val[:len(val)-len(code)]
+				if len(prefix) > 0 && unicode.IsSpace(rune(prefix[len(prefix)-1])) {
+					return strings.TrimSpace(prefix)
+				}
+			}
+		}
+		return val
+	}
+
+	unstripped := whitespaceOnlyStrip("Hebrews 1:1,2,NKJV")
+	if unstripped != "Hebrews 1:1,2,NKJV" {
+		t.Fatalf("expected whitespace-only stripper to leave 'Hebrews 1:1,2,NKJV' untouched, got %q", unstripped)
+	}
+
+	// 2. Production ParseRef with comma-prefix support succeeds on "Hebrews 1:1,2,NKJV"
+	book, ch, start, end, isWhole, ok := ParseRef("Hebrews 1:1,2,NKJV")
+	if !ok || book != "Hebrews" || ch != 1 || start != 1 || end != 2 || isWhole {
+		t.Fatalf("ParseRef('Hebrews 1:1,2,NKJV') failed: %q %d:%d-%d ok=%v", book, ch, start, end, ok)
+	}
+
+	// 3. Defect proof: without trailing punctuation cleanup, "Hebrews 1:1, 2, NKJV" leaves trailing comma
+	noPunctCleanupStrip := func(val string) string {
+		val = strings.TrimSpace(val)
+		upper := strings.ToUpper(val)
+		for _, code := range supportedTranslations {
+			if strings.HasSuffix(upper, code) {
+				prefix := val[:len(val)-len(code)]
+				return strings.TrimSpace(prefix)
+			}
+		}
+		return val
+	}
+	trailingComma := noPunctCleanupStrip("Hebrews 1:1, 2, NKJV")
+	if trailingComma != "Hebrews 1:1, 2," {
+		t.Fatalf("expected no-cleanup stripper to leave 'Hebrews 1:1, 2,', got %q", trailingComma)
+	}
+	colon := strings.LastIndex(trailingComma, ":")
+	after := strings.TrimSpace(trailingComma[colon+1:])
+	_, _, okSpan := parseVerseSpan(after)
+	if okSpan {
+		t.Fatalf("parseVerseSpan must reject un-sanitized trailing comma %q", after)
+	}
+
+	// But clean ParseRef with production stripTranslationSuffix succeeds
+	bookClean, chClean, startClean, endClean, isWholeClean, okClean := ParseRef("Hebrews 1:1, 2, NKJV")
+	if !okClean || bookClean != "Hebrews" || chClean != 1 || startClean != 1 || endClean != 2 || isWholeClean {
+		t.Fatalf("ParseRef('Hebrews 1:1, 2, NKJV') failed: %q %d:%d-%d ok=%v", bookClean, chClean, startClean, endClean, okClean)
 	}
 }

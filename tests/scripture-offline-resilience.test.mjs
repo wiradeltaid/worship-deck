@@ -248,6 +248,113 @@ test('SPEC-102-03: extractRequiredScriptureRefs filters placeholders and normali
   assert.equal(refs.includes('-'), false, 'Must filter out dash placeholder');
 });
 
+test('SPEC-103-02: extractRequiredScriptureRefs normalizes comma-prefixed translation suffixes', async () => {
+  const { sanitizeScriptureRef } = await import(pathToFileURL(snapshotPath).href);
+
+  // Direct sanitizer contract with and without terminal punctuation
+  assert.equal(sanitizeScriptureRef('Hebrews 1:1, 2, NKJV'), 'Hebrews 1:1, 2');
+  assert.equal(sanitizeScriptureRef('Hebrews 1:1, 2, NKJV.'), 'Hebrews 1:1, 2');
+  assert.equal(sanitizeScriptureRef('Hebrews 1:1,2,NKJV'), 'Hebrews 1:1,2');
+  assert.equal(sanitizeScriptureRef('1 Korintus 13, TB'), '1 Korintus 13');
+  assert.equal(sanitizeScriptureRef('1 Korintus 13, TB.'), '1 Korintus 13');
+  assert.equal(sanitizeScriptureRef('John 3:16, KJV'), 'John 3:16');
+  assert.equal(sanitizeScriptureRef('John 3:16, KJV;'), 'John 3:16');
+  assert.equal(sanitizeScriptureRef('Romans 8:28, ESV'), 'Romans 8:28');
+
+  // Service extraction contract
+  const serviceData = {
+    field_values: {
+      scripture_reference: 'Hebrews 1:1, 2, NKJV.',
+      theme_verse: '1 Korintus 13, TB',
+    },
+    parsed_data: {
+      theme_verse: 'Hebrews 1:1,2,NKJV',
+      verse_reading: 'John 3:16, KJV;',
+    },
+  };
+
+  const refs = extractRequiredScriptureRefs(serviceData);
+  assert.ok(refs.includes('Hebrews 1:1, 2'), 'Must strip comma-prefixed NKJV and trailing punctuation');
+  assert.ok(refs.includes('Hebrews 1:1,2'), 'Must strip comma-prefixed NKJV without space');
+  assert.ok(refs.includes('1 Korintus 13'), 'Must strip comma-prefixed TB and trailing comma');
+  assert.ok(refs.includes('John 3:16'), 'Must strip comma-prefixed KJV');
+});
+
+test('SPEC-103-02: service snapshot warming normalizes comma-separated reference to canonical cache key and succeeds', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('/api/scripture')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            reference: 'Hebrews 1:1, 2',
+            translation: 'KJV',
+            text: 'God, who at sundry times and in divers manners spake in time past unto the fathers by the prophets...',
+            verses: [
+              { verse: 1, text: 'God, who at sundry times...' },
+              { verse: 2, text: 'Hath in these last days spoken unto us by his Son...' },
+            ],
+          }),
+        };
+      }
+      return { ok: false, status: 404 };
+    };
+
+    const service10Data = {
+      id: '10',
+      field_values: {
+        scripture_reference: 'Hebrews 1:1, 2, NKJV',
+      },
+    };
+
+    const readiness = await warmServiceSnapshot('10', service10Data);
+    assert.equal(readiness.status, 'ready', 'Service 10 warming with comma-normalized ref must achieve ready');
+    assert.equal(readiness.scriptures.total, 1);
+    assert.equal(readiness.scriptures.cached, 1);
+    assert.equal(readiness.scriptures.failed, 0);
+
+    // Verify it was stored under canonical cache key
+    const cached = await getCachedScripturePassage('Hebrews 1:1, 2', 'KJV');
+    assert.ok(cached, 'Cached passage must be retrievable by canonical reference');
+    assert.equal(cached.reference, 'Hebrews 1:1, 2');
+    assert.equal(cached.verses.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('SPEC-103-02: structural scan and defect injection proof: sanitizeScriptureRef in service-snapshot.ts requires comma-bare regex and trailing punctuation strip', () => {
+  const content = fs.readFileSync(snapshotPath, 'utf8');
+
+  function validateSnapshotSanitizer(src) {
+    if (!/TRANSLATION_BARE_RE\s*=.*?(NKJV\|KJV\|TB\|NIV\|ESV\|BIMK\|AYT)/.test(src) || !/TRANSLATION_BARE_RE\s*=.*?,/.test(src)) {
+      throw new Error('Sanitizer Pattern Violation: TRANSLATION_BARE_RE must support comma prefix');
+    }
+    const fnMatch = src.match(/export function sanitizeScriptureRef[\s\S]*?return s;\s*\}/);
+    if (!fnMatch) throw new Error('sanitizeScriptureRef missing');
+    const fnBody = fnMatch[0];
+    if (!/replace\(\/\[,;\.\]\+\$\/,\s*''\)/.test(fnBody)) {
+      throw new Error('Sanitizer Pattern Violation: sanitizeScriptureRef must strip trailing punctuation');
+    }
+  }
+
+  // Real production source passes
+  assert.doesNotThrow(() => validateSnapshotSanitizer(content));
+
+  // Injected defect: strip comma support from TRANSLATION_BARE_RE in real file source
+  const defective = content.replace(
+    /const TRANSLATION_BARE_RE = .*;/,
+    'const TRANSLATION_BARE_RE = /\\s+(KJV|NKJV|TB|NIV|ESV|BIMK|AYT)$/i;'
+  );
+  assert.throws(
+    () => validateSnapshotSanitizer(defective),
+    /Sanitizer Pattern Violation/
+  );
+});
+
 test('SPEC-102-03: failed_scripture_refs is persisted in snapshot and formats combined degraded message', async () => {
   const { formatOfflineReadinessMessage, getServiceSnapshot } = await import(
     pathToFileURL(snapshotPath).href
