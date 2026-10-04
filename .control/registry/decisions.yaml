@@ -1911,6 +1911,26 @@ decisions:
       - .scratch/SPEC-101-guest-speaker-hdmi-video-capture-input/
       - .scratch/SPEC-102-presenter-display-crash-scripture-density-and-warming-resilience/
 
+  - id: DEC-090
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-04)"
+    title: Daily Autopilot mandate for Presenter Unified Display, Capture Discovery, Fullscreen Navigation, and Scripture Comma Normalization (SPEC-103)
+    file: .control/decisions/DEC-090-daily-autopilot-mandate-unified-display-and-scripture-normalization.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-11'
+    touches:
+      - .control/memlog/autopilot-DEC-090.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-103-presenter-unified-display-capture-discovery-and-scripture-normalization/
+
+
 
 
 
