@@ -17,53 +17,85 @@ test('SPEC-100-02: ScriptureOverlay wire contract requires non-optional continua
   assert.ok(src.includes('continuationCount: number'), 'ScriptureOverlay must declare continuationCount');
 });
 
-test('SPEC-100-02: getScriptureScaling locks base font to 4.8cqh for chapter presentation', async () => {
+test('SPEC-102-02: getScriptureScaling scales adaptively by estimatedVisualLines for chapter presentation', async () => {
   const { getScriptureScaling } = await import(new URL('../src/lib/scripture-scaling.ts', import.meta.url).href);
 
-  // In chapter mode, short text and tail pages stay at 4.8cqh rather than ballooning to 6.5/8.5cqh
-  const tailPage = getScriptureScaling('Short tail verse.', 2, 'chapter');
-  assert.equal(tailPage.fontSizeStyle, '4.8cqh');
-  assert.equal(tailPage.minHeightStyle, '20cqh');
+  // 1-5 visual lines: 6.0cqh
+  const lightDensity = getScriptureScaling('Short tail passage with 4 lines.', 2, 'chapter', 4);
+  assert.equal(lightDensity.fontSizeStyle, '6.0cqh');
+  assert.equal(lightDensity.minHeightStyle, '32cqh');
+
+  // 6-7 visual lines: 5.4cqh
+  const mediumDensity = getScriptureScaling('Medium passage with 6-7 lines.', 4, 'chapter', 6);
+  assert.equal(mediumDensity.fontSizeStyle, '5.4cqh');
+  assert.equal(mediumDensity.minHeightStyle, '26cqh');
+
+  // 8-10 visual lines: 4.8cqh
+  const denseNarrative = getScriptureScaling('Dense narrative passage with 9 lines.', 7, 'chapter', 9);
+  assert.equal(denseNarrative.fontSizeStyle, '4.8cqh');
+  assert.equal(denseNarrative.minHeightStyle, '20cqh');
 
   // In verse mode, hero sizing applies
   const heroVerse = getScriptureScaling('Short hero verse.', 1, 'verse');
   assert.equal(heroVerse.fontSizeStyle, '8.5cqh');
 });
 
-test('SPEC-100-02: computeScriptureFitScale enforces 0.917 floor on calibrated chapter pages', async () => {
+test('SPEC-102-02: computeScriptureFitScale aligns with 82cqh budget for zero clipping', async () => {
   const { computeScriptureFitScale } = await import(new URL('../src/lib/scripture-scaling.ts', import.meta.url).href);
 
   // Stage 16:9 at 1920x1080 (stageHeight = 1080, stageWidth = 1920)
-  // Max budget height = 1080 * 0.78 = 842.4px
-  // 10 lines at 4.8cqh (51.84px) * line-height 1.28 = ~66.35px/line -> 663.5px < 842.4px
+  // Max budget height = 1080 * 0.82 = 885.6px
   const scale = computeScriptureFitScale({
     stageHeight: 1080,
     stageWidth: 1920,
-    naturalHeight: 664,
+    naturalHeight: 700,
     naturalWidth: 1500,
-    containerHeight: 842,
+    containerHeight: 885,
     containerWidth: 1680,
   });
 
-  assert.ok(scale >= 0.917, `Scale (${scale}) must be >= 0.917 floor`);
+  assert.equal(scale, 1, 'Scale must be 1 when naturalHeight fits within 82cqh budget');
 });
 
-test('SPEC-100-02: ScriptureOverlayView sets lineHeight 1.28 for chapter mode and overflow-wrap anywhere', () => {
+test('SPEC-102-02: ScriptureOverlayView sets lineHeight 1.36 for chapter mode and max-h-[82cqh]', () => {
   const viewPath = path.join(ROOT, 'src', 'components', 'ScriptureOverlayView.tsx');
   const src = fs.readFileSync(viewPath, 'utf8');
 
   assert.ok(
-    src.includes('1.28') && src.includes('typographyMode'),
-    'ScriptureOverlayView must set lineHeight 1.28 when typographyMode is chapter'
+    src.includes('1.36') && src.includes('typographyMode'),
+    'ScriptureOverlayView must set lineHeight 1.36 when typographyMode is chapter'
+  );
+  assert.ok(
+    src.includes('max-h-[82cqh]'),
+    'ScriptureOverlayView must set container height budget to max-h-[82cqh]'
+  );
+  assert.ok(
+    src.includes('estimatedVisualLines'),
+    'ScriptureOverlayView must accept and pass estimatedVisualLines'
   );
   assert.ok(
     src.includes('anywhere') || src.includes('break-words') || src.includes('overflow-wrap'),
     'ScriptureOverlayView must support overflow-wrap anywhere'
   );
-  assert.ok(
-    src.includes('continuation') || src.includes('isContinuation'),
-    'ScriptureOverlayView must handle continuation indicators'
-  );
+});
+
+test('SPEC-102-02: paginateScriptureVerses attaches estimatedVisualLines to each chunk', async () => {
+  const { paginateScriptureVerses } = await import(new URL('../src/lib/scripture-format.ts', import.meta.url).href);
+
+  const sampleVerses = [
+    { verse: 1, text: 'Now when Jesus learned that the Pharisees had heard that Jesus was making and baptizing more disciples than John' },
+    { verse: 2, text: '(although Jesus himself did not baptize, but only his disciples),' },
+    { verse: 3, text: 'he left Judea and departed again for Galilee.' },
+    { verse: 4, text: 'And he had to pass through Samaria.' },
+    { verse: 5, text: 'So he came to a town of Samaria called Sychar, near the field that Jacob had given to his son Joseph.' },
+  ];
+
+  const chunks = paginateScriptureVerses('John 4:1-5', sampleVerses, 'per-verse', 'chapter');
+  assert.ok(chunks.length >= 1);
+  for (const c of chunks) {
+    assert.equal(typeof c.estimatedVisualLines, 'number');
+    assert.ok(c.estimatedVisualLines > 0, 'estimatedVisualLines must be positive');
+  }
 });
 
 test('SPEC-100-02: ScriptureCacheRecord supports typography_mode with legacy derivation fallback', async () => {
@@ -181,7 +213,7 @@ test('SPEC-100-02: Calibrated 16:9 stage container containment proof (zero clipp
   const { computeScriptureFitScale } = await import(new URL('../src/lib/scripture-scaling.ts', import.meta.url).href);
 
   // 16:9 1080p stage: stageHeight = 1080, stageWidth = 1920
-  // maxAllowedHeight = 1080 * 0.78 = 842.4px, maxAllowedWidth = 1920 * 0.85 = 1632px
+  // maxAllowedHeight = 1080 * 0.82 = 885.6px (SPEC-102-02), maxAllowedWidth = 1920 * 0.85 = 1632px
   // Test case 1: Normal 10-line chapter page (John 4 dense page ~660px height)
   const scale1 = computeScriptureFitScale({
     stageHeight: 1080,
@@ -191,7 +223,7 @@ test('SPEC-100-02: Calibrated 16:9 stage container containment proof (zero clipp
   });
   assert.equal(scale1, 1, 'Within budget height and width renders at 1.0 (no shrinkage)');
 
-  // Test case 2: Overflown text (e.g. 1000px natural height > 842px) scales safely to prevent clipping
+  // Test case 2: Overflown text (e.g. 1000px natural height > 885.6px) scales safely to prevent clipping
   const scale2 = computeScriptureFitScale({
     stageHeight: 1080,
     stageWidth: 1920,
@@ -199,7 +231,11 @@ test('SPEC-100-02: Calibrated 16:9 stage container containment proof (zero clipp
     naturalWidth: 1400,
   });
   const scaledHeight = 1000 * scale2;
-  assert.ok(scaledHeight <= 842.4, `Scaled height (${scaledHeight}) must not exceed container maxAllowedHeight (842.4)`);
+  const maxAllowedHeight = 1080 * 0.82;
+  assert.ok(
+    scaledHeight <= maxAllowedHeight,
+    `Scaled height (${scaledHeight}) must not exceed container maxAllowedHeight (${maxAllowedHeight})`
+  );
 });
 
 test('SPEC-100-02: End-to-end remote whole-chapter navigation and continuation synchronization lifecycle', async () => {

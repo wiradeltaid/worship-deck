@@ -32,6 +32,7 @@ export type OfflineServiceSnapshot = {
   total_assets?: number;
   cached_assets?: number;
   failed_assets?: string[];
+  failed_scripture_refs?: string[];
   [key: string]: any;
 };
 
@@ -41,11 +42,51 @@ export type OfflineReadiness = {
   cached: number;
   failed: number;
   message: string;
-  scriptures?: { total: number; cached: number; failed: number };
+  scriptures?: {
+    total: number;
+    cached: number;
+    failed: number;
+    failedRefs?: string[];
+  };
 };
 
 export type ReadinessListener = (readiness: OfflineReadiness) => void;
 const readinessListeners = new Map<string, Set<ReadinessListener>>();
+
+export function formatOfflineReadinessMessage(
+  status: OfflineSnapshotStatus,
+  totalAssets: number,
+  cachedAssets: number,
+  failedAssetsCount: number,
+  failedScripturesCount: number
+): string {
+  if (status === 'ready') {
+    return totalAssets === 0
+      ? 'Offline Ready (0 external assets)'
+      : `Offline Ready: ${cachedAssets}/${totalAssets} assets`;
+  }
+  if (status === 'warming') {
+    return `Warming: ${cachedAssets}/${totalAssets} assets`;
+  }
+  // Degraded
+  if (failedAssetsCount > 0 && failedScripturesCount > 0) {
+    const aText = failedAssetsCount === 1 ? '1 asset' : `${failedAssetsCount} assets`;
+    const sText =
+      failedScripturesCount === 1 ? '1 scripture' : `${failedScripturesCount} scriptures`;
+    return `Degraded: ${aText}, ${sText} failed`;
+  }
+  if (failedAssetsCount > 0) {
+    return failedAssetsCount === 1
+      ? 'Degraded: 1 asset failed'
+      : `Degraded: ${failedAssetsCount} assets failed`;
+  }
+  if (failedScripturesCount > 0) {
+    return failedScripturesCount === 1
+      ? 'Degraded: 1 scripture failed'
+      : `Degraded: ${failedScripturesCount} scriptures failed`;
+  }
+  return 'Degraded';
+}
 
 /**
  * Normalizes service IDs across numeric and string representations (e.g. 123 -> "123").
@@ -219,15 +260,33 @@ export async function getCachedScripturePassage(
   }
 }
 
+const SCRIPTURE_PLACEHOLDERS = new Set(['TBA', 'TBD', '-', 'N/A', 'NONE']);
+const TRANSLATION_PAREN_RE = /\s*\((KJV|NKJV|TB|NIV|ESV|BIMK|AYT)\)\s*$/i;
+const TRANSLATION_BARE_RE = /\s+(KJV|NKJV|TB|NIV|ESV|BIMK|AYT)\s*$/i;
+
+export function sanitizeScriptureRef(raw: string): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  let s = raw.trim();
+  if (s.startsWith('http://') || s.startsWith('https://')) return null;
+  if (SCRIPTURE_PLACEHOLDERS.has(s.toUpperCase())) return null;
+
+  s = s.replace(TRANSLATION_PAREN_RE, '');
+  s = s.replace(TRANSLATION_BARE_RE, '');
+  s = s.trim();
+
+  if (!s || SCRIPTURE_PLACEHOLDERS.has(s.toUpperCase())) return null;
+  return s;
+}
+
 export function extractRequiredScriptureRefs(serviceData: any): string[] {
   if (!serviceData || typeof serviceData !== 'object') return [];
   const refs = new Set<string>();
 
   const check = (val: unknown) => {
     if (typeof val === 'string') {
-      const s = val.trim();
-      if (s && !s.startsWith('http://') && !s.startsWith('https://')) {
-        refs.add(s);
+      const sanitized = sanitizeScriptureRef(val);
+      if (sanitized) {
+        refs.add(sanitized);
       }
     }
   };
@@ -730,6 +789,7 @@ export async function warmServiceSnapshot(
     const scriptureRefs = extractRequiredScriptureRefs(serviceData);
     let scripturesCached = 0;
     let scripturesFailed = 0;
+    const failedScriptureRefs: string[] = [];
     const translation = await resolveDefaultBibleTranslation(serviceData);
     for (const ref of scriptureRefs) {
       if (cacheEpoch !== epoch || warmingGenerationMap.get(normId) !== currentGen) {
@@ -765,14 +825,21 @@ export async function warmServiceSnapshot(
           }
         }
         scripturesFailed++;
+        failedScriptureRefs.push(ref);
       } catch {
         scripturesFailed++;
+        failedScriptureRefs.push(ref);
       }
     }
 
     const scriptureSummary =
       scriptureRefs.length > 0
-        ? { total: scriptureRefs.length, cached: scripturesCached, failed: scripturesFailed }
+        ? {
+            total: scriptureRefs.length,
+            cached: scripturesCached,
+            failed: scripturesFailed,
+            failedRefs: failedScriptureRefs,
+          }
         : undefined;
 
     if (total === 0) {
@@ -782,10 +849,13 @@ export async function warmServiceSnapshot(
         total: 0,
         cached: 0,
         failed: scripturesFailed,
-        message:
-          zeroStatus === 'ready'
-            ? 'Offline Ready (0 external assets)'
-            : `Degraded: ${scripturesFailed} scripture(s) failed`,
+        message: formatOfflineReadinessMessage(
+          zeroStatus,
+          0,
+          0,
+          0,
+          scripturesFailed
+        ),
         scriptures: scriptureSummary,
       };
       if (cacheEpoch !== epoch || warmingGenerationMap.get(normId) !== currentGen) {
@@ -800,6 +870,7 @@ export async function warmServiceSnapshot(
           total_assets: 0,
           cached_assets: 0,
           failed_assets: [],
+          failed_scripture_refs: failedScriptureRefs,
         },
         currentGen,
         epoch
@@ -831,16 +902,13 @@ export async function warmServiceSnapshot(
         cached: cachedCount,
         failed,
         scriptures: scriptureSummary,
-        message:
-          status === 'ready'
-            ? total === 0
-              ? 'Offline Ready (0 external assets)'
-              : `Offline Ready: ${cachedCount}/${total} assets`
-            : status === 'warming'
-            ? `Warming: ${cachedCount}/${total} assets`
-            : failedUrls.length > 0
-            ? `Degraded: ${failedUrls.length} assets failed`
-            : `Degraded: ${scripturesFailed} scripture(s) failed`,
+        message: formatOfflineReadinessMessage(
+          status,
+          total,
+          cachedCount,
+          failedUrls.length,
+          scripturesFailed
+        ),
       };
       if (cacheEpoch !== epoch || warmingGenerationMap.get(normId) !== currentGen) {
         return state;
@@ -901,6 +969,7 @@ export async function warmServiceSnapshot(
           total_assets: total,
           cached_assets: cachedCount,
           failed_assets: failedUrls,
+          failed_scripture_refs: failedScriptureRefs,
         },
         currentGen,
         epoch

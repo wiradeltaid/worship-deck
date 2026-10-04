@@ -8,11 +8,14 @@ import {
   liveBackgroundOf,
   liveTransitionOf,
   openPresentChannel,
+  projectionOf,
   slidePatchOf,
   syncPatchesOf,
   type PresentMessage,
   type ScriptureOverlay,
+  type ProjectedSource,
 } from '@/lib/present-channel';
+import { ProjectorGuestMediaBridge } from './projector-guest-media-bridge';
 import { validateProjectorSlidePatchAdmission } from '@/lib/emergency-canvas';
 import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
 import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
@@ -62,6 +65,35 @@ export default function ProjectorClient({
   const [blank, setBlank] = useState(false);
   const [stalePlan, setStalePlan] = useState(false);
   const [overlay, setOverlay] = useState<ScriptureOverlay | null>(null);
+
+  const [guestStream, setGuestStream] = useState<any>(null);
+  const [isGuestIntent, setIsGuestIntent] = useState(false);
+  const bridgeRef = useRef<ProjectorGuestMediaBridge | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (videoRef.current && guestStream) {
+      videoRef.current.srcObject = guestStream;
+    }
+  }, [guestStream, isGuestIntent]);
+
+  useEffect(() => {
+    const onPageHide = () => {
+      bridgeRef.current?.releaseMedia();
+      setGuestStream(null);
+    };
+    const onPageShow = () => {
+      const ch = openPresentChannel(serviceId);
+      ch?.postMessage({ type: 'request-sync' });
+      ch?.close();
+    };
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, []);
 
   // SPEC-94-02: Ephemeral F11 fullscreen guidance onboarding cue.
   // Authorized exception to UC-12 room-facing chrome prohibition:
@@ -140,6 +172,11 @@ export default function ProjectorClient({
     const ch = openPresentChannel(serviceId);
     if (!ch) return;
 
+    const bridge = new ProjectorGuestMediaBridge({
+      postMessage: (m) => ch.postMessage(m),
+    });
+    bridgeRef.current = bridge;
+
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
@@ -154,6 +191,9 @@ export default function ProjectorClient({
           msg.type === 'slide-patch'
         ) {
           setStalePlan(true);
+          bridge.handleStalePlan();
+          setGuestStream(null);
+          setIsGuestIntent(false);
         }
         return;
       }
@@ -172,6 +212,14 @@ export default function ProjectorClient({
       if (msg.type === 'sync') {
         goToRef.current(msg.index);
         setOverlay(msg.scripture ?? null);
+
+        const proj = projectionOf(msg);
+        const isGuest = proj?.kind === 'guest';
+        setIsGuestIntent(isGuest);
+        void bridge.syncProjection(proj, msg.guestAttemptId || null).then(() => {
+          setGuestStream(bridge.getActiveStream());
+        });
+
         const patches = syncPatchesOf(msg);
         if (patches !== null) {
           patchRevisionsRef.current.clear();
@@ -232,6 +280,7 @@ export default function ProjectorClient({
           isContinuation: msg.isContinuation,
           continuationIndex: msg.continuationIndex,
           continuationCount: msg.continuationCount,
+          estimatedVisualLines: msg.estimatedVisualLines,
         });
       } else if (msg.type === 'clear-scripture') {
         setOverlay(null);
@@ -255,6 +304,8 @@ export default function ProjectorClient({
       clearInterval(heartbeat);
       ch.removeEventListener('message', onMessage);
       ch.close();
+      bridge.teardown();
+      bridgeRef.current = null;
     };
   }, [serviceId]);
 
@@ -334,16 +385,35 @@ export default function ProjectorClient({
             isContinuation={overlay.isContinuation}
             continuationIndex={overlay.continuationIndex}
             continuationCount={overlay.continuationCount}
+            estimatedVisualLines={overlay.estimatedVisualLines}
           />
         ) : slide ? (
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />
         ) : null}
       </div>
+
+      {/* Contained Guest Video Layer (SPEC-101 § 3): rendered at z-30 under z-40 hint and z-50 blanking */}
+      {isGuestIntent && guestStream ? (
+        <div
+          data-testid="projector-guest-video-container"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black overflow-hidden pointer-events-none"
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="max-h-full max-w-full object-contain pointer-events-none"
+          />
+        </div>
+      ) : null}
+
       {/* Ephemeral F11 fullscreen guidance onboarding banner (SPEC-94-02).
           Authorized exception to UC-12 room-facing chrome prohibition:
           Transient only, auto-dismisses in 5s or upon F11/fullscreen, positioned
-          at z-40 strictly below the z-50 emergency blanking layer. */}
-      {showHint && !blank ? (
+          at z-40 strictly below the z-50 emergency blanking layer.
+          Suppressed when blanked or when guest intent is active (including pending) (SPEC-101 § 3). */}
+      {showHint && !blank && !isGuestIntent ? (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none select-none">
           <button
             type="button"

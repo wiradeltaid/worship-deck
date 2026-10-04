@@ -1426,10 +1426,10 @@ rtm:
   test:
   - tests/capture-broker-device-enumeration.test.mjs
   - tests/test-script-registration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1440,10 +1440,10 @@ rtm:
   release: guest-speaker-hdmi-video-capture-input
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1455,10 +1455,10 @@ rtm:
   test:
   - tests/projector-guest-media-bridge.test.mjs
   - tests/smoke-spec-101.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1469,10 +1469,10 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/presenter-congregation-display-control.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1483,10 +1483,10 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/scripture-continuation-presentation.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1964,10 +1964,10 @@ rtm:
   release: guest-speaker-hdmi-video-capture-input
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -1979,10 +1979,10 @@ rtm:
   test:
   - tests/projector-guest-media-bridge.test.mjs
   - tests/smoke-spec-101.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -1993,10 +1993,10 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/scripture-continuation-presentation.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -2007,10 +2007,10 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/scripture-offline-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -4837,10 +4837,10 @@ rtm:
   release: guest-speaker-hdmi-video-capture-input
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -4852,10 +4852,10 @@ rtm:
   test:
   - tests/projector-guest-media-bridge.test.mjs
   - tests/smoke-spec-101.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -4866,10 +4866,10 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/scripture-continuation-presentation.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -4880,10 +4880,10 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/scripture-offline-resilience.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22

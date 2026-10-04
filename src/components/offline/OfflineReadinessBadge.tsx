@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import {
   getServiceSnapshot,
   subscribeServiceReadiness,
   warmServiceSnapshot,
+  formatOfflineReadinessMessage,
   type OfflineReadiness,
 } from '@/lib/offline/service-snapshot';
 import { Button } from '@/components/ui/button';
@@ -42,22 +44,39 @@ export function OfflineReadinessBadge({
       const snapshot = await getServiceSnapshot(idStr);
       if (cancelled || receivedLiveEventRef.current) return;
       if (snapshot) {
-        const total = typeof snapshot.total_assets === 'number' ? snapshot.total_assets : (snapshot.failed_assets?.length || 0);
-        const failed = snapshot.failed_assets?.length || 0;
-        const cached = typeof snapshot.cached_assets === 'number' ? snapshot.cached_assets : Math.max(0, total - failed);
-        setReadiness({
-          status: snapshot.status || 'ready',
+        const failedAssets = snapshot.failed_assets?.length || 0;
+        const failedScriptures = snapshot.failed_scripture_refs?.length || 0;
+        const total =
+          typeof snapshot.total_assets === 'number' ? snapshot.total_assets : failedAssets;
+        const cached =
+          typeof snapshot.cached_assets === 'number'
+            ? snapshot.cached_assets
+            : Math.max(0, total - failedAssets);
+        const totalFailed = failedAssets + failedScriptures;
+        const status = snapshot.status || (totalFailed === 0 ? 'ready' : 'degraded');
+        const msg = formatOfflineReadinessMessage(
+          status,
           total,
           cached,
-          failed,
-          message:
-            snapshot.status === 'ready'
-              ? total === 0
-                ? 'Offline Ready (0 external assets)'
-                : `Offline Ready: ${cached}/${total} assets`
-              : snapshot.status === 'degraded'
-              ? `Degraded: ${failed} failed`
-              : `Warming: ${cached}/${total} assets`,
+          failedAssets,
+          failedScriptures
+        );
+
+        setReadiness({
+          status,
+          total,
+          cached,
+          failed: totalFailed,
+          message: msg,
+          scriptures:
+            failedScriptures > 0
+              ? {
+                  total: failedScriptures,
+                  cached: 0,
+                  failed: failedScriptures,
+                  failedRefs: snapshot.failed_scripture_refs,
+                }
+              : undefined,
         });
       }
     })();
@@ -82,6 +101,16 @@ export function OfflineReadinessBadge({
       });
       if (seq === retrySeqRef.current && !receivedLiveEventRef.current) {
         setReadiness(res);
+        if (res.status === 'ready') {
+          toast.success('Penyimpanan offline berhasil diperbarui');
+        } else {
+          const failedRefs = res.scriptures?.failedRefs || [];
+          if (failedRefs.length > 0) {
+            toast.error(`Gagal memuat ayat offline: ${failedRefs.join(', ')}`);
+          } else {
+            toast.error(`Penyimpanan offline belum lengkap (${res.failed} gagal)`);
+          }
+        }
       }
     } catch {
       // non-blocking
@@ -93,6 +122,11 @@ export function OfflineReadinessBadge({
   };
 
   if (!readiness) return null;
+
+  const tooltipText =
+    readiness.scriptures?.failedRefs && readiness.scriptures.failedRefs.length > 0
+      ? `${readiness.message} ('${readiness.scriptures.failedRefs.join("', '")}')`
+      : readiness.message;
 
   return (
     <div
@@ -106,7 +140,7 @@ export function OfflineReadinessBadge({
           : 'border-muted bg-muted/40 text-muted-foreground',
         className
       )}
-      title={readiness.message}
+      title={tooltipText}
     >
       <span
         className={cn(

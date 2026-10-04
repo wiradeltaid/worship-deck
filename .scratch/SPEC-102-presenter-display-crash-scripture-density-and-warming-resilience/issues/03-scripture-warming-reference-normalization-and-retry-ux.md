@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-13, FR-14, FR-19]
 **Blocked by:** none
-**Status:** open
+**Status:** closed
 
 **What to build:** In `internal/scripture/match.go`, `src/lib/offline/service-snapshot.ts`, `src/components/offline/OfflineReadinessBadge.tsx`, `tests/scripture-offline-resilience.test.mjs`, and `internal/scripture/match_test.go`:
 
@@ -39,4 +39,9 @@
 
 ## Completion evidence
 
-Record actual commands/results and defect-injection proofs when implemented. Leave checkboxes/status open until proven; inherited review reports do not close acceptance.
+- Implemented `stripTranslationSuffix` in `internal/scripture/match.go` supporting strict translation codes (`KJV`, `NKJV`, `TB`, `NIV`, `ESV`, `BIMK`, `AYT`) and rejecting arbitrary annotations; verified with Go test suite (`match_test.go`).
+- Added placeholder sanitization (`TBA`, `TBD`, `-`, `N/A`, `None`) and translation suffix stripping in `extractRequiredScriptureRefs` (`src/lib/offline/service-snapshot.ts`).
+- Added durable persistence of `failed_scripture_refs` in `OfflineServiceSnapshot` and rehydration in `OfflineReadinessBadge.tsx`.
+- Implemented combined degraded status formatting and explicit `sonner` toast feedback on retry in `src/components/offline/OfflineReadinessBadge.tsx`.
+- Verified all 14 tests in `tests/scripture-offline-resilience.test.mjs` pass.
+

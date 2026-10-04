@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -211,7 +212,6 @@ export default memo(function PresenterDisplayControl({
     <div
       className={cn(
         'inline-flex items-center rounded-md border border-input shadow-xs bg-background',
-        presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none',
         className
       )}
       data-testid="presenter-display-control-container"
@@ -220,7 +220,6 @@ export default memo(function PresenterDisplayControl({
         type="button"
         variant={buttonVariant}
         size="sm"
-        disabled={presentationLock}
         onClick={onOpenOrFocus}
         data-testid="presenter-display-control-primary"
         className="h-8 gap-2 rounded-r-none border-0 text-xs font-medium focus-visible:ring-1"
@@ -236,7 +235,6 @@ export default memo(function PresenterDisplayControl({
               type="button"
               variant={buttonVariant}
               size="sm"
-              disabled={presentationLock}
               data-testid="presenter-display-control-trigger"
               aria-label={t('presenter.displayTarget.targetHeader')}
               className="h-8 w-7 rounded-l-none border-0 border-l border-input/50 px-0 hover:bg-accent"
@@ -250,9 +248,11 @@ export default memo(function PresenterDisplayControl({
           className="w-72 p-1 text-xs"
           data-testid="presenter-display-control-menu"
         >
-          <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1.5">
-            {t('presenter.displayTarget.targetHeader')}
-          </DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-2 py-1.5">
+              {t('presenter.displayTarget.targetHeader')}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
 
           <DropdownMenuRadioGroup value={radioValue} onValueChange={handleSelectRadio}>
             {/* External screens */}
@@ -334,8 +334,13 @@ export default memo(function PresenterDisplayControl({
               {onCloseProjector && (
                 <DropdownMenuItem
                   onClick={onCloseProjector}
-                  className="py-1.5 text-xs gap-2 text-destructive focus:text-destructive"
+                  disabled={presentationLock}
+                  className={cn(
+                    'py-1.5 text-xs gap-2 text-destructive focus:text-destructive',
+                    presentationLock && 'opacity-50 cursor-not-allowed pointer-events-none'
+                  )}
                   data-testid="presenter-action-close"
+                  title={presentationLock ? t('presenter.lockTitle') : undefined}
                 >
                   <X className="size-3.5" />
                   <span>{t('presenter.displayTarget.close')}</span>

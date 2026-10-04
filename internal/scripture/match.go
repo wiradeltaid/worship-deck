@@ -38,12 +38,41 @@ func normalize(s string) string {
 	return strings.Join(fields, " ")
 }
 
+var supportedTranslations = []string{"KJV", "NKJV", "TB", "NIV", "ESV", "BIMK", "AYT"}
+
+func stripTranslationSuffix(value string) string {
+	val := strings.TrimSpace(value)
+	upper := strings.ToUpper(val)
+
+	// 1. Check parenthetical format: "(NKJV)", "(TB)", etc.
+	for _, code := range supportedTranslations {
+		patt := "(" + code + ")"
+		if strings.HasSuffix(upper, patt) {
+			prefix := val[:len(val)-len(patt)]
+			return strings.TrimSpace(prefix)
+		}
+	}
+
+	// 2. Check bare suffix preceded by whitespace: "Hebrews 1:1 KJV"
+	for _, code := range supportedTranslations {
+		if strings.HasSuffix(upper, code) {
+			prefix := val[:len(val)-len(code)]
+			if len(prefix) > 0 && unicode.IsSpace(rune(prefix[len(prefix)-1])) {
+				return strings.TrimSpace(prefix)
+			}
+		}
+	}
+
+	return val
+}
+
 // ParseRef splits a typed reference into a book part and verse numbers.
 // The book part is not capped at two words and may contain hyphens.
 // Supports both colon-based references (Book C:V, Book C:V-V) and whole-chapter references (Book C).
 func ParseRef(raw string) (bookPart string, chapter, start, end int, isWholeChapter, ok bool) {
 	value := strings.TrimSpace(strings.ReplaceAll(raw, "+", " "))
 	value = stripExamplePrefix(value)
+	value = stripTranslationSuffix(value)
 	if value == "" {
 		return "", 0, 0, 0, false, false
 	}

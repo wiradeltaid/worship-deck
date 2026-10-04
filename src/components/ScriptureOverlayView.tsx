@@ -10,6 +10,7 @@ export interface ScriptureOverlayViewProps {
   isContinuation?: boolean;
   continuationIndex?: number;
   continuationCount?: number;
+  estimatedVisualLines?: number;
   style?: CSSProperties;
 }
 
@@ -24,9 +25,15 @@ export default function ScriptureOverlayView({
   isContinuation,
   continuationIndex,
   continuationCount,
+  estimatedVisualLines,
   style,
 }: ScriptureOverlayViewProps) {
-  const scaling = getScriptureScaling(text, verseCount, typographyMode);
+  const scaling = getScriptureScaling(
+    text,
+    verseCount,
+    typographyMode,
+    estimatedVisualLines
+  );
   const stageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -152,7 +159,7 @@ export default function ScriptureOverlayView({
           <div
             ref={containerRef}
             data-slot="scripture-verse-container"
-            className="flex max-h-[78cqh] w-full items-center justify-center overflow-hidden"
+            className="flex max-h-[82cqh] w-full items-center justify-center overflow-hidden"
             style={{ minHeight: scaling.minHeightStyle, boxSizing: 'border-box' }}
           >
             <p
@@ -161,7 +168,7 @@ export default function ScriptureOverlayView({
               className={`italic leading-relaxed text-balance ${mode === 'per-verse' ? 'whitespace-pre-wrap' : ''} ${scaling.tailwindClass}`}
               style={{
                 fontSize: `calc(${scaling.fontSizeStyle} * var(${SCRIPTURE_FIT_SCALE_VAR}, 1))`,
-                lineHeight: typographyMode === 'chapter' ? 1.28 : 1.35,
+                lineHeight: typographyMode === 'chapter' ? 1.36 : 1.35,
                 overflowWrap: 'anywhere',
               }}
             >

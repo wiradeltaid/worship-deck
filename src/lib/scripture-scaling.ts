@@ -12,7 +12,8 @@
 export function getScriptureScaling(
   text: string,
   verseCount?: number,
-  typographyMode?: 'chapter' | 'verse'
+  typographyMode?: 'chapter' | 'verse',
+  estimatedVisualLines?: number
 ): {
   fontSizeStyle: string;
   tailwindClass: string;
@@ -21,9 +22,32 @@ export function getScriptureScaling(
 } {
   const len = text.trim().length;
 
-  // Chapter presentation stabilizes on 4.8cqh base font across all pages,
-  // preventing tail pages from blowing up to 6.5/8.5cqh.
+  // Chapter presentation scales adaptively by estimatedVisualLines (SPEC-102):
+  // - 1–5 visual lines: 6.0cqh (minHeight: 32cqh)
+  // - 6–7 visual lines: 5.4cqh (minHeight: 26cqh)
+  // - 8–10 visual lines: 4.8cqh (minHeight: 20cqh)
   if (typographyMode === 'chapter') {
+    const lines =
+      typeof estimatedVisualLines === 'number' && estimatedVisualLines > 0
+        ? estimatedVisualLines
+        : Math.max(1, Math.ceil(len / 60));
+
+    if (lines <= 5) {
+      return {
+        fontSizeStyle: '6.0cqh',
+        tailwindClass: 'font-normal',
+        minHeightStyle: '32cqh',
+        charCount: len,
+      };
+    }
+    if (lines <= 7) {
+      return {
+        fontSizeStyle: '5.4cqh',
+        tailwindClass: 'font-normal',
+        minHeightStyle: '26cqh',
+        charCount: len,
+      };
+    }
     return {
       fontSizeStyle: '4.8cqh',
       tailwindClass: 'font-normal',
@@ -99,7 +123,7 @@ export function getScriptureScaling(
 
 /**
  * Calculates shrink-to-fit scale factor for scripture text within fixed stage-anchored bounds.
- * Prevents text clipping and guarantees strict containment within the 78cqh verse budget
+ * Prevents text clipping and guarantees strict containment within the 82cqh verse budget
  * and net content box width, supporting exact container content-box measurements and pillarbox geometries.
  */
 export function computeScriptureFitScale({
@@ -121,8 +145,8 @@ export function computeScriptureFitScale({
 
   const maxAllowedHeight =
     typeof containerHeight === 'number'
-      ? Math.min(containerHeight, stageHeight * 0.78)
-      : stageHeight * 0.78;
+      ? Math.min(containerHeight, stageHeight * 0.82)
+      : stageHeight * 0.82;
   const maxAllowedWidth =
     typeof containerWidth === 'number'
       ? containerWidth

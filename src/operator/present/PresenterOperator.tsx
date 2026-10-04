@@ -78,12 +78,17 @@ import {
 } from '@/lib/emergency-canvas';
 import {
   isProjectorMessage,
+  isProjectorMediaStatus,
   openPresentChannel,
   slidePatchOf,
   type PresentMessage,
   type SlidePatch,
   type ScriptureOverlay,
+  type ProjectedSource,
 } from '@/lib/present-channel';
+import { CaptureBroker } from '@/lib/capture-broker';
+import { PresenterGuestFeedController } from './presenter-guest-feed-controller';
+import PresenterGuestFeedControl from './PresenterGuestFeedControl';
 import {
   type ScriptureDisplayMode,
   type ScriptureTypographyMode,
@@ -555,6 +560,57 @@ export default function PresenterOperator({
     },
     []
   );
+
+  const projectionRef = useRef<ProjectedSource>({ kind: 'deck' });
+  const guestAttemptIdRef = useRef<string | null>(null);
+
+  const captureBrokerRef = useRef<CaptureBroker | null>(null);
+  if (!captureBrokerRef.current) {
+    captureBrokerRef.current = new CaptureBroker();
+  }
+
+  const guestFeedControllerRef = useRef<PresenterGuestFeedController | null>(null);
+  if (!guestFeedControllerRef.current) {
+    guestFeedControllerRef.current = new PresenterGuestFeedController({
+      broker: captureBrokerRef.current,
+      broadcastSync: () => {
+        const snap = guestFeedControllerRef.current?.getSnapshot();
+        if (snap) {
+          projectionRef.current = snap.projection;
+          guestAttemptIdRef.current = snap.guestAttemptId;
+        }
+        const activeOverlay = scriptureOverlayRef.current;
+        channelRef.current?.postMessage({
+          type: 'sync',
+          index: indexRef.current,
+          blank: blankRef.current,
+          transition: transitionRef.current,
+          background: backgroundRef.current,
+          scripture: activeOverlay,
+          planIdentity: planIdentityRef.current,
+          patches: patchesRef.current,
+          projection: projectionRef.current,
+          guestAttemptId: guestAttemptIdRef.current,
+        });
+      },
+    });
+  }
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__worshipDeckAcquireProjectorConsumer = (
+        sessionId: string,
+        attemptId: string
+      ) => {
+        return captureBrokerRef.current?.acquireProjectorConsumer(sessionId, attemptId);
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__worshipDeckAcquireProjectorConsumer;
+      }
+    };
+  }, []);
+
   const remoteSessionRef = useRef<PresenterRemoteSession | null>(null);
   const runSheet = formatPresenterRunSheet(
     rundownText,
@@ -769,6 +825,7 @@ export default function PresenterOperator({
 
   const broadcast = useCallback((msg: PresentMessage) => {
     if (msg.type === 'scripture') {
+      guestFeedControllerRef.current?.onScriptureAction();
       setScriptureOverlay({
         reference: msg.reference,
         displayReference: msg.displayReference,
@@ -806,6 +863,8 @@ export default function PresenterOperator({
         background: backgroundRef.current,
         planIdentity: planIdentityRef.current,
         patches: patchesRef.current,
+        projection: projectionRef.current,
+        guestAttemptId: guestAttemptIdRef.current,
       });
     },
     [broadcast, activeSlides.length]
@@ -1013,11 +1072,17 @@ export default function PresenterOperator({
       scripture: scriptureOverlayRef.current,
       planIdentity: planIdentityRef.current,
       patches: patchesRef.current,
+      projection: projectionRef.current,
+      guestAttemptId: guestAttemptIdRef.current,
     });
 
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
+      if (isProjectorMediaStatus(msg)) {
+        guestFeedControllerRef.current?.handleProjectorMediaStatus(msg);
+        return;
+      }
       // Only a genuine projector-originated message is evidence of life
       // (`AD-29`) — the heartbeat and `request-sync` alike, recorded here
       // without changing how `request-sync` is answered below. A second
@@ -1072,6 +1137,7 @@ export default function PresenterOperator({
       ch.removeEventListener('message', onMessage);
       ch.close();
       channelRef.current = null;
+      guestFeedControllerRef.current?.teardown();
     };
   }, [serviceId, dispatchLiveness]);
 
@@ -1164,6 +1230,14 @@ export default function PresenterOperator({
     return () => window.removeEventListener('keydown', onKey);
   }, [gridOpen, index, manualNavigate, toggleBlank]);
 
+  useEffect(() => {
+    const onKeyCapture = (e: KeyboardEvent) => {
+      guestFeedControllerRef.current?.handleKeyDown(e);
+    };
+    window.addEventListener('keydown', onKeyCapture, { capture: true });
+    return () => window.removeEventListener('keydown', onKeyCapture, { capture: true });
+  }, []);
+
   // Keeps both slide indexes following the deck: the same mechanism for the
   // filmstrip as for the list, one axis apart. Reads and scrolls container DOM
   // only (SPEC-75) — container-scoped calculations prevent ancestor/window scroll
@@ -1241,6 +1315,8 @@ export default function PresenterOperator({
             scripture: null,
             planIdentity: planIdentityRef.current,
             patches,
+            projection: projectionRef.current,
+            guestAttemptId: guestAttemptIdRef.current,
           });
         }
       })
@@ -1506,6 +1582,8 @@ export default function PresenterOperator({
         scripture: null,
         planIdentity: planIdentityRef.current,
         patches: [],
+        projection: projectionRef.current,
+        guestAttemptId: guestAttemptIdRef.current,
       });
       toast.info('Koreksi lokal dibuang, kembali ke versi server');
     } catch (err: any) {
@@ -1568,6 +1646,7 @@ export default function PresenterOperator({
             isContinuation: firstPage.isContinuation,
             continuationIndex: firstPage.continuationIndex,
             continuationCount: firstPage.continuationCount,
+            estimatedVisualLines: firstPage.estimatedVisualLines,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1653,6 +1732,7 @@ export default function PresenterOperator({
         isContinuation: firstPage.isContinuation,
         continuationIndex: firstPage.continuationIndex,
         continuationCount: firstPage.continuationCount,
+        estimatedVisualLines: firstPage.estimatedVisualLines,
       };
       setScriptureOverlay(newOverlay);
       broadcast({
@@ -1708,6 +1788,7 @@ export default function PresenterOperator({
             isContinuation: activePage.isContinuation,
             continuationIndex: activePage.continuationIndex,
             continuationCount: activePage.continuationCount,
+            estimatedVisualLines: activePage.estimatedVisualLines,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1748,6 +1829,7 @@ export default function PresenterOperator({
           isContinuation: activePage.isContinuation,
           continuationIndex: activePage.continuationIndex,
           continuationCount: activePage.continuationCount,
+          estimatedVisualLines: activePage.estimatedVisualLines,
         };
         setScriptureOverlay(newOverlay);
         broadcast({
@@ -1840,6 +1922,12 @@ export default function PresenterOperator({
 
           {/* Row 2 (Session Safety & Workflow Controls) */}
           <div data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">
+            {guestFeedControllerRef.current && (
+              <PresenterGuestFeedControl
+                controller={guestFeedControllerRef.current}
+                isProjectorResponding={liveness.verdict === 'live'}
+              />
+            )}
             <OfflineReadinessBadge
               serviceId={serviceId}
               serviceData={rawService || { id: serviceId, plan: activeSlides }}
@@ -1898,8 +1986,11 @@ export default function PresenterOperator({
             <a
               className="underline underline-offset-2"
               href={projectorUrl}
-              target="_blank"
-              rel="noreferrer"
+              target={projectorWindowName(serviceId)}
+              rel="opener"
+              onClick={() => {
+                setProjectorBlocked(false);
+              }}
             >
               {t('presenter.openCongregationScreenTab')}
             </a>
@@ -2019,6 +2110,7 @@ export default function PresenterOperator({
                   isContinuation={scriptureOverlay.isContinuation}
                   continuationIndex={scriptureOverlay.continuationIndex}
                   continuationCount={scriptureOverlay.continuationCount}
+                  estimatedVisualLines={scriptureOverlay.estimatedVisualLines}
                 />
               ) : current ? (
                 <SlideView
