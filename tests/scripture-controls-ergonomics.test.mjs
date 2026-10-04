@@ -142,3 +142,93 @@ test('SPEC-98-01: Clear button broadcasts clear-scripture with planIdentity', ()
     'Clear button click handler must reset local scripture overlay state'
   );
 });
+
+test('SPEC-104-03: ScriptureRefAutocomplete source guards for keyboard navigation and ARIA attributes', () => {
+  const compPath = path.join(root, 'src', 'components', 'ScriptureRefAutocomplete.tsx');
+  assert.ok(fs.existsSync(compPath), 'ScriptureRefAutocomplete.tsx must exist');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  // Must export shouldSuggestBooks
+  assert.ok(
+    src.includes('shouldSuggestBooks'),
+    'Must use shouldSuggestBooks predicate'
+  );
+
+  // Must declare role="combobox" and aria attributes
+  assert.ok(src.includes('role="combobox"'), 'Input must declare role="combobox"');
+  assert.ok(src.includes('aria-autocomplete="list"'), 'Input must declare aria-autocomplete="list"');
+  assert.ok(src.includes('role="listbox"'), 'Dropdown list must declare role="listbox"');
+  assert.ok(src.includes('role="option"'), 'Dropdown options must declare role="option"');
+  assert.ok(src.includes('aria-selected='), 'Dropdown options must declare aria-selected');
+
+  // Must handle navigation keys ArrowDown, ArrowUp, Enter, Escape
+  assert.ok(src.includes("e.key === 'ArrowDown'"), 'Must handle ArrowDown key');
+  assert.ok(src.includes("e.key === 'ArrowUp'"), 'Must handle ArrowUp key');
+  assert.ok(src.includes("e.key === 'Enter'"), 'Must handle Enter key');
+  assert.ok(src.includes("e.key === 'Escape'"), 'Must handle Escape key');
+});
+
+test('SPEC-104-03: shouldSuggestBooks boundary table and context suppression', async () => {
+  const mod = await import(
+    new URL('../src/lib/scripture-autocomplete.ts', import.meta.url).href
+  );
+  const shouldSuggestBooks = mod.shouldSuggestBooks;
+  assert.ok(typeof shouldSuggestBooks === 'function', 'shouldSuggestBooks must be a function');
+
+  // Assert true for active book prefix queries
+  const openQueries = ['mat', 'Matthew', 'Matthew ', '1', '1 C', '1 Cor', '1 Corinthians'];
+  for (const q of openQueries) {
+    assert.equal(
+      shouldSuggestBooks(q),
+      true,
+      `shouldSuggestBooks("${q}") must be true (suggestions OPEN)`
+    );
+  }
+
+  // Assert false for completed book + chapter/verse queries (suggestions CLOSED)
+  const closedQueries = [
+    'Matthew 4',
+    'Mat 4',
+    'Matthew 0',
+    'Matthew 4:1',
+    '1 Corinthians 13',
+    '1 Cor 13',
+  ];
+  for (const q of closedQueries) {
+    assert.equal(
+      shouldSuggestBooks(q),
+      false,
+      `shouldSuggestBooks("${q}") must be false (suggestions CLOSED)`
+    );
+  }
+});
+
+test('SPEC-104-03 Defect Injection Proof: verifyContextSuppression detects un-suppressed chapter queries', async () => {
+  // Flawed predicate that only checks for colon
+  function flawedPredicate(query) {
+    if (!query) return false;
+    const q = query.trim();
+    if (q.length === 0) return false;
+    return !/:\s*\d/.test(q);
+  }
+
+  // Defect proof: flawed predicate allows "Matthew 4" and "1 Corinthians 13" through
+  assert.equal(
+    flawedPredicate('Matthew 4'),
+    true,
+    'Flawed predicate erroneously returns true for Matthew 4'
+  );
+  assert.equal(
+    flawedPredicate('1 Corinthians 13'),
+    true,
+    'Flawed predicate erroneously returns true for 1 Corinthians 13'
+  );
+
+  // Production predicate correctly suppresses them
+  const mod = await import(
+    new URL('../src/lib/scripture-autocomplete.ts', import.meta.url).href
+  );
+  assert.equal(mod.shouldSuggestBooks('Matthew 4'), false);
+  assert.equal(mod.shouldSuggestBooks('1 Corinthians 13'), false);
+});
+

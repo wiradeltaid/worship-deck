@@ -145,10 +145,10 @@ rtm:
   release: presenter-session-recovery-and-run-sheet-smart-resume
   test:
   - tests/run-sheet-smart-resume.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-4
   FR: FR-11
@@ -1555,10 +1555,10 @@ rtm:
   release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1569,10 +1569,10 @@ rtm:
   release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1583,10 +1583,10 @@ rtm:
   release: presenter-session-recovery-and-run-sheet-smart-resume
   test:
   - tests/presenter-session-recovery.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1597,10 +1597,10 @@ rtm:
   release: presenter-session-recovery-and-run-sheet-smart-resume
   test:
   - tests/presenter-reload-recovery.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2178,10 +2178,10 @@ rtm:
   release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -2192,10 +2192,10 @@ rtm:
   release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
   test:
   - tests/scripture-controls-ergonomics.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -5093,10 +5093,10 @@ rtm:
   release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -5107,10 +5107,10 @@ rtm:
   release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
   test:
   - tests/scripture-controls-ergonomics.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22

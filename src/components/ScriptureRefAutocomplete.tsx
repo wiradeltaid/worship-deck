@@ -4,15 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/operator';
+import { shouldSuggestBooks } from '@/lib/scripture-autocomplete';
+
+export { shouldSuggestBooks };
 
 type Suggestion = { name: string; short_name: string };
 type DropdownPos = { top: number; left: number; width: number };
 
 const SEARCH_DEBOUNCE_MS = 180;
-
-function looksComplete(ref: string): boolean {
-  return /:\s*\d/.test(ref);
-}
 
 export function ScriptureRefAutocomplete({
   value,
@@ -33,6 +32,7 @@ export function ScriptureRefAutocomplete({
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [pos, setPos] = useState<DropdownPos | null>(null);
   const [hits, setHits] = useState<Suggestion[]>([]);
   const [status, setStatus] = useState<'searching' | 'done' | 'failed'>(
@@ -42,7 +42,11 @@ export function ScriptureRefAutocomplete({
   const listRef = useRef<HTMLDivElement>(null);
   const canPortal = typeof document !== 'undefined';
   const query = value.trim();
-  const showList = open && query.length > 0 && !looksComplete(query);
+  const showList = open && shouldSuggestBooks(value);
+
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [value, showList]);
 
   useEffect(() => {
     if (!showList) {
@@ -115,6 +119,39 @@ export function ScriptureRefAutocomplete({
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [showList]);
 
+  const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (showList) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setOpen(false);
+        setActiveIndex(-1);
+        return;
+      }
+      if (hits.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setActiveIndex((prev) => Math.min(prev + 1, hits.length - 1));
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setActiveIndex((prev) => Math.max(prev - 1, -1));
+          return;
+        }
+        if (e.key === 'Enter') {
+          if (activeIndex >= 0 && activeIndex < hits.length) {
+            e.preventDefault();
+            onChange(`${hits[activeIndex].name} `);
+            setOpen(false);
+            setActiveIndex(-1);
+            return;
+          }
+        }
+      }
+    }
+    onKeyDown?.(e);
+  };
+
   const emptyMessage =
     status === 'searching'
       ? t('form.scripture.searching')
@@ -129,6 +166,8 @@ export function ScriptureRefAutocomplete({
     createPortal(
       <div
         ref={listRef}
+        role="listbox"
+        id="scripture-autocomplete-list"
         className="fixed z-[100] max-h-48 overflow-y-auto rounded-xl border border-border/80 bg-popover shadow-md ring-1 ring-foreground/10"
         style={{ top: pos.top, left: pos.left, width: pos.width }}
       >
@@ -137,17 +176,25 @@ export function ScriptureRefAutocomplete({
             {emptyMessage}
           </p>
         ) : (
-          hits.map((book) => (
+          hits.map((book, index) => (
             <Button
               key={book.name}
+              role="option"
+              id={`scripture-opt-${index}`}
+              aria-selected={index === activeIndex}
               type="button"
               variant="ghost"
               size="sm"
-              className="h-auto w-full justify-between gap-2 rounded-none px-2.5 py-1.5 text-[11px] font-normal"
+              className={cn(
+                'h-auto w-full justify-between gap-2 rounded-none px-2.5 py-1.5 text-[11px] font-normal',
+                index === activeIndex && 'bg-accent text-accent-foreground'
+              )}
+              onMouseEnter={() => setActiveIndex(index)}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 onChange(`${book.name} `);
                 setOpen(false);
+                setActiveIndex(-1);
               }}
             >
               <span className="font-semibold">{book.name}</span>
@@ -167,6 +214,15 @@ export function ScriptureRefAutocomplete({
     <div className="relative">
       <Input
         ref={inputRef}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={showList}
+        aria-controls={
+          showList && pos ? 'scripture-autocomplete-list' : undefined
+        }
+        aria-activedescendant={
+          activeIndex >= 0 ? `scripture-opt-${activeIndex}` : undefined
+        }
         type="text"
         className={cn('text-xs', inputClassName)}
         value={value}
@@ -179,7 +235,7 @@ export function ScriptureRefAutocomplete({
         placeholder={placeholder}
         disabled={disabled}
         autoComplete="off"
-        onKeyDown={onKeyDown}
+        onKeyDown={handleKeyDown}
       />
       {dropdown}
     </div>

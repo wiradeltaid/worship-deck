@@ -1,4 +1,4 @@
-asof: '2026-10-01'
+asof: '2026-10-04'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -105,10 +105,19 @@ capabilities:
   - id: FR-22
     text: Read verses from the selected translation, default KJV
     tickets:
+    - SPEC-101-02
+    - SPEC-101-03
+    - SPEC-102-02
+    - SPEC-102-03
+    - SPEC-103-02
+    - SPEC-104-02
+    - SPEC-104-03
     - SPEC-43-03
     - SPEC-48-03
     - SPEC-50-03
     - SPEC-51-03
+    - SPEC-98-02
+    - SPEC-98-03
     - W7-03
     actual_start: '2026-09-18'
     actual_end: ''
@@ -326,6 +335,7 @@ capabilities:
   - id: FR-11
     text: Edit Service fields through the Hub form
     tickets:
+    - SPEC-105-03
     - SPEC-39-03
     - SPEC-43-04
     - SPEC-43-06
@@ -456,6 +466,7 @@ capabilities:
     - SPEC-95-04
     - SPEC-96-01
     - SPEC-96-02
+    - SPEC-98-04
     - W2-2-1
     - W2-2-2
     - W2-2-3
@@ -506,6 +517,22 @@ capabilities:
   - id: FR-16
     text: Two-screen presenter view in the browser
     tickets:
+    - SPEC-100-01
+    - SPEC-100-02
+    - SPEC-101-01
+    - SPEC-101-02
+    - SPEC-101-03
+    - SPEC-102-01
+    - SPEC-102-02
+    - SPEC-103-01
+    - SPEC-103-03
+    - SPEC-103-04
+    - SPEC-104-01
+    - SPEC-104-02
+    - SPEC-105-01
+    - SPEC-105-02
+    - SPEC-106-01
+    - SPEC-106-02
     - SPEC-37-02
     - SPEC-41-01
     - SPEC-41-02
@@ -527,6 +554,13 @@ capabilities:
     - SPEC-87-01
     - SPEC-87-02
     - SPEC-94-02
+    - SPEC-97-01
+    - SPEC-97-02
+    - SPEC-97-03
+    - SPEC-98-01
+    - SPEC-99-01
+    - SPEC-99-02
+    - SPEC-99-03
     - W7-02
     actual_start: '2026-09-18'
     actual_end: ''
@@ -534,10 +568,19 @@ capabilities:
   - id: FR-19
     text: Search and display an on-demand verse in Presenter
     tickets:
+    - SPEC-101-02
+    - SPEC-101-03
+    - SPEC-102-02
+    - SPEC-102-03
+    - SPEC-103-02
+    - SPEC-104-02
+    - SPEC-104-03
     - SPEC-43-03
     - SPEC-48-03
     - SPEC-50-03
     - SPEC-51-03
+    - SPEC-98-02
+    - SPEC-98-03
     - W7-03
     actual_start: '2026-09-18'
     actual_end: ''
@@ -562,7 +605,9 @@ capabilities:
     actual_start: '2026-09-18'
     actual_end: ''
     state: in-progress
-  waiting_on: []
+  waiting_on:
+  - SPEC-106-01
+  - SPEC-106-02
 - id: CAP-7
   text: Run-Sheet of the full worship order
   size: ''
@@ -1148,4 +1193,6 @@ capabilities:
     actual_end: ''
     state: in-progress
   waiting_on: []
-uncommitted_tickets: []
+uncommitted_tickets:
+- SPEC-106-01
+- SPEC-106-02

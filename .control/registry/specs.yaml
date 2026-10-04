@@ -4359,7 +4359,7 @@ waves:
           - tests/display-target-resolver.test.mjs
 
   - id: SPEC-104
-    status: open
+    status: closed
     release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
     prd: [operator-turn]
     fr: [FR-16, FR-19]
@@ -4395,7 +4395,7 @@ waves:
           - tests/scripture-controls-ergonomics.test.mjs
 
   - id: SPEC-105
-    status: open
+    status: closed
     release: presenter-session-recovery-and-run-sheet-smart-resume
     prd: [operator-turn]
     fr: [FR-16, FR-17]

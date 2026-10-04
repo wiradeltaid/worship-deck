@@ -12,7 +12,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n/operator';
-import { RefreshCw } from 'lucide-react';
+import { ChevronDown, RefreshCw } from 'lucide-react';
+import {
+  peekPresenterSession,
+  clearPresenterSession,
+  type PeekPresenterSessionResult,
+} from '@/lib/presenter-session';
 import { useSession } from '../lib/auth/SessionProvider';
 import {
   clearCachedSession,
@@ -63,6 +68,24 @@ export default function RunSheetPage() {
     message: string;
     url?: string;
   } | null>(null);
+
+  // SPEC-105-03: Inspect active presenter session state for adaptive resume action
+  const [sessionInfo, setSessionInfo] = useState<PeekPresenterSessionResult>({
+    hasSession: false,
+    slideNumber: 1,
+    isBlank: false,
+    hasScripture: false,
+  });
+
+  useEffect(() => {
+    if (!svc?.id || !svc?.plan_identity) return;
+    const check = () => {
+      setSessionInfo(peekPresenterSession(svc.id, svc.plan_identity));
+    };
+    check();
+    window.addEventListener('focus', check);
+    return () => window.removeEventListener('focus', check);
+  }, [svc?.id, svc?.plan_identity]);
 
   useEffect(() => {
     let cancelled = false;
@@ -484,10 +507,49 @@ export default function RunSheetPage() {
           <div data-testid="header-primary-controls" className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
             <Link
               href={`/services/${svc.id}/present`}
-              className={cn(buttonVariants({ variant: 'default' }), 'h-9 px-4 font-bold shadow-xs')}
+              className={cn(
+                buttonVariants({ variant: 'default' }),
+                sessionInfo.hasSession
+                  ? 'rounded-r-none px-3.5 border-r border-primary-foreground/20'
+                  : 'px-4',
+                'h-9 font-bold shadow-xs'
+              )}
+              title={sessionInfo.hasSession && sessionInfo.isBlank ? 'Screen is blanked' : undefined}
             >
-              {t('edit.actions.present')}
+              {sessionInfo.hasSession
+                ? `Resume (Slide ${sessionInfo.slideNumber})`
+                : t('edit.actions.present')}
             </Link>
+            {sessionInfo.hasSession && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Presentation Launch Options"
+                  className={cn(
+                    buttonVariants({ variant: 'default' }),
+                    'rounded-l-none -ml-2 h-9 px-2 cursor-pointer'
+                  )}
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/services/${svc.id}/present`)}
+                    className="cursor-pointer font-medium"
+                  >
+                    Resume (Slide {sessionInfo.slideNumber})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      clearPresenterSession(svc.id);
+                      navigate(`/services/${svc.id}/present`);
+                    }}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    Start from Beginning (Slide 1)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Link
               href={`/services/${svc.id}/slideshow`}
               target="_blank"

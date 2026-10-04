@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** none
-**Status:** open
+**Status:** done
 
 **What to build:** In `src/lib/<presenter-session.ts>` and `tests/presenter-session-recovery.test.mjs`:
 

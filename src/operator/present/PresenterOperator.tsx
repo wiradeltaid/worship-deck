@@ -122,6 +122,11 @@ import {
   SLIDE_TRANSITION_SPECS,
   type SlideTransition,
 } from '@/lib/transitions';
+import {
+  loadPresenterSession,
+  savePresenterSession,
+  getPresenterStorageKey,
+} from '@/lib/presenter-session';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -507,16 +512,21 @@ export default function PresenterOperator({
   const tabInstanceIdRef = useRef(Math.floor(Math.random() * 900 + 100));
   const localSeqRef = useRef(0);
 
-  const [index, setIndex] = useState(0);
+  // SPEC-105-02: Pre-sync hydration from saved presenter session
+  const restoredSession = useMemo(() => {
+    return loadPresenterSession(serviceId, planIdentity, slides.length);
+  }, [serviceId, planIdentity, slides.length]);
+
+  const [index, setIndex] = useState(() => (restoredSession ? restoredSession.index : 0));
   const [gridOpen, setGridOpen] = useState(false);
-  const [blank, setBlank] = useState(false);
+  const [blank, setBlank] = useState(() => (restoredSession ? restoredSession.blank : false));
   const [hasOpenProjector, setHasOpenProjector] = useState(false);
-  // Session-local, deliberately. Nothing persists it: no fetch, no setting, no
-  // storage. Closing this window is what makes the deck's own style the truth
-  // again, which is the whole contract of the control.
-  const [liveTransition, setLiveTransition] =
-    useState<SlideTransition>(deckTransition);
-  const [liveBackground, setLiveBackground] = useState<string | null>(null);
+  const [liveTransition, setLiveTransition] = useState<SlideTransition>(
+    () => (restoredSession?.liveTransition ?? deckTransition)
+  );
+  const [liveBackground, setLiveBackground] = useState<string | null>(
+    () => (restoredSession?.liveBackground ?? null)
+  );
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
@@ -545,16 +555,22 @@ export default function PresenterOperator({
     reference: string;
     verses: Array<{ verse: number; text: string }>;
     typographyMode: ScriptureTypographyMode;
-  } | null>(null);
-  const [scripturePageIndex, setScripturePageIndex] = useState<number>(0);
+  } | null>(() => (restoredSession?.loadedScripture ?? null));
+  const [scripturePageIndex, setScripturePageIndex] = useState<number>(
+    () => (restoredSession?.scripturePageIndex ?? 0)
+  );
   const [projectorBlocked, setProjectorBlocked] = useState(false);
   const [remoteState, setRemoteState] =
     useState<PresenterRemoteConnectionState>('idle');
   const [remoteCode, setRemoteCode] = useState<string | null>(null);
   const [remoteDialogOpen, setRemoteDialogOpen] = useState(false);
   const [remoteActionBusy, setRemoteActionBusy] = useState(false);
-  const [scriptureOverlay, setScriptureOverlayState] = useState<ScriptureOverlay | null>(null);
-  const scriptureOverlayRef = useRef<ScriptureOverlay | null>(null);
+  const [scriptureOverlay, setScriptureOverlayState] = useState<ScriptureOverlay | null>(
+    () => (restoredSession?.scriptureOverlay ?? null)
+  );
+  const scriptureOverlayRef = useRef<ScriptureOverlay | null>(
+    restoredSession?.scriptureOverlay ?? null
+  );
   const setScriptureOverlay = useCallback(
     (val: ScriptureOverlay | null) => {
       scriptureOverlayRef.current = val;
@@ -639,10 +655,62 @@ export default function PresenterOperator({
   });
 
   const channelRef = useRef<BroadcastChannel | null>(null);
-  const indexRef = useRef(0);
-  const blankRef = useRef(false);
-  const transitionRef = useRef<SlideTransition>(deckTransition);
-  const backgroundRef = useRef<string | null>(null);
+  const indexRef = useRef(restoredSession ? restoredSession.index : 0);
+  const blankRef = useRef(restoredSession ? restoredSession.blank : false);
+  const transitionRef = useRef<SlideTransition>(
+    restoredSession?.liveTransition ?? deckTransition
+  );
+  const backgroundRef = useRef<string | null>(restoredSession?.liveBackground ?? null);
+  const loadedScriptureRef = useRef(restoredSession?.loadedScripture ?? null);
+  loadedScriptureRef.current = loadedScripture;
+  const scripturePageIndexRef = useRef(restoredSession?.scripturePageIndex ?? 0);
+  scripturePageIndexRef.current = scripturePageIndex;
+
+  const presenterSessionIdRef = useRef<string>(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `sess-${Date.now()}-${Math.random()}`
+  );
+  const isAuthoritativeRef = useRef(true);
+
+  const persistCurrentSession = useCallback(() => {
+    if (!isAuthoritativeRef.current) return;
+    savePresenterSession(serviceId, {
+      planIdentity: planIdentityRef.current,
+      activeSessionId: presenterSessionIdRef.current,
+      index: indexRef.current,
+      blank: blankRef.current,
+      scriptureOverlay: scriptureOverlayRef.current,
+      loadedScripture: loadedScriptureRef.current,
+      scripturePageIndex: scripturePageIndexRef.current,
+      liveTransition: transitionRef.current,
+      liveBackground: backgroundRef.current,
+    });
+  }, [serviceId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === getPresenterStorageKey(serviceId)) {
+        if (!e.newValue) {
+          isAuthoritativeRef.current = false;
+        } else {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (
+              parsed.activeSessionId &&
+              parsed.activeSessionId !== presenterSessionIdRef.current
+            ) {
+              isAuthoritativeRef.current = false;
+            }
+          } catch {}
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [serviceId]);
+
   const planIdentityRef = useRef(planIdentity);
   planIdentityRef.current = planIdentity;
   const activeRowRef = useRef<HTMLButtonElement | null>(null);
@@ -854,9 +922,10 @@ export default function PresenterOperator({
       });
     } else if (msg.type === 'clear-scripture' || msg.type === 'sync') {
       setScriptureOverlay(null);
+      persistCurrentSession();
     }
     channelRef.current?.postMessage(msg);
-  }, [setScriptureOverlay]);
+  }, [setScriptureOverlay, persistCurrentSession]);
 
   const setIndexAndSync = useCallback(
     (next: number) => {
@@ -864,6 +933,7 @@ export default function PresenterOperator({
       indexRef.current = clamped;
       setIndex(clamped);
       setScriptureOverlay(null);
+      persistCurrentSession();
       // Carries the blank state and the live style unchanged rather than
       // dropping either: advancing while blanked must move the deck and leave
       // the projector black, and advancing after a style change must not put
@@ -880,7 +950,7 @@ export default function PresenterOperator({
         guestAttemptId: guestAttemptIdRef.current,
       });
     },
-    [broadcast, activeSlides.length]
+    [broadcast, activeSlides.length, persistCurrentSession]
   );
 
   const manualNavigate = useCallback(
@@ -908,13 +978,14 @@ export default function PresenterOperator({
     (next: boolean) => {
       blankRef.current = next;
       setBlank(next);
+      persistCurrentSession();
       broadcast({
         type: 'blank',
         blank: next,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast]
+    [broadcast, persistCurrentSession]
   );
 
   const toggleBlank = useCallback(() => {
@@ -938,12 +1009,15 @@ export default function PresenterOperator({
         currentMode: scriptureModeRef.current,
       });
 
-      setLoadedScripture({
+      const loaded = {
         reference: passage.reference,
         verses: passage.verses,
         typographyMode: passage.typographyMode,
-      });
+      };
+      setLoadedScripture(loaded);
+      loadedScriptureRef.current = loaded;
       setScripturePageIndex(0);
+      scripturePageIndexRef.current = 0;
 
       const newOverlay: ScriptureOverlay = {
         reference: passage.reference,
@@ -959,13 +1033,14 @@ export default function PresenterOperator({
         continuationCount: initialOverlay.continuationCount,
       };
       setScriptureOverlay(newOverlay);
+      persistCurrentSession();
       broadcast({
         type: 'scripture',
         ...newOverlay,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast, setScriptureOverlay]
+    [broadcast, setScriptureOverlay, persistCurrentSession]
   );
 
   const visibilityController = useMemo(() => {
@@ -1049,13 +1124,14 @@ export default function PresenterOperator({
     (next: SlideTransition) => {
       transitionRef.current = next;
       setLiveTransition(next);
+      persistCurrentSession();
       broadcast({
         type: 'transition',
         transition: next,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast]
+    [broadcast, persistCurrentSession]
   );
 
   /**
@@ -1065,13 +1141,14 @@ export default function PresenterOperator({
     (next: string | null) => {
       backgroundRef.current = next;
       setLiveBackground(next);
+      persistCurrentSession();
       broadcast({
         type: 'background',
         background: next,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast]
+    [broadcast, persistCurrentSession]
   );
 
   useEffect(() => {
@@ -1667,8 +1744,11 @@ export default function PresenterOperator({
             (cached.is_whole_chapter || cached.reference.indexOf(':') === -1 || verses.length > 4
               ? 'chapter'
               : 'verse');
-          setLoadedScripture({ reference: baseRef, verses, typographyMode });
+          const loaded = { reference: baseRef, verses, typographyMode };
+          setLoadedScripture(loaded);
+          loadedScriptureRef.current = loaded;
           setScripturePageIndex(0);
+          scripturePageIndexRef.current = 0;
 
           const pages = paginateScriptureVerses(baseRef, verses, scriptureMode, typographyMode);
           const firstPage = pages[0];
@@ -1687,6 +1767,7 @@ export default function PresenterOperator({
             estimatedVisualLines: firstPage.estimatedVisualLines,
           };
           setScriptureOverlay(newOverlay);
+          persistCurrentSession();
           broadcast({
             type: 'scripture',
             ...newOverlay,
@@ -1753,8 +1834,11 @@ export default function PresenterOperator({
         is_whole_chapter: isWholeChapter,
       });
 
-      setLoadedScripture({ reference: baseRef, verses, typographyMode });
+      const loaded = { reference: baseRef, verses, typographyMode };
+      setLoadedScripture(loaded);
+      loadedScriptureRef.current = loaded;
       setScripturePageIndex(0);
+      scripturePageIndexRef.current = 0;
 
       const pages = paginateScriptureVerses(baseRef, verses, scriptureMode, typographyMode);
       const firstPage = pages[0];
@@ -1773,6 +1857,7 @@ export default function PresenterOperator({
         estimatedVisualLines: firstPage.estimatedVisualLines,
       };
       setScriptureOverlay(newOverlay);
+      persistCurrentSession();
       broadcast({
         type: 'scripture',
         ...newOverlay,
@@ -1829,6 +1914,7 @@ export default function PresenterOperator({
             estimatedVisualLines: activePage.estimatedVisualLines,
           };
           setScriptureOverlay(newOverlay);
+          persistCurrentSession();
           broadcast({
             type: 'scripture',
             ...newOverlay,
@@ -1837,13 +1923,15 @@ export default function PresenterOperator({
         }
       }
     },
-    [loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast]
+    [loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast, persistCurrentSession]
   );
 
   const handlePageChange = useCallback(
     (newIdx: number) => {
       if (!loadedScripture || newIdx < 0 || newIdx >= scripturePages.length) return;
       setScripturePageIndex(newIdx);
+      scripturePageIndexRef.current = newIdx;
+      persistCurrentSession();
       const activePage = resolveScripturePageOverlay(
         {
           reference: loadedScripture.reference,
@@ -1870,6 +1958,7 @@ export default function PresenterOperator({
           estimatedVisualLines: activePage.estimatedVisualLines,
         };
         setScriptureOverlay(newOverlay);
+        persistCurrentSession();
         broadcast({
           type: 'scripture',
           ...newOverlay,
@@ -1877,7 +1966,7 @@ export default function PresenterOperator({
         });
       }
     },
-    [loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast]
+    [loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast, persistCurrentSession]
   );
 
   return (
@@ -2589,8 +2678,12 @@ export default function PresenterOperator({
                 data-testid="presenter-clear-scripture-button"
                 onClick={() => {
                   setLoadedScripture(null);
+                  loadedScriptureRef.current = null;
                   setScripturePageIndex(0);
+                  scripturePageIndexRef.current = 0;
                   setScriptureOverlay(null);
+                  scriptureOverlayRef.current = null;
+                  persistCurrentSession();
                   broadcast({
                     type: 'clear-scripture',
                     planIdentity: planIdentityRef.current,
