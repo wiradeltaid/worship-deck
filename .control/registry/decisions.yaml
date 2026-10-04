@@ -1969,6 +1969,25 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-106-guest-capture-permission-discovery-and-invocation-fix/
 
+  - id: DEC-093
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-05)"
+    title: Daily Autopilot mandate for Guest Video Capture Native Timer Receiver Binding, Header Row 3 Tiering, and Projector Transition Parity (SPEC-107)
+    file: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer-receiver-binding-and-transitions.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-12'
+    touches:
+      - .control/memlog/autopilot-DEC-093.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-107-guest-capture-timer-receiver-binding-resilience/
+
 
 
 
