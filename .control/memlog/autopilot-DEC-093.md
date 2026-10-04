@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer
 
 ## Resume
 
-- Iteration: I-1 (SPEC-107-03 closed)
+- Iteration: I-1 (SPEC-107-04 closed; all tickets in SPEC-107 closed)
 - Run branch: autopilot/DEC-093
-- Stopped at: In progress (SPEC-107-01..03 closed, advancing to SPEC-107-04)
+- Stopped at: In progress (all 4 tickets closed; preparing spec close and full verification)
 - Blocked: —
 - Parked: —
-- Next: SPEC-107-04 execution (Projector guest video media transition parity)
+- Next: Close SPEC-107, run full verification, push run branch, and conclude mandate
 
 ## Decisions
 
@@ -21,6 +21,7 @@ artifact: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer
 | I-1 | SPEC-107-01 | Defensively bind raw timers to timerTarget (window/globalThis) and handle zero handles in CaptureBroker and PresenterGuestFeedController | bare calls and unbound properties passing this.env or controller | TypeError Illegal invocation when arming or running deadline/watchdog in V8 | src/lib/capture-broker.ts, src/operator/present/presenter-guest-feed-controller.ts, tests/capture-broker-device-enumeration.test.mjs |
 | I-1 | SPEC-107-02 | Pair setTimeout, clearTimeout, setInterval, clearInterval with true owning target and schedule deadline before sync readiness check | independent target extraction and post-check deadline scheduling | receiver context mismatch on partial window shims and lingering deadline handles on sync ready | src/projected/projector-guest-media-bridge.ts, tests/projector-guest-media-bridge.test.mjs |
 | I-1 | SPEC-107-03 | Relocate PresenterGuestFeedControl into dedicated presenter-header-row-3 full-width flex container | crowded row 1 layout crowding display control and pairing button | operator misclicks on small laptop viewports and cramped visual wrapping | src/operator/present/PresenterOperator.tsx, tests/presenter-guest-feed-controls.test.mjs |
+| I-1 | SPEC-107-04 | Phase-driven mount lifecycle with retained media reference, canonical AD-23 transition durations, and track ended listener | abrupt unmounting upon switch/revert and hardcoded 300ms duration | jarring visual cuts on sanctuary screen, premature stream unmount before exit animation, and unhandled hardware disconnects | src/lib/transitions.ts, src/projected/ProjectorClient.tsx, tests/projected-transitions.test.mjs |
 
 ## Smoke Test Results
 
@@ -28,3 +29,4 @@ artifact: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer
 - SPEC-107-01: PASS (CaptureBroker and PresenterGuestFeedController receiver binding, default environment strict window verification, and zero handle cancellation verified; tests/capture-broker-device-enumeration.test.mjs green)
 - SPEC-107-02: PASS (ProjectorGuestMediaBridge timer/interval receiver binding, default environment strict window verification, zero handle cancellation, and immediate sync cleanup verified; tests/projector-guest-media-bridge.test.mjs green)
 - SPEC-107-03: PASS (Presenter header row 3 tiering, row 1/row 2 exclusivity, actions container containment, and defect injection verified; tests/presenter-guest-feed-controls.test.mjs green)
+- SPEC-107-04: PASS (Phase-driven mounting, retained media stream during exit, canonical AD-23 SLIDE_TRANSITION_SPECS consumption, track ended listener, and defect injection verified; tests/projected-transitions.test.mjs green)

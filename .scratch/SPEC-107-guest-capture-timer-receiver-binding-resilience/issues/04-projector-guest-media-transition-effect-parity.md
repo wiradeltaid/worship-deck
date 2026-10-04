@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, AD-23, AD-29]
 **Blocked by:** SPEC-107-03
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/projected/ProjectorClient.tsx` and `tests/projected-transitions.test.mjs`:
 

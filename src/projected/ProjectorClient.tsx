@@ -19,11 +19,19 @@ import {
 import { ProjectorGuestMediaBridge } from './projector-guest-media-bridge';
 import { validateProjectorSlidePatchAdmission } from '@/lib/emergency-canvas';
 import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
-import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
+import {
+  transitionLayerStyle,
+  getGuestTransitionStyle,
+  SLIDE_TRANSITION_SPECS,
+  type SlideTransition,
+  type GuestMediaPhase,
+} from '@/lib/transitions';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { useProjectedShell } from '@/lib/use-projected-shell';
 import { useSlideTransition } from '@/lib/use-slide-transition';
 import '@/projected/projected.css';
+
+export { getGuestTransitionStyle };
 
 export default function ProjectorClient({
   serviceId,
@@ -150,6 +158,11 @@ export default function ProjectorClient({
 
   const [guestStream, setGuestStream] = useState<any>(null);
   const [isGuestIntent, setIsGuestIntent] = useState(false);
+  const [retainedGuestStream, setRetainedGuestStream] = useState<any>(null);
+  const [guestPhase, setGuestPhase] = useState<'hidden' | 'entering-start' | 'active' | 'exiting'>('hidden');
+  const guestTimerRef = useRef<any>(null);
+  const guestPhaseRef = useRef(guestPhase);
+  guestPhaseRef.current = guestPhase;
   const bridgeRef = useRef<ProjectorGuestMediaBridge | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
@@ -157,15 +170,105 @@ export default function ProjectorClient({
   serviceIdRef.current = serviceId;
 
   useEffect(() => {
-    if (videoRef.current && guestStream) {
-      videoRef.current.srcObject = guestStream;
+    if (videoRef.current && retainedGuestStream) {
+      videoRef.current.srcObject = retainedGuestStream;
     }
-  }, [guestStream, isGuestIntent]);
+  }, [retainedGuestStream, guestPhase]);
+
+  useEffect(() => {
+    if (!guestStream) return;
+    const tracks = typeof guestStream.getTracks === 'function' ? guestStream.getTracks() : [];
+    const onEnded = () => {
+      setGuestStream(null);
+    };
+    for (const track of tracks) {
+      if (typeof track.addEventListener === 'function') {
+        track.addEventListener('ended', onEnded);
+      } else {
+        track.onended = onEnded;
+      }
+    }
+    return () => {
+      for (const track of tracks) {
+        if (typeof track.removeEventListener === 'function') {
+          track.removeEventListener('ended', onEnded);
+        } else if (track.onended === onEnded) {
+          track.onended = null;
+        }
+      }
+    };
+  }, [guestStream]);
+
+  useEffect(() => {
+    const spec = SLIDE_TRANSITION_SPECS[transition] || SLIDE_TRANSITION_SPECS.fade;
+    const durationMs = spec.browser.durationMs;
+
+    if (isGuestIntent && guestStream) {
+      if (guestTimerRef.current) {
+        clearTimeout(guestTimerRef.current);
+        guestTimerRef.current = null;
+      }
+      setRetainedGuestStream(guestStream);
+
+      if (durationMs === 0 || guestPhaseRef.current === 'active' || guestPhaseRef.current === 'exiting') {
+        setGuestPhase('active');
+      } else {
+        setGuestPhase('entering-start');
+        guestTimerRef.current = setTimeout(() => {
+          setGuestPhase('active');
+          guestTimerRef.current = null;
+        }, 20);
+      }
+    } else {
+      if (guestTimerRef.current) {
+        clearTimeout(guestTimerRef.current);
+        guestTimerRef.current = null;
+      }
+
+      if (isGuestIntent && !guestStream) {
+        // Stream loss (e.g. unplugged)
+        setRetainedGuestStream(null);
+        setGuestPhase('hidden');
+        return;
+      }
+
+      if (guestPhaseRef.current === 'hidden') {
+        return;
+      }
+
+      if (durationMs === 0 || !retainedGuestStream) {
+        setRetainedGuestStream(null);
+        setGuestPhase('hidden');
+      } else {
+        setGuestPhase('exiting');
+        guestTimerRef.current = setTimeout(() => {
+          setRetainedGuestStream(null);
+          setGuestPhase('hidden');
+          guestTimerRef.current = null;
+        }, durationMs);
+      }
+    }
+  }, [isGuestIntent, guestStream, transition]);
+
+  useEffect(() => {
+    return () => {
+      if (guestTimerRef.current) {
+        clearTimeout(guestTimerRef.current);
+        guestTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const onPageHide = () => {
       bridgeRef.current?.releaseMedia();
       setGuestStream(null);
+      setRetainedGuestStream(null);
+      setGuestPhase('hidden');
+      if (guestTimerRef.current) {
+        clearTimeout(guestTimerRef.current);
+        guestTimerRef.current = null;
+      }
     };
     const onPageShow = () => {
       const ch = openPresentChannel(serviceId);
@@ -588,10 +691,13 @@ export default function ProjectorClient({
         </div>
       ) : null}
 
-      {/* Contained Guest Video Layer (SPEC-101 § 3): rendered at z-30 under z-40 hint and z-50 blanking */}
-      {isGuestIntent && guestStream ? (
+      {/* Contained Guest Video Layer (SPEC-101 § 3, SPEC-107 § 3): rendered at z-30 under z-40 hint and z-50 blanking */}
+      {guestPhase !== 'hidden' && retainedGuestStream ? (
         <div
           data-testid="projector-guest-video-container"
+          data-guest-phase={guestPhase}
+          data-guest-transition={transition}
+          style={getGuestTransitionStyle(transition, guestPhase)}
           className="absolute inset-0 z-30 flex items-center justify-center bg-black overflow-hidden pointer-events-none"
         >
           <video
@@ -609,7 +715,7 @@ export default function ProjectorClient({
           Transient only, auto-dismisses in 5s or upon F11/fullscreen, positioned
           at z-40 strictly below the z-50 emergency blanking layer.
           Suppressed when blanked or when guest intent is active (including pending) (SPEC-101 § 3). */}
-      {showHint && !blank && !isGuestIntent ? (
+      {showHint && !blank && !isGuestIntent && guestPhase === 'hidden' ? (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none select-none">
           <button
             type="button"
