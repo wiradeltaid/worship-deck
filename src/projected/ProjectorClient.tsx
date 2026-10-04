@@ -93,7 +93,7 @@ export default function ProjectorClient({
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('pageshow', onPageShow);
     };
-  }, [serviceId]);
+  }, []);
 
   // SPEC-94-02: Ephemeral F11 fullscreen guidance onboarding cue.
   // Authorized exception to UC-12 room-facing chrome prohibition:
