@@ -121,6 +121,13 @@ export class CaptureBroker {
   private onDeviceChangeBound: (() => void) | null = null;
 
   constructor(env: CaptureBrokerEnv = {}) {
+    const mediaDevices =
+      env.mediaDevices !== undefined
+        ? env.mediaDevices
+        : typeof navigator !== 'undefined'
+          ? navigator.mediaDevices
+          : undefined;
+
     this.env = {
       isSecureContext:
         env.isSecureContext !== undefined
@@ -128,9 +135,26 @@ export class CaptureBroker {
           : typeof window !== 'undefined'
             ? window.isSecureContext
             : true,
-      mediaDevices:
-        env.mediaDevices ||
-        (typeof navigator !== 'undefined' ? navigator.mediaDevices : undefined),
+      mediaDevices: mediaDevices
+        ? {
+            enumerateDevices:
+              typeof mediaDevices.enumerateDevices === 'function'
+                ? mediaDevices.enumerateDevices.bind(mediaDevices)
+                : () => Promise.reject(new CaptureBrokerError('MEDIA_API_UNAVAILABLE')),
+            getUserMedia:
+              typeof mediaDevices.getUserMedia === 'function'
+                ? mediaDevices.getUserMedia.bind(mediaDevices)
+                : () => Promise.reject(new CaptureBrokerError('MEDIA_API_UNAVAILABLE')),
+            addEventListener:
+              typeof mediaDevices.addEventListener === 'function'
+                ? mediaDevices.addEventListener.bind(mediaDevices)
+                : undefined,
+            removeEventListener:
+              typeof mediaDevices.removeEventListener === 'function'
+                ? mediaDevices.removeEventListener.bind(mediaDevices)
+                : undefined,
+          }
+        : undefined,
       createVideoElement:
         env.createVideoElement ||
         (typeof document !== 'undefined'
@@ -235,6 +259,30 @@ export class CaptureBroker {
       this.notify();
       throw mapped;
     }
+  }
+
+  /**
+   * Explicitly requests camera permission from the browser using a temporary probe stream.
+   * Stops all probe tracks immediately upon acquisition (try/finally) and refreshes device enumeration.
+   * Re-throws mapped CaptureBrokerError (e.g. PERMISSION_DENIED) on failure.
+   */
+  public async requestPermission(): Promise<CaptureDeviceOption[]> {
+    this.ensureMediaApi();
+    let probeStream: any = null;
+    try {
+      probeStream = await this.env.mediaDevices!.getUserMedia({ video: true, audio: false });
+    } catch (err: any) {
+      const mapped = this.mapError(err);
+      this.error = { code: mapped.code, message: mapped.message };
+      this.notify();
+      throw mapped;
+    } finally {
+      if (probeStream) {
+        this.stopStreamTracks(probeStream);
+      }
+    }
+
+    return this.enumerateDevices();
   }
 
   public selectDevice(deviceId: string): void {
@@ -634,7 +682,11 @@ export class CaptureBroker {
     switch (name) {
       case 'NotAllowedError':
       case 'SecurityError':
-        return new CaptureBrokerError('PERMISSION_DENIED', 'Camera permission was denied.');
+      case 'PermissionDeniedError':
+        return new CaptureBrokerError(
+          'PERMISSION_DENIED',
+          'Camera permission was denied. Check browser site settings.'
+        );
       case 'NotReadableError':
       case 'TrackStartError':
         return new CaptureBrokerError('DEVICE_BUSY', 'Capture device is busy or in use by another application.');

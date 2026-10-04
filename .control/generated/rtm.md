@@ -1612,7 +1612,7 @@ rtm:
   test:
   - tests/capture-broker-device-enumeration.test.mjs
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
