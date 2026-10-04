@@ -4358,6 +4358,43 @@ waves:
           - tests/presenter-congregation-display-control.test.mjs
           - tests/display-target-resolver.test.mjs
 
+  - id: SPEC-104
+    status: open
+    release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+    prd: [operator-turn]
+    fr: [FR-16, FR-19]
+    size: S
+    depends_on: [SPEC-103]
+    spec_folder: .scratch/SPEC-104-presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics/
+    spec_reviewed:
+      date: '2026-10-04'
+      sha: 'c6d3a6c6239baeb78d91c7847c20c08aeae0738d'
+      lenses: [structure, prose, edge-case-hunter, traceability, state-machine-lifecycle, keyboard-accessibility, test-evidence, scope-fidelity]
+      note: "Terra advisory review folded in: (1) Ticket 01 smooth blackout overlay at z-50 with 300ms opacity transition preserving underlying slide and overlay mounting per UC-12 and BR-6; (2) Ticket 02 scripture overlay layer at z-20 decoupled from slide container, with explicit entrance/exit/replacement animation lifecycle state machine, cancelable timers, mount-time sync handling, and layer precedence stack; (3) Ticket 03 compositional keyboard navigation (ArrowDown/Up/Enter/Escape) with combobox/listbox accessibility and parent pass-through, concrete boundary decision table for shouldSuggestBooks distinguishing leading-number books from chapter entry, backend SuggestBooks numeric defense, and absence guard defect-injection test plan; (4) grounded architectural traceability to .how/_platform/ARCHITECTURE-SPINE.md:206 (AD-24) and :256 (AD-29); (5) dedicated DOM/component test harness in tests/projected-transitions.test.mjs."
+    tickets:
+      - id: "SPEC-104-01"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-19]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-104-02"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-19]
+        blocked_by: ["SPEC-104-01"]
+        touches: [present-channel, scripture]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-104-03"
+        component: presenter
+        satisfies: [UC-13, FR-19]
+        blocked_by: ["SPEC-104-02"]
+        touches: [scripture]
+        tests:
+          - tests/scripture-controls-ergonomics.test.mjs
+
+
 
 
 

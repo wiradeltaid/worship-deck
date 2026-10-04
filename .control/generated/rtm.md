@@ -1536,6 +1536,34 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-104-01
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-104-02
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -2065,6 +2093,34 @@ rtm:
   release: presenter-unified-display-capture-discovery-and-scripture-normalization
   test:
   - tests/scripture-offline-resilience.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-02
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-03
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
   status: open
   exempt: false
   green: false
@@ -4952,6 +5008,34 @@ rtm:
   release: presenter-unified-display-capture-discovery-and-scripture-normalization
   test:
   - tests/scripture-offline-resilience.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-02
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-03
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
   status: open
   exempt: false
   green: false
