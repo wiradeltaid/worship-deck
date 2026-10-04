@@ -128,6 +128,18 @@ export class CaptureBroker {
           ? navigator.mediaDevices
           : undefined;
 
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+    const rawSetTimeout =
+      env.setTimeout ??
+      (typeof window !== 'undefined' && typeof window.setTimeout === 'function'
+        ? window.setTimeout
+        : globalThis.setTimeout);
+    const rawClearTimeout =
+      env.clearTimeout ??
+      (typeof window !== 'undefined' && typeof window.clearTimeout === 'function'
+        ? window.clearTimeout
+        : globalThis.clearTimeout);
+
     this.env = {
       isSecureContext:
         env.isSecureContext !== undefined
@@ -160,8 +172,8 @@ export class CaptureBroker {
         (typeof document !== 'undefined'
           ? () => document.createElement('video')
           : undefined),
-      setTimeout: env.setTimeout || setTimeout,
-      clearTimeout: env.clearTimeout || clearTimeout,
+      setTimeout: (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms),
+      clearTimeout: (id: any) => rawClearTimeout.call(timerTarget, id),
       now: env.now || (() => Date.now()),
       randomUUID:
         env.randomUUID ||
@@ -448,7 +460,7 @@ export class CaptureBroker {
       let settled = false;
 
       const cleanup = () => {
-        if (this.readinessTimer) {
+        if (this.readinessTimer !== null) {
           this.env.clearTimeout!(this.readinessTimer);
           this.readinessTimer = null;
         }
@@ -585,7 +597,7 @@ export class CaptureBroker {
     this.activeArmGeneration++;
     this.pendingArmPromise = null;
 
-    if (this.readinessTimer) {
+    if (this.readinessTimer !== null) {
       this.env.clearTimeout!(this.readinessTimer);
       this.readinessTimer = null;
     }

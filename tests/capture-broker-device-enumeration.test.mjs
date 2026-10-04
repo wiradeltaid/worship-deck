@@ -637,3 +637,247 @@ test('SPEC-106-01: PresenterGuestFeedController requestPermission delegates and 
   assert.match(controller.getSnapshot().errorMessage, /permission was denied/i);
 });
 
+test('SPEC-107-01: CaptureBroker preserves native timer receiver binding for setTimeout and clearTimeout without Illegal invocation', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  let setTimeoutReceiver = null;
+  let clearTimeoutReceiver = null;
+
+  const strictSetTimeout = function(fn, ms) {
+    setTimeoutReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+    }
+    return 101;
+  };
+
+  const strictClearTimeout = function(id) {
+    clearTimeoutReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+    }
+  };
+
+  const originalWindow = globalThis.window;
+  try {
+    globalThis.window = fakeWindow;
+
+    const mockEnv = createMockEnv({
+      setTimeout: strictSetTimeout,
+      clearTimeout: strictClearTimeout,
+    });
+
+    const broker = new CaptureBroker(mockEnv);
+    await broker.arm('cam-1');
+
+    assert.equal(setTimeoutReceiver, fakeWindow, 'setTimeout must be invoked with window as receiver');
+    assert.equal(clearTimeoutReceiver, fakeWindow, 'clearTimeout must be invoked with window as receiver');
+    assert.equal(broker.getSnapshot().state, 'ready');
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test('SPEC-107-01: CaptureBroker default environment binds global timer without Illegal invocation', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  const originalWindow = globalThis.window;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  let setTimeoutReceiver = null;
+  let clearTimeoutReceiver = null;
+
+  try {
+    const strictSetTimeout = function(fn, ms) {
+      setTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+      }
+      return 102;
+    };
+
+    const strictClearTimeout = function(id) {
+      clearTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+      }
+    };
+
+    fakeWindow.setTimeout = strictSetTimeout;
+    fakeWindow.clearTimeout = strictClearTimeout;
+    globalThis.window = fakeWindow;
+    globalThis.setTimeout = strictSetTimeout;
+    globalThis.clearTimeout = strictClearTimeout;
+
+    const mockEnv = createMockEnv();
+    delete mockEnv.setTimeout;
+    delete mockEnv.clearTimeout;
+
+    const broker = new CaptureBroker(mockEnv);
+    await broker.arm('cam-1');
+
+    assert.equal(setTimeoutReceiver, fakeWindow, 'Default setTimeout must be invoked with window as receiver');
+    assert.equal(clearTimeoutReceiver, fakeWindow, 'Default clearTimeout must be invoked with window as receiver');
+    assert.equal(broker.getSnapshot().state, 'ready');
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+  }
+});
+
+test('SPEC-107-01: PresenterGuestFeedController preserves timer receiver binding for attach deadline and watchdog', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  let setTimeoutReceiver = null;
+  let clearTimeoutReceiver = null;
+
+  const strictSetTimeout = function(fn, ms) {
+    setTimeoutReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+    }
+    return 999;
+  };
+
+  const strictClearTimeout = function(id) {
+    clearTimeoutReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+    }
+  };
+
+  const originalWindow = globalThis.window;
+  try {
+    fakeWindow.setTimeout = strictSetTimeout;
+    fakeWindow.clearTimeout = strictClearTimeout;
+    globalThis.window = fakeWindow;
+
+    const mockEnv = createMockEnv();
+    const broker = new CaptureBroker(mockEnv);
+    await broker.arm('cam-1');
+
+    const { PresenterGuestFeedController } = await import(
+      srcUrl('operator', 'present', 'presenter-guest-feed-controller.ts')
+    );
+
+    const controller = new PresenterGuestFeedController({
+      broker,
+      broadcastSync: () => {},
+      setTimeout: strictSetTimeout,
+      clearTimeout: strictClearTimeout,
+    });
+
+    controller.switch(true);
+    assert.equal(setTimeoutReceiver, fakeWindow, 'controller setTimeout must receive fakeWindow');
+
+    controller.revertToDeck('user-switch');
+    assert.equal(clearTimeoutReceiver, fakeWindow, 'controller clearTimeout must receive fakeWindow');
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test('SPEC-107-01: PresenterGuestFeedController default environment binds global timer without Illegal invocation', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  const originalWindow = globalThis.window;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  let setTimeoutReceiver = null;
+  let clearTimeoutReceiver = null;
+
+  try {
+    const strictSetTimeout = function(fn, ms) {
+      setTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+      }
+      return 998;
+    };
+
+    const strictClearTimeout = function(id) {
+      clearTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+      }
+    };
+
+    fakeWindow.setTimeout = strictSetTimeout;
+    fakeWindow.clearTimeout = strictClearTimeout;
+    globalThis.window = fakeWindow;
+    globalThis.setTimeout = strictSetTimeout;
+    globalThis.clearTimeout = strictClearTimeout;
+
+    const mockEnv = createMockEnv();
+    const broker = new CaptureBroker(mockEnv);
+    await broker.arm('cam-1');
+
+    const { PresenterGuestFeedController } = await import(
+      srcUrl('operator', 'present', 'presenter-guest-feed-controller.ts')
+    );
+
+    const controller = new PresenterGuestFeedController({
+      broker,
+      broadcastSync: () => {},
+    });
+
+    controller.switch(true);
+    assert.equal(setTimeoutReceiver, fakeWindow, 'Default controller setTimeout must receive fakeWindow');
+
+    controller.revertToDeck('user-switch');
+    assert.equal(clearTimeoutReceiver, fakeWindow, 'Default controller clearTimeout must receive fakeWindow');
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+  }
+});
+
+test('SPEC-107-01: Zero-valued timer handles and watchdog cancellation on disarm/teardown', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  const clearedIds = [];
+
+  const zeroSetTimeout = function() {
+    return 0; // zero timer handle
+  };
+
+  const trackingClearTimeout = function(id) {
+    clearedIds.push(id);
+  };
+
+  const originalWindow = globalThis.window;
+  try {
+    globalThis.window = fakeWindow;
+
+    const mockEnv = createMockEnv({
+      setTimeout: zeroSetTimeout,
+      clearTimeout: trackingClearTimeout,
+    });
+    const broker = new CaptureBroker(mockEnv);
+    await broker.arm('cam-1');
+
+    // Prove CaptureBroker clears zero-valued readiness timer handle
+    assert.ok(clearedIds.includes(0), 'CaptureBroker must clear zero-valued timer handle 0');
+
+    const { PresenterGuestFeedController } = await import(
+      srcUrl('operator', 'present', 'presenter-guest-feed-controller.ts')
+    );
+
+    const controllerClearedIds = [];
+    const controller = new PresenterGuestFeedController({
+      broker,
+      broadcastSync: () => {},
+      setTimeout: () => 0,
+      clearTimeout: (id) => controllerClearedIds.push(id),
+    });
+
+    controller.switch(true);
+    controller.disarm();
+    // Prove controller disarm/revert cancels both deadline and watchdog zero handles
+    assert.ok(controllerClearedIds.includes(0), 'Controller must clear zero-valued timer handle 0 on disarm');
+
+    controller.teardown();
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+
+

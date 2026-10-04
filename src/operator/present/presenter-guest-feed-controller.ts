@@ -79,8 +79,19 @@ export class PresenterGuestFeedController {
   constructor(env: ControllerEnv) {
     this.broker = env.broker;
     this.broadcastSync = env.broadcastSync;
-    this.envSetTimeout = env.setTimeout || setTimeout;
-    this.envClearTimeout = env.clearTimeout || clearTimeout;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+    const rawSetTimeout =
+      env.setTimeout ??
+      (typeof window !== 'undefined' && typeof window.setTimeout === 'function'
+        ? window.setTimeout
+        : globalThis.setTimeout);
+    const rawClearTimeout =
+      env.clearTimeout ??
+      (typeof window !== 'undefined' && typeof window.clearTimeout === 'function'
+        ? window.clearTimeout
+        : globalThis.clearTimeout);
+    this.envSetTimeout = (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms);
+    this.envClearTimeout = (id: any) => rawClearTimeout.call(timerTarget, id);
     this.envNow = env.now || (() => Date.now());
     this.envRandomUUID =
       env.randomUUID ||
@@ -371,7 +382,7 @@ export class PresenterGuestFeedController {
   }
 
   private clearAttachDeadline(): void {
-    if (this.attachDeadlineTimer) {
+    if (this.attachDeadlineTimer !== null) {
       this.envClearTimeout(this.attachDeadlineTimer);
       this.attachDeadlineTimer = null;
     }
@@ -407,7 +418,7 @@ export class PresenterGuestFeedController {
   }
 
   private stopFrameWatchdog(): void {
-    if (this.frameWatchdogTimer) {
+    if (this.frameWatchdogTimer !== null) {
       this.envClearTimeout(this.frameWatchdogTimer);
       this.frameWatchdogTimer = null;
     }
