@@ -135,6 +135,20 @@ rtm:
   FR: FR-11
   DEC: []
   UC: UC-5
+  ticket: SPEC-105-03
+  spec: SPEC-105
+  release: presenter-session-recovery-and-run-sheet-smart-resume
+  test:
+  - tests/run-sheet-smart-resume.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-11
+  DEC: []
+  UC: UC-5
   ticket: SPEC-39-03
   spec: SPEC-39
   release: media-gallery-announcement-loop-dynamic-binding
@@ -1531,6 +1545,62 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-104-01
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-104-02
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-105-01
+  spec: SPEC-105
+  release: presenter-session-recovery-and-run-sheet-smart-resume
+  test:
+  - tests/presenter-session-recovery.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-105-02
+  spec: SPEC-105
+  release: presenter-session-recovery-and-run-sheet-smart-resume
+  test:
+  - tests/presenter-reload-recovery.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -2064,6 +2134,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-02
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-03
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -4951,6 +5049,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-02
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-104-03
+  spec: SPEC-104
+  release: presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
