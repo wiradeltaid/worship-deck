@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** SPEC-105-01
-**Status:** open
+**Status:** done
 
 **What to build:** In `src/operator/present/PresenterOperator.tsx` and `tests/presenter-reload-recovery.test.mjs`:
 
