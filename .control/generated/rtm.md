@@ -1464,6 +1464,34 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-102-01
+  spec: SPEC-102
+  release: presenter-display-crash-scripture-density-and-warming-resilience
+  test:
+  - tests/presenter-congregation-display-control.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-102-02
+  spec: SPEC-102
+  release: presenter-display-crash-scripture-density-and-warming-resilience
+  test:
+  - tests/scripture-continuation-presentation.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -1951,6 +1979,34 @@ rtm:
   test:
   - tests/projector-guest-media-bridge.test.mjs
   - tests/smoke-spec-101.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-102-02
+  spec: SPEC-102
+  release: presenter-display-crash-scripture-density-and-warming-resilience
+  test:
+  - tests/scripture-continuation-presentation.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-102-03
+  spec: SPEC-102
+  release: presenter-display-crash-scripture-density-and-warming-resilience
+  test:
+  - tests/scripture-offline-resilience.test.mjs
   status: open
   exempt: false
   green: false
@@ -4796,6 +4852,34 @@ rtm:
   test:
   - tests/projector-guest-media-bridge.test.mjs
   - tests/smoke-spec-101.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-102-02
+  spec: SPEC-102
+  release: presenter-display-crash-scripture-density-and-warming-resilience
+  test:
+  - tests/scripture-continuation-presentation.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-102-03
+  spec: SPEC-102
+  release: presenter-display-crash-scripture-density-and-warming-resilience
+  test:
+  - tests/scripture-offline-resilience.test.mjs
   status: open
   exempt: false
   green: false

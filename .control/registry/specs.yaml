@@ -4277,6 +4277,42 @@ waves:
           - tests/projector-guest-media-bridge.test.mjs
           - tests/smoke-spec-101.test.mjs
 
+  - id: SPEC-102
+    status: open
+    release: presenter-display-crash-scripture-density-and-warming-resilience
+    prd: [operator-turn]
+    fr: [FR-14, FR-16, FR-19]
+    size: S
+    depends_on: [SPEC-101]
+    spec_folder: .scratch/SPEC-102-presenter-display-crash-scripture-density-and-warming-resilience/
+    spec_reviewed:
+      date: '2026-10-04'
+      sha: '43f3fb867a8475c8954b26b11dbaf454d7e9cb39'
+      lenses: [structure, prose, edge-case-hunter, testability, operational-safety]
+      note: "Terra advisory review folded in: (1) Ticket 02 visual-line metric propagation from estimateScriptureLines across PresentChannel instead of raw verse count; (2) alignment of computeScriptureFitScale height cap to 0.82 matching CSS max-h-[82cqh] with zero-clipping guarantee; (3) durable persistence of failed_scripture_refs on OfflineServiceSnapshot in IndexedDB for post-reload diagnostics; (4) translation suffix stripping grammar on ParseRef with comma-span preservation; (5) narrow DropdownMenuGroup wrapping in PresenterDisplayControl; (6) scoped unlock preserving close protection while locked."
+    tickets:
+      - id: "SPEC-102-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-congregation-display-control.test.mjs
+      - id: "SPEC-102-02"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
+        blocked_by: ["SPEC-102-01"]
+        touches: [scripture, present-channel]
+        tests:
+          - tests/scripture-continuation-presentation.test.mjs
+      - id: "SPEC-102-03"
+        component: presenter
+        satisfies: [UC-13, FR-14, FR-19]
+        blocked_by: ["SPEC-102-02"]
+        touches: [services, scripture]
+        tests:
+          - tests/scripture-offline-resilience.test.mjs
+
 
 
 
