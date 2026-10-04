@@ -57,6 +57,12 @@ export class ProjectorGuestMediaBridge {
   private activeAcquireGeneration = 0;
 
   constructor(env: ProjectorMediaBridgeEnv) {
+    const rawSetTimeout = env.setTimeout;
+    const rawClearTimeout = env.clearTimeout;
+    const rawSetInterval = env.setInterval;
+    const rawClearInterval = env.clearInterval;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+
     this.env = {
       getOpener:
         env.getOpener ||
@@ -67,10 +73,18 @@ export class ProjectorGuestMediaBridge {
         (typeof document !== 'undefined'
           ? () => document.createElement('video')
           : undefined),
-      setTimeout: env.setTimeout || setTimeout,
-      clearTimeout: env.clearTimeout || clearTimeout,
-      setInterval: env.setInterval || setInterval,
-      clearInterval: env.clearInterval || clearInterval,
+      setTimeout: rawSetTimeout
+        ? (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms)
+        : (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: rawClearTimeout
+        ? (id: any) => rawClearTimeout.call(timerTarget, id)
+        : (id: any) => clearTimeout(id),
+      setInterval: rawSetInterval
+        ? (fn: () => void, ms: number) => rawSetInterval.call(timerTarget, fn, ms)
+        : (fn: () => void, ms: number) => setInterval(fn, ms),
+      clearInterval: rawClearInterval
+        ? (id: any) => rawClearInterval.call(timerTarget, id)
+        : (id: any) => clearInterval(id),
       now: env.now || (() => Date.now()),
     };
   }

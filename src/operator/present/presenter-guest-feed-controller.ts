@@ -79,8 +79,16 @@ export class PresenterGuestFeedController {
   constructor(env: ControllerEnv) {
     this.broker = env.broker;
     this.broadcastSync = env.broadcastSync;
-    this.envSetTimeout = env.setTimeout || setTimeout;
-    this.envClearTimeout = env.clearTimeout || clearTimeout;
+    const rawSetTimeout = env.setTimeout;
+    const rawClearTimeout = env.clearTimeout;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+
+    this.envSetTimeout = rawSetTimeout
+      ? (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms)
+      : (fn: () => void, ms: number) => setTimeout(fn, ms);
+    this.envClearTimeout = rawClearTimeout
+      ? (id: any) => rawClearTimeout.call(timerTarget, id)
+      : (id: any) => clearTimeout(id);
     this.envNow = env.now || (() => Date.now());
     this.envRandomUUID =
       env.randomUUID ||

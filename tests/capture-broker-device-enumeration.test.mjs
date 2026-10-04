@@ -637,3 +637,64 @@ test('SPEC-106-01: PresenterGuestFeedController requestPermission delegates and 
   assert.match(controller.getSnapshot().errorMessage, /permission was denied/i);
 });
 
+test('hotfix guard: native setTimeout / clearTimeout receiver checks pass without Illegal invocation', async () => {
+  const windowObj = globalThis;
+  function strictTimeout(fn, ms) {
+    if (this !== windowObj && this !== undefined) {
+      throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+    }
+    return setTimeout(fn, ms);
+  }
+  function strictClearTimeout(id) {
+    if (this !== windowObj && this !== undefined) {
+      throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+    }
+    return clearTimeout(id);
+  }
+
+  // 1. CaptureBroker with strict timer checks
+  const mediaDevices = {
+    async getUserMedia() {
+      return new MockStream([new MockTrack('video')]);
+    },
+    async enumerateDevices() {
+      return [{ deviceId: 'card-1', kind: 'videoinput', label: 'HDMI Card', groupId: 'g1' }];
+    },
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices,
+    setTimeout: strictTimeout,
+    clearTimeout: strictClearTimeout,
+    createVideoElement: () => {
+      const v = new MockVideoElement();
+      queueMicrotask(() => v.simulateReady(1920, 1080));
+      return v;
+    },
+  });
+
+  await broker.arm('card-1');
+  assert.equal(broker.getSnapshot().state, 'ready');
+  broker.disarm();
+  assert.equal(broker.getSnapshot().state, 'idle');
+
+  // 2. PresenterGuestFeedController with strict timer checks
+  const { PresenterGuestFeedController } = await import(
+    srcUrl('operator', 'present', 'presenter-guest-feed-controller.ts')
+  );
+
+  const controller = new PresenterGuestFeedController({
+    broker,
+    broadcastSync: () => {},
+    setTimeout: strictTimeout,
+    clearTimeout: strictClearTimeout,
+  });
+
+  await controller.arm('card-1');
+  assert.equal(controller.getSnapshot().uiState, 'ready');
+  controller.disarm();
+  assert.equal(controller.getSnapshot().uiState, 'idle');
+});
+
+

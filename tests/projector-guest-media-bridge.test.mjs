@@ -350,3 +350,56 @@ test('stalePlan releases media and reports consumer-attach-failed', async () => 
     reason: 'consumer-attach-failed',
   });
 });
+
+test('hotfix guard: ProjectorGuestMediaBridge passes strict timer receiver checks without Illegal invocation', async () => {
+  const windowObj = globalThis;
+  function strictTimeout(fn, ms) {
+    if (this !== windowObj && this !== undefined) {
+      throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+    }
+    return setTimeout(fn, ms);
+  }
+  function strictClearTimeout(id) {
+    if (this !== windowObj && this !== undefined) {
+      throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+    }
+    return clearTimeout(id);
+  }
+  function strictInterval(fn, ms) {
+    if (this !== windowObj && this !== undefined) {
+      throw new TypeError("Failed to execute 'setInterval' on 'Window': Illegal invocation");
+    }
+    return setInterval(fn, ms);
+  }
+  function strictClearInterval(id) {
+    if (this !== windowObj && this !== undefined) {
+      throw new TypeError("Failed to execute 'clearInterval' on 'Window': Illegal invocation");
+    }
+    return clearInterval(id);
+  }
+
+  const posted = [];
+  const bridge = new ProjectorGuestMediaBridge({
+    getOpener: () => ({
+      __worshipDeckAcquireProjectorConsumer: () => ({
+        stream: new MockStream(),
+        release: () => {},
+      }),
+    }),
+    postMessage: (m) => posted.push(m),
+    createVideoElement: () => {
+      const v = new MockVideoElement();
+      queueMicrotask(() => v.simulateReady(1920, 1080));
+      return v;
+    },
+    setTimeout: strictTimeout,
+    clearTimeout: strictClearTimeout,
+    setInterval: strictInterval,
+    clearInterval: strictClearInterval,
+  });
+
+  await bridge.syncProjection({ kind: 'guest', guestSessionId: 's1' }, 'a1');
+  assert.equal(posted[0]?.state, 'attached');
+  bridge.teardown();
+});
+

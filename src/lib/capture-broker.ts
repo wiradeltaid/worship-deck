@@ -128,6 +128,10 @@ export class CaptureBroker {
           ? navigator.mediaDevices
           : undefined;
 
+    const rawSetTimeout = env.setTimeout;
+    const rawClearTimeout = env.clearTimeout;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+
     this.env = {
       isSecureContext:
         env.isSecureContext !== undefined
@@ -160,8 +164,12 @@ export class CaptureBroker {
         (typeof document !== 'undefined'
           ? () => document.createElement('video')
           : undefined),
-      setTimeout: env.setTimeout || setTimeout,
-      clearTimeout: env.clearTimeout || clearTimeout,
+      setTimeout: rawSetTimeout
+        ? (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms)
+        : (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: rawClearTimeout
+        ? (id: any) => rawClearTimeout.call(timerTarget, id)
+        : (id: any) => clearTimeout(id),
       now: env.now || (() => Date.now()),
       randomUUID:
         env.randomUUID ||
