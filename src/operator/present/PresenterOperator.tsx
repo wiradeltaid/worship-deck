@@ -594,6 +594,22 @@ export default function PresenterOperator({
       },
     });
   }
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__worshipDeckAcquireProjectorConsumer = (
+        sessionId: string,
+        attemptId: string
+      ) => {
+        return captureBrokerRef.current?.acquireProjectorConsumer(sessionId, attemptId);
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).__worshipDeckAcquireProjectorConsumer;
+      }
+    };
+  }, []);
+
   const remoteSessionRef = useRef<PresenterRemoteSession | null>(null);
   const runSheet = formatPresenterRunSheet(
     rundownText,
@@ -1965,8 +1981,11 @@ export default function PresenterOperator({
             <a
               className="underline underline-offset-2"
               href={projectorUrl}
-              target="_blank"
-              rel="noreferrer"
+              target={projectorWindowName(serviceId)}
+              rel="opener"
+              onClick={() => {
+                setProjectorBlocked(false);
+              }}
             >
               {t('presenter.openCongregationScreenTab')}
             </a>

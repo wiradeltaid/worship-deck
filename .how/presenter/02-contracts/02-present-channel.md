@@ -4,7 +4,7 @@ component: presenter
 lc: LC-10
 direction: exposed
 created: 2026-08-18
-updated: 2026-08-22
+updated: 2026-10-04
 ---
 
 # Contract — Present channel
@@ -22,11 +22,14 @@ UC-12, UC-13, UC-27, AD-10, AD-29. Session display: showing / blanked / overlay 
 | Operation | Purpose | Realizes |
 | --- | --- | --- |
 | index / blank / overlay | Controls → projector | UC-12 · UC-13 |
+| projection / guestAttemptId on sync | Controls → projector: ProjectedSource (`deck` / `guest`) and diagnostic correlation attempt ID | AD-10 · DEC-088 |
 | transition | Live-session override of app-wide style (AD-23); PPTX does not follow | UC-12 |
 | background | Live-session override of the current Verse/Reff background (AD-34), same shape as `transition`: a value the sender intends, not a toggle; resends on `sync` so a reload does not lose it. Neither the Service payload nor the Registry follow. **Shipped** — `PresentMessage` carries a `background` variant and `sync` resends it (`src/lib/present-channel.ts`). This row read `[MISSING]` until 2026-08-22 | UC-27 |
 | clear-scripture | Dismiss overlay | UC-13 |
-| request-sync | Projector asks for state; answer resends index, overlay, and blank (OQ-25) | UC-12 |
+| request-sync | Projector asks for state; answer resends index, overlay, blank, and projection (OQ-25) | UC-12 |
 | liveness ack | Projector → presenter, own condition only | AD-29 |
+| projector-media-status | Projector → presenter, media attachment state only (`attached` / `unavailable` with closed reason taxonomy) | AD-29 extension · DEC-088 |
+
 
 ## Five lanes
 
