@@ -2010,12 +2010,6 @@ export default function PresenterOperator({
             >
               {t('presenter.allSlides')}
             </Button>
-            {guestFeedControllerRef.current && (
-              <PresenterGuestFeedControl
-                controller={guestFeedControllerRef.current}
-                isProjectorResponding={liveness.verdict === 'live'}
-              />
-            )}
             <PresenterDisplayControl
               liveness={liveness.verdict}
               hasOpenProjector={hasOpenProjector}
@@ -2109,6 +2103,16 @@ export default function PresenterOperator({
               {t('presenter.runSheet')}
             </Button>
           </div>
+
+          {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
+          {guestFeedControllerRef.current && (
+            <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
+              <PresenterGuestFeedControl
+                controller={guestFeedControllerRef.current}
+                isProjectorResponding={liveness.verdict === 'live'}
+              />
+            </div>
+          )}
         </div>
         {projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">

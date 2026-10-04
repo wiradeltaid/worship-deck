@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** SPEC-107-02
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/operator/present/PresenterOperator.tsx`, `src/operator/present/PresenterGuestFeedControl.tsx`, and `tests/presenter-guest-feed-controls.test.mjs`:
 
