@@ -1913,7 +1913,7 @@ decisions:
 
   - id: DEC-090
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-04)"
     title: Daily Autopilot mandate for Presenter Unified Display, Capture Discovery, Fullscreen Navigation, and Scripture Comma Normalization (SPEC-103)
     file: .control/decisions/DEC-090-daily-autopilot-mandate-unified-display-and-scripture-normalization.md

@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-090-daily-autopilot-mandate-unified-display-and
 
 ## Resume
 
-- Iteration: I-1
-- Run branch: autopilot/DEC-090 (PR pending)
-- Stopped at: Done — All FR/Tickets/Specs in scope (SPEC-103) completed
+- Iteration: I-1 (final)
+- Run branch: autopilot/DEC-090
+- Stopped at: Complete — All FR/Tickets/Specs in scope (SPEC-103) delivered, verified, and mandate applied
 - Blocked: —
 - Parked: —
-- Next: Final local suite verification, cloud run trigger, and owner PR merge
+- Next: Owner review and merge of PR
 
 ## Decisions
 

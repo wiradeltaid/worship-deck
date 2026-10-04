@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**90 decisions** — accepted: 2 · applied: 87 · superseded: 1.
+**90 decisions** — accepted: 1 · applied: 88 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -97,4 +97,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-087` | Daily Autopilot mandate for Congregation Display Target, Window Mode Selection, and Scripture Line-Budget Pag… | `applied` | mandate | `.control/memlog/autopilot-DEC-087.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/` | `.control/decisions/DEC-087-daily-autopilot-mandate-congregation-display-target-and-scripture-line-budget-pagination.md` |
 | `DEC-088` | Daily Autopilot mandate for Guest Speaker HDMI Video Capture Input and AD-29 Narrow Telemetry Extension (SPEC… | `applied` | mandate | `.control/memlog/autopilot-DEC-088.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.control/generated/decisions.md`, `.how/_platform/ARCHITECTURE-SPINE.md`, `.how/presenter/SDD-presenter.md`, `.scratch/` | `.control/decisions/DEC-088-daily-autopilot-mandate-guest-speaker-hdmi-video-capture-input.md` |
 | `DEC-089` | Daily Autopilot mandate for Guest Speaker HDMI Video Capture Input (SPEC-101) and Presenter Display Crash, Sc… | `applied` | mandate | `.control/memlog/autopilot-DEC-089.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-101-guest-speaker-hdmi-video-capture-input/`, `.scratch/SPEC-102-presenter-display-crash-scripture-density-and-warming-resilience/` | `.control/decisions/DEC-089-daily-autopilot-mandate-guest-speaker-hdmi-and-presenter-resilience.md` |
-| `DEC-090` | Daily Autopilot mandate for Presenter Unified Display, Capture Discovery, Fullscreen Navigation, and Scriptur… | `accepted` | mandate | `.control/memlog/autopilot-DEC-090.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-103-presenter-unified-display-capture-discovery-and-scripture-normalization/` | `.control/decisions/DEC-090-daily-autopilot-mandate-unified-display-and-scripture-normalization.md` |
+| `DEC-090` | Daily Autopilot mandate for Presenter Unified Display, Capture Discovery, Fullscreen Navigation, and Scriptur… | `applied` | mandate | `.control/memlog/autopilot-DEC-090.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-103-presenter-unified-display-capture-discovery-and-scripture-normalization/` | `.control/decisions/DEC-090-daily-autopilot-mandate-unified-display-and-scripture-normalization.md` |
