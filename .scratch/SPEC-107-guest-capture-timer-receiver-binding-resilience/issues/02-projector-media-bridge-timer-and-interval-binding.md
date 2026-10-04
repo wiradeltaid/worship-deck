@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** SPEC-107-01
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/projected/projector-guest-media-bridge.ts` and `tests/projector-guest-media-bridge.test.mjs`:
 

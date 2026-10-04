@@ -57,6 +57,24 @@ export class ProjectorGuestMediaBridge {
   private activeAcquireGeneration = 0;
 
   constructor(env: ProjectorMediaBridgeEnv) {
+    const resolveTimer = <T extends Function>(
+      override: T | undefined,
+      methodName: 'setTimeout' | 'clearTimeout' | 'setInterval' | 'clearInterval'
+    ): { fn: T; target: any } => {
+      if (override) {
+        return { fn: override, target: typeof window !== 'undefined' ? window : globalThis };
+      }
+      if (typeof window !== 'undefined' && typeof (window as any)[methodName] === 'function') {
+        return { fn: (window as any)[methodName], target: window };
+      }
+      return { fn: (globalThis as any)[methodName], target: globalThis };
+    };
+
+    const tSetTimeout = resolveTimer(env.setTimeout, 'setTimeout');
+    const tClearTimeout = resolveTimer(env.clearTimeout, 'clearTimeout');
+    const tSetInterval = resolveTimer(env.setInterval, 'setInterval');
+    const tClearInterval = resolveTimer(env.clearInterval, 'clearInterval');
+
     this.env = {
       getOpener:
         env.getOpener ||
@@ -67,10 +85,10 @@ export class ProjectorGuestMediaBridge {
         (typeof document !== 'undefined'
           ? () => document.createElement('video')
           : undefined),
-      setTimeout: env.setTimeout || setTimeout,
-      clearTimeout: env.clearTimeout || clearTimeout,
-      setInterval: env.setInterval || setInterval,
-      clearInterval: env.clearInterval || clearInterval,
+      setTimeout: (fn: () => void, ms: number) => tSetTimeout.fn.call(tSetTimeout.target, fn, ms),
+      clearTimeout: (id: any) => tClearTimeout.fn.call(tClearTimeout.target, id),
+      setInterval: (fn: () => void, ms: number) => tSetInterval.fn.call(tSetInterval.target, fn, ms),
+      clearInterval: (id: any) => tClearInterval.fn.call(tClearInterval.target, id),
       now: env.now || (() => Date.now()),
     };
   }
@@ -196,7 +214,7 @@ export class ProjectorGuestMediaBridge {
       let settled = false;
 
       const cleanup = () => {
-        if (this.playbackDeadlineTimer) {
+        if (this.playbackDeadlineTimer !== null) {
           this.env.clearTimeout!(this.playbackDeadlineTimer);
           this.playbackDeadlineTimer = null;
         }
@@ -238,9 +256,6 @@ export class ProjectorGuestMediaBridge {
       video.addEventListener('canplay', onReadyCheck);
       video.addEventListener('error', onError);
 
-      // Check immediately
-      onReadyCheck();
-
       // 3-second playback readiness deadline
       this.playbackDeadlineTimer = this.env.setTimeout!(() => {
         if (settled) return;
@@ -248,6 +263,9 @@ export class ProjectorGuestMediaBridge {
         cleanup();
         reject(new Error('Playback readiness timeout (3s)'));
       }, 3000);
+
+      // Check immediately
+      onReadyCheck();
     });
   }
 
@@ -301,7 +319,7 @@ export class ProjectorGuestMediaBridge {
   }
 
   private stopStatusReemitTimer(): void {
-    if (this.statusReemitTimer) {
+    if (this.statusReemitTimer !== null) {
       this.env.clearInterval!(this.statusReemitTimer);
       this.statusReemitTimer = null;
     }
@@ -309,7 +327,7 @@ export class ProjectorGuestMediaBridge {
 
   public releaseMedia(): void {
     this.activeAcquireGeneration++;
-    if (this.playbackDeadlineTimer) {
+    if (this.playbackDeadlineTimer !== null) {
       this.env.clearTimeout!(this.playbackDeadlineTimer);
       this.playbackDeadlineTimer = null;
     }
