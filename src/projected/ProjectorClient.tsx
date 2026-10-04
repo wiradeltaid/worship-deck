@@ -473,15 +473,18 @@ export default function ProjectorClient({
           </button>
         </div>
       ) : null}
-      {/* Outside the transition wrapper on purpose. Blanking has to preserve
-          whatever is underneath — slide index and scripture overlay both — so
-          it covers rather than replaces, and it must not inherit the wrapper's
-          opacity or it would fade away with the next slide change. No
-          animation either: "get this off the screen" is a cut, not an effect.
-          `z-50` keeps it above any layered slide the transition mounts. */}
-      {blank ? (
-        <div aria-hidden="true" className="absolute inset-0 z-50 bg-black" />
-      ) : null}
+      {/* Persistent blackout transition overlay layer (SPEC-104-01).
+          Positioned at z-50 above slides (z-0..10), scripture overlay (z-20),
+          guest video (z-30), and onboarding guidance hint (z-40).
+          Smoothly transitions opacity over 300ms while preserving underlying
+          slide and overlay state unperturbed (UC-12, BR-6). */}
+      <div
+        aria-hidden="true"
+        data-testid="projector-blank-layer"
+        className={`absolute inset-0 z-50 bg-black transition-opacity duration-300 ease-in-out pointer-events-none ${
+          blank ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
     </div>
   );
 }
