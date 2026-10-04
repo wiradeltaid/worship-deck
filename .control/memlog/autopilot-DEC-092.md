@@ -8,10 +8,10 @@ artifact: .control/decisions/DEC-092-daily-autopilot-mandate-guest-capture-permi
 
 - Iteration: I-1 (final)
 - Run branch: autopilot/DEC-092
-- Stopped at: Complete — All FR/Tickets/Specs in scope (SPEC-106) delivered, verified, and mandate ready to conclude
+- Stopped at: Complete — All FR/Tickets/Specs in scope (SPEC-106) delivered, verified, and mandate applied
 - Blocked: —
 - Parked: —
-- Next: § Finish — Run full suite locally, mark draft PR ready, apply mandate
+- Next: Owner review and merge of PR #144
 
 ## Decisions
 

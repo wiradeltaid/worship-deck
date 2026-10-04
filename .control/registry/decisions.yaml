@@ -1952,7 +1952,7 @@ decisions:
 
   - id: DEC-092
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-04)"
     title: Daily Autopilot mandate for Guest Video Capture Permission Discovery, Web API Receiver Binding, and Dropdown Click Resilience (SPEC-106)
     file: .control/decisions/DEC-092-daily-autopilot-mandate-guest-capture-permission-and-invocation.md
