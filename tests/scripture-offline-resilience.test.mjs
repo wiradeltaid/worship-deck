@@ -227,6 +227,74 @@ test('SPEC-98-04: ScriptureOverlay in present-channel.ts requires authoritative 
   );
 });
 
+test('SPEC-102-03: extractRequiredScriptureRefs filters placeholders and normalizes translation suffixes', () => {
+  const serviceData = {
+    field_values: {
+      scripture_reference: 'Hebrews 1:1, 2 (NKJV)',
+      theme_verse: 'TBA',
+    },
+    parsed_data: {
+      theme_verse: '1 Korintus 13 (TB)',
+      verse_reading: ' - ',
+      extra_verse: 'N/A',
+    },
+  };
+
+  const refs = extractRequiredScriptureRefs(serviceData);
+  assert.equal(refs.length, 2);
+  assert.ok(refs.includes('Hebrews 1:1, 2'), 'Must strip (NKJV) suffix');
+  assert.ok(refs.includes('1 Korintus 13'), 'Must strip (TB) suffix');
+  assert.equal(refs.includes('TBA'), false, 'Must filter out TBA placeholder');
+  assert.equal(refs.includes('-'), false, 'Must filter out dash placeholder');
+});
+
+test('SPEC-102-03: failed_scripture_refs is persisted in snapshot and formats combined degraded message', async () => {
+  const { formatOfflineReadinessMessage, getServiceSnapshot } = await import(
+    pathToFileURL(snapshotPath).href
+  );
+
+  // Test combined degraded message
+  const combined = formatOfflineReadinessMessage('degraded', 2, 0, 1, 1);
+  assert.equal(combined, 'Degraded: 1 asset, 1 scripture failed');
+
+  const assetsOnly = formatOfflineReadinessMessage('degraded', 2, 0, 2, 0);
+  assert.equal(assetsOnly, 'Degraded: 2 assets failed');
+
+  const scriptureOnly = formatOfflineReadinessMessage('degraded', 0, 0, 0, 1);
+  assert.equal(scriptureOnly, 'Degraded: 1 scripture failed');
+
+  // Verify warmServiceSnapshot populates failedRefs
+  const serviceWithBadScripture = {
+    id: 'test-failed-ref-durability',
+    field_values: {
+      scripture_reference: 'NonexistentBook 123:456',
+    },
+  };
+
+  const res = await warmServiceSnapshot('test-failed-ref-durability', serviceWithBadScripture);
+  assert.equal(res.status, 'degraded');
+  assert.ok(res.scriptures?.failedRefs?.includes('NonexistentBook 123:456'));
+
+  // Verify rehydration from getServiceSnapshot
+  const snap = await getServiceSnapshot('test-failed-ref-durability');
+  assert.ok(snap?.failed_scripture_refs?.includes('NonexistentBook 123:456'));
+});
+
+test('SPEC-102-03: OfflineReadinessBadge source guards for retry toast and detailed tooltip', () => {
+  const badgeSrc = fs.readFileSync(
+    path.join(root, 'src', 'components', 'offline', 'OfflineReadinessBadge.tsx'),
+    'utf8'
+  );
+  assert.ok(badgeSrc.includes("from 'sonner'"), 'Must import toast from sonner');
+  assert.ok(badgeSrc.includes('toast.success'), 'Must notify success on complete retry');
+  assert.ok(badgeSrc.includes('toast.error'), 'Must notify error on failed retry');
+  assert.ok(
+    badgeSrc.includes('tooltipText') || badgeSrc.includes('failedRefs'),
+    'Must include failed references in tooltip'
+  );
+});
+
+
 test('SPEC-98-04: cacheScripturePassage enforces canonical key derivation even if raw alias cache_key is supplied', async () => {
   // A caller supplies a non-canonical raw alias cache_key: "KJV:jn 3:16"
   const entryWithAliasKey = {

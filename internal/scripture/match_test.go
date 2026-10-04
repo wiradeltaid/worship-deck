@@ -103,3 +103,34 @@ func TestSuggestBooksPrefixAndAlias(t *testing.T) {
 		t.Fatal("unknown prefix is empty, not a guess")
 	}
 }
+
+func TestParseRefTranslationSuffix(t *testing.T) {
+	cases := []struct {
+		in             string
+		book           string
+		ch, start, end int
+		isWhole        bool
+		ok             bool
+	}{
+		{"Hebrews 1:1, 2 (NKJV)", "Hebrews", 1, 1, 2, false, true},
+		{"1 Korintus 13 (TB)", "1 Korintus", 13, 0, 0, true, true},
+		{"John 3:16 KJV", "John", 3, 16, 16, false, true},
+		{"Yohanes 3:16 (TB)", "Yohanes", 3, 16, 16, false, true},
+		{"Romans 8:28 (ESV)", "Romans", 8, 28, 28, false, true},
+		{"John 3:16 (sermon notes)", "", 0, 0, 0, false, false},
+		{"John 3:16 (commentary)", "", 0, 0, 0, false, false},
+	}
+
+	for _, c := range cases {
+		book, ch, start, end, isWhole, ok := ParseRef(c.in)
+		if ok != c.ok {
+			t.Fatalf("ParseRef(%q) ok=%v, want %v", c.in, ok, c.ok)
+		}
+		if c.ok {
+			if book != c.book || ch != c.ch || start != c.start || end != c.end || isWhole != c.isWhole {
+				t.Fatalf("ParseRef(%q)=%q %d:%d-%d (whole=%v) want %q %d:%d-%d (whole=%v)",
+					c.in, book, ch, start, end, isWhole, c.book, c.ch, c.start, c.end, c.isWhole)
+			}
+		}
+	}
+}

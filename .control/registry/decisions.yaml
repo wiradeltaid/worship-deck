@@ -1893,7 +1893,7 @@ decisions:
 
   - id: DEC-089
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-04)"
     title: Daily Autopilot mandate for Guest Speaker HDMI Video Capture Input (SPEC-101) and Presenter Display Crash, Scripture Density & Warming Resilience (SPEC-102)
     file: .control/decisions/DEC-089-daily-autopilot-mandate-guest-speaker-hdmi-and-presenter-resilience.md

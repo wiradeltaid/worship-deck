@@ -4278,7 +4278,7 @@ waves:
           - tests/smoke-spec-101.test.mjs
 
   - id: SPEC-102
-    status: open
+    status: closed
     release: presenter-display-crash-scripture-density-and-warming-resilience
     prd: [operator-turn]
     fr: [FR-14, FR-16, FR-19]
