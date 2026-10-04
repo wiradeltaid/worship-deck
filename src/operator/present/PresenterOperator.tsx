@@ -79,6 +79,7 @@ import {
 import {
   isProjectorMessage,
   isProjectorMediaStatus,
+  isValidNavMessage,
   openPresentChannel,
   slidePatchOf,
   type PresentMessage,
@@ -509,6 +510,7 @@ export default function PresenterOperator({
   const [index, setIndex] = useState(0);
   const [gridOpen, setGridOpen] = useState(false);
   const [blank, setBlank] = useState(false);
+  const [hasOpenProjector, setHasOpenProjector] = useState(false);
   // Session-local, deliberately. Nothing persists it: no fetch, no setting, no
   // storage. Closing this window is what makes the deck's own style the truth
   // again, which is the whole contract of the control.
@@ -798,6 +800,7 @@ export default function PresenterOperator({
       target.windowFeatures || DEFAULT_WINDOW_FEATURES
     );
     projectorRef.current = opened;
+    setHasOpenProjector(Boolean(opened && !opened.closed));
     // `null` means the popup blocker ate it — surface the plain link instead of
     // leaving the operator clicking a button that does nothing.
     setProjectorBlocked(opened === null);
@@ -808,6 +811,15 @@ export default function PresenterOperator({
     // service (`AD-29`, Review finding [High, blocking]).
     dispatchLiveness({ type: 'opened' });
   }, [projectorUrl, serviceId, dispatchLiveness]);
+
+  const focusProjector = useCallback(() => {
+    const existing = projectorRef.current;
+    if (existing && !existing.closed) {
+      try {
+        existing.focus();
+      } catch {}
+    }
+  }, []);
 
   const relocateProjector = useCallback((newTarget: ResolvedLaunchTarget) => {
     openProjector(newTarget);
@@ -821,6 +833,7 @@ export default function PresenterOperator({
       dispatchLiveness({ type: 'handle-closed' });
     }
     projectorRef.current = null;
+    setHasOpenProjector(false);
   }, [dispatchLiveness]);
 
   const broadcast = useCallback((msg: PresentMessage) => {
@@ -878,6 +891,12 @@ export default function PresenterOperator({
     },
     [setIndexAndSync]
   );
+
+  const manualNavigateRef = useRef(manualNavigate);
+  manualNavigateRef.current = manualNavigate;
+  useEffect(() => {
+    manualNavigateRef.current = manualNavigate;
+  }, [manualNavigate]);
 
   /**
    * Blanks or restores the projector. Takes the state it wants rather than
@@ -1083,6 +1102,21 @@ export default function PresenterOperator({
         guestFeedControllerRef.current?.handleProjectorMediaStatus(msg);
         return;
       }
+      if (isValidNavMessage(msg)) {
+        if (
+          msg.serviceId === String(serviceId) &&
+          msg.planIdentity === planIdentityRef.current
+        ) {
+          const currentSlides = activeSlidesRef.current;
+          const currentIndex = indexRef.current;
+          const direction = msg.type === 'nav-next' ? 1 : -1;
+          const targetIndex = findNextVisibleIndex(currentSlides, currentIndex, direction);
+          if (targetIndex !== currentIndex) {
+            manualNavigateRef.current(targetIndex);
+          }
+        }
+        return;
+      }
       // Only a genuine projector-originated message is evidence of life
       // (`AD-29`) — the heartbeat and `request-sync` alike, recorded here
       // without changing how `request-sync` is answered below. A second
@@ -1186,8 +1220,12 @@ export default function PresenterOperator({
   useEffect(() => {
     const poll = setInterval(() => {
       if (projectorRef.current && projectorRef.current.closed) {
+        setHasOpenProjector(false);
         dispatchLiveness({ type: 'handle-closed' });
       } else {
+        if (projectorRef.current) {
+          setHasOpenProjector(!projectorRef.current.closed);
+        }
         dispatchLiveness({ type: 'tick' });
       }
     }, LIVENESS_POLL_INTERVAL_MS);
@@ -1883,10 +1921,19 @@ export default function PresenterOperator({
             >
               {t('presenter.allSlides')}
             </Button>
+            {guestFeedControllerRef.current && (
+              <PresenterGuestFeedControl
+                controller={guestFeedControllerRef.current}
+                isProjectorResponding={liveness.verdict === 'live'}
+              />
+            )}
             <PresenterDisplayControl
               liveness={liveness.verdict}
+              hasOpenProjector={hasOpenProjector}
               presentationLock={presentationLock}
               onOpenOrFocus={openProjector}
+              onFocusProjector={focusProjector}
+              onReopenProjector={openProjector}
               onRelocate={relocateProjector}
               onCloseProjector={closeProjector}
             />
@@ -1922,12 +1969,6 @@ export default function PresenterOperator({
 
           {/* Row 2 (Session Safety & Workflow Controls) */}
           <div data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">
-            {guestFeedControllerRef.current && (
-              <PresenterGuestFeedControl
-                controller={guestFeedControllerRef.current}
-                isProjectorResponding={liveness.verdict === 'live'}
-              />
-            )}
             <OfflineReadinessBadge
               serviceId={serviceId}
               serviceData={rawService || { id: serviceId, plan: activeSlides }}

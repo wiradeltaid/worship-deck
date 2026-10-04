@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-19]
 **Blocked by:** SPEC-103-03
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/operator/present/PresenterDisplayControl.tsx`, `src/operator/present/PresenterOperator.tsx`, `tests/presenter-congregation-display-control.test.mjs`, `tests/display-target-resolver.test.mjs`, and `tests/projector-liveness.test.mjs`:
 

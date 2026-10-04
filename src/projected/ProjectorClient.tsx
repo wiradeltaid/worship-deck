@@ -5,6 +5,7 @@ import ScriptureOverlayView from '@/components/ScriptureOverlayView';
 import {
   adoptsSharedState,
   blankStateOf,
+  isInteractiveOrEditableElement,
   liveBackgroundOf,
   liveTransitionOf,
   openPresentChannel,
@@ -70,6 +71,9 @@ export default function ProjectorClient({
   const [isGuestIntent, setIsGuestIntent] = useState(false);
   const bridgeRef = useRef<ProjectorGuestMediaBridge | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const serviceIdRef = useRef(serviceId);
+  serviceIdRef.current = serviceId;
 
   useEffect(() => {
     if (videoRef.current && guestStream) {
@@ -139,6 +143,41 @@ export default function ProjectorClient({
   }, []);
 
   useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
+      if (isInteractiveOrEditableElement(e.target)) {
+        return;
+      }
+
+      if (
+        e.key === ' ' ||
+        e.key === 'Spacebar' ||
+        e.key === 'ArrowRight' ||
+        e.key === 'PageDown'
+      ) {
+        e.preventDefault();
+        channelRef.current?.postMessage({
+          type: 'nav-next',
+          serviceId: String(serviceIdRef.current),
+          planIdentity: planIdentityRef.current,
+        });
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        channelRef.current?.postMessage({
+          type: 'nav-prev',
+          serviceId: String(serviceIdRef.current),
+          planIdentity: planIdentityRef.current,
+        });
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
     const onFullscreenChange = () => {
       if (document.fullscreenElement) {
         setShowHint(false);
@@ -160,7 +199,9 @@ export default function ProjectorClient({
   // reaches the current `goTo` through this ref instead, which keeps the
   // subscription pinned to `serviceId` alone.
   const goToRef = useRef(goTo);
+  goToRef.current = goTo;
   const planIdentityRef = useRef(planIdentity);
+  planIdentityRef.current = planIdentity;
   useEffect(() => {
     goToRef.current = goTo;
   }, [goTo]);
@@ -171,6 +212,7 @@ export default function ProjectorClient({
   useEffect(() => {
     const ch = openPresentChannel(serviceId);
     if (!ch) return;
+    channelRef.current = ch;
 
     const bridge = new ProjectorGuestMediaBridge({
       postMessage: (m) => ch.postMessage(m),
@@ -303,6 +345,7 @@ export default function ProjectorClient({
     return () => {
       clearInterval(heartbeat);
       ch.removeEventListener('message', onMessage);
+      channelRef.current = null;
       ch.close();
       bridge.teardown();
       bridgeRef.current = null;

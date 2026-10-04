@@ -3,6 +3,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -80,16 +81,24 @@ function createHarness(opts = {}) {
   const timers = new Map();
   let timerSeq = 0;
   const syncBroadcasts = [];
+  let getUserMediaCallCount = 0;
 
   const mediaDevices = {
-    enumerateDevices: async () => [
-      { deviceId: 'cam-1', kind: 'videoinput', label: 'HDMI Card', groupId: 'g1' },
-    ],
-    getUserMedia: async () => new MockStream(),
+    enumerateDevices:
+      opts.enumerateDevices ||
+      (async () => [
+        { deviceId: 'cam-1', kind: 'videoinput', label: 'HDMI Card', groupId: 'g1' },
+      ]),
+    getUserMedia:
+      opts.getUserMedia ||
+      (async () => {
+        getUserMediaCallCount++;
+        return new MockStream();
+      }),
   };
 
   const brokerEnv = {
-    isSecureContext: true,
+    isSecureContext: opts.isSecureContext !== undefined ? opts.isSecureContext : true,
     mediaDevices,
     createVideoElement: () => new MockVideoElement(),
     setTimeout: (fn, ms) => {
@@ -128,6 +137,7 @@ function createHarness(opts = {}) {
     broker,
     controller,
     syncBroadcasts,
+    getGetUserMediaCallCount: () => getUserMediaCallCount,
     advanceTime: (ms) => {
       currentTime += ms;
       for (const [id, t] of Array.from(timers.entries())) {
@@ -449,3 +459,440 @@ test('guard proof: missing-projection fails closed to deck on all sync producers
     assert.deepEqual(proj, { kind: 'deck' }, `${name} must default to deck when projection is absent`);
   }
 });
+
+test('SPEC-103-01: controller enumerateDevices populates devices and catches errors gracefully', async () => {
+  // 1. Graceful error handling on initial device enumeration failure
+  const { controller: errorController } = createHarness({
+    enumerateDevices: async () => {
+      throw new Error('Insecure context or API unavailable');
+    },
+  });
+
+  const emptyDiscovered = await errorController.enumerateDevices();
+  assert.deepEqual(emptyDiscovered, []);
+  assert.equal(errorController.getSnapshot().devices.length, 0);
+  assert.equal(errorController.getSnapshot().uiState, 'idle'); // Stays idle, does NOT incorrectly arm or panic
+  assert.match(errorController.getSnapshot().errorMessage, /Insecure context or API unavailable/);
+
+  // 2. Successful device discovery
+  let shouldFail = false;
+  const sampleDevices = [
+    { deviceId: 'uvc-1', kind: 'videoinput', label: 'Elgato Cam Link 4K', groupId: 'g1' },
+    { deviceId: 'uvc-2', kind: 'videoinput', label: 'USB3.0 Capture Video', groupId: 'g2' },
+  ];
+  const { controller } = createHarness({
+    enumerateDevices: async () => {
+      if (shouldFail) {
+        throw new Error('Transient device query failure');
+      }
+      return sampleDevices;
+    },
+  });
+
+  const discovered = await controller.enumerateDevices();
+  assert.equal(discovered.length, 2);
+  assert.equal(discovered[0].deviceId, 'uvc-1');
+  assert.equal(discovered[0].label, 'Elgato Cam Link 4K');
+  assert.equal(controller.getSnapshot().devices.length, 2);
+  assert.equal(controller.getSnapshot().uiState, 'idle');
+  assert.equal(controller.getSnapshot().errorMessage, null);
+
+  // 3. Transient error sets error message without panicking
+  shouldFail = true;
+  await controller.enumerateDevices();
+  assert.equal(controller.getSnapshot().uiState, 'idle');
+  assert.match(controller.getSnapshot().errorMessage, /Transient device query failure/);
+
+  // 4. Subsequent recovery clears error message
+  shouldFail = false;
+  const recovered = await controller.enumerateDevices();
+  assert.equal(recovered.length, 2);
+  assert.equal(controller.getSnapshot().errorMessage, null);
+});
+
+test('SPEC-103-01: selectDevice updates selectedDeviceId without calling getUserMedia', () => {
+  const { controller, getGetUserMediaCallCount } = createHarness();
+
+  assert.equal(getGetUserMediaCallCount(), 0);
+  assert.equal(controller.getSnapshot().selectedDeviceId, null);
+
+  // Selecting a device updates state and does NOT call getUserMedia
+  controller.selectDevice('cam-1');
+  assert.equal(controller.getSnapshot().selectedDeviceId, 'cam-1');
+  assert.equal(getGetUserMediaCallCount(), 0);
+  assert.equal(controller.getSnapshot().uiState, 'idle');
+});
+
+test('SPEC-103-01: only explicit arm invokes getUserMedia', async () => {
+  const { controller, getGetUserMediaCallCount } = createHarness();
+
+  controller.selectDevice('cam-1');
+  assert.equal(getGetUserMediaCallCount(), 0);
+
+  // Calling arm initiates getUserMedia
+  await controller.arm('cam-1');
+  assert.equal(getGetUserMediaCallCount(), 1);
+  assert.equal(controller.getSnapshot().uiState, 'ready');
+});
+
+test('SPEC-103-01: stale concurrent device enumeration does not overwrite newer state', async () => {
+  let resolveA;
+  const promiseA = new Promise((res) => {
+    resolveA = res;
+  });
+
+  let callCount = 0;
+  const { controller } = createHarness({
+    enumerateDevices: async () => {
+      callCount++;
+      if (callCount === 1) {
+        // Request A: slow
+        await promiseA;
+        return [{ deviceId: 'stale-dev-A', kind: 'videoinput', label: 'Stale Capture A', groupId: 'g1' }];
+      } else {
+        // Request B: fast
+        return [{ deviceId: 'fresh-dev-B', kind: 'videoinput', label: 'Fresh Capture B', groupId: 'g2' }];
+      }
+    },
+  });
+
+  // Start slow request A
+  const pA = controller.enumerateDevices();
+
+  // Start fast request B (newer generation)
+  const pB = controller.enumerateDevices();
+  const resB = await pB;
+
+  assert.equal(resB.length, 1);
+  assert.equal(resB[0].deviceId, 'fresh-dev-B');
+  assert.equal(controller.getSnapshot().devices[0].deviceId, 'fresh-dev-B');
+
+  // Now resolve slow request A
+  resolveA();
+  await pA;
+
+  // Stale request A must NOT overwrite newer request B's state
+  assert.equal(controller.getSnapshot().devices.length, 1);
+  assert.equal(controller.getSnapshot().devices[0].deviceId, 'fresh-dev-B');
+});
+
+test('SPEC-103-01: stale rejected enumeration does not overwrite newer successful state or inject error', async () => {
+  let rejectA;
+  const promiseA = new Promise((_, rej) => {
+    rejectA = rej;
+  });
+
+  let callCount = 0;
+  const { controller } = createHarness({
+    enumerateDevices: async () => {
+      callCount++;
+      if (callCount === 1) {
+        // Request A: slow rejection
+        await promiseA;
+        throw new Error('Stale late failure from old generation');
+      } else {
+        // Request B: fast success
+        return [{ deviceId: 'fresh-dev-B', kind: 'videoinput', label: 'Fresh Capture B', groupId: 'g2' }];
+      }
+    },
+  });
+
+  // Start slow request A
+  const pA = controller.enumerateDevices();
+
+  // Start fast request B (newer generation)
+  const pB = controller.enumerateDevices();
+  const resB = await pB;
+
+  assert.equal(resB.length, 1);
+  assert.equal(resB[0].deviceId, 'fresh-dev-B');
+  assert.equal(controller.getSnapshot().devices[0].deviceId, 'fresh-dev-B');
+  assert.equal(controller.getSnapshot().errorMessage, null);
+
+  // Now reject slow request A
+  rejectA(new Error('Stale late failure from old generation'));
+  await pA;
+
+  // Stale rejection must NOT overwrite devices or inject error into snapshot
+  assert.equal(controller.getSnapshot().devices.length, 1);
+  assert.equal(controller.getSnapshot().devices[0].deviceId, 'fresh-dev-B');
+  assert.equal(controller.getSnapshot().errorMessage, null);
+});
+
+test('SPEC-103-01: CaptureBroker stale rejected enumeration does not overwrite newer successful state or inject error', async () => {
+  let rejectA;
+  const promiseA = new Promise((_, rej) => {
+    rejectA = rej;
+  });
+
+  let callCount = 0;
+  const mediaDevices = {
+    enumerateDevices: async () => {
+      callCount++;
+      if (callCount === 1) {
+        await promiseA;
+        throw new Error('Late failure from old broker generation');
+      } else {
+        return [{ deviceId: 'broker-dev-B', kind: 'videoinput', label: 'Fresh Broker B', groupId: 'g2' }];
+      }
+    },
+    getUserMedia: async () => new MockStream(),
+  };
+
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices,
+    createVideoElement: () => new MockVideoElement(),
+  });
+
+  // Start slow request A
+  const pA = broker.enumerateDevices();
+
+  // Start fast request B (newer generation)
+  const pB = broker.enumerateDevices();
+  const resB = await pB;
+
+  assert.equal(resB.length, 1);
+  assert.equal(resB[0].deviceId, 'broker-dev-B');
+  assert.equal(broker.getSnapshot().devices[0].deviceId, 'broker-dev-B');
+  assert.equal(broker.getSnapshot().error, null);
+
+  // Now reject slow request A
+  rejectA(new Error('Late failure from old broker generation'));
+  await pA;
+
+  // Stale rejection must NOT overwrite devices or inject error into broker snapshot
+  assert.equal(broker.getSnapshot().devices.length, 1);
+  assert.equal(broker.getSnapshot().devices[0].deviceId, 'broker-dev-B');
+  assert.equal(broker.getSnapshot().error, null, 'Broker snapshot error must remain null after stale rejection');
+});
+
+test('SPEC-103-01: CaptureBroker clears previous error on subsequent successful enumeration', async () => {
+  let shouldFail = true;
+  const broker = new CaptureBroker({
+    isSecureContext: true,
+    mediaDevices: {
+      enumerateDevices: async () => {
+        if (shouldFail) throw new Error('API busy');
+        return [{ deviceId: 'cam-ok', kind: 'videoinput', label: 'OK' }];
+      },
+      getUserMedia: async () => new MockStream(),
+    },
+    createVideoElement: () => new MockVideoElement(),
+  });
+
+  await assert.rejects(() => broker.enumerateDevices(), /API busy/);
+  assert.match(broker.getSnapshot().error.message, /API busy/);
+
+  // Subsequent recovery clears broker snapshot error
+  shouldFail = false;
+  await broker.enumerateDevices();
+  assert.equal(broker.getSnapshot().error, null, 'Broker error must be cleared on successful enumeration');
+  assert.equal(broker.getSnapshot().devices.length, 1);
+});
+
+test('SPEC-103-01: structural scan and defect injection: CaptureBroker catch block must guard generation', () => {
+  const brokerPath = path.join(root, 'src', 'lib', 'capture-broker.ts');
+  const content = fs.readFileSync(brokerPath, 'utf8');
+
+  function validateBrokerCatchGuard(src) {
+    const catchMatch = src.match(/public async enumerateDevices\(\)[\s\S]*?catch\s*\([^)]*\)\s*\{([\s\S]*?)\}/);
+    if (!catchMatch) throw new Error('enumerateDevices catch block missing');
+    const catchBody = catchMatch[1];
+    if (!/if\s*\(\s*generation\s*!==\s*this\.activeEnumerateGeneration\s*\)/.test(catchBody)) {
+      throw new Error('Generation Guard Violation: Catch block in enumerateDevices must guard against stale generation');
+    }
+  }
+
+  // Real source passes
+  assert.doesNotThrow(() => validateBrokerCatchGuard(content));
+
+  // Injected defect: strip generation check from catch in real source text
+  const defective = content.replace(
+    /if\s*\(\s*generation\s*!==\s*this\.activeEnumerateGeneration\s*\)[\s\S]*?\}\s*const\s+mapped/,
+    'const mapped'
+  );
+  assert.throws(
+    () => validateBrokerCatchGuard(defective),
+    /Generation Guard Violation/
+  );
+});
+
+test('SPEC-103-01: component lifecycle simulation: mount and open trigger discovery, close does not, errors stay contained', async () => {
+  let enumCount = 0;
+  let shouldFail = false;
+  const sampleDevices = [
+    { deviceId: 'uvc-1', kind: 'videoinput', label: 'Cam Link', groupId: 'g1' },
+  ];
+
+  const { controller } = createHarness({
+    enumerateDevices: async () => {
+      enumCount++;
+      if (shouldFail) {
+        throw new Error('Dropdown discovery network/permission failure');
+      }
+      return sampleDevices;
+    },
+  });
+
+  // 1. Simulating Mount phase (useEffect trigger)
+  assert.equal(enumCount, 0);
+  await controller.enumerateDevices();
+  assert.equal(enumCount, 1);
+  assert.equal(controller.getSnapshot().devices.length, 1);
+  assert.equal(controller.getSnapshot().errorMessage, null);
+
+  // 2. Simulating Dropdown Close phase (onOpenChange(false) must NOT trigger discovery)
+  const onOpenChange = (open) => {
+    if (open) {
+      void controller.enumerateDevices();
+    }
+  };
+
+  onOpenChange(false);
+  assert.equal(enumCount, 1, 'Closing dropdown must not trigger enumeration');
+
+  // 3. Simulating Dropdown Open phase (onOpenChange(true) triggers discovery)
+  onOpenChange(true);
+  assert.equal(enumCount, 2, 'Opening dropdown must trigger enumeration');
+
+  // 4. Discovery failure during open stays contained and does not crash or panic
+  shouldFail = true;
+  onOpenChange(true);
+  assert.equal(enumCount, 3);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(controller.getSnapshot().uiState, 'idle');
+  assert.match(controller.getSnapshot().errorMessage, /Dropdown discovery network\/permission failure/);
+});
+
+function validateDropdownMenuStructure(content) {
+  // Must import DropdownMenuGroup
+  if (!/DropdownMenuGroup/.test(content)) {
+    throw new Error('Base UI Violation: Missing DropdownMenuGroup import');
+  }
+
+  // Raw label in content without enclosing group is forbidden
+  const hasRawLabel = /<DropdownMenuContent[^>]*>\s*<DropdownMenuLabel/.test(content);
+  if (hasRawLabel) {
+    throw new Error('Base UI Violation: DropdownMenuLabel requires enclosing DropdownMenuGroup');
+  }
+
+  // DropdownMenuLabel must be enclosed within DropdownMenuGroup to satisfy Base UI MenuGroupContext
+  const groupLabelMatch = /<DropdownMenuGroup>\s*<DropdownMenuLabel[^>]*>[\s\S]*?<\/DropdownMenuLabel>\s*<\/DropdownMenuGroup>/.test(
+    content
+  );
+  if (!groupLabelMatch) {
+    throw new Error('Base UI Violation: DropdownMenuLabel not enclosed in DropdownMenuGroup');
+  }
+
+  // Component mount discovery trigger
+  const hasMountTrigger = /useEffect\(\(\)\s*=>\s*\{\s*void controller\.enumerateDevices\(\);/s.test(content);
+  if (!hasMountTrigger) {
+    throw new Error('Mount Discovery Trigger Violation: Missing controller.enumerateDevices in mount useEffect');
+  }
+
+  // Component dropdown open discovery trigger
+  const hasOpenTrigger = /onOpenChange=\{\(open\)\s*=>\s*\{\s*if\s*\(open\)\s*\{\s*void controller\.enumerateDevices\(\);/s.test(
+    content
+  );
+  if (!hasOpenTrigger) {
+    throw new Error('Open Discovery Trigger Violation: Missing onOpenChange enumerateDevices trigger on DropdownMenu');
+  }
+
+  // Radio selection must call selectDevice, NOT arm directly
+  if (!/controller\.selectDevice\(val\)/.test(content)) {
+    throw new Error('Selection Violation: Radio selection must call controller.selectDevice');
+  }
+}
+
+test('SPEC-103-01: structural scan verifies DropdownMenuGroup enclosing DropdownMenuLabel in PresenterGuestFeedControl', () => {
+  const componentPath = path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx');
+  const content = fs.readFileSync(componentPath, 'utf8');
+  assert.doesNotThrow(() => validateDropdownMenuStructure(content));
+});
+
+function validateControlPlacement(presenterContent) {
+  const row1Match = presenterContent.match(
+    /<div[^>]*data-testid="presenter-header-row-1"[^>]*>([\s\S]*?)<\/div>\s*\{\/\* Row 2/
+  );
+  if (!row1Match) {
+    throw new Error('Placement Violation: presenter-header-row-1 container missing');
+  }
+  const row1Content = row1Match[1];
+  if (!/<PresenterGuestFeedControl/.test(row1Content)) {
+    throw new Error('Placement Violation: PresenterGuestFeedControl missing from Header Row 1');
+  }
+
+  const row2Match = presenterContent.match(
+    /<div[^>]*data-testid="presenter-header-row-2"[^>]*>([\s\S]*?)<\/div>/
+  );
+  if (!row2Match) {
+    throw new Error('Placement Violation: presenter-header-row-2 container missing');
+  }
+  const row2Content = row2Match[1];
+  if (/<PresenterGuestFeedControl/.test(row2Content)) {
+    throw new Error('Placement Violation: PresenterGuestFeedControl must NOT be in presenter-header-row-2');
+  }
+}
+
+test('SPEC-103-01: structural scan verifies PresenterGuestFeedControl in presenter-header-row-1 in PresenterOperator', () => {
+  const presenterPath = path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const content = fs.readFileSync(presenterPath, 'utf8');
+  assert.doesNotThrow(() => validateControlPlacement(content));
+});
+
+test('SPEC-103-01: defect injection proof: DropdownMenuLabel directly in DropdownMenuContent triggers guard finding', () => {
+  const componentPath = path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx');
+  const realContent = fs.readFileSync(componentPath, 'utf8');
+
+  // Real content passes
+  assert.doesNotThrow(() => validateDropdownMenuStructure(realContent));
+
+  // Injected defect 1: strip DropdownMenuGroup wrapping from real file content
+  const defectiveContent = realContent
+    .replace('<DropdownMenuGroup>', '')
+    .replace('</DropdownMenuGroup>', '');
+  assert.throws(
+    () => validateDropdownMenuStructure(defectiveContent),
+    /Base UI Violation: DropdownMenuLabel requires enclosing DropdownMenuGroup/
+  );
+
+  // Injected defect 2: remove mount discovery trigger specifically
+  const missingMountContent = realContent.replace(
+    /useEffect\(\(\)\s*=>\s*\{\s*void controller\.enumerateDevices\(\);/,
+    'useEffect(() => {'
+  );
+  assert.throws(
+    () => validateDropdownMenuStructure(missingMountContent),
+    /Mount Discovery Trigger Violation/
+  );
+
+  // Injected defect 3: remove onOpenChange discovery trigger specifically while leaving mount
+  const missingOpenContent = realContent.replace(/onOpenChange=\{[\s\S]*?\}\s*>/, '>');
+  assert.throws(
+    () => validateDropdownMenuStructure(missingOpenContent),
+    /Open Discovery Trigger Violation/
+  );
+});
+
+test('SPEC-103-01: defect injection proof: PresenterGuestFeedControl in presenter-header-row-2 triggers guard finding', () => {
+  const presenterPath = path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const realContent = fs.readFileSync(presenterPath, 'utf8');
+
+  // Real content passes
+  assert.doesNotThrow(() => validateControlPlacement(realContent));
+
+  // Injected defect: move control from Row 1 back to Row 2
+  const defectiveContent = realContent
+    .replace(/\{guestFeedControllerRef\.current && \(\s*<PresenterGuestFeedControl[\s\S]*?\/>\s*\)\}/, '')
+    .replace(
+      'data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">',
+      'data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">\n<PresenterGuestFeedControl controller={guestFeedControllerRef.current} isProjectorResponding={true} />'
+    );
+
+  assert.throws(
+    () => validateControlPlacement(defectiveContent),
+    /Placement Violation: PresenterGuestFeedControl missing from Header Row 1/
+  );
+});
+

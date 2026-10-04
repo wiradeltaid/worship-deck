@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-13, FR-14, FR-19]
 **Blocked by:** SPEC-103-01
-**Status:** open
+**Status:** closed
 
 **What to build:** In `internal/scripture/match.go`, `src/lib/offline/service-snapshot.ts`, `internal/scripture/match_test.go`, and `tests/scripture-offline-resilience.test.mjs`:
 

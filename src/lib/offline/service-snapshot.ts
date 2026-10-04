@@ -261,8 +261,8 @@ export async function getCachedScripturePassage(
 }
 
 const SCRIPTURE_PLACEHOLDERS = new Set(['TBA', 'TBD', '-', 'N/A', 'NONE']);
-const TRANSLATION_PAREN_RE = /\s*\((KJV|NKJV|TB|NIV|ESV|BIMK|AYT)\)\s*$/i;
-const TRANSLATION_BARE_RE = /\s+(KJV|NKJV|TB|NIV|ESV|BIMK|AYT)\s*$/i;
+const TRANSLATION_PAREN_RE = /\s*\((NKJV|KJV|TB|NIV|ESV|BIMK|AYT)\)[\s,;.]*$/i;
+const TRANSLATION_BARE_RE = /(?:\s*,\s*|\s+)(NKJV|KJV|TB|NIV|ESV|BIMK|AYT)[\s,;.]*$/i;
 
 export function sanitizeScriptureRef(raw: string): string | null {
   if (!raw || typeof raw !== 'string') return null;
@@ -270,9 +270,11 @@ export function sanitizeScriptureRef(raw: string): string | null {
   if (s.startsWith('http://') || s.startsWith('https://')) return null;
   if (SCRIPTURE_PLACEHOLDERS.has(s.toUpperCase())) return null;
 
+  s = s.replace(/[,;.]+$/, '').trim();
   s = s.replace(TRANSLATION_PAREN_RE, '');
   s = s.replace(TRANSLATION_BARE_RE, '');
   s = s.trim();
+  s = s.replace(/[,;.]+$/, '').trim();
 
   if (!s || SCRIPTURE_PLACEHOLDERS.has(s.toUpperCase())) return null;
   return s;

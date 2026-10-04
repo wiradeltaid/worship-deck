@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-19]
 **Blocked by:** SPEC-103-02
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/lib/present-channel.ts`, `src/projected/ProjectorClient.tsx`, `src/operator/present/PresenterOperator.tsx`, `tests/present-channel.test.mjs`, and `tests/projected-shell.test.mjs`:
 

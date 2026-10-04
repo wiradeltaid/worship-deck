@@ -38,10 +38,12 @@ func normalize(s string) string {
 	return strings.Join(fields, " ")
 }
 
-var supportedTranslations = []string{"KJV", "NKJV", "TB", "NIV", "ESV", "BIMK", "AYT"}
+var supportedTranslations = []string{"NKJV", "KJV", "TB", "NIV", "ESV", "BIMK", "AYT"}
 
 func stripTranslationSuffix(value string) string {
 	val := strings.TrimSpace(value)
+	val = strings.TrimRight(val, ",;.")
+	val = strings.TrimSpace(val)
 	upper := strings.ToUpper(val)
 
 	// 1. Check parenthetical format: "(NKJV)", "(TB)", etc.
@@ -49,16 +51,23 @@ func stripTranslationSuffix(value string) string {
 		patt := "(" + code + ")"
 		if strings.HasSuffix(upper, patt) {
 			prefix := val[:len(val)-len(patt)]
+			prefix = strings.TrimSpace(prefix)
+			prefix = strings.TrimRight(prefix, ",;.")
 			return strings.TrimSpace(prefix)
 		}
 	}
 
-	// 2. Check bare suffix preceded by whitespace: "Hebrews 1:1 KJV"
+	// 2. Check bare suffix preceded by whitespace or comma: "Hebrews 1:1, 2, NKJV" or "Hebrews 1:1,2,NKJV" or "Hebrews 1:1 KJV"
 	for _, code := range supportedTranslations {
 		if strings.HasSuffix(upper, code) {
 			prefix := val[:len(val)-len(code)]
-			if len(prefix) > 0 && unicode.IsSpace(rune(prefix[len(prefix)-1])) {
-				return strings.TrimSpace(prefix)
+			if len(prefix) > 0 {
+				lastChar := prefix[len(prefix)-1]
+				if unicode.IsSpace(rune(lastChar)) || lastChar == ',' || lastChar == ';' {
+					prefix = strings.TrimSpace(prefix)
+					prefix = strings.TrimRight(prefix, ",;.")
+					return strings.TrimSpace(prefix)
+				}
 			}
 		}
 	}

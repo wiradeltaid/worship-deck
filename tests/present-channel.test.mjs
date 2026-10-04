@@ -22,6 +22,7 @@ const {
   openPresentChannel,
   presentChannelName,
   isProjectorMessage,
+  isValidNavMessage,
   adoptsSharedState,
   sharedStatePlanIdentity,
 } = await import(
@@ -221,4 +222,47 @@ test('AD-10: a shared-state message is adopted only when plan identities match',
   );
   assert.equal(adoptsSharedState({ type: 'request-sync' }, own), false);
   assert.equal(adoptsSharedState({ type: 'projector-alive' }, own), false);
+});
+
+test('SPEC-103-03: nav-next and nav-prev carry planIdentity and are NOT liveness messages', () => {
+  const nextMsg = { type: 'nav-next', serviceId: '7', planIdentity: 'plan-7' };
+  const prevMsg = { type: 'nav-prev', serviceId: '7', planIdentity: 'plan-7' };
+
+  // Plan identity is preserved and extracted
+  assert.equal(sharedStatePlanIdentity(nextMsg), 'plan-7');
+  assert.equal(sharedStatePlanIdentity(prevMsg), 'plan-7');
+  assert.equal(adoptsSharedState(nextMsg, 'plan-7'), true);
+  assert.equal(adoptsSharedState(nextMsg, 'stale-plan'), false);
+
+  // Critical AD-29 guard: Navigation messages must NOT be treated as liveness acks
+  assert.equal(
+    isProjectorMessage(nextMsg),
+    false,
+    'nav-next must return false for isProjectorMessage to prevent false liveness acks'
+  );
+  assert.equal(
+    isProjectorMessage(prevMsg),
+    false,
+    'nav-prev must return false for isProjectorMessage to prevent false liveness acks'
+  );
+});
+
+test('SPEC-103-03: isValidNavMessage enforces strict string fields and valid type', () => {
+  assert.equal(isValidNavMessage({ type: 'nav-next', serviceId: '7', planIdentity: 'p1' }), true);
+  assert.equal(isValidNavMessage({ type: 'nav-prev', serviceId: '7', planIdentity: 'p1' }), true);
+
+  // Numeric serviceId is rejected
+  assert.equal(isValidNavMessage({ type: 'nav-next', serviceId: 7, planIdentity: 'p1' }), false);
+
+  // Empty or whitespace serviceId is rejected
+  assert.equal(isValidNavMessage({ type: 'nav-next', serviceId: '   ', planIdentity: 'p1' }), false);
+
+  // Missing or empty planIdentity is rejected
+  assert.equal(isValidNavMessage({ type: 'nav-next', serviceId: '7', planIdentity: '' }), false);
+  assert.equal(isValidNavMessage({ type: 'nav-next', serviceId: '7' }), false);
+
+  // Other types are rejected
+  assert.equal(isValidNavMessage({ type: 'sync', serviceId: '7', planIdentity: 'p1' }), false);
+  assert.equal(isValidNavMessage(null), false);
+  assert.equal(isValidNavMessage('string'), false);
 });
