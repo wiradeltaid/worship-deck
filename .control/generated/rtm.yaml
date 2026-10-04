@@ -1601,6 +1601,35 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-106-01
+  spec: SPEC-106
+  release: guest-capture-permission-discovery-and-invocation-fix
+  test:
+  - tests/capture-broker-device-enumeration.test.mjs
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-106-02
+  spec: SPEC-106
+  release: guest-capture-permission-discovery-and-invocation-fix
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation

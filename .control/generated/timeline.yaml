@@ -531,6 +531,8 @@ capabilities:
     - SPEC-104-02
     - SPEC-105-01
     - SPEC-105-02
+    - SPEC-106-01
+    - SPEC-106-02
     - SPEC-37-02
     - SPEC-41-01
     - SPEC-41-02
@@ -603,7 +605,9 @@ capabilities:
     actual_start: '2026-09-18'
     actual_end: ''
     state: in-progress
-  waiting_on: []
+  waiting_on:
+  - SPEC-106-01
+  - SPEC-106-02
 - id: CAP-7
   text: Run-Sheet of the full worship order
   size: ''
@@ -1189,4 +1193,6 @@ capabilities:
     actual_end: ''
     state: in-progress
   waiting_on: []
-uncommitted_tickets: []
+uncommitted_tickets:
+- SPEC-106-01
+- SPEC-106-02

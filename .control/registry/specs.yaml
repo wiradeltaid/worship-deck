@@ -4430,6 +4430,37 @@ waves:
         tests:
           - tests/run-sheet-smart-resume.test.mjs
 
+  - id: SPEC-106
+    status: open
+    release: guest-capture-permission-discovery-and-invocation-fix
+    prd: [operator-turn]
+    fr: [FR-16, FR-25]
+    size: S
+    depends_on: [SPEC-103]
+    spec_folder: .scratch/SPEC-106-guest-capture-permission-discovery-and-invocation-fix/
+    spec_reviewed:
+      date: '2026-10-04'
+      sha: 'cfae11fecd516ad285af29b4ddc8f77c97689e1f'
+      lenses: [structure, prose, edge-case-hunter, traceability, async-race, i18n]
+      note: "Terra advisory review folded in: (1) Ticket 01 complete requestPermission failure contract with no unhandled rejections, guaranteed probe stream track stop in finally block, and defensive mediaDevices receiver binding with feature detection; (2) Ticket 02 controlled dropdown snapshot with request ID invalidation on menu close/unmount, strict prohibition on implicit auto-selection preserving operator manual source intent, mandatory FR-25 i18n dual-language parity for CTA and permission guidance, and DevTools console.error diagnostic logging."
+    tickets:
+      - id: "SPEC-106-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/capture-broker-device-enumeration.test.mjs
+          - tests/presenter-guest-feed-controls.test.mjs
+      - id: "SPEC-106-02"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-25]
+        blocked_by: ["SPEC-106-01"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-guest-feed-controls.test.mjs
+
+
 
 
 
