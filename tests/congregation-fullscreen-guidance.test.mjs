@@ -32,7 +32,7 @@ export function scanCongregationFullscreenGuidanceContract(content) {
   if (!content.includes("e.key === 'F11'") && !content.includes('e.key === "F11"')) {
     findings.push('ProjectorClient.tsx must handle keydown event checking for F11');
   }
-  if (/e\.preventDefault\(\)/.test(content) && content.includes('F11')) {
+  if (/if\s*\([^)]*F11[^)]*\)\s*\{[^}]*?e\.preventDefault\(\)/.test(content)) {
     findings.push('ProjectorClient.tsx must NOT preventDefault on F11 keydown');
   }
   if (!content.includes('fullscreenchange')) {

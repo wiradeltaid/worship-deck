@@ -136,9 +136,14 @@ export default function ProjectorClient({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F11') {
         setShowHint(false);
-        return;
       }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
