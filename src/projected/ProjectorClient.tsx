@@ -280,6 +280,7 @@ export default function ProjectorClient({
           isContinuation: msg.isContinuation,
           continuationIndex: msg.continuationIndex,
           continuationCount: msg.continuationCount,
+          estimatedVisualLines: msg.estimatedVisualLines,
         });
       } else if (msg.type === 'clear-scripture') {
         setOverlay(null);
@@ -384,6 +385,7 @@ export default function ProjectorClient({
             isContinuation={overlay.isContinuation}
             continuationIndex={overlay.continuationIndex}
             continuationCount={overlay.continuationCount}
+            estimatedVisualLines={overlay.estimatedVisualLines}
           />
         ) : slide ? (
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />

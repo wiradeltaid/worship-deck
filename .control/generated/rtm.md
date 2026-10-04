@@ -1469,7 +1469,7 @@ rtm:
   release: presenter-display-crash-scripture-density-and-warming-resilience
   test:
   - tests/presenter-congregation-display-control.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

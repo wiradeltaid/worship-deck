@@ -34,6 +34,7 @@ export type ScriptureOverlay = {
   isContinuation: boolean;
   continuationIndex: number;
   continuationCount: number;
+  estimatedVisualLines?: number;
 };
 
 export type ProjectedSource =

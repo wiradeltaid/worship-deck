@@ -20,6 +20,7 @@ export interface ScripturePageChunk {
   isContinuation: boolean;
   continuationIndex: number;
   continuationCount: number;
+  estimatedVisualLines: number;
 }
 
 export const CHARS_PER_LINE = 60;
@@ -295,6 +296,7 @@ export function paginateScriptureVerses(
         isContinuation: false,
         continuationIndex: 1,
         continuationCount: 1,
+        estimatedVisualLines: 0,
       },
     ];
   }
@@ -314,6 +316,7 @@ export function paginateScriptureVerses(
           isContinuation: false,
           continuationIndex: 1,
           continuationCount: 1,
+          estimatedVisualLines: estimateScriptureLines(verses, mode),
         },
       ];
     }
@@ -364,6 +367,7 @@ export function paginateScriptureVerses(
         isContinuation: false,
         continuationIndex: 1,
         continuationCount: 1,
+        estimatedVisualLines: estimateScriptureLines(chunk, mode),
       };
     });
   }
@@ -463,6 +467,7 @@ export function paginateScriptureVerses(
       isContinuation: isCont,
       continuationIndex: cIndex,
       continuationCount: cCount,
+      estimatedVisualLines: estimateScriptureLines(chunk, mode),
     };
   });
 }

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-13, FR-16, FR-19]
 **Blocked by:** none
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/lib/scripture-format.ts`, `src/lib/scripture-scaling.ts`, `src/components/ScriptureOverlayView.tsx`, `src/operator/present/PresenterOperator.tsx`, `src/projected/ProjectorClient.tsx`, and `tests/scripture-continuation-presentation.test.mjs`:
 
@@ -39,4 +39,9 @@
 
 ## Completion evidence
 
-Record actual commands/results and defect-injection proofs when implemented. Leave checkboxes/status open until proven; inherited review reports do not close acceptance.
+- Updated `src/lib/present-channel.ts` and `src/lib/scripture-format.ts` to attach `estimatedVisualLines` to `ScripturePageChunk` and `ScriptureOverlay`.
+- Enhanced `getScriptureScaling` in `src/lib/scripture-scaling.ts` to adaptively scale base font (6.0cqh for <=5 lines, 5.4cqh for 6-7 lines, 4.8cqh for 8-10 lines).
+- Updated `computeScriptureFitScale` height threshold to `stageHeight * 0.82` and CSS container to `max-h-[82cqh]`, with `lineHeight: 1.36` in `src/components/ScriptureOverlayView.tsx`.
+- Propagated `estimatedVisualLines` to `ScriptureOverlayView` across both `PresenterOperator.tsx` and `ProjectorClient.tsx` for 100% operator-room presentation parity.
+- Verified all 12 tests in `tests/scripture-continuation-presentation.test.mjs` pass.
+

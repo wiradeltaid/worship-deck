@@ -1645,6 +1645,7 @@ export default function PresenterOperator({
             isContinuation: firstPage.isContinuation,
             continuationIndex: firstPage.continuationIndex,
             continuationCount: firstPage.continuationCount,
+            estimatedVisualLines: firstPage.estimatedVisualLines,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1730,6 +1731,7 @@ export default function PresenterOperator({
         isContinuation: firstPage.isContinuation,
         continuationIndex: firstPage.continuationIndex,
         continuationCount: firstPage.continuationCount,
+        estimatedVisualLines: firstPage.estimatedVisualLines,
       };
       setScriptureOverlay(newOverlay);
       broadcast({
@@ -1785,6 +1787,7 @@ export default function PresenterOperator({
             isContinuation: activePage.isContinuation,
             continuationIndex: activePage.continuationIndex,
             continuationCount: activePage.continuationCount,
+            estimatedVisualLines: activePage.estimatedVisualLines,
           };
           setScriptureOverlay(newOverlay);
           broadcast({
@@ -1825,6 +1828,7 @@ export default function PresenterOperator({
           isContinuation: activePage.isContinuation,
           continuationIndex: activePage.continuationIndex,
           continuationCount: activePage.continuationCount,
+          estimatedVisualLines: activePage.estimatedVisualLines,
         };
         setScriptureOverlay(newOverlay);
         broadcast({
@@ -2105,6 +2109,7 @@ export default function PresenterOperator({
                   isContinuation={scriptureOverlay.isContinuation}
                   continuationIndex={scriptureOverlay.continuationIndex}
                   continuationCount={scriptureOverlay.continuationCount}
+                  estimatedVisualLines={scriptureOverlay.estimatedVisualLines}
                 />
               ) : current ? (
                 <SlideView
