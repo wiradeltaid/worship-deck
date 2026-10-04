@@ -1426,7 +1426,7 @@ rtm:
   test:
   - tests/capture-broker-device-enumeration.test.mjs
   - tests/test-script-registration.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

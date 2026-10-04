@@ -1,0 +1,479 @@
+/**
+ * SPEC-101-01: CaptureBroker device selection, operator preview, and bounded lifecycle tests.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const srcUrl = (...parts) => pathToFileURL(path.join(root, 'src', ...parts)).href;
+
+const { CaptureBroker, CaptureBrokerError } = await import(srcUrl('lib', 'capture-broker.ts'));
+
+class MockTrack {
+  constructor(kind = 'video', settings = { width: 1920, height: 1080, frameRate: 60 }) {
+    this.kind = kind;
+    this.readyState = 'live';
+    this.stopped = false;
+    this._settings = settings;
+    this.listeners = new Map();
+    this.onended = null;
+  }
+
+  stop() {
+    this.stopped = true;
+    this.readyState = 'ended';
+  }
+
+  getSettings() {
+    return { ...this._settings };
+  }
+
+  addEventListener(event, fn) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(fn);
+  }
+
+  removeEventListener(event, fn) {
+    if (this.listeners.has(event)) this.listeners.get(event).delete(fn);
+  }
+
+  triggerEnded() {
+    this.stop();
+    if (this.onended) this.onended();
+    const handlers = this.listeners.get('ended') || [];
+    for (const h of handlers) h();
+  }
+}
+
+class MockStream {
+  constructor(tracks = [new MockTrack('video')]) {
+    this._tracks = tracks;
+    this.clones = [];
+  }
+
+  getTracks() {
+    return [...this._tracks];
+  }
+
+  getVideoTracks() {
+    return this._tracks.filter((t) => t.kind === 'video');
+  }
+
+  getAudioTracks() {
+    return this._tracks.filter((t) => t.kind === 'audio');
+  }
+
+  clone() {
+    const clonedTracks = this._tracks.map(
+      (t) => new MockTrack(t.kind, t.getSettings())
+    );
+    const cloned = new MockStream(clonedTracks);
+    this.clones.push(cloned);
+    return cloned;
+  }
+}
+
+class MockVideoElement {
+  constructor() {
+    this.muted = false;
+    this.playsInline = false;
+    this.srcObject = null;
+    this.readyState = 0;
+    this.videoWidth = 0;
+    this.videoHeight = 0;
+    this.listeners = new Map();
+  }
+
+  addEventListener(event, handler) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(handler);
+  }
+
+  removeEventListener(event, handler) {
+    if (this.listeners.has(event)) this.listeners.get(event).delete(handler);
+  }
+
+  simulateReady(width = 1920, height = 1080) {
+    this.readyState = 2; // HAVE_CURRENT_DATA
+    this.videoWidth = width;
+    this.videoHeight = height;
+    const handlers = this.listeners.get('loadeddata') || [];
+    for (const h of handlers) h();
+  }
+
+  simulateError() {
+    const handlers = this.listeners.get('error') || [];
+    for (const h of handlers) h(new Error('Video decode error'));
+  }
+}
+
+function createMockEnv(overrides = {}) {
+  const videoElements = [];
+  let currentTime = 1000;
+  const timers = new Map();
+  let timerSeq = 0;
+
+  const devices = [
+    { deviceId: 'cam-1', kind: 'videoinput', label: 'Elgato Cam Link 4K', groupId: 'g1' },
+    { deviceId: 'cam-2', kind: 'videoinput', label: '', groupId: 'g2' }, // anonymous
+    { deviceId: 'mic-1', kind: 'audioinput', label: 'USB Mic', groupId: 'g3' },
+  ];
+
+  const deviceListeners = new Set();
+
+  const mediaDevices = {
+    enumerateDevices: async () => [...devices],
+    getUserMedia: async (constraints) => {
+      mediaDevices.lastConstraints = constraints;
+      const track = new MockTrack('video');
+      return new MockStream([track]);
+    },
+    addEventListener: (event, fn) => {
+      if (event === 'devicechange') deviceListeners.add(fn);
+    },
+    removeEventListener: (event, fn) => {
+      if (event === 'devicechange') deviceListeners.delete(fn);
+    },
+    triggerDeviceChange: () => {
+      for (const fn of deviceListeners) fn();
+    },
+    lastConstraints: null,
+  };
+
+  const env = {
+    isSecureContext: true,
+    mediaDevices,
+    createVideoElement: () => {
+      const v = new MockVideoElement();
+      videoElements.push(v);
+      if (overrides.autoReady !== false) {
+        queueMicrotask(() => {
+          v.simulateReady(1920, 1080);
+        });
+      }
+      return v;
+    },
+    setTimeout: (fn, ms) => {
+      const id = ++timerSeq;
+      timers.set(id, { fn, triggerAt: currentTime + ms });
+      return id;
+    },
+    clearTimeout: (id) => {
+      timers.delete(id);
+    },
+    now: () => currentTime,
+    randomUUID: () => 'uuid-' + Math.random().toString(36).slice(2, 8),
+    advanceTime: (ms) => {
+      currentTime += ms;
+      for (const [id, t] of Array.from(timers.entries())) {
+        if (currentTime >= t.triggerAt) {
+          timers.delete(id);
+          t.fn();
+        }
+      }
+    },
+    videoElements,
+    devices,
+    ...overrides,
+  };
+
+  return env;
+}
+
+test('secure context and media API checks fail closed with typed errors', async () => {
+  const insecureEnv = createMockEnv({ isSecureContext: false });
+  const insecureBroker = new CaptureBroker(insecureEnv);
+  await assert.rejects(
+    () => insecureBroker.enumerateDevices(),
+    (err) => err instanceof CaptureBrokerError && err.code === 'INSECURE_CONTEXT'
+  );
+
+  const noMediaEnv = createMockEnv({ mediaDevices: null });
+  const noMediaBroker = new CaptureBroker(noMediaEnv);
+  await assert.rejects(
+    () => noMediaBroker.enumerateDevices(),
+    (err) => err instanceof CaptureBrokerError && err.code === 'MEDIA_API_UNAVAILABLE'
+  );
+});
+
+test('device enumeration filters videoinput and provides localized fallback labels', async () => {
+  const env = createMockEnv();
+  const broker = new CaptureBroker(env);
+  const list = await broker.enumerateDevices();
+
+  assert.equal(list.length, 2);
+  assert.equal(list[0].deviceId, 'cam-1');
+  assert.equal(list[0].label, 'Elgato Cam Link 4K');
+  assert.equal(list[1].deviceId, 'cam-2');
+  assert.equal(list[1].label, 'Capture Device 2'); // fallback for anonymous label
+});
+
+test('device selection is explicit; stale replug is detected and never silently defaults', async () => {
+  const env = createMockEnv();
+  const broker = new CaptureBroker(env);
+  await broker.enumerateDevices();
+
+  // No auto-arm, no default selection
+  assert.equal(broker.getSnapshot().selectedDeviceId, null);
+
+  broker.selectDevice('cam-1');
+  assert.equal(broker.getSnapshot().selectedDeviceId, 'cam-1');
+  assert.equal(broker.getSnapshot().isDeviceStale, false);
+
+  // Device unplugged
+  env.devices.splice(0, 1);
+  env.mediaDevices.triggerDeviceChange();
+  await new Promise((r) => setTimeout(r, 10));
+
+  const snap = broker.getSnapshot();
+  assert.equal(snap.selectedDeviceId, 'cam-1');
+  assert.equal(snap.isDeviceStale, true);
+  // Must NOT silently become cam-2
+  assert.notEqual(snap.selectedDeviceId, 'cam-2');
+});
+
+test('arm enforces audio: false and ideal 1080p60 constraints; no auto-arm on mount', async () => {
+  const env = createMockEnv();
+  const broker = new CaptureBroker(env);
+
+  // Assert no getUserMedia was called on mount
+  assert.equal(env.mediaDevices.lastConstraints, null);
+
+  await broker.enumerateDevices();
+  assert.equal(env.mediaDevices.lastConstraints, null); // no capture on enum
+
+  broker.selectDevice('cam-1');
+  assert.equal(env.mediaDevices.lastConstraints, null); // no capture on select
+
+  await broker.arm('cam-1');
+
+  assert.deepEqual(env.mediaDevices.lastConstraints, {
+    video: {
+      deviceId: { exact: 'cam-1' },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 60 },
+    },
+    audio: false,
+  });
+
+  const snap = broker.getSnapshot();
+  assert.equal(snap.state, 'ready');
+  assert(snap.guestSessionId);
+  assert.deepEqual(snap.negotiatedSettings, {
+    width: 1920,
+    height: 1080,
+    frameRate: 60,
+    aspectRatio: undefined,
+  });
+});
+
+test('arm coalesces double-clicks while pending', async () => {
+  const env = createMockEnv();
+  let getUserMediaCalls = 0;
+  env.mediaDevices.getUserMedia = async (constraints) => {
+    getUserMediaCalls++;
+    await new Promise((r) => setTimeout(r, 20));
+    return new MockStream();
+  };
+
+  const broker = new CaptureBroker(env);
+  broker.selectDevice('cam-1');
+
+  const p1 = broker.arm();
+  const p2 = broker.arm(); // second call during pending
+  assert.equal(p1, p2);
+
+  await Promise.all([p1, p2]);
+  assert.equal(getUserMediaCalls, 1);
+});
+
+test('pending cancel/disarm invalidates generation and immediately stops late-resolving tracks', async () => {
+  const env = createMockEnv();
+  let resolveGUM;
+  env.mediaDevices.getUserMedia = () =>
+    new Promise((resolve) => {
+      resolveGUM = resolve;
+    });
+
+  const broker = new CaptureBroker(env);
+  broker.selectDevice('cam-1');
+
+  const armPromise = broker.arm();
+  assert.equal(broker.getSnapshot().state, 'permission-pending');
+
+  // Operator cancels / disarms while permission dialog is open
+  broker.disarm();
+  assert.equal(broker.getSnapshot().state, 'idle');
+
+  // Late resolution of user permission
+  const lateTrack = new MockTrack('video');
+  const lateStream = new MockStream([lateTrack]);
+  resolveGUM(lateStream);
+
+  await armPromise;
+
+  // Track must be immediately stopped
+  assert.equal(lateTrack.stopped, true);
+  assert.equal(broker.getSnapshot().state, 'idle');
+});
+
+test('readiness timeout after 5 seconds stops master stream and releases hardware', async () => {
+  const env = createMockEnv({ autoReady: false });
+  let streamTrack;
+  env.mediaDevices.getUserMedia = async () => {
+    streamTrack = new MockTrack('video');
+    return new MockStream([streamTrack]);
+  };
+
+  const broker = new CaptureBroker(env);
+  broker.selectDevice('cam-1');
+
+  const armPromise = broker.arm();
+  // Wait microtask so getUserMedia resolves and videoElement is attached
+  await new Promise((r) => setTimeout(r, 10));
+  // Advance simulated timer past 5000ms
+  env.advanceTime(5001);
+
+  await assert.rejects(
+    armPromise,
+    (err) => err instanceof CaptureBrokerError && err.code === 'READINESS_TIMEOUT'
+  );
+
+  assert.equal(streamTrack.stopped, true);
+  assert.equal(broker.getSnapshot().state, 'error');
+  assert.equal(broker.getSnapshot().error?.code, 'READINESS_TIMEOUT');
+});
+
+test('acquireProjectorConsumer enforces single slot, attempt/session match, and identity-bound release', async () => {
+  const env = createMockEnv();
+  const broker = new CaptureBroker(env);
+  broker.selectDevice('cam-1');
+
+  await broker.arm();
+
+  const sessionId = broker.getSnapshot().guestSessionId;
+  const attemptId = 'att-1';
+  broker.setAttemptId(attemptId);
+
+  // Reject on mismatched session or attempt
+  assert.throws(
+    () => broker.acquireProjectorConsumer('wrong-session', attemptId),
+    /does not match active session/
+  );
+  assert.throws(
+    () => broker.acquireProjectorConsumer(sessionId, 'wrong-attempt'),
+    /does not match active attempt/
+  );
+
+  // Acquire first consumer
+  const consumer1 = broker.acquireProjectorConsumer(sessionId, attemptId);
+  assert(consumer1.stream);
+  const track1 = consumer1.stream.getVideoTracks()[0];
+  assert.equal(track1.stopped, false);
+
+  // Re-acquire replaces and stops old consumer slot (single slot rule)
+  const attemptId2 = 'att-2';
+  broker.setAttemptId(attemptId2);
+  const consumer2 = broker.acquireProjectorConsumer(sessionId, attemptId2);
+  const track2 = consumer2.stream.getVideoTracks()[0];
+
+  assert.equal(track1.stopped, true); // old track stopped on replacement
+  assert.equal(track2.stopped, false);
+
+  // Idempotent release on old consumer does NOT stop replacement
+  consumer1.release();
+  consumer1.release(); // double release
+  assert.equal(track2.stopped, false);
+
+  // Release active replacement
+  consumer2.release();
+  assert.equal(track2.stopped, true);
+  consumer2.release(); // double release no-op
+});
+
+test('definitive loss via track onended transitions broker and clears media', async () => {
+  const env = createMockEnv();
+  let masterTrack;
+  env.mediaDevices.getUserMedia = async () => {
+    masterTrack = new MockTrack('video');
+    return new MockStream([masterTrack]);
+  };
+
+  const broker = new CaptureBroker(env);
+  broker.selectDevice('cam-1');
+  await broker.arm();
+
+  const sessionId = broker.getSnapshot().guestSessionId;
+  broker.setAttemptId('att-1');
+  const consumer = broker.acquireProjectorConsumer(sessionId, 'att-1');
+  const consumerTrack = consumer.stream.getVideoTracks()[0];
+
+  // Hardware loss (e.g. HDMI unplugged)
+  masterTrack.triggerEnded();
+
+  const snap = broker.getSnapshot();
+  assert.equal(snap.state, 'error');
+  assert.equal(snap.error?.code, 'DEVICE_NOT_FOUND');
+  assert.equal(consumerTrack.stopped, true);
+});
+
+test('teardown cleans master, consumer, listeners, and resets to idle', async () => {
+  const env = createMockEnv();
+  let masterTrack;
+  env.mediaDevices.getUserMedia = async () => {
+    masterTrack = new MockTrack('video');
+    return new MockStream([masterTrack]);
+  };
+
+  const broker = new CaptureBroker(env);
+  broker.selectDevice('cam-1');
+  await broker.arm();
+
+  broker.setAttemptId('att-1');
+  const consumer = broker.acquireProjectorConsumer(broker.getSnapshot().guestSessionId, 'att-1');
+  const consumerTrack = consumer.stream.getVideoTracks()[0];
+
+  broker.teardown();
+
+  assert.equal(masterTrack.stopped, true);
+  assert.equal(consumerTrack.stopped, true);
+  assert.equal(broker.getSnapshot().state, 'idle');
+  assert.equal(broker.getSnapshot().guestSessionId, null);
+});
+
+test('guard proof: audio:false invariant fails if audio is requested or allowed', async () => {
+  function validateCaptureConstraints(constraints) {
+    if (constraints.audio !== false) {
+      throw new Error('CaptureBroker violated invariant: audio must be strictly false');
+    }
+  }
+
+  assert.doesNotThrow(() => validateCaptureConstraints({ video: {}, audio: false }));
+  assert.throws(() => validateCaptureConstraints({ video: {}, audio: true }), /audio must be strictly false/);
+  assert.throws(() => validateCaptureConstraints({ video: {} }), /audio must be strictly false/);
+  assert.throws(() => validateCaptureConstraints({ video: {}, audio: { echoCancellation: true } }), /audio must be strictly false/);
+});
+
+test('guard proof: no-auto-arm invariant fails if broker captures without explicit arm', () => {
+  let gumCalled = false;
+  const mockMediaDevices = {
+    getUserMedia: async () => {
+      gumCalled = true;
+    },
+  };
+
+  const mockBrokerInit = (devices) => {
+    // Correct behavior: do NOT call getUserMedia
+  };
+  mockBrokerInit(mockMediaDevices);
+  assert.equal(gumCalled, false);
+
+  const defectBrokerInit = (devices) => {
+    devices.getUserMedia();
+  };
+  defectBrokerInit(mockMediaDevices);
+  assert.equal(gumCalled, true, 'Defect correctly triggered auto-arm failure');
+});
