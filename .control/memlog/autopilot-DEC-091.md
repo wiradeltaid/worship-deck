@@ -8,10 +8,10 @@ artifact: .control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-
 
 - Iteration: I-1
 - Run branch: autopilot/DEC-091
-- Stopped at: SPEC-104 closed (100% delivered), ready for SPEC-105-01
+- Stopped at: SPEC-105-01 complete, ready for SPEC-105-02
 - Blocked: —
 - Parked: —
-- Next: SPEC-105-01
+- Next: SPEC-105-02
 
 ## Decisions
 
@@ -21,6 +21,7 @@ artifact: .control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-
 | I-1 | SPEC-104-01 | Render persistent blackout layer at z-50 with 300ms opacity transition and pointer-events-none | abrupt conditional mounting and unmounting | hard visual cuts on auditorium projector and potential click blocking | src/projected/ProjectorClient.tsx, tests/projected-transitions.test.mjs |
 | I-1 | SPEC-104-02 | Decouple scripture overlay into dedicated z-20 layer with entrance, exit, crossfade, and mount-time sync transitions | conditionally replacing SlideView inside incoming slide container | abrupt content swaps, flickering underlying slides, and missing fade animations | src/projected/ProjectorClient.tsx, tests/projected-transitions.test.mjs |
 | I-1 | SPEC-104-03 | Implement combobox ARIA semantics, ArrowDown/Up/Enter/Escape navigation, shouldSuggestBooks boundary defense, and Go SuggestBooks chapter suppression | unconditional suggestions and un-intercepted keyboard events | distracting autocomplete dropdowns when typing chapters and inability to select books with keyboard | src/components/ScriptureRefAutocomplete.tsx, src/lib/scripture-autocomplete.ts, internal/scripture/match.go, internal/scripture/match_test.go, tests/scripture-controls-ergonomics.test.mjs |
+| I-1 | SPEC-105-01 | Create PresenterSavedSessionV1 schema and helpers with 8h expiry, clock skew tolerance, index clamping, and fail-closed peek | unvalidated localStorage reads and raw truthiness checks | corrupted session state restoring into presenter and inaccurate active session status | src/lib/presenter-session.ts, tests/presenter-session-recovery.test.mjs |
 
 ## Smoke Test Results
 
@@ -28,3 +29,4 @@ artifact: .control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-
 - SPEC-104-01: PASS (ProjectorClient persistent blackout transition and pointer-events-none verified, tests/projected-transitions.test.mjs green)
 - SPEC-104-02: PASS (ProjectorClient decoupled scripture overlay at z-20 with smooth entrance/exit/crossfade state machine verified, tests/projected-transitions.test.mjs green)
 - SPEC-104: PASS (npm run smoke:spec-104, 14 tests green across tests/projected-transitions.test.mjs and tests/scripture-controls-ergonomics.test.mjs)
+- SPEC-105-01: PASS (PresenterSavedSessionV1 schema, sanitization, expiry, and fail-closed peek verified, tests/presenter-session-recovery.test.mjs green)
