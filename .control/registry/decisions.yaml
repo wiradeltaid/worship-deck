@@ -1930,6 +1930,27 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-103-presenter-unified-display-capture-discovery-and-scripture-normalization/
 
+  - id: DEC-091
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-04)"
+    title: Daily Autopilot mandate for Presenter Blank Transition, Scripture Overlay, and Session Recovery (SPEC-104 & SPEC-105)
+    file: .control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-and-session-recovery.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-11'
+    touches:
+      - .control/memlog/autopilot-DEC-091.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-104-presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics/
+      - .scratch/SPEC-105-presenter-session-recovery-and-run-sheet-smart-resume/
+
+
 
 
 
