@@ -4242,9 +4242,11 @@ waves:
     release: guest-speaker-hdmi-video-capture-input
     prd: [operator-turn]
     fr: [FR-16, FR-19]
-    size: S
+    size: M
     depends_on: [SPEC-100]
     spec_folder: .scratch/SPEC-101-guest-speaker-hdmi-video-capture-input/
+    # Round 2 coordinator fold-in materially revises the contract. The retained
+    # trace is historical; independent review of this revision is still pending.
     spec_reviewed:
       date: '2026-10-04'
       sha: 'cb2389471801fa130897c8d3b322875ef10cdd82'
@@ -4258,20 +4260,22 @@ waves:
         touches: [present-channel]
         tests:
           - tests/capture-broker-device-enumeration.test.mjs
+          - tests/test-script-registration.test.mjs
       - id: "SPEC-101-02"
         component: presenter
-        satisfies: [UC-12, FR-16]
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
         blocked_by: ["SPEC-101-01"]
         touches: [present-channel]
         tests:
           - tests/presenter-guest-feed-controls.test.mjs
       - id: "SPEC-101-03"
         component: presenter
-        satisfies: [UC-12, FR-16, FR-19]
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
         blocked_by: ["SPEC-101-02"]
         touches: [present-channel]
         tests:
           - tests/projector-guest-media-bridge.test.mjs
+          - tests/smoke-spec-101.test.mjs
 
 
 

@@ -1425,6 +1425,7 @@ rtm:
   release: guest-speaker-hdmi-video-capture-input
   test:
   - tests/capture-broker-device-enumeration.test.mjs
+  - tests/test-script-registration.test.mjs
   status: open
   exempt: false
   green: false
@@ -1453,6 +1454,7 @@ rtm:
   release: guest-speaker-hdmi-video-capture-input
   test:
   - tests/projector-guest-media-bridge.test.mjs
+  - tests/smoke-spec-101.test.mjs
   status: open
   exempt: false
   green: false
@@ -1924,6 +1926,35 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-101-02
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-101-03
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/projector-guest-media-bridge.test.mjs
+  - tests/smoke-spec-101.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -4740,6 +4771,35 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-101-02
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-101-03
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/projector-guest-media-bridge.test.mjs
+  - tests/smoke-spec-101.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22

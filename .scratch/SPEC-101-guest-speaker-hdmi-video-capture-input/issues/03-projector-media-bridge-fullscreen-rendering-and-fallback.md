@@ -1,55 +1,28 @@
-# 03: Projector Media Bridge, Fullscreen Video Rendering, and Fail-Safe Fallback
+# 03: Confirmed Projector Playback, Named Popup Recovery, and Fail-Closed Projection
 
-**What to build:** In `src/projected/ProjectorClient.tsx` and `<src/projected/ProjectorMediaBridge.ts>`:
+**What to build:** The congregation receives contained guest video only after the existing named projector safely attaches a cloned stream; failures retain blanking and notify the operator. Reload/relocate cleans old consumers, and a real popup-blocked fallback preserves opener. Implements SPEC-101 §§3–5.
 
-1. **Same-Origin Opener Media Bridge (`<src/projected/ProjectorMediaBridge.ts>`)**:
-   - Helper to safely acquire a consumer stream from `window.opener.__worshipDeckCaptureBroker.acquireProjectorConsumer(guestSessionId)`.
-   - Handles popup refresh / remount: when `ProjectorClient` mounts while `projection.kind === 'guest'`, requests fresh cloned stream with non-leaking `release()` callback.
-   - Operational boundary: if `window.opener` is closed, unavailable, or cross-origin, fails closed, emits `projector-media-status: unavailable`, and cleanly renders the active slide deck.
-   - Update fallback button in `PresenterOperator.tsx`: replace `target="_blank" rel="noreferrer"` with a programmatic `window.open` trigger to preserve `window.opener`.
-
-2. **Projector View Video Surface (`src/projected/ProjectorClient.tsx`)**:
-   - Conditional rendering layer:
-     - When `projection.kind === 'guest'`: renders `<video ref={videoRef} autoPlay playsInline muted />`.
-     - Styling:
-       ```css
-       position: absolute;
-       inset: 0;
-       width: 100%;
-       height: 100%;
-       object-fit: contain;
-       background: #000;
-       z-index: 30;
-       ```
-     - Handles aspect ratio gracefully (4:3, 16:10, 16:9) via letterboxing/pillarboxing with pure black bars.
-   - Compliance with `AD-24`:
-     - Surface displays ZERO operator controls, ZERO error toasts, and ZERO device labels.
-   - Compliance with Blanking:
-     - Operator blank screen command (`B`) continues to display the full black overlay at `z-50` on top of the live video stream (`z-30`).
-
-3. **Narrow AD-29 Telemetry & Fail-Safe Fallback**:
-   - Sends `projector-media-status` message (`attached` | `unavailable`) over `present-channel`.
-   - Listens to `videoTrack.onended` and `video.onerror`.
-   - If the capture device is unplugged or the pipeline crashes, immediately reverts to rendering the current slide deck and emits `projector-media-status: unavailable`. (Note: upstream HDMI disconnect/freeze does not terminate tracks; operator manual panic button / Escape is the primary fallback for content freeze).
-   - Properly invokes `release()` on consumer stream on unmount, `pagehide`, or switch back to `'deck'`.
-
-4. **Automated Unit Tests in `tests/projector-guest-media-bridge.test.mjs`**:
-   - Attaches stream when `projection.kind === 'guest'`.
-   - Aspect ratio styling: verifies `object-fit: contain`, black background, and `z-30`.
-   - Blank screen overlay: verifies blank state at `z-50` occludes the video element.
-   - Fail-safe fallback: simulating `track.onended` immediately returns projector view to slide presentation and emits `projector-media-status`.
-   - Opener failure boundary: missing or cross-origin opener cleanly renders deck without crashing.
-   - Teardown: verifies consumer track is stopped and released when unmounted or on `pagehide`.
-
-**Satisfies:** [UC-12, FR-16, FR-19]
-
+**Satisfies:** [UC-12, UC-13, FR-16, FR-19]
 **Blocked by:** SPEC-101-02
-
 **Status:** open
 
-- [ ] Implement `<src/projected/ProjectorMediaBridge.ts>` same-origin stream acquisition with fail-closed opener handling.
-- [ ] Render contained fullscreen `<video>` surface at `z-30` in `src/projected/ProjectorClient.tsx` when `projection.kind === 'guest'`.
-- [ ] Implement automatic fallback on pipeline error / `track.onended` and telemetry reporting (`projector-media-status`).
-- [ ] Replace `noreferrer` fallback link in `PresenterOperator.tsx` with programmatic opener-preserving launch.
-- [ ] Verify blank screen overlay occlusion at `z-50` (`AD-24`).
-- [ ] Add comprehensive automated tests in `tests/projector-guest-media-bridge.test.mjs`.
+- [ ] Run HIL-0 cross-window clone/readiness spike before implementing the room bridge on each candidate platform. Record Chrome/Edge/desktop support outcome. A failed WebView2 spike is an owner platform decision, not permission for an unplanned native-host redesign.
+- [ ] Acquire from same-origin opener via current guestSessionId/guestAttemptId on mount AND either ID changing; identical sync does not reacquire. Handle missing/closed/cross-origin opener, invalid session/attempt and thrown bridge methods without rendering technical errors.
+- [ ] Preserve the existing named window.open launch/retry and real fallback anchor with the SAME named target and rel='opener', without noreferrer/noopener/_blank. Handle continued blocking with operator guidance/Deck; retain one screen and existing focus/window-placement/liveness behavior. Do not replace the only anchor recovery with repeated programmatic opening.
+- [ ] Set srcObject, muted, playsInline, autoPlay and call play. Require positive dimensions / readyState >=2 and observable playback readiness within 3 seconds. Emit attached only then. Reject/timeout/video error releases media and emits unavailable; map opener-unavailable, consumer-attach-failed, video-error exactly as SPEC.
+- [ ] Every status includes current session AND attempt. Re-emit latest attached/unavailable every second while that guest intent remains authoritative, and on repeated sync, on a separate media timer. A local fallback retains intent solely for reconciliation; it never controls global projection or feeds heartbeat state.
+- [ ] Render black-contained viewport video at z-30 under blank z-50, no controls/operator chrome/device labels/errors. Suppress existing z-40 F11 hint for guest intent (including pending). Fullscreen only uses the existing document-level path; never fullscreen the video.
+- [ ] stalePlan releases media and refuses guest/Deck using the existing generic projected surface under blank. Current track ended/playback error hides guest locally and reports unavailable. Continuing HDMI black/freeze/splash is not treated as definitive ended; operator manual panic handles content failure.
+- [ ] Distinguish intentional release/replacement from source failure; old callbacks never report an error for the new attempt. Opener death and stalePlan hide guest immediately; report unavailable for the admitted attempt if possible (stalePlan maps to consumer-attach-failed). Do not depend on a dead operator receiving the report.
+- [ ] Cleanup idempotently removes srcObject/listeners/timers/frame callbacks and release on Deck, session/attempt replacement, stalePlan, unmount/pagehide; pageshow requests sync before reattach. Late completions/old release cannot attach or stop a replacement. Owner-driven closure/loss cleanup remains necessary when child cleanup never runs.
+- [ ] Unit tests cover opener boundaries, acquire/reacquire/no-op identical sync, attached only after playback, rejection/no-frame timeout, telemetry retry and exact reasons, old completion/release, pagehide/pageshow/StrictMode/crash recovery, stalePlan, aspect containment, hint suppression, blank→revert→unblank and owner reload.
+- [ ] Add real Chromium fake-media browser smoke using the existing harness and a real popup: preview→Switch→observable popup video; correct same-origin opener; current attached; reload/relocate under guest; local/remote scripture; source-ended versus explicit owner Disarm; missing opener; blank occlusion; one slot and Deck rendering after panic. Explicit stop() is NOT used as a synthetic ended event.
+- [ ] Add tests/projector-guest-media-bridge.test.mjs and tests/smoke-spec-101.test.mjs with real assertions. Register each only when present; introduce smoke:spec-101 / test:smoke-spec-101 once all referenced unit and browser files exist. Run it as a G5 gate, not proof of physical HDMI/USB behavior.
+- [ ] Prove all absence guards red with each covered injected form: audio capture/track; media/binary/DOM channel payload; localStorage stream control; projected controls/chrome; video-level fullscreen; automatic Arm; video during stalePlan. Restore all injected defects before final verification.
+- [ ] Complete SPEC HIL failure, native-keyboard, replug/sleep, aspect/resolution, analog audio/lip-sync, slot cleanup and 120-minute soak measurements on synthetic content. A healthy window heartbeat or configured FPS is not physical media acceptance.
+- [ ] After code exists, reconcile .how/presenter/02-contracts/02-present-channel.md and LC-14 session documentation with actual projection/attempt/telemetry behavior. Keep applied DEC-088 unchanged; the canonical registry records its expiry.
+- [ ] Before any CI-triggering push/ready PR, run the repo full CI suite on exact HEAD (Go tests, SPA build, typecheck, installed browser acceptance, npm test), plus public guard and corpus validator. Fresh independent review/stamp and owner authorization remain separate from this drafting run.
+
+## Completion evidence
+
+Record runtime matrix, test/injection results, HIL measurements and unresolved platform limitations. Do not store congregation data, screenshots or production details in the public spec workspace.

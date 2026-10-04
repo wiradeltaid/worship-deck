@@ -1,163 +1,104 @@
 # SPEC-101 — Guest Speaker HDMI Video Capture Input, Single Broker Streaming, and Safe Congregation Projection
 
 ## Requirement Traceability & Scope
-- **PRD**: `operator-turn`
-- **Architectural Decisions**:
-  - `AD-1` (`.how/_platform/ARCHITECTURE-SPINE.md:62`): Sabbath Guarantee — PPTX export is the authoritative offline guarantee; in-browser presentation is an operator staging convenience. Live media capture is an ephemeral runtime feature with instant failover to slide deck.
-  - `AD-10` (`.how/_platform/ARCHITECTURE-SPINE.md:108`): One Presenter Sync Channel, Client-Side Only — BroadcastChannel carries strictly serializable semantic presentation intent, NEVER media streams or binary buffers. Ephemeral channel state is authoritative from the operator; `localStorage` is NOT used for live stream control. `PresentMessage['sync']` explicitly carries `projection: ProjectedSource`.
-  - `AD-24` (`.how/_platform/ARCHITECTURE-SPINE.md:205`): Operator Chrome State Is Browser-Local, and Room-Facing Surface Is Closed to It — The congregation display renders live video with `object-fit: contain; background: #000;`, with zero operator controls, device selectors, or error traces. Blank screen (`B`) universally occludes both slides and live video at `z-50`.
-  - `AD-29` (`.how/_platform/ARCHITECTURE-SPINE.md:255`): Projector liveness protocol & BroadcastChannel isolation — Narrow extension via DEC-088 allows projector to emit typed telemetry `projector-media-status` (`attached` | `unavailable`) without becoming a secondary controller. Liveness ping-pong heartbeats remain strictly decoupled from media lifecycle and hardware frame states.
-- **Functional Requirements**:
-  - `FR-16` (Two-Screen Presenter — Operator Console Controls & Congregation Projector)
-  - `FR-19` (Auditorium Projector Output and Live Synchronization)
-- **Use Cases**:
-  - `UC-12` (Two-Screen Presenter: Operator Console Controls and Projector Sync)
-- **Bounded Feature Scope**:
-  - This feature adds an operator-controlled external live video source (e.g. guest preacher laptop via UVC HDMI capture card) alongside pre-rendered slide deck and scripture overlay.
-  - It does NOT replace or reconfigure the existing sanctuary projector display output (UGREEN Pair 1 / HDMI Out to projector remains the secondary monitor managed by SPEC-99).
-  - Physical audio routing remains the responsibility of the sanctuary sound technician; browser audio capture is disabled at the API level (`audio: false`).
-- **Components**: `presenter`
-- **Touches**: `present-channel`
 
----
+- **Origin:** Existing wdi-daily-what-to-build output, amended by coordinator fold-in of the five Round 2 handover reviews on 2026-10-04. This revision does not claim a new independent review or authorize implementation.
+- **PRD:** operator-turn.
+- **Requirements:** FR-16 — Two-screen presenter view in the browser; FR-19 — Search and display an on-demand verse in Presenter. FR-19 is an existing scripture regression obligation, not an external-video requirement.
+- **Use cases:** UC-12 (two-screen presenter), UC-13 (on-demand scripture regression).
+- **Architecture:** AD-1, AD-10, AD-24, and the narrow AD-29 extension adopted through DEC-088, in .how/_platform/ARCHITECTURE-SPINE.md; inherited by .how/presenter/SDD-presenter.md.
+- **Component / touches:** presenter / present-channel. Keep SPEC-101-01 → SPEC-101-02 → SPEC-101-03; each ticket delivers a verifiable operator or congregation outcome. Registry size M accounts for the existing SPEC document and explicit testing seams.
+- **Boundary:** One presenting operator window, one named projector window, same browser profile, same origin (scheme, host, port), same Service/plan. A phone remains an intent source via AD-37; it does not capture or join the projector channel.
+- **No new guarantee:** Guest media is a best-effort runtime convenience. The AD-1 offline PPTX guarantee covers the Deck, not the guest laptop. A second Presenter controlling the same Service is unsupported; operators must close it before arming.
+- **Platform gate:** Chrome/Edge on Windows are candidate runtimes, not certified merely by this document. WebView2 desktop must pass the same opener/capture tests before being advertised as supported. No native-host changes are authorized by these tickets; a failed desktop spike requires a separate owner decision.
+- **Out of scope:** Browser audio, recording, content/pixel inspection, HDCP/DRM bypass, persistent capture control, remote guest switching, new server realtime transport, and redesign of SPEC-99 projector output.
 
 ## Problem Statement
 
-During worship services, guest speakers (pastors, evangelists, or seminar presenters) frequently bring their own laptops to project sermon slides, PDFs, or software demonstrations. Churches equipped with wireless HDMI transceivers (such as the UGREEN 50633A 5GHz point-to-point system) and USB HDMI capture cards face significant operational and architectural challenges when attempting to route the guest video feed into the sanctuary display:
+A guest laptop needs a previewed, deliberately selected path to the congregation display without opening the capture device twice, capturing HDMI audio, or silently diverging from the operator. Driver/device contention with other applications is a deployment risk; exclusive capture across windows is not assumed universally true. The one-owner design makes lifecycle and teardown deterministic regardless of driver sharing behavior.
 
-1. **Windows UVC Exclusive Device Lockout**:
-   - In Windows OS (DirectShow / Media Foundation), USB Video Class (UVC) capture devices are almost universally locked exclusively by the first client or window that opens them.
-   - If both the Operator Console window (`PresenterOperator.tsx`) and the Congregation Projector popup (`ProjectorPage.tsx`) attempt to call `navigator.mediaDevices.getUserMedia()`, the second call fails with `NotReadableError` ("Device in use / busy"), resulting in a blank screen or broken stream.
-
-2. **Acoustic Feedback & Audio Loop Hazards**:
-   - HDMI carries interleaved digital audio alongside video. If the browser captures the HDMI audio track and routes it through the operator's laptop sound device or HDMI output, it can cause severe acoustic howling, echo loops, or unexpected volume blasts through the sanctuary sound system.
-
-3. **Hardware Reality of HDMI Signal Loss vs Browser API**:
-   - When a guest laptop sleeps, unplugs HDMI, or drops wireless link, the USB capture card remains plugged into the host laptop; the OS driver does NOT terminate the track (`track.onended` does not fire). Instead, UVC continues streaming a frozen frame, black screen, or UVC vendor "No Signal" screen.
-   - Automatic failover must be strictly bounded to definitive capture pipeline errors (USB unplug, driver crash); manual operator panic button and hotkeys serve as the primary line of defense against upstream content degradation.
-
-4. **Secure Context & Origin Constraints**:
-   - `navigator.mediaDevices.getUserMedia()` is strictly gated by the Web platform to Secure Contexts (`window.isSecureContext`: `https://` or `localhost`).
-   - When running on a local church server accessed across an unencrypted LAN IP (`http://192.168.x.x:5173`), media capture is blocked by the browser. The architecture must gracefully detect, communicate, and handle execution environment constraints.
-
----
+HDMI loss, sleep, and protected content can leave UVC sending repeated, black, or vendor frames. Browser readiness is not evidence that the guest content is correct. The operator must verify the visible preview before switching.
 
 ## Solution Architecture & Core Invariants
 
-Worship Deck implements the **Single CaptureBroker, Cloned Track Fan-Out, and Same-Origin Opener Bridge** pattern:
+### 1. Operator-owned capture and bounded consumers
 
-```text
-[Guest Laptop] ──(HDMI)──► [UGREEN TX2] ~~~5GHz~~~► [UGREEN RX2] ──(HDMI)──► [USB HDMI Capture]
-                                                                                     │ (USB 3.0 UVC)
-                                                                                     ▼
-                                                                        [Operator Console Window]
-                                                                          │  (CaptureBroker Singleton)
-                                                                          │  - getUserMedia({ video, audio: false })
-                                                                          │  - Track cloned via videoTrack.clone()
-                                                                          ├──► [Operator Preview Thumbnail]
-                                                                          │    (<video muted playsInline autoPlay />)
-                                                                          ▼
-                                                                (Same-Origin Opener Bridge)
-                                                                          │
-                                                                          ▼
-                                                               [Congregation Projector Window]
-                                                                       [ProjectorMediaBridge]
-                                                                       - Attaches cloned track to <video>
-                                                                       - CSS object-fit: contain; background: #000;
-                                                                       - Definite pipeline failure fallback (USB unplug); manual panic for upstream freeze
-```
+- The existing named projector output remains managed by SPEC-99. Guest HDMI enters a UVC capture card on the presenting laptop; the operator alone calls getUserMedia.
+- Capture requests use a deliberately selected videoinput deviceId, audio: false, and ideal 1920×1080 / 60 fps constraints. No automatic default/webcam selection, auto-arm, or silent substitute device.
+- Check secure context and API availability separately. Distinguish INSECURE_CONTEXT, MEDIA_API_UNAVAILABLE, PERMISSION_DENIED (NotAllowedError), DEVICE_BUSY (NotReadableError), DEVICE_NOT_FOUND (NotFoundError), CONSTRAINT_UNSATISFIED (OverconstrainedError), READINESS_TIMEOUT, and CAPTURE_FAILED. Device removal / ended is definitive loss. Error copy is localized and operator-only.
+- Enumeration filters videoinput, supplies localized anonymous labels, refreshes after permission/devicechange, and requires explicit selection after a stale ID/replug. Do not persist IDs or media control.
+- Only one capture request may be outstanding. Repeat Arm is disabled/coalesced. Cancel invalidates its generation; if the unresolved browser permission request later returns a stream, stop every track immediately. Do not pretend getUserMedia is abortable; a new Arm waits for the old request to settle.
+- After permission resolves, attach the master to a visible muted, playsInline operator preview. Require loadeddata/canplay, readyState >= 2, and positive video dimensions within 5 seconds. This proves frame availability, not upstream HDMI quality. Timeout/failure stops the master, clears srcObject/listeners/timers, and releases the device.
+- Generate a fresh opaque guestSessionId for each Arm generation. It survives ready↔guest↔deck while the master stays warm; Disarm, owner teardown, or definitive loss invalidates it.
+- acquireProjectorConsumer(guestSessionId, guestAttemptId) returns { stream, release }. Both IDs must match the current authorized broker session/attempt and the master must be ready/live. Reject otherwise.
+- Replace the unbounded Set with one projector consumer slot. New acquisition stops/releases the previous slot before allocating its clone. release is idempotent and identity-bound: an old release cannot clear/stop the replacement slot.
+- Operator-owned cleanup runs before close/reload/relocate, on confirmed projector-handle closure or liveness lost, and on owner unmount/pagehide/service or plan change. It releases the slot even if the child never runs cleanup. Missing handles alone are not evidence of closure; reuse the existing AD-29 evaluator.
+- Close/loss cleanup marks the operator-owned media attachment unavailable and returns guest intent to Deck before releasing its slot; a healthy master may stay ready. This is operator media lifecycle policy, not a new projector command or a second liveness verdict. During deliberate reload/relocate, invalidate the old attempt and wait for the replacement rather than treating expected old-window cleanup as a failure of the new attempt.
+- Disarm and owner teardown explicitly publish Deck before stopping master/consumer tracks when the channel is available. They also invalidate pending permission/readiness/attach work. Do not rely on stop() producing ended or on owner destruction alone stopping clones.
 
-### 1. Single CaptureBroker Singleton (`<src/lib/capture-broker.ts>`)
-- **Authority**: The operator window is the sole owner of the UVC hardware capture lifecycle. The projector window NEVER calls `getUserMedia()`.
-- **Browser-Level Audio Exclusion**:
-  ```ts
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { deviceId: { exact: selectedDeviceId } },
-    audio: false, // Mandatory: audio capture is excluded at browser API level
-  });
-  ```
-  Both operator preview and congregation video elements remain explicitly `muted`.
-- **Observable Signal Readiness**:
-  - The broker does not treat `getUserMedia()` resolution as proof of active video.
-  - Evaluates `onloadeddata` / `oncanplay` within a 5-second timeout window. Only when a valid frame has rendered does the broker transition to `ready`.
-- **Cloned Track Fan-Out & Consumer Registry**:
-  - The broker exposes `acquireProjectorConsumer(guestSessionId): { stream: MediaStream, release: () => void }`.
-  - The broker maintains an internal `Set<MediaStream>` of active consumer streams.
-  - When the projector popup navigates, unmounts, or closes, `release()` stops consumer tracks and cleanly removes them from the registry.
-  - When `.disarm()` is invoked on the broker, it stops the master track AND iterates over all registered consumer tracks to ensure clean, non-leaking OS teardown.
-- **Track Health & Real Settings**:
-  The broker inspects actual `track.getSettings()` (width, height, frameRate) rather than hardcoded assumptions, reporting true signal capabilities (e.g. 1080p30 vs 1080p60) to the operator.
-- **Lightweight Compositor Stalled Watchdog**:
-  Uses `requestVideoFrameCallback` to track delta time between compositor frames. If frames stop arriving for >3 seconds while in `live` state, updates operator indicator to "Signal Stalled", without expensive pixel inspection.
+### 2. Presenter state, keyboard, and scripture
 
-### 2. Presenter Header Control UI & Semantic Channel State (`<src/operator/present/PresenterGuestFeedControl.tsx>`)
-- **Deterministic State Machine & Transitions**:
-  - `idle`: No active capture. Operator selects video input device from dropdown.
-  - `arming`: Operator clicks **"Arm Guest Feed"**. `getUserMedia` executes.
-  - `ready`: Signal verified via `canplay`. Operator preview thumbnail shows incoming live feed. Status badge shows verified resolution/fps (e.g. `1080p 60fps - Ready`). Switch button enabled.
-  - `live`: Operator clicks **"Switch to Guest Screen"**. Operator broadcasts `{ type: 'sync', projection: { kind: 'guest', guestSessionId } }`. Projector switches to live video.
-  - `revert`: Operator clicks **"Revert to Deck"** (or presses hotkey `G` / `Escape`). Operator broadcasts `{ type: 'sync', projection: { kind: 'deck' } }`. State moves back to `ready` (capture stays pre-warmed so speaker can be re-projected instantly).
-  - `disarm`: Operator clicks **"Disarm"**. Broker stops all tracks and releases UVC hardware. State returns to `idle`.
-  - `lost` / `error`: Triggered on `masterTrack.onended` (USB unplugged), permission rejection, or device error. The Operator Console **authoritatively transitions channel state to `{ kind: 'deck' }`**, ensuring the projector and presenter never diverge.
-- **Capture-Phase Hotkey Handling**:
-  - `Escape` hotkey handler is attached during the window *capture* phase so it triggers even when a `<select>` or button currently holds focus.
-  - `G` hotkey acts with explicit target intent (arms/switches when in `ready`, reverts when in `live`).
-- **Mutual Exclusivity with Scripture Overlay**:
-  - Switching to Guest automatically clears any active scripture overlay from the broadcast state.
-  - Pushing a new scripture overlay while Guest is live automatically reverts projection to `deck` and displays the scripture passage.
-- **Authoritative Presenter Sync Channel Contract (`AD-10`)**:
-  - `PresentMessage['sync']` and `currentState()` in `PresenterOperator.tsx` explicitly include:
-    ```ts
-    export type ProjectedSource =
-      | { kind: 'deck' }
-      | { kind: 'guest'; guestSessionId: string };
-    ```
-  - Reloading or relocating the projector requests sync and deterministically receives the active `projection` state.
-  - `localStorage` is NOT used for live video control.
+- Arm is an explicit button action after device selection. Ready means preview ready; it does not mean the room is attached. Switch requires a healthy master, a fresh preview check, and a responding named projector. Popup-blocked/no-projector cases disable Switch and explain how to open the screen.
+- Switch sends guest intent and shows “Waiting for projector”; only matching attached telemetry changes the operator badge to confirmed Guest live. Revert is always available while guest intent/attach is pending or live, independent of presentationLock, dialogs, busy/error states.
+- Revert broadcasts Deck, cancels the attach attempt and releases the consumer, while keeping a healthy master ready. It never resurrects an old scripture overlay. Disarm supports ready→idle and live/pending→Deck→idle.
+- Escape is a capture-phase, one-way panic while guest intent is active, even with a focused select or grid/dialog. Panic has priority over dialog dismissal; do not stopPropagation. Ignore composition events. It is a no-op in Deck. Browser/native dropdown/fullscreen handling and focus in another window remain runtime limits, covered by HIL.
+- G is revert-only, never Arm/Switch. Ignore INPUT, TEXTAREA, SELECT, contentEditable descendants, grid/dialog, composition, repeat, and Ctrl/Meta/Alt chords. Repeated panic cannot put a guest back on air.
+- When the console lacks focus, show localized “Hotkeys unavailable — click the console” during ready/guest operation. Do not forward projector keyboard commands to create a secondary controller.
+- Entering guest clears scripture. Any explicit local/remote scripture display, pagination, or mode intent returns to Deck and displays the requested passage through the same presenter state/broadcast path. A late lookup result is discarded if a newer operator intent superseded it. Blanking is retained throughout.
+- During guest, slide/remote-next and emergency patch hydration/revert pre-cue the Deck while retaining guest projection. Suppress hidden slide-transition work; retain the pre-cued slide state. Revert cuts to that slide without a background transition replay.
+- Existing UI locale/shadcn conventions apply. Copy such as button labels, errors, device placeholders, focus/status warnings, and screen-sharing notice must use typed presenter.guestFeed.* keys in both English/Indonesian catalogues.
 
-### 3. Projector Media Bridge & Contained Fullscreen Projection (`src/projected/ProjectorClient.tsx`)
-- **Same-Origin Opener Bridge**:
-  - When `projection.kind === 'guest'`, `ProjectorClient` acquires a consumer stream via `window.opener.__worshipDeckCaptureBroker.acquireProjectorConsumer(guestSessionId)`.
-  - Operational boundary: If the projector is opened independently without an opener or across origins, the bridge fails closed, sends `projector-media-status: unavailable`, and cleanly retains slide deck projection.
-  - Fallback button in operator console replaces `target="_blank" rel="noreferrer"` with a programmatic `window.open` trigger to preserve `window.opener`.
-- **Visual Presentation Invariant (`AD-24`)**:
-  Rendered in a contained viewport layer with CSS:
-  ```css
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #000;
-  z-index: 30;
-  ```
-  Zero operator UI, zero device selectors, zero technical error messages shown to congregation.
-- **Blank Screen Overlay (`B`)**:
-  The existing blackout overlay stays at `z-50`, cleanly covering the live video surface (`z-30`) just as it covers slide canvases.
-- **Narrow AD-29 Telemetry Contract**:
-  Projector communicates status back to operator via narrow typed telemetry:
-  ```ts
-  type ProjectorMediaStatus =
-    | { type: 'projector-media-status'; guestSessionId: string; state: 'attached' }
-    | { type: 'projector-media-status'; guestSessionId: string; state: 'unavailable'; reason: 'opener-unavailable' | 'consumer-attach-failed' | 'video-error' };
-  ```
-  Projector does not control state; upon receiving `unavailable`, Operator Console authoritatively updates global state back to `deck`.
+### 3. Sync, attempt correlation, and sink readiness
 
-### 4. Physical Audio Routing Standard Operating Procedure (SOP)
-- **Zero Browser Audio Guarantee**: Browser audio capture is strictly disabled at API request time (`audio: false`) and video elements are permanently muted. No audio path passes through WorshipDeck or the presenter laptop.
-- **Dedicated Sanctuary Audio Path**:
-  - Guest speakers wishing to play video clips with sound MUST connect an analog 3.5mm stereo cable from their laptop headphone jack to a stage DI Box or mixer channel.
-  - Windows on the guest laptop often defaults playback to the newly attached HDMI device (UGREEN TX2). The speaker or sound technician must verify that Windows audio playback is explicitly assigned to "Realtek Audio / Headphones", not HDMI.
-  - Operators MUST NOT enable Windows "Listen to this device" on the USB Capture Card audio endpoint.
-- **Latency & Lip-Sync Bounds**: Video passing through the double 5GHz wireless hop and Chromium compositor incurs ~150–300ms latency. For sermon slides and presentation decks, this latency is imperceptible; for musical/vocal video clips, sound technicians must be aware that direct analog audio will lead the projected video slightly.
+- Preserve ProjectedSource: Deck { kind: 'deck' } or guest { kind: 'guest', guestSessionId }. Every full sync carries projection plus existing index, blank, transition, background, scripture, patches, and planIdentity.
+- Add an opaque guestAttemptId in the sync envelope while projection is guest; it is diagnostic attachment correlation, not a sequence number or heartbeat pairing. Deck carries no active attempt.
+- The operator issues a new guestAttemptId on each Switch, before operator-triggered projector reload/relocate, and when answering a projector request-sync while guest is active (including manual reload). It invalidates/releases the old attempt first. Ordinary slide/patch sync retains the current attempt.
+- currentState, slide navigation, emergency patch hydration, and emergency patch revert all read the same projection/attempt refs. A new request-sync response is a complete snapshot, never a partial sync example.
+- projectionOf returns null for non-sync messages; sync with missing/malformed projection, empty guest ID, or missing/invalid guest attempt fails closed to Deck. Keep planIdentity admission first. No MediaStream, DOM object, binary buffer, or capture control enters localStorage/channel payloads.
+- Telemetry contains type projector-media-status, guestSessionId, guestAttemptId, and either state attached or state unavailable with exactly opener-unavailable | consumer-attach-failed | video-error. Validate shape/closed taxonomy at runtime; no index, blank, transition, or replacement projection.
+- The operator accepts telemetry only for its current guest session AND attempt. Ignore stale/malformed/unknown reports, including old-window failures within the SAME session, Deck reports, and old attach completions. Keep isProjectorMessage restricted to request-sync/projector-alive as heartbeat evidence; update its misleading origin comments separately.
+- The projector attaches through the same-origin opener broker on mount and whenever session/attempt changes; identical repeated sync does not allocate another clone. It explicitly calls play and requires positive dimensions / readyState >= 2 / observable frame readiness within 3 seconds. Only then emit attached. Reject/timeout/error releases the clone and reports video-error or consumer-attach-failed as appropriate; unavailable opener maps to opener-unavailable.
+- If projection changes to a new session/attempt, release and invalidate old callbacks before starting the replacement. Never classify intentional release/replacement as a failure of the new attempt. On opener death or stalePlan, stop presenting guest immediately and report unavailable for the affected admitted attempt when the channel remains usable; map stalePlan refusal to consumer-attach-failed, without inventing a fourth reason.
+- A separate operator attach deadline of 5 seconds from each new attempt returns globally to Deck and warns if attached never arrives. A hung/old-build sink is not marked Live merely because its window heartbeat continues.
+- While guest intent remains current, the sink re-emits its latest attached/unavailable status once per second on a separate media-status timer, and on repeated sync. This reconciles a dropped first status. It does not become a media heartbeat input to AD-29. Do not auto-reenter guest after any fallback.
+- On accepted unavailable, master ended, or a failed current attach deadline, the operator returns global intent to Deck. The sink may hide failed media immediately, but must retain authoritative intent separately from its effective local fallback so repeated status can reconcile it.
+- Blanking z-50 covers both video z-30 and fallback Deck. Contained video has black bars, no controls/device labels/errors, and never calls requestFullscreen on the video element. Retain existing document-level fullscreen behavior.
+- Suppress the z-40 F11 guidance whenever guest intent is pending/live. stalePlan refuses projection, releases media, and retains the existing generic projected refusal surface under blank; it does not display an unverified Deck.
+- Projector cleanup removes srcObject/listeners/timers/frame callbacks and releases on Deck, session/attempt change, stalePlan, unmount, and pagehide. pageshow requests a fresh sync before reattaching.
+- Owner reload initializes Deck/idle and sends fresh Deck state. Opener/page termination is covered by operator teardown and sink checks of opener availability, capture ending, and AD-29 loss; never depend on telemetry reaching a dead owner.
+- Normal launch/retry uses the existing named window.open path. Keep a real popup-blocked fallback anchor with that SAME named target and explicit rel='opener', without noreferrer/noopener. Avoid an anonymous _blank tab. A fresh click may retry; if both routes remain blocked or bridge policy fails, remain on Deck with operator guidance. A recovered named screen must report liveness before Switch is re-enabled. Test COOP/origin/profile boundaries.
 
-### 5. Hardware-in-the-Loop (HIL) Acceptance Protocol
-1. **Device Enumeration & Labeling**: Verify UGREEN / USB capture card detects cleanly and appears in the dropdown.
-2. **Pre-Warm & Observable Readiness**: Arming must display active feed in operator preview thumbnail within 5 seconds.
-3. **HDMI Upstream Disconnect vs USB Unplug**:
-   - Disconnecting guest laptop HDMI / sleep: verify operator console displays stalled/frozen warning; verify pressing `Escape` or "Revert to Deck" instantly restores slide presentation.
-   - Unplugging USB capture card: verify `masterTrack.onended` fires, operator console transitions to deck automatically, and projector reverts cleanly.
-4. **Relocate & Reload Resilience**:
-   - Reload projector popup while in live guest mode: verify projector reconnects, requests sync, and re-attaches video stream without operator re-arming.
-   - Move projector between displays via SPEC-99 split button: verify old consumer clone is released and new window acquires fresh stream.
-5. **Two-Hour Soak & Memory Health**: Run 1080p live stream for 120 minutes while navigating slides in background. Assert zero memory leaks in consumer registry and no browser crashes.
+### 4. Observable health and physical SOP
+
+- Probe the visible operator preview in ready and guest using requestVideoFrameCallback and a separate deadline timer. After >3 seconds without frame progress, show a warning only; this is not a proven HDMI-loss detector.
+- If the document/preview is not observable or rVFC is unavailable, show “Frame health unknown”; do not fabricate a stalled/healthy verdict with requestAnimationFrame. Reset the observation baseline on return to visibility. Track mute/unmute may annotate health but do not prove a source cause.
+- Report negotiated dimensions/frameRate from getSettings separately from measured compositor FPS over an observation window. Unknown FPS is displayed as unknown; resolution changes refresh dimensions/aspect. No expensive pixel inspection.
+- Before Switch: confirm correct input and visible guest content, intended display mode, guest consent, Do Not Disturb, readable slides, and non-protected playback. HDCP/DRM can be black despite Ready; there is no bypass.
+- Guest audio travels from headphone output (or a suitable USB-C audio adapter) through stereo DI/isolator to the mixer. Sound technician sets the output device, routing/gain and any DI ground lift for hum; avoid laptop speakers/notification audio. Never use capture-card UAC audio or Windows “Listen to this device” as the PA route.
+- [ASSUMED] 150–300 ms is an initial video-path estimate, not a measured bound. Measure guest→input wireless/capture/compositor→actual output/projector, including both wireless legs if used. Use a flash/beep clip and compensate analog audio with mixer delay if available; if acceptable lip-sync cannot be achieved, do not use synchronized clips on this path.
+- Revert/Disarm does not mute analog audio. The sound technician owns mixer mute. Preflight Windows camera privacy, conflicting OBS/Teams/Camera use, stable origin/port, and operator/guest power settings before service.
+- Loss recovery returns the liturgy Deck. A venue that must retain guest content independently needs its own physical video fallback; these tickets do not install that hardware.
+
+### 5. Testing seams and Hardware-in-the-Loop acceptance
+
+Pure broker/reducer/channel/keyboard admission logic uses injected mediaDevices, video events, and clocks with node:test. React wires those seams; source guards supplement behavior tests. Prior art: present-channel, projector-liveness, display-control tests and the existing real-browser harness. Browser fake-media smoke proves opener/clone/readiness/blanking; physical HIL proves hardware behavior. Synthetic fixtures only.
+
+1. **HIL-0, before room bridge implementation:** Demonstrate one getUserMedia capture and one cloned stream playing in a same-origin named popup on the candidate runtime. Test permission, popup-blocked anchor recovery and cross-window srcObject. Record OS/browser/WebView2 version and policy/origin; failure requires an owner platform decision, not a silent new native implementation.
+2. **Readiness and manual inspection:** Select the intended card, grant permission, see preview within 5 seconds after capture resolves. Record negotiated and observed FPS/dimensions, format if available, resolution changes, aspect ratios, and back-row text readability.
+3. **Failure taxonomy:** HDMI unplug/sleep with continuing black/frozen/vendor frames need not warn automatically; verify manual panic. A genuinely stopped visible compositor warns after >3 seconds. USB/source ended produces global Deck fallback. Include permission denial/busy/privacy, replug ID change, protected content, and driver stall without ended.
+4. **State/race resilience:** Exercise blank→Switch→Revert→unblank, local/remote scripture, background slide/patch changes, operator reload, stalePlan, projector manual reload/relocate, old same-session unavailable after replacement attached, and closed/crashed child cleanup. Consumer count is always <=1; after Deck/closure/loss it is 0; master stays warm only when allowed.
+5. **Keyboard/surface:** Test native select open, grid/dialog, typing G, composition, operator fullscreen, and focus transferred to projector. Verify one-way panic, persistent button access, no F11 hint/chrome over guest, and document-level blanking. Record browser limitations; do not claim universal keyboard capture.
+6. **Audio/latency and soak:** Verify the actual analog route, mixer mute and measured lip-sync. Run 120 minutes with repeated reload/relocate/revert cycles. At baseline and regular checkpoints record active slot count, tracks, process memory and dropped-frame/FPS information if available. Require released slots/tracks to return to baseline and no accumulating consumer objects; investigate sustained memory growth rather than asserting an unmeasurable “zero leaks”.
+7. **Revert timing:** On visible responsive test browsers, measure browser-rendered Deck after operator panic against a 250 ms target; record actual hardware-visible delay separately. A failed target needs investigation before release, not an unqualified “instant” claim.
+
+Implement meaningful test files and register them in the SAME implementation change; do not leave future filenames in package scripts or create passing placeholders. Ticket 01 owns prerequisite script cleanup/duplicate-key and missing-test-path guard; ticket 03 owns real-browser smoke:spec-101 and final full CI. Existing future registrations remain a separate implementation prerequisite, not evidence of feature coverage.
+
+## Round 2 fold-in and remaining review boundary
+
+- **Accepted:** All Sol R2-SOL-01–04; Opus P1-1–5; GLM session/hotkey/lifecycle/CI/SOP cases; DeepSeek reconciliation/orphan/visibility/owner-reload cases; Qwen H-1–6 and operational/test concerns are encoded above and in the owning tickets.
+- **Resolved differences:** Use same-session attempt correlation rather than a grace delay/consumerCount-only gate: an allocated clone can still fail playback. Panic takes priority while guest is active; G cannot enter guest. Retain a named opener-preserving anchor as fallback, rather than making window.open the only recovery mechanism. isProjectorMessage remains a heartbeat predicate.
+- **Disagreed:** Scripture exclusivity does not remove FR-19: display first returns to Deck and then shows the requested passage; clearing returns to the Deck. Do not redefine FR-19 as projector synchronization. Missing-file behavior varies across Node invocation/version; missing registrations are invalid regardless of whether a particular run skips or rejects them. No reviewer report alone proves remote CI red.
+- **Deferred with destination:** package.json cleanup, duplicate-key/path guards, meaningful feature tests and browser smoke are ticket 01/03 implementation work; .how presenter channel/session as-built updates belong to ticket 03 closure. Hardware measurements belong to HIL acceptance; desktop/native redesign and any component risk reclassification require a separate owner-directed method action.
+- **Deferred with destination:** A read-only remote Guest-status badge or a new remote panic intent, remembered device labels, invented minimum laptop specifications, and new physical switcher installation are separate owner product/platform work; this contract keeps remote capture/switching out of scope and documents local console supervision. It does not claim a phone can panic the guest source.
+- **Mandate evidence:** DEC-088 registry mandate.expires is 2026-10-11. The applied DEC file is not edited, and expiry absence in its prose/frontmatter alone does not prove the registry mandate lacks expiry.
+- Existing spec_reviewed is historical and becomes stale for this material revision. No new independent reviewer was dispatched in this solo fold-in; no fresh stamp, clearance, commit, push, or implementation is asserted.
