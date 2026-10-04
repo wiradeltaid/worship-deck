@@ -64,7 +64,7 @@ Worship Deck implements the **Single CaptureBroker, Cloned Track Fan-Out, and Sa
                                                                        [ProjectorMediaBridge]
                                                                        - Attaches cloned track to <video>
                                                                        - CSS object-fit: contain; background: #000;
-                                                                       - Fallback to Slide Deck on 'ended'
+                                                                       - Definite pipeline failure fallback (USB unplug); manual panic for upstream freeze
 ```
 
 ### 1. Single CaptureBroker Singleton (`<src/lib/capture-broker.ts>`)
@@ -142,3 +142,22 @@ Worship Deck implements the **Single CaptureBroker, Cloned Track Fan-Out, and Sa
     | { type: 'projector-media-status'; guestSessionId: string; state: 'unavailable'; reason: 'opener-unavailable' | 'consumer-attach-failed' | 'video-error' };
   ```
   Projector does not control state; upon receiving `unavailable`, Operator Console authoritatively updates global state back to `deck`.
+
+### 4. Physical Audio Routing Standard Operating Procedure (SOP)
+- **Zero Browser Audio Guarantee**: Browser audio capture is strictly disabled at API request time (`audio: false`) and video elements are permanently muted. No audio path passes through WorshipDeck or the presenter laptop.
+- **Dedicated Sanctuary Audio Path**:
+  - Guest speakers wishing to play video clips with sound MUST connect an analog 3.5mm stereo cable from their laptop headphone jack to a stage DI Box or mixer channel.
+  - Windows on the guest laptop often defaults playback to the newly attached HDMI device (UGREEN TX2). The speaker or sound technician must verify that Windows audio playback is explicitly assigned to "Realtek Audio / Headphones", not HDMI.
+  - Operators MUST NOT enable Windows "Listen to this device" on the USB Capture Card audio endpoint.
+- **Latency & Lip-Sync Bounds**: Video passing through the double 5GHz wireless hop and Chromium compositor incurs ~150–300ms latency. For sermon slides and presentation decks, this latency is imperceptible; for musical/vocal video clips, sound technicians must be aware that direct analog audio will lead the projected video slightly.
+
+### 5. Hardware-in-the-Loop (HIL) Acceptance Protocol
+1. **Device Enumeration & Labeling**: Verify UGREEN / USB capture card detects cleanly and appears in the dropdown.
+2. **Pre-Warm & Observable Readiness**: Arming must display active feed in operator preview thumbnail within 5 seconds.
+3. **HDMI Upstream Disconnect vs USB Unplug**:
+   - Disconnecting guest laptop HDMI / sleep: verify operator console displays stalled/frozen warning; verify pressing `Escape` or "Revert to Deck" instantly restores slide presentation.
+   - Unplugging USB capture card: verify `masterTrack.onended` fires, operator console transitions to deck automatically, and projector reverts cleanly.
+4. **Relocate & Reload Resilience**:
+   - Reload projector popup while in live guest mode: verify projector reconnects, requests sync, and re-attaches video stream without operator re-arming.
+   - Move projector between displays via SPEC-99 split button: verify old consumer clone is released and new window acquires fresh stream.
+5. **Two-Hour Soak & Memory Health**: Run 1080p live stream for 120 minutes while navigating slides in background. Assert zero memory leaks in consumer registry and no browser crashes.

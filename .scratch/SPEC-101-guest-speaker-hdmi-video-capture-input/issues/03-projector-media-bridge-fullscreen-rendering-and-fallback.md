@@ -30,8 +30,8 @@
 3. **Narrow AD-29 Telemetry & Fail-Safe Fallback**:
    - Sends `projector-media-status` message (`attached` | `unavailable`) over `present-channel`.
    - Listens to `videoTrack.onended` and `video.onerror`.
-   - If the capture device is unplugged or signal is dropped, immediately reverts to rendering the current slide deck.
-   - Properly invokes `release()` on consumer stream on unmount or switch back to `'deck'`.
+   - If the capture device is unplugged or the pipeline crashes, immediately reverts to rendering the current slide deck and emits `projector-media-status: unavailable`. (Note: upstream HDMI disconnect/freeze does not terminate tracks; operator manual panic button / Escape is the primary fallback for content freeze).
+   - Properly invokes `release()` on consumer stream on unmount, `pagehide`, or switch back to `'deck'`.
 
 4. **Automated Unit Tests in `tests/projector-guest-media-bridge.test.mjs`**:
    - Attaches stream when `projection.kind === 'guest'`.
@@ -39,7 +39,9 @@
    - Blank screen overlay: verifies blank state at `z-50` occludes the video element.
    - Fail-safe fallback: simulating `track.onended` immediately returns projector view to slide presentation and emits `projector-media-status`.
    - Opener failure boundary: missing or cross-origin opener cleanly renders deck without crashing.
-   - Teardown: verifies consumer track is stopped and released when unmounted.
+   - Teardown: verifies consumer track is stopped and released when unmounted or on `pagehide`.
+
+**Satisfies:** [UC-12, FR-16, FR-19]
 
 **Blocked by:** SPEC-101-02
 
@@ -47,7 +49,7 @@
 
 - [ ] Implement `<src/projected/ProjectorMediaBridge.ts>` same-origin stream acquisition with fail-closed opener handling.
 - [ ] Render contained fullscreen `<video>` surface at `z-30` in `src/projected/ProjectorClient.tsx` when `projection.kind === 'guest'`.
-- [ ] Implement automatic fallback on signal loss / `track.onended` and telemetry reporting (`projector-media-status`).
+- [ ] Implement automatic fallback on pipeline error / `track.onended` and telemetry reporting (`projector-media-status`).
 - [ ] Replace `noreferrer` fallback link in `PresenterOperator.tsx` with programmatic opener-preserving launch.
 - [ ] Verify blank screen overlay occlusion at `z-50` (`AD-24`).
 - [ ] Add comprehensive automated tests in `tests/projector-guest-media-bridge.test.mjs`.

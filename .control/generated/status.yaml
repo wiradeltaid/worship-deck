@@ -513,8 +513,8 @@ gate_readiness: 100%
 validators_red: []
 validators_skipped:
   review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
-    (changed at cfcd78a, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at ecfb31b, reviewed at bc6c694),
-    .how/presenter/SDD-presenter.md (changed at cfcd78a, reviewed at bc6c694), .how/registry/SDD-registry.md
+    (changed at 4c1e5ac, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at ecfb31b, reviewed at bc6c694),
+    .how/presenter/SDD-presenter.md (changed at 4c1e5ac, reviewed at bc6c694), .how/registry/SDD-registry.md
     (changed at cfcd78a, reviewed at bc6c694), .what/hub/SRS-hub.md (changed at ecfb31b, reviewed at e1558cc),
     .what/presenter/SRS-presenter.md (changed at cfcd78a, reviewed at bc6c694), .what/registry/SRS-registry.md
     (changed at cfcd78a, reviewed at 840014f)'

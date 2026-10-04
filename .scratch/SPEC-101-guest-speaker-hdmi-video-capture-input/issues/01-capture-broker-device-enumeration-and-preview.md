@@ -47,6 +47,8 @@
    - Cloned track lifecycle: stopping a consumer track via `release()` does not stop the master track.
    - Teardown(`.disarm()`): stops master track and all registered consumer tracks.
 
+**Satisfies:** [UC-12, FR-16]
+
 **Blocked by:** none
 
 **Status:** open

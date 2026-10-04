@@ -43,6 +43,8 @@
    - Hotkey triggers verified, including `Escape` while form select element has focus.
    - Scripture overlay exclusivity verified.
 
+**Satisfies:** [UC-12, FR-16]
+
 **Blocked by:** SPEC-101-01
 
 **Status:** open

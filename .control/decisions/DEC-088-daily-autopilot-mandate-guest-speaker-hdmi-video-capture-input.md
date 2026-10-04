@@ -7,6 +7,7 @@ touches:
   - .control/memlog/autopilot-DEC-088.md
   - .control/registry/specs.yaml
   - .control/registry/decisions.yaml
+  - .control/generated/decisions.md
   - .how/_platform/ARCHITECTURE-SPINE.md
   - .how/presenter/SDD-presenter.md
   - .scratch/
