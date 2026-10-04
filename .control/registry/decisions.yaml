@@ -1869,6 +1869,25 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/
 
+  - id: DEC-088
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-10-04)"
+    title: Daily Autopilot mandate for Guest Speaker HDMI Video Capture Input and AD-29 Narrow Telemetry Extension (SPEC-101)
+    file: .control/decisions/DEC-088-daily-autopilot-mandate-guest-speaker-hdmi-video-capture-input.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-11'
+    touches:
+      - .control/memlog/autopilot-DEC-088.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/
+
 
 
 

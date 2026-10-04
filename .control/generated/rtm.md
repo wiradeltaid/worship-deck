@@ -1420,6 +1420,48 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-101-01
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/capture-broker-device-enumeration.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-101-02
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-101-03
+  spec: SPEC-101
+  release: guest-speaker-hdmi-video-capture-input
+  test:
+  - tests/projector-guest-media-bridge.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation

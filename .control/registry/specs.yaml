@@ -4237,6 +4237,43 @@ waves:
         tests:
           - tests/scripture-continuation-presentation.test.mjs
 
+  - id: SPEC-101
+    status: open
+    release: guest-speaker-hdmi-video-capture-input
+    prd: [operator-turn]
+    fr: [FR-16, FR-19]
+    size: S
+    depends_on: [SPEC-100]
+    spec_folder: .scratch/SPEC-101-guest-speaker-hdmi-video-capture-input/
+    spec_reviewed:
+      date: '2026-10-04'
+      sha: 'cb2389471801fa130897c8d3b322875ef10cdd82'
+      lenses: [structure, prose, edge-case-hunter, state-propagation, cross-window-sync, operational-safety, failure-taxonomy]
+      note: "Multi-model adversarial synthesis (DeepSeek Pro, Sol, Qwen Max, GLM-5.3, Opus, Terra) folded in: (1) replaced false track.onended HDMI-loss claim with 3-tier failure taxonomy: definitive browser/driver crash auto-failover, requestVideoFrameCallback compositor stall watchdog warning, and manual panic button / hotkey as primary defense against upstream HDMI freeze/splash; (2) added projection: ProjectedSource to PresentMessage['sync'] and currentState() eliminating silent reload/relocate desync; (3) revised AD-29 via DEC-088 to admit narrow typed projector-media-status telemetry ('attached' | 'unavailable' with reason) with sole operator failover authority; (4) replaced rel='noreferrer' fallback with opener-preserving window.open; (5) window capture-phase Escape hotkey triggering even when form select is focused; (6) mutual exclusivity between guest video and scripture overlay; (7) explicit acquireProjectorConsumer(guestSessionId): { stream, release } lifecycle preventing clone leaks; (8) physical audio routing SOP via 3.5mm/DI box to mixer."
+    tickets:
+      - id: "SPEC-101-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/capture-broker-device-enumeration.test.mjs
+      - id: "SPEC-101-02"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-101-01"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-guest-feed-controls.test.mjs
+      - id: "SPEC-101-03"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-19]
+        blocked_by: ["SPEC-101-02"]
+        touches: [present-channel]
+        tests:
+          - tests/projector-guest-media-bridge.test.mjs
+
+
 
 
 
