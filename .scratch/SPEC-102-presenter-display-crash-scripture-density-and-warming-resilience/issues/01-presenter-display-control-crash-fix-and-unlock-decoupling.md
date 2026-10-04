@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** none
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/operator/present/PresenterDisplayControl.tsx`, `src/operator/present/PresenterOperator.tsx`, and `tests/presenter-congregation-display-control.test.mjs`:
 
@@ -24,4 +24,8 @@
 
 ## Completion evidence
 
-Record actual commands/results and defect-injection proofs when implemented. Leave checkboxes/status open until proven; inherited review reports do not close acceptance.
+- Fixed Base UI `MenuGroupContext` crash by enclosing `<DropdownMenuLabel>` within `<DropdownMenuGroup>` in `src/operator/present/PresenterDisplayControl.tsx`.
+- Decoupled `presentationLock` from primary screen launcher button and dropdown trigger in `PresenterDisplayControl.tsx`, while retaining `presentationLock` guard on destructive window closing (`data-testid="presenter-action-close"`).
+- Extended `tests/presenter-congregation-display-control.test.mjs` with structure and lock assertions; verified defect-injection proof (9 passed, 0 failed).
+- Verified `tests/public-repo-guard.test.mjs` and `validate.py --generate --baseline`.
+

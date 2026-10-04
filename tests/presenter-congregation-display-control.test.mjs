@@ -177,6 +177,78 @@ test('SPEC-99-02: PresenterOperator imports and renders PresenterDisplayControl 
   );
 });
 
+test('SPEC-102-01: Base UI MenuGroupContext crash fix — DropdownMenuLabel is wrapped in DropdownMenuGroup', () => {
+  const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  // Verify DropdownMenuGroup is imported
+  assert.ok(
+    src.includes('DropdownMenuGroup'),
+    'PresenterDisplayControl must import DropdownMenuGroup'
+  );
+
+  // Verify DropdownMenuLabel is nested inside DropdownMenuGroup
+  const groupLabelRegex = /<DropdownMenuGroup>[\s\S]*?<DropdownMenuLabel[\s\S]*?<\/DropdownMenuGroup>/;
+  assert.ok(
+    groupLabelRegex.test(src),
+    'DropdownMenuLabel must be enclosed within DropdownMenuGroup to satisfy Base UI MenuGroupContext'
+  );
+});
+
+test('SPEC-102-01: Scoped unlock decoupling — launcher and trigger remain enabled during presentationLock; close screen retains guard', () => {
+  const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  // Primary launcher button must NOT be disabled by presentationLock
+  const primaryBtnMatch = src.match(/data-testid="presenter-display-control-primary"[\s\S]*?>/);
+  assert.ok(primaryBtnMatch, 'Primary launcher button must exist');
+  assert.equal(
+    primaryBtnMatch[0].includes('disabled={presentationLock}'),
+    false,
+    'Primary launcher button must remain enabled when presentationLock is active'
+  );
+
+  // Trigger button must NOT be disabled by presentationLock
+  const triggerBtnMatch = src.match(/data-testid="presenter-display-control-trigger"[\s\S]*?>/);
+  assert.ok(triggerBtnMatch, 'Trigger button must exist');
+  assert.equal(
+    triggerBtnMatch[0].includes('disabled={presentationLock}'),
+    false,
+    'Dropdown trigger button must remain enabled when presentationLock is active'
+  );
+
+  // Destructive close action must retain presentationLock guard
+  const closeActionMatch = src.match(/data-testid="presenter-action-close"[\s\S]*?>/);
+  assert.ok(closeActionMatch, 'Close action must exist');
+  assert.ok(
+    closeActionMatch[0].includes('disabled={presentationLock}') ||
+      src.includes('disabled={presentationLock}') && src.includes('presenter-action-close'),
+    'Destructive close screen action must retain presentationLock guard'
+  );
+});
+
+test('SPEC-102-01: guard proof: un-grouped DropdownMenuLabel fails structure check', () => {
+  function validateMenuLabelStructure(code) {
+    const hasUngroupedLabel =
+      /<DropdownMenuContent[\s\S]*?>\s*<DropdownMenuLabel/.test(code) &&
+      !/<DropdownMenuGroup>\s*<DropdownMenuLabel/.test(code);
+    if (hasUngroupedLabel) {
+      throw new Error('Base UI MenuGroupContext violation: DropdownMenuLabel is not wrapped in DropdownMenuGroup');
+    }
+  }
+
+  // Proper grouped code
+  const goodCode = '<DropdownMenuContent><DropdownMenuGroup><DropdownMenuLabel>Header</DropdownMenuLabel></DropdownMenuGroup></DropdownMenuContent>';
+  assert.doesNotThrow(() => validateMenuLabelStructure(goodCode));
+
+  // Injected defect: un-grouped label
+  const badCode = '<DropdownMenuContent>\n<DropdownMenuLabel>Header</DropdownMenuLabel></DropdownMenuContent>';
+  assert.throws(
+    () => validateMenuLabelStructure(badCode),
+    /MenuGroupContext violation/
+  );
+});
+
 test('SPEC-99-02 Defect Injection Proof: verifyDisplayControlPresence detects omitted component', () => {
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const src = fs.readFileSync(presenterPath, 'utf8');
