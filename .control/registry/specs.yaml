@@ -4313,6 +4313,51 @@ waves:
         tests:
           - tests/scripture-offline-resilience.test.mjs
 
+  - id: SPEC-103
+    status: open
+    release: presenter-unified-display-capture-discovery-and-scripture-normalization
+    prd: [operator-turn]
+    fr: [FR-14, FR-16, FR-19]
+    size: S
+    depends_on: [SPEC-102]
+    spec_folder: .scratch/SPEC-103-presenter-unified-display-capture-discovery-and-scripture-normalization/
+    spec_reviewed:
+      date: '2026-10-04'
+      sha: '191e80712a1ea636fbb574c1ca181759767145c2'
+      lenses: [structure, prose, edge-case-hunter]
+      note: "Terra advisory review folded in: (1) Ticket 01 error-safe idempotent device discovery on mount/open without unhandled rejections; (2) Ticket 02 sequential sanitization (suffix -> trim -> trailing punct -> trim) and cross-component impact on services/OfflineReadiness; (3) Ticket 03 nav-next/prev protocol carrying planIdentity, validation against stale plan, isolation from liveness acks, and fresh state refs; (4) Ticket 04 unified dropdown trigger with immediate target launch/relocate across all states, separation of pure Focus from Reopen/Recover (preserving AD-29 / tests/projector-liveness.test.mjs), hasOpenProjector exposure for Close during lost liveness, and locked confirmation."
+    tickets:
+      - id: "SPEC-103-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-guest-feed-controls.test.mjs
+      - id: "SPEC-103-02"
+        component: presenter
+        satisfies: [UC-13, FR-14, FR-19]
+        blocked_by: ["SPEC-103-01"]
+        touches: [services, scripture]
+        tests:
+          - tests/scripture-offline-resilience.test.mjs
+      - id: "SPEC-103-03"
+        component: presenter
+        satisfies: [UC-12, FR-19]
+        blocked_by: ["SPEC-103-02"]
+        touches: [present-channel]
+        tests:
+          - tests/present-channel.test.mjs
+          - tests/projected-shell.test.mjs
+      - id: "SPEC-103-04"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-19]
+        blocked_by: ["SPEC-103-03"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-congregation-display-control.test.mjs
+          - tests/display-target-resolver.test.mjs
+
 
 
 
