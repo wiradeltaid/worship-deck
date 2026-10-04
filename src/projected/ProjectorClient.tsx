@@ -72,6 +72,8 @@ export default function ProjectorClient({
   const bridgeRef = useRef<ProjectorGuestMediaBridge | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const serviceIdRef = useRef(serviceId);
+  serviceIdRef.current = serviceId;
 
   useEffect(() => {
     if (videoRef.current && guestStream) {
@@ -154,21 +156,21 @@ export default function ProjectorClient({
         e.preventDefault();
         channelRef.current?.postMessage({
           type: 'nav-next',
-          serviceId: String(serviceId),
+          serviceId: String(serviceIdRef.current),
           planIdentity: planIdentityRef.current,
         });
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault();
         channelRef.current?.postMessage({
           type: 'nav-prev',
-          serviceId: String(serviceId),
+          serviceId: String(serviceIdRef.current),
           planIdentity: planIdentityRef.current,
         });
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [serviceId]);
+  }, []);
 
   useEffect(() => {
     const onFullscreenChange = () => {

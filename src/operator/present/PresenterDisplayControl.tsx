@@ -40,8 +40,11 @@ import type { LivenessVerdict } from '@/lib/projector-liveness';
 
 export interface PresenterDisplayControlProps {
   liveness: LivenessVerdict;
+  hasOpenProjector?: boolean;
   presentationLock?: boolean;
   onOpenOrFocus: () => void;
+  onFocusProjector?: () => void;
+  onReopenProjector?: () => void;
   onRelocate?: (target: ResolvedLaunchTarget) => void;
   onCloseProjector?: () => void;
   className?: string;
@@ -49,8 +52,11 @@ export interface PresenterDisplayControlProps {
 
 export default memo(function PresenterDisplayControl({
   liveness,
+  hasOpenProjector = false,
   presentationLock = false,
   onOpenOrFocus,
+  onFocusProjector,
+  onReopenProjector,
   onRelocate,
   onCloseProjector,
   className,
@@ -93,14 +99,33 @@ export default memo(function PresenterDisplayControl({
       setConfig(newConfig);
       saveDisplayTargetConfig(newConfig);
 
-      // If already active/live or lost, trigger retargeting relocation
-      if ((liveness === 'live' || liveness === 'lost') && onRelocate) {
-        const newResolved = resolveLaunchTarget(newConfig, screens);
-        onRelocate(newResolved);
+      const newResolved = resolveLaunchTarget(newConfig, screens);
+      if (hasOpenProjector || liveness === 'live' || liveness === 'lost') {
+        if (onRelocate) {
+          onRelocate(newResolved);
+        } else {
+          onOpenOrFocus();
+        }
+      } else {
+        onOpenOrFocus();
       }
     },
-    [liveness, onRelocate, screens]
+    [hasOpenProjector, liveness, onOpenOrFocus, onRelocate, screens]
   );
+
+  const handleCloseClick = useCallback(() => {
+    if (!onCloseProjector) return;
+    if (presentationLock) {
+      const confirmed =
+        typeof window !== 'undefined' && typeof window.confirm === 'function'
+          ? window.confirm(
+              'Presentation Lock is active. Are you sure you want to close the congregation projector display?'
+            )
+          : true;
+      if (!confirmed) return;
+    }
+    onCloseProjector();
+  }, [onCloseProjector, presentationLock]);
 
   // External and primary screen categorization
   const externalScreens = useMemo(() => screens.filter(isExternalScreen), [screens]);
@@ -211,23 +236,11 @@ export default memo(function PresenterDisplayControl({
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-md border border-input shadow-xs bg-background',
+        'inline-flex items-center',
         className
       )}
       data-testid="presenter-display-control-container"
     >
-      <Button
-        type="button"
-        variant={buttonVariant}
-        size="sm"
-        onClick={onOpenOrFocus}
-        data-testid="presenter-display-control-primary"
-        className="h-8 gap-2 rounded-r-none border-0 text-xs font-medium focus-visible:ring-1"
-      >
-        {buttonIcon}
-        <span>{buttonLabel}</span>
-      </Button>
-
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -237,9 +250,11 @@ export default memo(function PresenterDisplayControl({
               size="sm"
               data-testid="presenter-display-control-trigger"
               aria-label={t('presenter.displayTarget.targetHeader')}
-              className="h-8 w-7 rounded-l-none border-0 border-l border-input/50 px-0 hover:bg-accent"
+              className="h-8 gap-2 px-2.5 text-xs font-medium"
             >
-              <ChevronDown className="size-3.5 opacity-70" />
+              {buttonIcon}
+              <span>{buttonLabel}</span>
+              <ChevronDown className="size-3.5 opacity-70 ml-0.5" />
             </Button>
           }
         />
@@ -320,27 +335,37 @@ export default memo(function PresenterDisplayControl({
 
           <DropdownMenuSeparator className="my-1" />
 
-          {/* Action options when window is active/live */}
-          {liveness === 'live' && (
+          {/* Action options when window is open or active */}
+          {(hasOpenProjector || liveness === 'live' || liveness === 'lost') && (
             <>
+              {/* Pure Focus Screen (without URL overwrite) */}
               <DropdownMenuItem
-                onClick={onOpenOrFocus}
+                onClick={onFocusProjector || onOpenOrFocus}
                 className="py-1.5 text-xs gap-2"
                 data-testid="presenter-action-focus"
               >
                 <Maximize2 className="size-3.5 text-muted-foreground" />
                 <span>{t('presenter.displayTarget.focus')}</span>
               </DropdownMenuItem>
+
+              {/* Explicit Reopen / Recover Screen when liveness is lost */}
+              {liveness === 'lost' && (
+                <DropdownMenuItem
+                  onClick={onReopenProjector || onOpenOrFocus}
+                  className="py-1.5 text-xs gap-2 text-amber-600 dark:text-amber-400 font-medium"
+                  data-testid="presenter-action-reopen"
+                >
+                  <AlertTriangle className="size-3.5" />
+                  <span>{t('presenter.displayTarget.reopen')}</span>
+                </DropdownMenuItem>
+              )}
+
+              {/* Close Projector with PresentationLock confirmation */}
               {onCloseProjector && (
                 <DropdownMenuItem
-                  onClick={onCloseProjector}
-                  disabled={presentationLock}
-                  className={cn(
-                    'py-1.5 text-xs gap-2 text-destructive focus:text-destructive',
-                    presentationLock && 'opacity-50 cursor-not-allowed pointer-events-none'
-                  )}
+                  onClick={handleCloseClick}
+                  className="py-1.5 text-xs gap-2 text-destructive focus:text-destructive cursor-pointer"
                   data-testid="presenter-action-close"
-                  title={presentationLock ? t('presenter.lockTitle') : undefined}
                 >
                   <X className="size-3.5" />
                   <span>{t('presenter.displayTarget.close')}</span>

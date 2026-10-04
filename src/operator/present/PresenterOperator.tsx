@@ -510,6 +510,7 @@ export default function PresenterOperator({
   const [index, setIndex] = useState(0);
   const [gridOpen, setGridOpen] = useState(false);
   const [blank, setBlank] = useState(false);
+  const [hasOpenProjector, setHasOpenProjector] = useState(false);
   // Session-local, deliberately. Nothing persists it: no fetch, no setting, no
   // storage. Closing this window is what makes the deck's own style the truth
   // again, which is the whole contract of the control.
@@ -799,6 +800,7 @@ export default function PresenterOperator({
       target.windowFeatures || DEFAULT_WINDOW_FEATURES
     );
     projectorRef.current = opened;
+    setHasOpenProjector(Boolean(opened && !opened.closed));
     // `null` means the popup blocker ate it — surface the plain link instead of
     // leaving the operator clicking a button that does nothing.
     setProjectorBlocked(opened === null);
@@ -809,6 +811,15 @@ export default function PresenterOperator({
     // service (`AD-29`, Review finding [High, blocking]).
     dispatchLiveness({ type: 'opened' });
   }, [projectorUrl, serviceId, dispatchLiveness]);
+
+  const focusProjector = useCallback(() => {
+    const existing = projectorRef.current;
+    if (existing && !existing.closed) {
+      try {
+        existing.focus();
+      } catch {}
+    }
+  }, []);
 
   const relocateProjector = useCallback((newTarget: ResolvedLaunchTarget) => {
     openProjector(newTarget);
@@ -822,6 +833,7 @@ export default function PresenterOperator({
       dispatchLiveness({ type: 'handle-closed' });
     }
     projectorRef.current = null;
+    setHasOpenProjector(false);
   }, [dispatchLiveness]);
 
   const broadcast = useCallback((msg: PresentMessage) => {
@@ -1208,8 +1220,12 @@ export default function PresenterOperator({
   useEffect(() => {
     const poll = setInterval(() => {
       if (projectorRef.current && projectorRef.current.closed) {
+        setHasOpenProjector(false);
         dispatchLiveness({ type: 'handle-closed' });
       } else {
+        if (projectorRef.current) {
+          setHasOpenProjector(!projectorRef.current.closed);
+        }
         dispatchLiveness({ type: 'tick' });
       }
     }, LIVENESS_POLL_INTERVAL_MS);
@@ -1913,8 +1929,11 @@ export default function PresenterOperator({
             )}
             <PresenterDisplayControl
               liveness={liveness.verdict}
+              hasOpenProjector={hasOpenProjector}
               presentationLock={presentationLock}
               onOpenOrFocus={openProjector}
+              onFocusProjector={focusProjector}
+              onReopenProjector={openProjector}
               onRelocate={relocateProjector}
               onCloseProjector={closeProjector}
             />

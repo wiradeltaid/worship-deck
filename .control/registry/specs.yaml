@@ -4314,7 +4314,7 @@ waves:
           - tests/scripture-offline-resilience.test.mjs
 
   - id: SPEC-103
-    status: open
+    status: closed
     release: presenter-unified-display-capture-discovery-and-scripture-normalization
     prd: [operator-turn]
     fr: [FR-14, FR-16, FR-19]

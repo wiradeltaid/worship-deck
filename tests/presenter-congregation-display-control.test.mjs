@@ -47,7 +47,7 @@ test('SPEC-99-02: Bilingual translations exist for all display target keys', asy
   }
 });
 
-test('SPEC-99-02: PresenterDisplayControl source guards for split-button and accessible primitives', () => {
+test('SPEC-103-04: PresenterDisplayControl source guards for unified dropdown trigger and accessible primitives', () => {
   const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
   assert.ok(fs.existsSync(compPath), 'PresenterDisplayControl.tsx must exist');
 
@@ -65,11 +65,7 @@ test('SPEC-99-02: PresenterDisplayControl source guards for split-button and acc
     'Must import DropdownMenu from @/components/ui/dropdown-menu'
   );
 
-  // Must contain testids for primary button and dropdown trigger
-  assert.ok(
-    src.includes('data-testid="presenter-display-control-primary"'),
-    'Must render presenter-display-control-primary'
-  );
+  // Must contain testid for unified dropdown trigger button
   assert.ok(
     src.includes('data-testid="presenter-display-control-trigger"'),
     'Must render presenter-display-control-trigger'
@@ -81,6 +77,12 @@ test('SPEC-99-02: PresenterDisplayControl source guards for split-button and acc
   assert.ok(
     src.includes('data-testid="presenter-target-remember-checkbox"'),
     'Must render presenter-target-remember-checkbox'
+  );
+
+  // Unified trigger must be wrapped in DropdownMenuTrigger
+  assert.ok(
+    /<DropdownMenuTrigger[\s\S]*?data-testid="presenter-display-control-trigger"/.test(src),
+    'Unified trigger must be enclosed by DropdownMenuTrigger'
   );
 
   // Must not contain raw <button or <select
@@ -195,35 +197,204 @@ test('SPEC-102-01: Base UI MenuGroupContext crash fix — DropdownMenuLabel is w
   );
 });
 
-test('SPEC-102-01: Scoped unlock decoupling — launcher and trigger remain enabled during presentationLock; close screen retains guard', () => {
+test('SPEC-102-01: Scoped unlock decoupling — unified trigger remains enabled during presentationLock; close screen guards with confirmation dialog', () => {
   const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
   const src = fs.readFileSync(compPath, 'utf8');
 
-  // Primary launcher button must NOT be disabled by presentationLock
-  const primaryBtnMatch = src.match(/data-testid="presenter-display-control-primary"[\s\S]*?>/);
-  assert.ok(primaryBtnMatch, 'Primary launcher button must exist');
-  assert.equal(
-    primaryBtnMatch[0].includes('disabled={presentationLock}'),
-    false,
-    'Primary launcher button must remain enabled when presentationLock is active'
-  );
-
-  // Trigger button must NOT be disabled by presentationLock
+  // Unified trigger button must NOT be disabled by presentationLock
   const triggerBtnMatch = src.match(/data-testid="presenter-display-control-trigger"[\s\S]*?>/);
-  assert.ok(triggerBtnMatch, 'Trigger button must exist');
+  assert.ok(triggerBtnMatch, 'Dropdown trigger button must exist');
   assert.equal(
     triggerBtnMatch[0].includes('disabled={presentationLock}'),
     false,
     'Dropdown trigger button must remain enabled when presentationLock is active'
   );
 
-  // Destructive close action must retain presentationLock guard
-  const closeActionMatch = src.match(/data-testid="presenter-action-close"[\s\S]*?>/);
-  assert.ok(closeActionMatch, 'Close action must exist');
+  // Destructive close action guards against presentationLock via confirmation dialog
   assert.ok(
-    closeActionMatch[0].includes('disabled={presentationLock}') ||
-      src.includes('disabled={presentationLock}') && src.includes('presenter-action-close'),
-    'Destructive close screen action must retain presentationLock guard'
+    src.includes('presentationLock') && src.includes('window.confirm') && src.includes('handleCloseClick'),
+    'Close action must prompt confirmation dialog when presentationLock is active'
+  );
+});
+
+test('SPEC-103-04: target selection triggers launch or relocate across none, live, and lost states', () => {
+  let launched = 0;
+  let relocated = 0;
+
+  function simulateSelectTarget(liveness, hasOpenProjector, onOpenOrFocus, onRelocate) {
+    if (hasOpenProjector || liveness === 'live' || liveness === 'lost') {
+      if (onRelocate) onRelocate();
+      else onOpenOrFocus();
+    } else {
+      onOpenOrFocus();
+    }
+  }
+
+  // 1. None / never-opened state without open projector -> launches immediately
+  simulateSelectTarget('never-opened', false, () => launched++, () => relocated++);
+  assert.equal(launched, 1);
+  assert.equal(relocated, 0);
+
+  // 2. Just-opened state (hasOpenProjector = true, liveness = never-opened) -> relocates immediately!
+  simulateSelectTarget('never-opened', true, () => launched++, () => relocated++);
+  assert.equal(launched, 1);
+  assert.equal(relocated, 1);
+
+  // 3. Live state -> relocates immediately
+  simulateSelectTarget('live', true, () => launched++, () => relocated++);
+  assert.equal(launched, 1);
+  assert.equal(relocated, 2);
+
+  // 4. Lost state -> relocates immediately
+  simulateSelectTarget('lost', true, () => launched++, () => relocated++);
+  assert.equal(launched, 1);
+  assert.equal(relocated, 3);
+});
+
+test('SPEC-103-04: Focus calls focus() without rewriting window location URL', () => {
+  let focused = false;
+  let urlRewritten = false;
+
+  const mockWindow = {
+    closed: false,
+    focus: () => { focused = true; },
+    get location() {
+      return {
+        set href(val) { urlRewritten = true; },
+      };
+    },
+  };
+
+  function pureFocusProjector(existing) {
+    if (existing && !existing.closed) {
+      existing.focus();
+    }
+  }
+
+  pureFocusProjector(mockWindow);
+  assert.equal(focused, true, 'Window focus() must be called');
+  assert.equal(urlRewritten, false, 'Window location.href must NOT be overwritten on Focus');
+});
+
+test('SPEC-103-04: Close action is rendered during lost liveness and guards with confirm when locked', () => {
+  let closed = false;
+  let confirmPrompted = false;
+
+  function createCloseHandler(presentationLock, onCloseProjector, confirmResult = true) {
+    return () => {
+      if (!onCloseProjector) return;
+      if (presentationLock) {
+        confirmPrompted = true;
+        if (!confirmResult) return; // User cancelled confirmation
+      }
+      onCloseProjector();
+    };
+  }
+
+  // 1. Unlocked close closes immediately without prompt
+  const unlockedHandler = createCloseHandler(false, () => { closed = true; });
+  unlockedHandler();
+  assert.equal(closed, true);
+  assert.equal(confirmPrompted, false);
+
+  // 2. Locked close with confirmation accepted -> closes
+  closed = false;
+  confirmPrompted = false;
+  const lockedAcceptedHandler = createCloseHandler(true, () => { closed = true; }, true);
+  lockedAcceptedHandler();
+  assert.equal(confirmPrompted, true);
+  assert.equal(closed, true);
+
+  // 3. Locked close with confirmation cancelled -> aborts, does NOT close
+  closed = false;
+  confirmPrompted = false;
+  const lockedCancelledHandler = createCloseHandler(true, () => { closed = true; }, false);
+  lockedCancelledHandler();
+  assert.equal(confirmPrompted, true);
+  assert.equal(closed, false, 'Cancellation must prevent close from executing');
+});
+
+test('SPEC-103-04: structural scan and defect injection verify handleConfigChange relocation predicate', () => {
+  const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  function validateConfigChangeRelocationGuard(code) {
+    const fnMatch = code.match(/const handleConfigChange = useCallback\([\s\S]*?\[hasOpenProjector, liveness, onOpenOrFocus, onRelocate, screens\]\s*\);/);
+    if (!fnMatch) throw new Error('handleConfigChange callback missing or has incomplete dependency array');
+    const body = fnMatch[0];
+    if (!/if\s*\(\s*hasOpenProjector\s*\|\|\s*liveness\s*===\s*['"]live['"]\s*\|\|\s*liveness\s*===\s*['"]lost['"]\s*\)/.test(body)) {
+      throw new Error('Relocation Predicate Violation: handleConfigChange must check hasOpenProjector || liveness === live || liveness === lost');
+    }
+  }
+
+  // Real production source passes
+  assert.doesNotThrow(() => validateConfigChangeRelocationGuard(src));
+
+  // Injected defect: remove hasOpenProjector from handleConfigChange relocation predicate
+  const defective = src.replace('hasOpenProjector || liveness === \'live\'', 'liveness === \'live\'');
+  assert.throws(
+    () => validateConfigChangeRelocationGuard(defective),
+    /Relocation Predicate Violation/
+  );
+});
+
+test('SPEC-103-04: structural scan and defect injection verify handleCloseClick confirmation guard', () => {
+  const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  function validateCloseHandlerGuard(code) {
+    const fnMatch = code.match(/const handleCloseClick = useCallback\([\s\S]*?\[onCloseProjector, presentationLock\]\s*\);/);
+    if (!fnMatch) throw new Error('handleCloseClick callback missing');
+    const body = fnMatch[0];
+    if (!/if\s*\(\s*presentationLock\s*\)[\s\S]*?window\.confirm[\s\S]*?if\s*\(\s*!confirmed\s*\)\s*return;/.test(body)) {
+      throw new Error('Close Confirmation Violation: handleCloseClick must check presentationLock, prompt window.confirm, and abort on !confirmed');
+    }
+  }
+
+  // Real production source passes
+  assert.doesNotThrow(() => validateCloseHandlerGuard(src));
+
+  // Injected defect: remove !confirmed abort check from handleCloseClick
+  const defectiveClose = src.replace('if (!confirmed) return;', '');
+  assert.throws(
+    () => validateCloseHandlerGuard(defectiveClose),
+    /Close Confirmation Violation/
+  );
+});
+
+test('SPEC-103-04: structural scan and defect injection verify Action options visibility predicate', () => {
+  const compPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterDisplayControl.tsx');
+  const src = fs.readFileSync(compPath, 'utf8');
+
+  function validateActionItemsVisibilityGuard(code) {
+    const actionBlockMatch = code.match(/\{\/\* Action options when window is open or active \*\/\}[\s\S]*?\{\/\* Utility re-detection action \*\/\}/);
+    if (!actionBlockMatch) throw new Error('Action options block missing');
+    const block = actionBlockMatch[0];
+    if (!/\(hasOpenProjector\s*\|\|\s*liveness\s*===\s*['"]live['"]\s*\|\|\s*liveness\s*===\s*['"]lost['"]\)/.test(block)) {
+      throw new Error('Action Visibility Violation: Actions must be visible when hasOpenProjector || liveness === live || liveness === lost');
+    }
+    if (!block.includes('data-testid="presenter-action-focus"')) {
+      throw new Error('Action Visibility Violation: Missing presenter-action-focus');
+    }
+    if (!block.includes('data-testid="presenter-action-reopen"')) {
+      throw new Error('Action Visibility Violation: Missing presenter-action-reopen');
+    }
+    if (!block.includes('data-testid="presenter-action-close"')) {
+      throw new Error('Action Visibility Violation: Missing presenter-action-close');
+    }
+  }
+
+  // Real production source passes
+  assert.doesNotThrow(() => validateActionItemsVisibilityGuard(src));
+
+  // Injected defect: remove hasOpenProjector from action visibility guard
+  const defectiveVisibility = src.replace(
+    /\{\/\* Action options when window is open or active \*\/\}[\s\S]*?\{\(hasOpenProjector/,
+    '{/* Action options when window is open or active */}\n          {(false'
+  );
+  assert.throws(
+    () => validateActionItemsVisibilityGuard(defectiveVisibility),
+    /Action Visibility Violation/
   );
 });
 

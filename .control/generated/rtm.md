@@ -1497,10 +1497,10 @@ rtm:
   release: presenter-unified-display-capture-discovery-and-scripture-normalization
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1512,10 +1512,10 @@ rtm:
   test:
   - tests/present-channel.test.mjs
   - tests/projected-shell.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1527,10 +1527,10 @@ rtm:
   test:
   - tests/presenter-congregation-display-control.test.mjs
   - tests/display-target-resolver.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2065,10 +2065,10 @@ rtm:
   release: presenter-unified-display-capture-discovery-and-scripture-normalization
   test:
   - tests/scripture-offline-resilience.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -4952,10 +4952,10 @@ rtm:
   release: presenter-unified-display-capture-discovery-and-scripture-normalization
   test:
   - tests/scripture-offline-resilience.test.mjs
-  status: closed
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
