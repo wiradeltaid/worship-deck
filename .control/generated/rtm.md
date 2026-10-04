@@ -1497,7 +1497,7 @@ rtm:
   release: presenter-unified-display-capture-discovery-and-scripture-normalization
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

@@ -109,6 +109,7 @@ export class CaptureBroker {
   private masterStream: any = null;
   private previewVideo: MockVideoElement | HTMLVideoElement | null = null;
   private activeArmGeneration = 0;
+  private activeEnumerateGeneration = 0;
   private pendingArmPromise: Promise<void> | null = null;
   private readinessTimer: any = null;
   private intentionalStop = false;
@@ -195,10 +196,15 @@ export class CaptureBroker {
   }
 
   public async enumerateDevices(): Promise<CaptureDeviceOption[]> {
+    const generation = ++this.activeEnumerateGeneration;
     this.ensureMediaApi();
 
     try {
       const rawDevices = await this.env.mediaDevices!.enumerateDevices();
+      if (generation !== this.activeEnumerateGeneration) {
+        return [...this.devices];
+      }
+
       const videoInputs = rawDevices.filter((d) => d.kind === 'videoinput');
 
       this.devices = videoInputs.map((d, index) => ({
@@ -217,9 +223,13 @@ export class CaptureBroker {
         }
       }
 
+      this.error = null;
       this.notify();
       return [...this.devices];
     } catch (err: any) {
+      if (generation !== this.activeEnumerateGeneration) {
+        return [...this.devices];
+      }
       const mapped = this.mapError(err);
       this.error = { code: mapped.code, message: mapped.message };
       this.notify();

@@ -19,6 +19,7 @@ import {
 import {
   CaptureBroker,
   type CaptureBrokerSnapshot,
+  type CaptureDeviceOption,
 } from '@/lib/capture-broker';
 
 export type GuestFeedUiState =
@@ -71,6 +72,7 @@ export class PresenterGuestFeedController {
   private attachDeadlineTimer: any = null;
   private frameWatchdogTimer: any = null;
   private lastFrameTime = 0;
+  private activeEnumerateGeneration = 0;
   private listeners = new Set<(snap: PresenterGuestFeedSnapshot) => void>();
   private unsubscribeBroker: (() => void) | null = null;
 
@@ -129,6 +131,29 @@ export class PresenterGuestFeedController {
   public setConsoleFocused(focused: boolean): void {
     this.isConsoleFocused = focused;
     this.notify();
+  }
+
+  public selectDevice(deviceId: string): void {
+    this.errorMessage = null;
+    this.broker.selectDevice(deviceId);
+  }
+
+  public async enumerateDevices(): Promise<CaptureDeviceOption[]> {
+    const generation = ++this.activeEnumerateGeneration;
+    try {
+      const devices = await this.broker.enumerateDevices();
+      if (generation === this.activeEnumerateGeneration) {
+        this.errorMessage = null;
+        this.notify();
+      }
+      return devices;
+    } catch (err: any) {
+      if (generation === this.activeEnumerateGeneration) {
+        this.errorMessage = err?.message || 'Device enumeration failed';
+        this.notify();
+      }
+      return [];
+    }
   }
 
   public async arm(deviceId?: string): Promise<void> {

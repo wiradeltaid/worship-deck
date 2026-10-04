@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuRadioGroup,
@@ -43,6 +44,7 @@ export default memo(function PresenterGuestFeedControl({
   );
 
   useEffect(() => {
+    void controller.enumerateDevices();
     return controller.subscribe((next) => {
       setSnapshot(next);
     });
@@ -92,7 +94,13 @@ export default memo(function PresenterGuestFeedControl({
       </div>
 
       {/* Device Picker via shadcn DropdownMenu */}
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open) {
+            void controller.enumerateDevices();
+          }
+        }}
+      >
         <DropdownMenuTrigger
           render={
             <Button
@@ -109,9 +117,11 @@ export default memo(function PresenterGuestFeedControl({
           }
         />
         <DropdownMenuContent align="start" className="w-56 text-xs">
-          <DropdownMenuLabel className="text-[11px] text-muted-foreground">
-            {t('presenter.guestFeed.selectDevice')}
-          </DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-[11px] text-muted-foreground">
+              {t('presenter.guestFeed.selectDevice')}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           {devices.length === 0 ? (
             <div className="p-2 text-muted-foreground text-xs">
@@ -121,7 +131,7 @@ export default memo(function PresenterGuestFeedControl({
             <DropdownMenuRadioGroup
               value={selectedDeviceId || ''}
               onValueChange={(val) => {
-                if (val) controller.arm(val);
+                if (val) controller.selectDevice(val);
               }}
             >
               {devices.map((d) => (

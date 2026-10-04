@@ -1883,6 +1883,12 @@ export default function PresenterOperator({
             >
               {t('presenter.allSlides')}
             </Button>
+            {guestFeedControllerRef.current && (
+              <PresenterGuestFeedControl
+                controller={guestFeedControllerRef.current}
+                isProjectorResponding={liveness.verdict === 'live'}
+              />
+            )}
             <PresenterDisplayControl
               liveness={liveness.verdict}
               presentationLock={presentationLock}
@@ -1922,12 +1928,6 @@ export default function PresenterOperator({
 
           {/* Row 2 (Session Safety & Workflow Controls) */}
           <div data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">
-            {guestFeedControllerRef.current && (
-              <PresenterGuestFeedControl
-                controller={guestFeedControllerRef.current}
-                isProjectorResponding={liveness.verdict === 'live'}
-              />
-            )}
             <OfflineReadinessBadge
               serviceId={serviceId}
               serviceData={rawService || { id: serviceId, plan: activeSlides }}
