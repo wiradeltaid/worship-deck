@@ -1630,6 +1630,62 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-107-01
+  spec: SPEC-107
+  release: guest-capture-timer-receiver-binding-and-presenter-transitions
+  test:
+  - tests/capture-broker-device-enumeration.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-107-02
+  spec: SPEC-107
+  release: guest-capture-timer-receiver-binding-and-presenter-transitions
+  test:
+  - tests/projector-guest-media-bridge.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-107-03
+  spec: SPEC-107
+  release: guest-capture-timer-receiver-binding-and-presenter-transitions
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-107-04
+  spec: SPEC-107
+  release: guest-capture-timer-receiver-binding-and-presenter-transitions
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation

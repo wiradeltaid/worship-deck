@@ -4460,6 +4460,51 @@ waves:
         tests:
           - tests/presenter-guest-feed-controls.test.mjs
 
+  - id: SPEC-107
+    status: open
+    release: guest-capture-timer-receiver-binding-and-presenter-transitions
+    prd: [operator-turn]
+    fr: [FR-16]
+    size: M
+    depends_on: [SPEC-106]
+    spec_folder: .scratch/SPEC-107-guest-capture-timer-receiver-binding-resilience/
+    spec_reviewed:
+      date: '2026-10-05'
+      sha: '8ae16a872c60d7ac21acd8e8ecb11e5350b2aa1b'
+      lenses: [structure, prose, edge-case-hunter, traceability, async-race, ad23-transition-conformance]
+      note: "Terra advisory review folded in: (1) Ticket 01 & 02 strict receiver verification for both scheduling and cancellation (clearTimeout/clearInterval); (2) Ticket 03 dedicated presenter-header-row-3 tiering preserving row 1 & row 2 spacing; (3) Ticket 04 canonical AD-23 SLIDE_TRANSITION_SPECS consumption supporting fade, dissolve, push, cut, none, phase-driven mount predicate retaining media stream throughout exit, and interruption/unmount/stream-loss cleanup resilience; (4) DEC-088 and AD-23/AD-29 traceability recorded."
+    tickets:
+      - id: "SPEC-107-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/capture-broker-device-enumeration.test.mjs
+      - id: "SPEC-107-02"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-107-01"]
+        touches: [present-channel]
+        tests:
+          - tests/projector-guest-media-bridge.test.mjs
+      - id: "SPEC-107-03"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-107-02"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-guest-feed-controls.test.mjs
+      - id: "SPEC-107-04"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-107-03"]
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+
+
+
 
 
 
