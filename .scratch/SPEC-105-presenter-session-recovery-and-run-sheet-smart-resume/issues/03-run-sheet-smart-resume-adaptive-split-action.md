@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-5, FR-16, FR-17]
 **Blocked by:** SPEC-105-02
-**Status:** open
+**Status:** done
 
 **What to build:** In `spa/src/pages/RunSheetPage.tsx` and `tests/run-sheet-smart-resume.test.mjs`:
 

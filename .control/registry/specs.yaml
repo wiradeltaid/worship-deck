@@ -4395,7 +4395,7 @@ waves:
           - tests/scripture-controls-ergonomics.test.mjs
 
   - id: SPEC-105
-    status: open
+    status: closed
     release: presenter-session-recovery-and-run-sheet-smart-resume
     prd: [operator-turn]
     fr: [FR-16, FR-17]

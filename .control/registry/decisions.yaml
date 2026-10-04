@@ -1932,7 +1932,7 @@ decisions:
 
   - id: DEC-091
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-04)"
     title: Daily Autopilot mandate for Presenter Blank Transition, Scripture Overlay, and Session Recovery (SPEC-104 & SPEC-105)
     file: .control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-and-session-recovery.md

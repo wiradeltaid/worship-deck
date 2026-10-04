@@ -1,15 +1,45 @@
-asof: '2026-10-01'
+asof: '2026-10-04'
 since: ''
 since_report: ''
-sha: ffad1bb133fd46629792866ac9e0c7a87e20dda3
+sha: dd82d4615265e39aeea9a92e5c4348b23f32b523
 registry_dirty: true
 uncommitted_tickets: []
 promise_progress: 100%
 rtm_rows:
-  green: 725
-  counted: 725
+  green: 766
+  counted: 766
   excluded_no_uc: 1
 work_progress:
+- spec: SPEC-100
+  status: closed
+  tickets_done: 2
+  tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-101
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-102
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-103
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-104
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-105
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
 - spec: SPEC-12
   status: closed
   tickets_done: 8
@@ -434,6 +464,21 @@ work_progress:
   status: closed
   tickets_done: 2
   tickets_total: 2
+  work_progress: 100%
+- spec: SPEC-97
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
+  work_progress: 100%
+- spec: SPEC-98
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
+- spec: SPEC-99
+  status: closed
+  tickets_done: 3
+  tickets_total: 3
   work_progress: 100%
 - spec: W1
   status: closed
@@ -1395,6 +1440,54 @@ proven:
   test:
   - tests/congregation-fullscreen-guidance.test.mjs
   closed: '2026-09-28'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-104-01
+  test:
+  - tests/projected-transitions.test.mjs
+  closed: '2026-10-04'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-104-02
+  test:
+  - tests/projected-transitions.test.mjs
+  closed: '2026-10-04'
+- FR: FR-19
+  UC: UC-13
+  ticket: SPEC-104-02
+  test:
+  - tests/projected-transitions.test.mjs
+  closed: '2026-10-04'
+- FR: FR-22
+  UC: UC-13
+  ticket: SPEC-104-02
+  test:
+  - tests/projected-transitions.test.mjs
+  closed: '2026-10-04'
+- FR: FR-19
+  UC: UC-13
+  ticket: SPEC-104-03
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
+  closed: '2026-10-04'
+- FR: FR-22
+  UC: UC-13
+  ticket: SPEC-104-03
+  test:
+  - tests/scripture-controls-ergonomics.test.mjs
+  closed: '2026-10-04'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-105-01
+  test:
+  - tests/presenter-session-recovery.test.mjs
+  closed: '2026-10-04'
+- FR: FR-16
+  UC: UC-12
+  ticket: SPEC-105-02
+  test:
+  - tests/presenter-reload-recovery.test.mjs
+  closed: '2026-10-04'
 moved:
 - id: CAP-1
   kind: CAP
