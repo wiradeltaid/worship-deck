@@ -631,6 +631,10 @@ export default function ProjectorClient({
         className={`absolute inset-0 z-50 bg-black transition-opacity duration-300 ease-in-out pointer-events-none ${
           blank ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{
+          transition: 'opacity 300ms ease-in-out, visibility 300ms ease-in-out',
+          visibility: blank ? 'visible' : 'hidden',
+        }}
       />
     </div>
   );
