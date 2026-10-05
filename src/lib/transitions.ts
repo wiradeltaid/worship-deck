@@ -211,3 +211,47 @@ export function transitionLayerStyle(
     transition: `${browser.property} ${browser.durationMs}ms ${browser.easing}`,
   };
 }
+
+export type GuestMediaPhase = 'hidden' | 'entering-start' | 'active' | 'exiting';
+
+/**
+ * Computes canonical AD-23 transition styling for the Projector Guest Video Media layer.
+ * Conforms to SLIDE_TRANSITION_SPECS: opacity crossfade for fade/dissolve (500ms),
+ * transform translateX for push (450ms), and 0ms empty style for cut/none.
+ */
+export function getGuestTransitionStyle(
+  transition: SlideTransition,
+  phase: GuestMediaPhase
+): TransitionLayerStyle {
+  const spec = SLIDE_TRANSITION_SPECS[transition] || SLIDE_TRANSITION_SPECS.fade;
+  const durationMs = spec.browser.durationMs;
+  const isAnimated = durationMs > 0;
+  const easing = spec.browser.easing || EASING;
+
+  if (!isAnimated || phase === 'hidden') {
+    return {};
+  }
+
+  if (spec.browser.property === 'transform') {
+    let transform = 'translateX(0)';
+    if (phase === 'entering-start') {
+      transform = 'translateX(100%)';
+    } else if (phase === 'exiting') {
+      transform = 'translateX(-100%)';
+    }
+    return {
+      transform,
+      transition: `transform ${durationMs}ms ${easing}`,
+    };
+  }
+
+  let opacity = 1;
+  if (phase === 'entering-start' || phase === 'exiting') {
+    opacity = 0;
+  }
+  return {
+    opacity,
+    transition: `opacity ${durationMs}ms ${easing}`,
+  };
+}
+

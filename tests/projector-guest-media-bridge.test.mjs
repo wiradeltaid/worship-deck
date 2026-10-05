@@ -350,3 +350,320 @@ test('stalePlan releases media and reports consumer-attach-failed', async () => 
     reason: 'consumer-attach-failed',
   });
 });
+
+test('SPEC-107-02: ProjectorGuestMediaBridge preserves native receiver binding for setTimeout, clearTimeout, setInterval, and clearInterval without Illegal invocation', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  let setTimeoutReceiver = null;
+  let clearTimeoutReceiver = null;
+  let setIntervalReceiver = null;
+  let clearIntervalReceiver = null;
+
+  const strictSetTimeout = function(fn, ms) {
+    setTimeoutReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+    }
+    return 101;
+  };
+
+  const strictClearTimeout = function(id) {
+    clearTimeoutReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+    }
+  };
+
+  const strictSetInterval = function(fn, ms) {
+    setIntervalReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'setInterval' on 'Window': Illegal invocation");
+    }
+    return 202;
+  };
+
+  const strictClearInterval = function(id) {
+    clearIntervalReceiver = this;
+    if (this !== fakeWindow) {
+      throw new TypeError("Failed to execute 'clearInterval' on 'Window': Illegal invocation");
+    }
+  };
+
+  const originalWindow = globalThis.window;
+  try {
+    fakeWindow.setTimeout = strictSetTimeout;
+    fakeWindow.clearTimeout = strictClearTimeout;
+    fakeWindow.setInterval = strictSetInterval;
+    fakeWindow.clearInterval = strictClearInterval;
+    globalThis.window = fakeWindow;
+
+    const defaultOpener = {
+      closed: false,
+      __worshipDeckAcquireProjectorConsumer: () => ({
+        stream: new MockStream(),
+        release: () => {},
+      }),
+    };
+
+    const bridge = new ProjectorGuestMediaBridge({
+      getOpener: () => defaultOpener,
+      postMessage: () => {},
+      createVideoElement: () => {
+        const v = new MockVideoElement();
+        queueMicrotask(() => v.simulateReady());
+        return v;
+      },
+      setTimeout: strictSetTimeout,
+      clearTimeout: strictClearTimeout,
+      setInterval: strictSetInterval,
+      clearInterval: strictClearInterval,
+    });
+
+    await bridge.syncProjection({ kind: 'guest', guestSessionId: 's1' }, 'a1');
+
+    assert.equal(setTimeoutReceiver, fakeWindow, 'setTimeout must receive fakeWindow');
+    assert.equal(clearTimeoutReceiver, fakeWindow, 'clearTimeout must receive fakeWindow');
+    assert.equal(setIntervalReceiver, fakeWindow, 'setInterval must receive fakeWindow');
+
+    bridge.teardown();
+    assert.equal(clearIntervalReceiver, fakeWindow, 'clearInterval must receive fakeWindow');
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test('SPEC-107-02: ProjectorGuestMediaBridge default environment binds global timers and intervals without Illegal invocation', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  const originalWindow = globalThis.window;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  const originalSetInterval = globalThis.setInterval;
+  const originalClearInterval = globalThis.clearInterval;
+
+  let setTimeoutReceiver = null;
+  let clearTimeoutReceiver = null;
+  let setIntervalReceiver = null;
+  let clearIntervalReceiver = null;
+
+  try {
+    const strictSetTimeout = function(fn, ms) {
+      setTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+      }
+      return 101;
+    };
+
+    const strictClearTimeout = function(id) {
+      clearTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'clearTimeout' on 'Window': Illegal invocation");
+      }
+    };
+
+    const strictSetInterval = function(fn, ms) {
+      setIntervalReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'setInterval' on 'Window': Illegal invocation");
+      }
+      return 202;
+    };
+
+    const strictClearInterval = function(id) {
+      clearIntervalReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'clearInterval' on 'Window': Illegal invocation");
+      }
+    };
+
+    fakeWindow.setTimeout = strictSetTimeout;
+    fakeWindow.clearTimeout = strictClearTimeout;
+    fakeWindow.setInterval = strictSetInterval;
+    fakeWindow.clearInterval = strictClearInterval;
+    globalThis.window = fakeWindow;
+    globalThis.setTimeout = strictSetTimeout;
+    globalThis.clearTimeout = strictClearTimeout;
+    globalThis.setInterval = strictSetInterval;
+    globalThis.clearInterval = strictClearInterval;
+
+    const defaultOpener = {
+      closed: false,
+      __worshipDeckAcquireProjectorConsumer: () => ({
+        stream: new MockStream(),
+        release: () => {},
+      }),
+    };
+
+    const bridge = new ProjectorGuestMediaBridge({
+      getOpener: () => defaultOpener,
+      postMessage: () => {},
+      createVideoElement: () => {
+        const v = new MockVideoElement();
+        queueMicrotask(() => v.simulateReady());
+        return v;
+      },
+    });
+
+    await bridge.syncProjection({ kind: 'guest', guestSessionId: 's1' }, 'a1');
+
+    assert.equal(setTimeoutReceiver, fakeWindow, 'Default setTimeout must receive fakeWindow');
+    assert.equal(clearTimeoutReceiver, fakeWindow, 'Default clearTimeout must receive fakeWindow');
+    assert.equal(setIntervalReceiver, fakeWindow, 'Default setInterval must receive fakeWindow');
+
+    bridge.teardown();
+    assert.equal(clearIntervalReceiver, fakeWindow, 'Default clearInterval must receive fakeWindow');
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+    globalThis.setInterval = originalSetInterval;
+    globalThis.clearInterval = originalClearInterval;
+  }
+});
+
+test('SPEC-107-02: Zero-valued timer and interval handles are cleared properly in ProjectorGuestMediaBridge', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  const clearedTimeoutIds = [];
+  const clearedIntervalIds = [];
+
+  const originalWindow = globalThis.window;
+  try {
+    globalThis.window = fakeWindow;
+
+    const defaultOpener = {
+      closed: false,
+      __worshipDeckAcquireProjectorConsumer: () => ({
+        stream: new MockStream(),
+        release: () => {},
+      }),
+    };
+
+    const bridge = new ProjectorGuestMediaBridge({
+      getOpener: () => defaultOpener,
+      postMessage: () => {},
+      createVideoElement: () => {
+        const v = new MockVideoElement();
+        queueMicrotask(() => v.simulateReady());
+        return v;
+      },
+      setTimeout: () => 0,
+      clearTimeout: (id) => clearedTimeoutIds.push(id),
+      setInterval: () => 0,
+      clearInterval: (id) => clearedIntervalIds.push(id),
+    });
+
+    await bridge.syncProjection({ kind: 'guest', guestSessionId: 's1' }, 'a1');
+
+    // On simulateReady, playback deadline timer is cleared
+    assert.ok(clearedTimeoutIds.includes(0), 'clearTimeout must clear zero-valued timer handle 0');
+
+    bridge.teardown();
+    // On teardown, status re-emission interval is cleared
+    assert.ok(clearedIntervalIds.includes(0), 'clearInterval must clear zero-valued interval handle 0');
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test('SPEC-107-02: Mixed timer fallback pairs each timer with its true owning target', async () => {
+  const fakeWindow = { isFakeWindow: true };
+  const originalWindow = globalThis.window;
+  const originalSetTimeout = globalThis.setTimeout;
+  const originalClearTimeout = globalThis.clearTimeout;
+  const originalSetInterval = globalThis.setInterval;
+  const originalClearInterval = globalThis.clearInterval;
+
+  let setTimeoutReceiver = null;
+  let setIntervalReceiver = null;
+
+  try {
+    // fakeWindow has setTimeout and clearTimeout only
+    fakeWindow.setTimeout = function(fn, ms) {
+      setTimeoutReceiver = this;
+      if (this !== fakeWindow) {
+        throw new TypeError("Failed to execute 'setTimeout' on 'Window': Illegal invocation");
+      }
+      return 101;
+    };
+    fakeWindow.clearTimeout = function() {};
+
+    // globalThis has setInterval and clearInterval which require globalThis as receiver
+    globalThis.setInterval = function(fn, ms) {
+      setIntervalReceiver = this;
+      if (this !== globalThis) {
+        throw new TypeError("Failed to execute 'setInterval' on 'globalThis': Illegal invocation");
+      }
+      return 202;
+    };
+    globalThis.clearInterval = function() {};
+
+    globalThis.window = fakeWindow;
+
+    const defaultOpener = {
+      closed: false,
+      __worshipDeckAcquireProjectorConsumer: () => ({
+        stream: new MockStream(),
+        release: () => {},
+      }),
+    };
+
+    const bridge = new ProjectorGuestMediaBridge({
+      getOpener: () => defaultOpener,
+      postMessage: () => {},
+      createVideoElement: () => {
+        const v = new MockVideoElement();
+        queueMicrotask(() => v.simulateReady());
+        return v;
+      },
+    });
+
+    await bridge.syncProjection({ kind: 'guest', guestSessionId: 's1' }, 'a1');
+
+    assert.equal(setTimeoutReceiver, fakeWindow, 'setTimeout must receive fakeWindow');
+    assert.equal(setIntervalReceiver, globalThis, 'setInterval missing on window must receive globalThis');
+
+    bridge.teardown();
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.setTimeout = originalSetTimeout;
+    globalThis.clearTimeout = originalClearTimeout;
+    globalThis.setInterval = originalSetInterval;
+    globalThis.clearInterval = originalClearInterval;
+  }
+});
+
+test('SPEC-107-02: Synchronously ready video clears playbackDeadlineTimer immediately', async () => {
+  let clearedDeadlineId = null;
+
+  const defaultOpener = {
+    closed: false,
+    __worshipDeckAcquireProjectorConsumer: () => ({
+      stream: new MockStream(),
+      release: () => {},
+    }),
+  };
+
+  const syncReadyVideo = new MockVideoElement();
+  syncReadyVideo.readyState = 2; // Synchronously ready
+  syncReadyVideo.videoWidth = 1920;
+  syncReadyVideo.videoHeight = 1080;
+
+  const bridge = new ProjectorGuestMediaBridge({
+    getOpener: () => defaultOpener,
+    postMessage: () => {},
+    createVideoElement: () => syncReadyVideo,
+    setTimeout: () => 777,
+    clearTimeout: (id) => {
+      clearedDeadlineId = id;
+    },
+    setInterval: () => 888,
+    clearInterval: () => {},
+  });
+
+  await bridge.syncProjection({ kind: 'guest', guestSessionId: 's1' }, 'a1');
+
+  // Must have cleared the 777 handle immediately on synchronous ready
+  assert.equal(clearedDeadlineId, 777, 'Synchronously ready video must clear playbackDeadlineTimer immediately');
+
+  bridge.teardown();
+});
+

@@ -4461,7 +4461,7 @@ waves:
           - tests/presenter-guest-feed-controls.test.mjs
 
   - id: SPEC-107
-    status: open
+    status: closed
     release: guest-capture-timer-receiver-binding-and-presenter-transitions
     prd: [operator-turn]
     fr: [FR-16]

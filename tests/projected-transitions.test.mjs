@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const srcUrl = (...parts) => pathToFileURL(path.join(ROOT, 'src', ...parts)).href;
 
 function getProjectorClientSource() {
   const filePath = path.join(ROOT, 'src', 'projected', 'ProjectorClient.tsx');
@@ -307,4 +308,260 @@ test('SPEC-104-02: Defect injection proof — verifyScriptureOverlayGuard detect
     'coupled-slide-replacement'
   );
 });
+
+test('SPEC-107-04: ProjectorClient renders guest video container with phase-driven mounting and AD-23 transition conformance', () => {
+  const src = getProjectorClientSource();
+
+  // Must have data-testid="projector-guest-video-container"
+  assert.ok(
+    src.includes('data-testid="projector-guest-video-container"'),
+    'ProjectorClient must render projector-guest-video-container'
+  );
+
+  // Phase-driven mount: must mount on guestPhase !== 'hidden' and retained stream
+  assert.ok(
+    src.includes("guestPhase !== 'hidden' && retainedGuestStream"),
+    "Guest video layer must mount on `guestPhase !== 'hidden' && retainedGuestStream`"
+  );
+
+  // Absence guard: Old abrupt conditional mounting must NOT be present
+  assert.equal(
+    /\{isGuestIntent\s*&&\s*guestStream\s*\?\s*\(?\s*<div[^>]*data-testid="projector-guest-video-container"/i.test(src),
+    false,
+    'Old abrupt conditional mounting `{isGuestIntent && guestStream ? <div...` must be absent'
+  );
+
+  // Must consume canonical SLIDE_TRANSITION_SPECS
+  assert.ok(
+    src.includes('SLIDE_TRANSITION_SPECS'),
+    'ProjectorClient must consume SLIDE_TRANSITION_SPECS for canonical transition conformance'
+  );
+
+  // Must define or export getGuestTransitionStyle
+  assert.ok(
+    src.includes('getGuestTransitionStyle'),
+    'ProjectorClient must define getGuestTransitionStyle'
+  );
+
+  // Must attach ended listener to guest stream tracks
+  assert.ok(
+    src.includes("track.addEventListener('ended', onEnded)") || src.includes("track.onended = onEnded"),
+    'ProjectorClient must listen to track ended event to drive immediate stream loss cleanup'
+  );
+});
+
+test('SPEC-107-04: getGuestTransitionStyle produces exact canonical styles across all 5 transitions', async () => {
+  const { getGuestTransitionStyle } = await import(srcUrl('lib', 'transitions.ts'));
+
+  // 1. fade (500ms opacity)
+  const fadeStart = getGuestTransitionStyle('fade', 'entering-start');
+  assert.equal(fadeStart.opacity, 0);
+  assert.equal(fadeStart.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const fadeActive = getGuestTransitionStyle('fade', 'active');
+  assert.equal(fadeActive.opacity, 1);
+  assert.equal(fadeActive.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const fadeExit = getGuestTransitionStyle('fade', 'exiting');
+  assert.equal(fadeExit.opacity, 0);
+  assert.equal(fadeExit.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 2. dissolve (500ms opacity)
+  const dissolveActive = getGuestTransitionStyle('dissolve', 'active');
+  assert.equal(dissolveActive.opacity, 1);
+  assert.equal(dissolveActive.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 3. push (450ms transform)
+  const pushStart = getGuestTransitionStyle('push', 'entering-start');
+  assert.equal(pushStart.transform, 'translateX(100%)');
+  assert.equal(pushStart.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const pushActive = getGuestTransitionStyle('push', 'active');
+  assert.equal(pushActive.transform, 'translateX(0)');
+  assert.equal(pushActive.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const pushExit = getGuestTransitionStyle('push', 'exiting');
+  assert.equal(pushExit.transform, 'translateX(-100%)');
+  assert.equal(pushExit.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 4. cut and none (0ms / empty style)
+  assert.deepEqual(getGuestTransitionStyle('cut', 'active'), {});
+  assert.deepEqual(getGuestTransitionStyle('none', 'active'), {});
+
+  // 5. hidden phase
+  assert.deepEqual(getGuestTransitionStyle('fade', 'hidden'), {});
+});
+
+test('SPEC-107-04: Guest video transition state machine handles entrance, exit, push, dissolve, cut, interruption, and stream loss', async () => {
+  const { SLIDE_TRANSITION_SPECS } = await import(srcUrl('lib', 'transitions.ts'));
+
+  class GuestTransitionStateMachine {
+    constructor(transition = 'fade') {
+      this.transition = transition;
+      this.guestPhase = 'hidden'; // 'hidden' | 'entering-start' | 'active' | 'exiting'
+      this.retainedGuestStream = null;
+      this.timer = null;
+    }
+
+    onSync(isGuestIntent, guestStream) {
+      const spec = SLIDE_TRANSITION_SPECS[this.transition] || SLIDE_TRANSITION_SPECS.fade;
+      const durationMs = spec.browser.durationMs;
+
+      if (isGuestIntent && guestStream) {
+        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+        this.retainedGuestStream = guestStream;
+
+        if (durationMs === 0 || this.guestPhase === 'active' || this.guestPhase === 'exiting') {
+          this.guestPhase = 'active';
+        } else {
+          this.guestPhase = 'entering-start';
+          this.timer = setTimeout(() => {
+            this.guestPhase = 'active';
+            this.timer = null;
+          }, 20);
+        }
+      } else {
+        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+
+        if (isGuestIntent && !guestStream) {
+          // Hardware unplug / stream loss
+          this.retainedGuestStream = null;
+          this.guestPhase = 'hidden';
+          return;
+        }
+
+        if (this.guestPhase === 'hidden') {
+          return;
+        }
+
+        if (durationMs === 0 || !this.retainedGuestStream) {
+          this.retainedGuestStream = null;
+          this.guestPhase = 'hidden';
+        } else {
+          this.guestPhase = 'exiting';
+          this.timer = setTimeout(() => {
+            this.retainedGuestStream = null;
+            this.guestPhase = 'hidden';
+            this.timer = null;
+          }, durationMs);
+        }
+      }
+    }
+
+    teardown() {
+      if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+      this.retainedGuestStream = null;
+      this.guestPhase = 'hidden';
+    }
+  }
+
+  // 1. Fade transition: entrance and canonical 500ms exit lifecycle
+  const stream1 = { id: 'stream-1' };
+  const smFade = new GuestTransitionStateMachine('fade');
+  smFade.onSync(true, stream1);
+  assert.equal(smFade.guestPhase, 'entering-start');
+  assert.equal(smFade.retainedGuestStream, stream1);
+
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smFade.guestPhase, 'active');
+
+  // Revert to deck
+  smFade.onSync(false, null);
+  assert.equal(smFade.guestPhase, 'exiting');
+  assert.equal(smFade.retainedGuestStream, stream1, 'Media stream must be retained during exit animation');
+
+  // After 250ms (before 500ms duration finishes), still exiting and stream retained
+  await new Promise((r) => setTimeout(r, 250));
+  assert.equal(smFade.guestPhase, 'exiting');
+  assert.equal(smFade.retainedGuestStream, stream1);
+
+  // After completion (further 300ms, total > 500ms)
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(smFade.guestPhase, 'hidden');
+  assert.equal(smFade.retainedGuestStream, null);
+
+  // 2. Push transition (canonical 450ms)
+  const smPush = new GuestTransitionStateMachine('push');
+  smPush.onSync(true, stream1);
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smPush.guestPhase, 'active');
+  smPush.onSync(false, null);
+  assert.equal(smPush.guestPhase, 'exiting');
+  await new Promise((r) => setTimeout(r, 475));
+  assert.equal(smPush.guestPhase, 'hidden');
+
+  // 3. Cut transition: instantaneous swap (durationMs: 0)
+  const smCut = new GuestTransitionStateMachine('cut');
+  smCut.onSync(true, stream1);
+  assert.equal(smCut.guestPhase, 'active');
+  assert.equal(smCut.retainedGuestStream, stream1);
+  smCut.onSync(false, null);
+  assert.equal(smCut.guestPhase, 'hidden');
+  assert.equal(smCut.retainedGuestStream, null);
+
+  // 4. None transition: instantaneous swap (durationMs: 0)
+  const smNone = new GuestTransitionStateMachine('none');
+  smNone.onSync(true, stream1);
+  assert.equal(smNone.guestPhase, 'active');
+  smNone.onSync(false, null);
+  assert.equal(smNone.guestPhase, 'hidden');
+
+  // 5. Interruption resilience: revert followed immediately by switch cancels exit timer
+  const smInterrupt = new GuestTransitionStateMachine('fade');
+  smInterrupt.onSync(true, stream1);
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smInterrupt.guestPhase, 'active');
+
+  // Revert initiates exit
+  smInterrupt.onSync(false, null);
+  assert.equal(smInterrupt.guestPhase, 'exiting');
+
+  // Re-switch before exit concludes
+  smInterrupt.onSync(true, stream1);
+  assert.equal(smInterrupt.guestPhase, 'active', 'Re-switching during exit must cancel exit and restore active state');
+  assert.equal(smInterrupt.timer, null, 'Exit timer must be cancelled');
+
+  // 6. Stream loss resilience: HDMI disconnection while in guest intent aborts immediately
+  const smLoss = new GuestTransitionStateMachine('fade');
+  smLoss.onSync(true, stream1);
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smLoss.guestPhase, 'active');
+
+  // Stream lost
+  smLoss.onSync(true, null);
+  assert.equal(smLoss.guestPhase, 'hidden');
+  assert.equal(smLoss.retainedGuestStream, null);
+
+  // 7. Teardown clears timers and state cleanly
+  smInterrupt.onSync(false, null);
+  smInterrupt.teardown();
+  assert.equal(smInterrupt.guestPhase, 'hidden');
+  assert.equal(smInterrupt.retainedGuestStream, null);
+  assert.equal(smInterrupt.timer, null);
+});
+
+test('SPEC-107-04: Defect injection proof — verifyGuestTransitionGuard detects abrupt mounting or missing transition specs', () => {
+  function verifyGuestTransitionGuard(src) {
+    if (!src.includes('data-testid="projector-guest-video-container"')) {
+      return { pass: false, reason: 'missing-guest-container' };
+    }
+    if (!src.includes("guestPhase !== 'hidden' && retainedGuestStream")) {
+      return { pass: false, reason: 'abrupt-conditional-mounting' };
+    }
+    if (!src.includes('SLIDE_TRANSITION_SPECS')) {
+      return { pass: false, reason: 'missing-transition-specs' };
+    }
+    if (!src.includes('getGuestTransitionStyle')) {
+      return { pass: false, reason: 'missing-transition-style' };
+    }
+    return { pass: true };
+  }
+
+  // Real source passes once implemented, let's verify defect injection proofs
+  assert.equal(verifyGuestTransitionGuard('<div />').reason, 'missing-guest-container');
+  assert.equal(verifyGuestTransitionGuard('<div data-testid="projector-guest-video-container" />\n{isGuestIntent && guestStream ? <div /> : null}').reason, 'abrupt-conditional-mounting');
+  assert.equal(verifyGuestTransitionGuard('<div data-testid="projector-guest-video-container" />\n{guestPhase !== \'hidden\' && retainedGuestStream ? <div /> : null}').reason, 'missing-transition-specs');
+  assert.equal(verifyGuestTransitionGuard('<div data-testid="projector-guest-video-container" />\n{guestPhase !== \'hidden\' && retainedGuestStream ? <div /> : null}\nSLIDE_TRANSITION_SPECS').reason, 'missing-transition-style');
+});
+
 

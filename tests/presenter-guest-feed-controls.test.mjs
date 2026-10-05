@@ -812,6 +812,17 @@ test('SPEC-103-01: structural scan verifies DropdownMenuGroup enclosing Dropdown
 });
 
 function validateControlPlacement(presenterContent) {
+  const actionsMatch = presenterContent.match(
+    /<div[^>]*data-testid="presenter-header-actions"[^>]*>([\s\S]*?)<\/div>\s*\{projectorBlocked/
+  );
+  if (!actionsMatch) {
+    throw new Error('Placement Violation: presenter-header-actions container missing');
+  }
+  const actionsContent = actionsMatch[1];
+  if (!/<div[^>]*data-testid="presenter-header-row-3"/.test(actionsContent)) {
+    throw new Error('Placement Violation: presenter-header-row-3 must be inside presenter-header-actions');
+  }
+
   const row1Match = presenterContent.match(
     /<div[^>]*data-testid="presenter-header-row-1"[^>]*>([\s\S]*?)<\/div>\s*\{\/\* Row 2/
   );
@@ -819,8 +830,8 @@ function validateControlPlacement(presenterContent) {
     throw new Error('Placement Violation: presenter-header-row-1 container missing');
   }
   const row1Content = row1Match[1];
-  if (!/<PresenterGuestFeedControl/.test(row1Content)) {
-    throw new Error('Placement Violation: PresenterGuestFeedControl missing from Header Row 1');
+  if (/<PresenterGuestFeedControl/.test(row1Content)) {
+    throw new Error('Placement Violation: PresenterGuestFeedControl must NOT be in presenter-header-row-1');
   }
 
   const row2Match = presenterContent.match(
@@ -833,9 +844,20 @@ function validateControlPlacement(presenterContent) {
   if (/<PresenterGuestFeedControl/.test(row2Content)) {
     throw new Error('Placement Violation: PresenterGuestFeedControl must NOT be in presenter-header-row-2');
   }
+
+  const row3Match = presenterContent.match(
+    /<div[^>]*data-testid="presenter-header-row-3"[^>]*>([\s\S]*?)<\/div>/
+  );
+  if (!row3Match) {
+    throw new Error('Placement Violation: presenter-header-row-3 container missing');
+  }
+  const row3Content = row3Match[1];
+  if (!/<PresenterGuestFeedControl/.test(row3Content)) {
+    throw new Error('Placement Violation: PresenterGuestFeedControl missing from Header Row 3');
+  }
 }
 
-test('SPEC-103-01: structural scan verifies PresenterGuestFeedControl in presenter-header-row-1 in PresenterOperator', () => {
+test('SPEC-107-03: structural scan verifies PresenterGuestFeedControl in presenter-header-row-3 in PresenterOperator', () => {
   const presenterPath = path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const content = fs.readFileSync(presenterPath, 'utf8');
   assert.doesNotThrow(() => validateControlPlacement(content));
@@ -875,24 +897,38 @@ test('SPEC-103-01: defect injection proof: DropdownMenuLabel directly in Dropdow
   );
 });
 
-test('SPEC-103-01: defect injection proof: PresenterGuestFeedControl in presenter-header-row-2 triggers guard finding', () => {
+test('SPEC-107-03: defect injection proof: PresenterGuestFeedControl in presenter-header-row-1 or row-2 triggers guard finding', () => {
   const presenterPath = path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const realContent = fs.readFileSync(presenterPath, 'utf8');
 
-  // Real content passes
-  assert.doesNotThrow(() => validateControlPlacement(realContent));
+  // Injected defect 1: move control into Row 1
+  const defectiveRow1Content = realContent
+    .replace(
+      'data-testid="presenter-header-row-1" className="flex flex-wrap items-center justify-end gap-2">',
+      'data-testid="presenter-header-row-1" className="flex flex-wrap items-center justify-end gap-2">\n<PresenterGuestFeedControl controller={guestFeedControllerRef.current} isProjectorResponding={true} />'
+    );
+  assert.throws(
+    () => validateControlPlacement(defectiveRow1Content),
+    /Placement Violation: PresenterGuestFeedControl must NOT be in presenter-header-row-1/
+  );
 
-  // Injected defect: move control from Row 1 back to Row 2
-  const defectiveContent = realContent
-    .replace(/\{guestFeedControllerRef\.current && \(\s*<PresenterGuestFeedControl[\s\S]*?\/>\s*\)\}/, '')
+  // Injected defect 2: move control into Row 2
+  const defectiveRow2Content = realContent
     .replace(
       'data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">',
       'data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">\n<PresenterGuestFeedControl controller={guestFeedControllerRef.current} isProjectorResponding={true} />'
     );
-
   assert.throws(
-    () => validateControlPlacement(defectiveContent),
-    /Placement Violation: PresenterGuestFeedControl missing from Header Row 1/
+    () => validateControlPlacement(defectiveRow2Content),
+    /Placement Violation: PresenterGuestFeedControl must NOT be in presenter-header-row-2/
+  );
+
+  // Injected defect 3: missing Row 3 entirely
+  const missingRow3Content = realContent
+    .replace(/<div data-testid="presenter-header-row-3"[\s\S]*?<\/div>\s*\)\}/, '');
+  assert.throws(
+    () => validateControlPlacement(missingRow3Content),
+    /Placement Violation: presenter-header-row-3 must be inside presenter-header-actions/
   );
 });
 

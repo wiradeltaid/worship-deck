@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** none
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/lib/capture-broker.ts`, `src/operator/present/presenter-guest-feed-controller.ts`, and `tests/capture-broker-device-enumeration.test.mjs`:
 
