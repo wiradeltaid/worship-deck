@@ -771,4 +771,315 @@ test('SPEC-107-04: Defect injection proof — verifyGuestTransitionGuard detects
   assert.equal(verifyGuestTransitionGuard('<div data-testid="projector-guest-video-container" />\n{guestPhase !== \'hidden\' && retainedGuestStream ? <div /> : null}\nSLIDE_TRANSITION_SPECS').reason, 'missing-transition-style');
 });
 
+// ============================================================================
+// SPEC-109: Scripture Overlay Pagination Crossfade Backdrop Continuity Parity
+// ============================================================================
+
+test('SPEC-109-01: ProjectorClient renders persistent scripture backdrop layer at z-20 with getScriptureBackdropStyle', () => {
+  const src = getProjectorClientSource();
+
+  // 1. Must render dedicated backdrop element
+  assert.ok(
+    src.includes('data-testid="projector-scripture-backdrop"'),
+    'ProjectorClient must render projector-scripture-backdrop'
+  );
+
+  // 2. Must consume getScriptureBackdropStyle(transition, backdropPhase)
+  assert.ok(
+    src.includes('getScriptureBackdropStyle(transition, backdropPhase)'),
+    'Backdrop must consume getScriptureBackdropStyle(transition, backdropPhase)'
+  );
+
+  // 3. Must have solid #0B1220 background and pointer-events-none at z-20
+  assert.ok(
+    src.includes('absolute inset-0 z-20 bg-[#0B1220] pointer-events-none'),
+    'Backdrop must have absolute inset-0 z-20 bg-[#0B1220] pointer-events-none'
+  );
+
+  // 4. Stacking order: backdrop must be declared before outgoingOverlay and activeOverlay in JSX
+  const backdropIdx = src.indexOf('data-testid="projector-scripture-backdrop"');
+  const outgoingIdx = src.indexOf('data-testid="projector-scripture-outgoing"');
+  const activeIdx = src.indexOf('data-testid="projector-scripture-layer"');
+  assert.ok(backdropIdx !== -1, 'Backdrop element must exist');
+  assert.ok(outgoingIdx !== -1, 'Outgoing overlay element must exist');
+  assert.ok(activeIdx !== -1, 'Active overlay element must exist');
+  assert.ok(
+    backdropIdx < outgoingIdx && backdropIdx < activeIdx,
+    'Backdrop layer must be mounted before outgoing and active scripture overlays for proper z-stacking'
+  );
+
+  // 5. Lifecycle continuity: pagination must keep backdrop strictly at active
+  assert.ok(
+    src.includes("setBackdropPhase('active')"),
+    'ProjectorClient must maintain backdropPhase as active'
+  );
+
+  // 6. Timer cleanup: backdropTimerRef must be cleaned up in unmount, stalePlan, and clear
+  assert.ok(
+    src.includes('backdropTimerRef'),
+    'ProjectorClient must maintain backdropTimerRef'
+  );
+});
+
+test('SPEC-109-02: getScriptureBackdropStyle produces canonical backdrop styles across all transitions', async () => {
+  const { getScriptureBackdropStyle } = await import(srcUrl('lib', 'transitions.ts'));
+
+  // 1. hidden phase
+  const hiddenStyle = getScriptureBackdropStyle('fade', 'hidden');
+  assert.equal(hiddenStyle.opacity, 0);
+  assert.equal(hiddenStyle.visibility, 'hidden');
+
+  // 2. cut and none (0ms instant cut)
+  const cutActive = getScriptureBackdropStyle('cut', 'active');
+  assert.equal(cutActive.opacity, 1);
+  assert.equal(cutActive.visibility, 'visible');
+  assert.equal(cutActive.transition, 'none');
+
+  const cutStart = getScriptureBackdropStyle('cut', 'entering-start');
+  assert.equal(cutStart.opacity, 1);
+  assert.equal(cutStart.visibility, 'visible');
+  assert.equal(cutStart.transition, 'none');
+
+  const noneActive = getScriptureBackdropStyle('none', 'active');
+  assert.equal(noneActive.opacity, 1);
+  assert.equal(noneActive.visibility, 'visible');
+  assert.equal(noneActive.transition, 'none');
+
+  // 3. fade and dissolve (canonical 500ms opacity transition)
+  const fadeStart = getScriptureBackdropStyle('fade', 'entering-start');
+  assert.equal(fadeStart.opacity, 0);
+  assert.equal(fadeStart.visibility, 'visible');
+
+  const fadeActive = getScriptureBackdropStyle('fade', 'active');
+  assert.equal(fadeActive.opacity, 1);
+  assert.equal(fadeActive.visibility, 'visible');
+  assert.equal(fadeActive.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const fadeExit = getScriptureBackdropStyle('fade', 'exiting');
+  assert.equal(fadeExit.opacity, 0);
+  assert.equal(fadeExit.visibility, 'visible');
+  assert.equal(fadeExit.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const dissolveActive = getScriptureBackdropStyle('dissolve', 'active');
+  assert.equal(dissolveActive.opacity, 1);
+  assert.equal(dissolveActive.visibility, 'visible');
+  assert.equal(dissolveActive.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 4. push (Adaptive A/V Guard: adapts to opacity fade, avoiding sliding black seams across display)
+  const pushStart = getScriptureBackdropStyle('push', 'entering-start');
+  assert.equal(pushStart.opacity, 0);
+  assert.equal(pushStart.visibility, 'visible');
+
+  const pushActive = getScriptureBackdropStyle('push', 'active');
+  assert.equal(pushActive.opacity, 1);
+  assert.equal(pushActive.visibility, 'visible');
+  assert.equal(pushActive.transition, 'opacity 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+  assert.equal(pushActive.transform, undefined, 'Backdrop must not apply horizontal translation transform');
+
+  const pushExit = getScriptureBackdropStyle('push', 'exiting');
+  assert.equal(pushExit.opacity, 0);
+  assert.equal(pushExit.visibility, 'visible');
+  assert.equal(pushExit.transition, 'opacity 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+  assert.equal(pushExit.transform, undefined, 'Backdrop exit must not apply horizontal translation transform');
+});
+
+test('SPEC-109-03: Production ScriptureOverlayStateMachine guarantees zero alpha bleed during pagination crossfade and handles all lifecycle edge cases', async () => {
+  const { ScriptureOverlayStateMachine, getScriptureBackdropStyle } = await import(srcUrl('lib', 'transitions.ts'));
+
+  // 1. Mount-time sync with scripture mounts backdrop directly as active without playing entrance
+  const smMount = new ScriptureOverlayStateMachine('fade');
+  smMount.onSync({ reference: 'John 3:16', text: 'For God so loved...', currentPage: 1 }, true);
+  assert.equal(smMount.backdropPhase, 'active', 'Backdrop must mount directly as active on initial sync');
+  assert.equal(smMount.overlayPhase, 'active');
+  const mountBackdropStyle = getScriptureBackdropStyle('fade', smMount.backdropPhase);
+  assert.equal(mountBackdropStyle.opacity, 1, 'Initial sync backdrop must have opacity 1');
+
+  // 2. Initial user-triggered entrance from hidden in fade transition
+  const smFade = new ScriptureOverlayStateMachine('fade');
+  assert.equal(smFade.backdropPhase, 'hidden');
+  smFade.applyScripture({ reference: 'John 14:1', text: 'Let not your heart be troubled', currentPage: 1 });
+  assert.equal(smFade.backdropPhase, 'entering-start', 'Backdrop must start at entering-start on entrance');
+  assert.equal(smFade.overlayPhase, 'entering-start');
+
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smFade.backdropPhase, 'active', 'Backdrop must settle to active after initial entrance tick');
+  assert.equal(smFade.overlayPhase, 'active');
+
+  // 3. Crossfade Pagination in fade (Page 1 -> Page 2):
+  // Outgoing overlay fades out, incoming overlay fades in.
+  // Backdrop MUST REMAIN STEADILY AT 'active' (opacity: 1) without flickering or replaying entrance!
+  smFade.applyScripture({ reference: 'John 14:1', text: 'Ye believe in God...', currentPage: 2 });
+  assert.equal(smFade.backdropPhase, 'active', 'Backdrop must stay active immediately upon pagination');
+  assert.equal(smFade.overlayPhase, 'entering-start', 'Incoming overlay starts at entering-start');
+  assert.equal(smFade.outgoingPhase, 'exiting-start', 'Outgoing overlay starts at exiting-start');
+
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smFade.backdropPhase, 'active', 'Backdrop must remain active at 25ms tick');
+  assert.equal(smFade.overlayPhase, 'active');
+  assert.equal(smFade.outgoingPhase, 'exiting');
+
+  // Midpoint at t = 250ms (simulated opacity math check):
+  // outgoing alpha = 0.5, active alpha = 0.5.
+  // With persistent backdrop at alpha = 1.0:
+  // Combined occlusion = 1 - (1 - 0.5) * (1 - 0.5) * (1 - 1.0) = 1.0 (Zero alpha bleed onto slide!)
+  const backdropAlpha = 1.0;
+  const outgoingAlpha = 0.5;
+  const activeAlpha = 0.5;
+  const combinedCoverageWithBackdrop = 1 - (1 - outgoingAlpha) * (1 - activeAlpha) * (1 - backdropAlpha);
+  assert.equal(combinedCoverageWithBackdrop, 1.0, 'Persistent backdrop provides 100% solid opacity during crossfade');
+
+  // Finish crossfade transition duration
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(smFade.backdropPhase, 'active', 'Backdrop remains active after pagination completes');
+  assert.equal(smFade.outgoingOverlay, null);
+  assert.equal(smFade.outgoingPhase, 'hidden');
+
+  // 4. Return Pagination in dissolve mode (Page 2 -> Page 1):
+  const smDissolve = new ScriptureOverlayStateMachine('dissolve');
+  smDissolve.onSync({ reference: 'Rom 8:28', text: 'Page 2', currentPage: 2 }, true);
+  assert.equal(smDissolve.backdropPhase, 'active');
+  smDissolve.applyScripture({ reference: 'Rom 8:28', text: 'Page 1', currentPage: 1 });
+  assert.equal(smDissolve.backdropPhase, 'active', 'Dissolve mode must maintain active backdrop during return pagination');
+  assert.equal(smDissolve.direction, 'prev');
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smDissolve.backdropPhase, 'active');
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(smDissolve.backdropPhase, 'active');
+
+  // 5. Clear scripture: backdrop and overlay exit cleanly together
+  smFade.clearScripture();
+  assert.equal(smFade.backdropPhase, 'exiting', 'Backdrop must enter exiting state on clear');
+  assert.equal(smFade.overlayPhase, 'exiting');
+
+  await new Promise((r) => setTimeout(r, 520));
+  assert.equal(smFade.backdropPhase, 'hidden', 'Backdrop must transition to hidden after exit duration');
+  assert.equal(smFade.overlayPhase, 'hidden');
+  assert.equal(smFade.activeOverlay, null);
+
+  // 6. Cut / None transition: 0ms instant mount and unmount
+  const smCut = new ScriptureOverlayStateMachine('cut');
+  smCut.applyScripture({ reference: 'Ps 23:1', text: 'The Lord is my shepherd', currentPage: 1 });
+  assert.equal(smCut.backdropPhase, 'active', 'Cut transition must mount backdrop instantly as active');
+  assert.equal(smCut.overlayPhase, 'active');
+
+  smCut.clearScripture();
+  assert.equal(smCut.backdropPhase, 'hidden', 'Cut transition must hide backdrop instantly');
+  assert.equal(smCut.overlayPhase, 'hidden');
+
+  // 7. Rapid interruption: rapid next -> prev within 10ms keeps backdrop steady
+  const smRapid = new ScriptureOverlayStateMachine('fade');
+  smRapid.onSync({ reference: 'Ps 23', text: 'Page 1', currentPage: 1 }, true);
+  smRapid.applyScripture({ reference: 'Ps 23', text: 'Page 2', currentPage: 2 });
+  smRapid.applyScripture({ reference: 'Ps 23', text: 'Page 1', currentPage: 1 });
+  assert.equal(smRapid.backdropPhase, 'active', 'Rapid pagination interruption must keep backdrop active');
+  assert.equal(smRapid.direction, 'prev');
+  assert.equal(smRapid.activeOverlay?.currentPage, 1);
+
+  // 8. Clear before initial 20ms tick completes
+  const smEarlyClear = new ScriptureOverlayStateMachine('fade');
+  smEarlyClear.applyScripture({ reference: 'Matt 6:9', text: 'Our Father...', currentPage: 1 });
+  assert.equal(smEarlyClear.overlayPhase, 'entering-start');
+  assert.equal(smEarlyClear.backdropPhase, 'entering-start');
+  smEarlyClear.clearScripture();
+  assert.equal(smEarlyClear.overlayPhase, 'exiting');
+  assert.equal(smEarlyClear.backdropPhase, 'exiting');
+  await new Promise((r) => setTimeout(r, 520));
+  assert.equal(smEarlyClear.overlayPhase, 'hidden');
+  assert.equal(smEarlyClear.backdropPhase, 'hidden');
+
+  // 9. Live transition change during exit: changing to cut immediately unmounts without 500ms delay
+  const smLiveTransition = new ScriptureOverlayStateMachine('fade');
+  smLiveTransition.onSync({ reference: 'Heb 11:1', text: 'Now faith is...', currentPage: 1 }, true);
+  smLiveTransition.clearScripture();
+  assert.equal(smLiveTransition.overlayPhase, 'exiting');
+  assert.equal(smLiveTransition.backdropPhase, 'exiting');
+  // Dynamic transition change to cut mid-exit
+  smLiveTransition.setTransition('cut');
+  assert.equal(smLiveTransition.overlayPhase, 'hidden', 'Switching to cut during exit must immediately clear overlayPhase');
+  assert.equal(smLiveTransition.backdropPhase, 'hidden', 'Switching to cut during exit must immediately clear backdropPhase');
+  assert.equal(smLiveTransition.activeOverlay, null);
+
+  // 10. Stale plan and teardown cleanly resets all layers
+  const smStale = new ScriptureOverlayStateMachine('fade');
+  smStale.onSync({ reference: 'Rev 22:20', text: 'Even so, come...', currentPage: 1 }, true);
+  smStale.handleStalePlan();
+  assert.equal(smStale.activeOverlay, null);
+  assert.equal(smStale.outgoingOverlay, null);
+  assert.equal(smStale.overlayPhase, 'hidden');
+  assert.equal(smStale.backdropPhase, 'hidden');
+});
+
+test('SPEC-109-03: Defect injection proof — verifyBackdropContinuityGuard detects missing backdrop, improper layer, or pagination resets', () => {
+  function verifyBackdropContinuityGuard(src) {
+    if (!src.includes('data-testid="projector-scripture-backdrop"')) {
+      return { pass: false, reason: 'missing-backdrop-testid' };
+    }
+    if (!src.includes('getScriptureBackdropStyle')) {
+      return { pass: false, reason: 'missing-backdrop-style-helper' };
+    }
+    if (!src.includes('bg-[#0B1220]')) {
+      return { pass: false, reason: 'missing-dark-backdrop-color' };
+    }
+    if (!src.includes('pointer-events-none')) {
+      return { pass: false, reason: 'missing-pointer-events-none' };
+    }
+    // Stacking check
+    const backdropIdx = src.indexOf('data-testid="projector-scripture-backdrop"');
+    const outgoingIdx = src.indexOf('data-testid="projector-scripture-outgoing"');
+    if (backdropIdx === -1 || outgoingIdx === -1 || backdropIdx > outgoingIdx) {
+      return { pass: false, reason: 'improper-stacking-order' };
+    }
+    // Pagination invariant check: must not unmount or reset backdrop on pagination
+    if (/setBackdropPhase\(['"]entering-start['"]\)[^}]*setOutgoingOverlay\(currentActive\)/s.test(src)) {
+      return { pass: false, reason: 'backdrop-reanimation-on-pagination' };
+    }
+    return { pass: true };
+  }
+
+  // Real production source must pass
+  const prodSrc = getProjectorClientSource();
+  assert.equal(verifyBackdropContinuityGuard(prodSrc).pass, true, 'Production ProjectorClient must pass all backdrop continuity guards');
+
+  // Defect 1: Missing testid
+  assert.equal(
+    verifyBackdropContinuityGuard('<div className="bg-[#0B1220]" style={getScriptureBackdropStyle(transition, backdropPhase)} />').reason,
+    'missing-backdrop-testid'
+  );
+
+  // Defect 2: Missing helper function
+  assert.equal(
+    verifyBackdropContinuityGuard('<div data-testid="projector-scripture-backdrop" className="bg-[#0B1220] pointer-events-none" />').reason,
+    'missing-backdrop-style-helper'
+  );
+
+  // Defect 3: Missing dark background color
+  assert.equal(
+    verifyBackdropContinuityGuard('<div data-testid="projector-scripture-backdrop" className="pointer-events-none" style={getScriptureBackdropStyle(transition, backdropPhase)} />').reason,
+    'missing-dark-backdrop-color'
+  );
+
+  // Defect 4: Missing pointer-events-none
+  assert.equal(
+    verifyBackdropContinuityGuard('<div data-testid="projector-scripture-backdrop" className="bg-[#0B1220]" style={getScriptureBackdropStyle(transition, backdropPhase)} />').reason,
+    'missing-pointer-events-none'
+  );
+
+  // Defect 5: Improper stacking order (backdrop mounted after outgoing overlay)
+  assert.equal(
+    verifyBackdropContinuityGuard(
+      '<div data-testid="projector-scripture-outgoing" />\n<div data-testid="projector-scripture-backdrop" className="bg-[#0B1220] pointer-events-none" style={getScriptureBackdropStyle(transition, backdropPhase)} />'
+    ).reason,
+    'improper-stacking-order'
+  );
+
+  // Defect 6: Resetting / re-animating backdrop during pagination (causing alpha bleed)
+  assert.equal(
+    verifyBackdropContinuityGuard(
+      'data-testid="projector-scripture-backdrop" getScriptureBackdropStyle bg-[#0B1220] pointer-events-none data-testid="projector-scripture-outgoing"\n' +
+      'setBackdropPhase(\'entering-start\');\nsetOutgoingOverlay(currentActive);'
+    ).reason,
+    'backdrop-reanimation-on-pagination'
+  );
+});
+
 

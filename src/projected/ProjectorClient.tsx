@@ -24,11 +24,13 @@ import {
   getGuestTransitionStyle,
   getScriptureTransitionStyle,
   getBlankTransitionStyle,
+  getScriptureBackdropStyle,
   SLIDE_TRANSITION_SPECS,
   type SlideTransition,
   type GuestMediaPhase,
   type ScriptureTransitionPhase,
   type ScripturePageDirection,
+  type ScriptureBackdropPhase,
 } from '@/lib/transitions';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { useProjectedShell } from '@/lib/use-projected-shell';
@@ -85,15 +87,23 @@ export default function ProjectorClient({
   const [outgoingOverlay, setOutgoingOverlay] = useState<ScriptureOverlay | null>(null);
   const [overlayPhase, setOverlayPhase] = useState<'hidden' | 'entering-start' | 'active' | 'exiting'>('hidden');
   const [outgoingPhase, setOutgoingPhase] = useState<'hidden' | 'exiting-start' | 'exiting'>('hidden');
+  const [backdropPhase, setBackdropPhase] = useState<ScriptureBackdropPhase>('hidden');
   const [scriptureDirection, setScriptureDirection] = useState<ScripturePageDirection>('initial');
   const activeOverlayRef = useRef<ScriptureOverlay | null>(null);
   activeOverlayRef.current = activeOverlay;
+  const outgoingOverlayRef = useRef<ScriptureOverlay | null>(null);
+  outgoingOverlayRef.current = outgoingOverlay;
   const overlayPhaseRef = useRef<'hidden' | 'entering-start' | 'active' | 'exiting'>('hidden');
   overlayPhaseRef.current = overlayPhase;
+  const outgoingPhaseRef = useRef<'hidden' | 'exiting-start' | 'exiting'>('hidden');
+  outgoingPhaseRef.current = outgoingPhase;
+  const backdropPhaseRef = useRef<ScriptureBackdropPhase>('hidden');
+  backdropPhaseRef.current = backdropPhase;
   const scriptureDirectionRef = useRef<ScripturePageDirection>('initial');
   scriptureDirectionRef.current = scriptureDirection;
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backdropTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialSyncRef = useRef<boolean>(true);
 
   const applyScriptureOverlay = (newScripture: ScriptureOverlay) => {
@@ -125,6 +135,10 @@ export default function ProjectorClient({
       clearTimeout(outgoingTimerRef.current);
       outgoingTimerRef.current = null;
     }
+    if (backdropTimerRef.current) {
+      clearTimeout(backdropTimerRef.current);
+      backdropTimerRef.current = null;
+    }
 
     let dir: ScripturePageDirection = 'initial';
     if (currentActive) {
@@ -148,33 +162,64 @@ export default function ProjectorClient({
     if (durationMs === 0) {
       // Instantaneous cut / none
       setOutgoingOverlay(null);
+      outgoingOverlayRef.current = null;
       setOutgoingPhase('hidden');
+      outgoingPhaseRef.current = 'hidden';
       setActiveOverlay(newScripture);
+      activeOverlayRef.current = newScripture;
       setOverlayPhase('active');
+      overlayPhaseRef.current = 'active';
+      setBackdropPhase('active');
+      backdropPhaseRef.current = 'active';
       return;
     }
 
     if (!currentActive) {
       setOutgoingOverlay(null);
+      outgoingOverlayRef.current = null;
       setOutgoingPhase('hidden');
+      outgoingPhaseRef.current = 'hidden';
       setActiveOverlay(newScripture);
+      activeOverlayRef.current = newScripture;
       setOverlayPhase('entering-start');
+      overlayPhaseRef.current = 'entering-start';
+      setBackdropPhase('entering-start');
+      backdropPhaseRef.current = 'entering-start';
       overlayTimerRef.current = setTimeout(() => {
         setOverlayPhase('active');
+        overlayPhaseRef.current = 'active';
         overlayTimerRef.current = null;
       }, 20);
+      backdropTimerRef.current = setTimeout(() => {
+        setBackdropPhase('active');
+        backdropPhaseRef.current = 'active';
+        backdropTimerRef.current = null;
+      }, 20);
     } else {
+      // SPEC-109: Scripture-to-Scripture Pagination:
+      // Keep backdropPhase strictly at 'active' without re-animating or dropping opacity,
+      // preventing underlying presentation slide content from bleeding through during crossfade!
+      setBackdropPhase('active');
+      backdropPhaseRef.current = 'active';
       setOutgoingOverlay(currentActive);
+      outgoingOverlayRef.current = currentActive;
       setOutgoingPhase('exiting-start');
+      outgoingPhaseRef.current = 'exiting-start';
       setActiveOverlay(newScripture);
+      activeOverlayRef.current = newScripture;
       setOverlayPhase('entering-start');
+      overlayPhaseRef.current = 'entering-start';
 
       overlayTimerRef.current = setTimeout(() => {
         setOutgoingPhase('exiting');
+        outgoingPhaseRef.current = 'exiting';
         setOverlayPhase('active');
+        overlayPhaseRef.current = 'active';
         outgoingTimerRef.current = setTimeout(() => {
           setOutgoingOverlay(null);
+          outgoingOverlayRef.current = null;
           setOutgoingPhase('hidden');
+          outgoingPhaseRef.current = 'hidden';
           outgoingTimerRef.current = null;
         }, durationMs);
         overlayTimerRef.current = null;
@@ -184,7 +229,7 @@ export default function ProjectorClient({
 
   const clearScriptureOverlay = () => {
     // If already exiting or hidden, do not restart or strand the running exit timer
-    if (!activeOverlayRef.current || overlayPhaseRef.current === 'exiting') {
+    if (!activeOverlayRef.current || overlayPhaseRef.current === 'exiting' || overlayPhaseRef.current === 'hidden') {
       return;
     }
     if (overlayTimerRef.current) {
@@ -195,25 +240,45 @@ export default function ProjectorClient({
       clearTimeout(outgoingTimerRef.current);
       outgoingTimerRef.current = null;
     }
+    if (backdropTimerRef.current) {
+      clearTimeout(backdropTimerRef.current);
+      backdropTimerRef.current = null;
+    }
 
     // Atomically reset any outgoing overlay in flight to prevent ghost text or stranded layers
     setOutgoingOverlay(null);
+    outgoingOverlayRef.current = null;
     setOutgoingPhase('hidden');
+    outgoingPhaseRef.current = 'hidden';
 
     // Use current transition through ref to avoid stale closures
     const activeTransition = transitionRef.current;
     const durationMs = SLIDE_TRANSITION_SPECS[activeTransition]?.browser.durationMs ?? 0;
     if (durationMs === 0) {
       setActiveOverlay(null);
+      activeOverlayRef.current = null;
       setOverlayPhase('hidden');
+      overlayPhaseRef.current = 'hidden';
+      setBackdropPhase('hidden');
+      backdropPhaseRef.current = 'hidden';
       return;
     }
 
     setOverlayPhase('exiting');
+    overlayPhaseRef.current = 'exiting';
+    setBackdropPhase('exiting');
+    backdropPhaseRef.current = 'exiting';
     overlayTimerRef.current = setTimeout(() => {
       setActiveOverlay(null);
+      activeOverlayRef.current = null;
       setOverlayPhase('hidden');
+      overlayPhaseRef.current = 'hidden';
       overlayTimerRef.current = null;
+    }, durationMs);
+    backdropTimerRef.current = setTimeout(() => {
+      setBackdropPhase('hidden');
+      backdropPhaseRef.current = 'hidden';
+      backdropTimerRef.current = null;
     }, durationMs);
   };
 
@@ -493,6 +558,7 @@ export default function ProjectorClient({
           setOutgoingOverlay(null);
           setOverlayPhase('hidden');
           setOutgoingPhase('hidden');
+          setBackdropPhase('hidden');
           if (overlayTimerRef.current) {
             clearTimeout(overlayTimerRef.current);
             overlayTimerRef.current = null;
@@ -500,6 +566,10 @@ export default function ProjectorClient({
           if (outgoingTimerRef.current) {
             clearTimeout(outgoingTimerRef.current);
             outgoingTimerRef.current = null;
+          }
+          if (backdropTimerRef.current) {
+            clearTimeout(backdropTimerRef.current);
+            backdropTimerRef.current = null;
           }
         }
         return;
@@ -513,7 +583,41 @@ export default function ProjectorClient({
       const nextBlank = blankStateOf(msg);
       if (nextBlank !== null) setBlank(nextBlank);
       const nextTransition = liveTransitionOf(msg);
-      if (nextTransition !== null) setTransition(nextTransition);
+      if (nextTransition !== null) {
+        setTransition(nextTransition);
+        transitionRef.current = nextTransition;
+        const newDurationMs = SLIDE_TRANSITION_SPECS[nextTransition]?.browser.durationMs ?? 0;
+        if (newDurationMs === 0) {
+          if (overlayPhaseRef.current === 'exiting') {
+            if (overlayTimerRef.current) {
+              clearTimeout(overlayTimerRef.current);
+              overlayTimerRef.current = null;
+            }
+            setActiveOverlay(null);
+            activeOverlayRef.current = null;
+            setOverlayPhase('hidden');
+            overlayPhaseRef.current = 'hidden';
+          }
+          if (backdropPhaseRef.current === 'exiting') {
+            if (backdropTimerRef.current) {
+              clearTimeout(backdropTimerRef.current);
+              backdropTimerRef.current = null;
+            }
+            setBackdropPhase('hidden');
+            backdropPhaseRef.current = 'hidden';
+          }
+          if (outgoingOverlayRef.current) {
+            if (outgoingTimerRef.current) {
+              clearTimeout(outgoingTimerRef.current);
+              outgoingTimerRef.current = null;
+            }
+            setOutgoingOverlay(null);
+            outgoingOverlayRef.current = null;
+            setOutgoingPhase('hidden');
+            outgoingPhaseRef.current = 'hidden';
+          }
+        }
+      }
       const nextBg = liveBackgroundOf(msg);
       if (nextBg !== undefined) setBackgroundOverride(nextBg);
       if (msg.type === 'sync') {
@@ -528,10 +632,15 @@ export default function ProjectorClient({
             clearTimeout(outgoingTimerRef.current);
             outgoingTimerRef.current = null;
           }
+          if (backdropTimerRef.current) {
+            clearTimeout(backdropTimerRef.current);
+            backdropTimerRef.current = null;
+          }
           setOutgoingOverlay(null);
           setOutgoingPhase('hidden');
           setActiveOverlay(nextScripture);
           setOverlayPhase(nextScripture ? 'active' : 'hidden');
+          setBackdropPhase(nextScripture ? 'active' : 'hidden');
         } else {
           setOverlay(msg.scripture ?? null);
         }
@@ -633,6 +742,10 @@ export default function ProjectorClient({
         clearTimeout(outgoingTimerRef.current);
         outgoingTimerRef.current = null;
       }
+      if (backdropTimerRef.current) {
+        clearTimeout(backdropTimerRef.current);
+        backdropTimerRef.current = null;
+      }
       clearInterval(heartbeat);
       ch.removeEventListener('message', onMessage);
       channelRef.current = null;
@@ -712,6 +825,17 @@ export default function ProjectorClient({
           <SlideView slide={slide} backgroundOverride={backgroundOverride} />
         ) : null}
       </div>
+
+      {/* Persistent Scripture Backdrop Layer (SPEC-109):
+          Rendered at z-20 directly beneath outgoing and active scripture overlays.
+          Prevents underlying presentation slide content from bleeding through during crossfades. */}
+      {backdropPhase !== 'hidden' ? (
+        <div
+          data-testid="projector-scripture-backdrop"
+          className="absolute inset-0 z-20 bg-[#0B1220] pointer-events-none"
+          style={getScriptureBackdropStyle(transition, backdropPhase)}
+        />
+      ) : null}
 
       {/* Decoupled Scripture Overlay Layer (SPEC-104-02 & SPEC-108-03):
           Rendered at z-20 above slides (z-0..10) and below guest video (z-30) and blackout (z-50).
