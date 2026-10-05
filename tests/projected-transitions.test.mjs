@@ -13,7 +13,7 @@ function getProjectorClientSource() {
   return fs.readFileSync(filePath, 'utf8');
 }
 
-test('SPEC-104-01: ProjectorClient renders persistent blackout layer with 300ms transition and pointer-events-none', () => {
+test('SPEC-108-02: ProjectorClient renders persistent blackout layer with getBlankTransitionStyle and pointer-events-none', () => {
   const src = getProjectorClientSource();
 
   // Must have data-testid="projector-blank-layer"
@@ -22,22 +22,23 @@ test('SPEC-104-01: ProjectorClient renders persistent blackout layer with 300ms 
     'ProjectorClient must render projector-blank-layer'
   );
 
-  // Must have transition-opacity duration-300 ease-in-out pointer-events-none
+  // Must consume getBlankTransitionStyle(transition, blank)
   assert.ok(
-    src.includes('transition-opacity duration-300 ease-in-out pointer-events-none'),
-    'Blackout layer must declare transition-opacity duration-300 ease-in-out pointer-events-none'
+    src.includes('getBlankTransitionStyle(transition, blank)'),
+    'Blackout layer must consume getBlankTransitionStyle(transition, blank)'
   );
 
-  // Must have z-50 positioning
+  // Must have z-50 positioning and pointer-events-none
   assert.ok(
-    src.includes('absolute inset-0 z-50 bg-black'),
-    'Blackout layer must have absolute inset-0 z-50 bg-black'
+    src.includes('absolute inset-0 z-50 bg-black pointer-events-none'),
+    'Blackout layer must have absolute inset-0 z-50 bg-black pointer-events-none'
   );
 
-  // Must dynamically toggle opacity-100 and opacity-0 based on blank state
-  assert.ok(
-    src.includes("blank ? 'opacity-100' : 'opacity-0'"),
-    "Blackout layer must toggle opacity-100 and opacity-0 via `blank ? 'opacity-100' : 'opacity-0'`"
+  // Absence guard: Static duration-300 class must NOT be hardcoded on blank layer
+  assert.equal(
+    /data-testid="projector-blank-layer"[^>]*duration-300/i.test(src),
+    false,
+    'Static duration-300 class must not be hardcoded on blank layer'
   );
 
   // Absence guard: Old abrupt conditional mounting must NOT be present (formatting-resilient regex)
@@ -48,42 +49,57 @@ test('SPEC-104-01: ProjectorClient renders persistent blackout layer with 300ms 
   );
 });
 
-test('SPEC-104-01: Blackout layer helper simulates smooth transition states and preserves underlying slide advancement', () => {
-  function computeBlankLayerClass(blank) {
-    return `absolute inset-0 z-50 bg-black transition-opacity duration-300 ease-in-out pointer-events-none ${
-      blank ? 'opacity-100' : 'opacity-0'
-    }`;
-  }
+test('SPEC-108-02: getBlankTransitionStyle produces canonical blackout styles across cut, fade, push', async () => {
+  const { getBlankTransitionStyle } = await import(srcUrl('lib', 'transitions.ts'));
 
-  // When unblanked (blank=false)
-  const unblanked = computeBlankLayerClass(false);
-  assert.ok(unblanked.includes('opacity-0'), 'Unblanked layer must have opacity-0');
-  assert.ok(!unblanked.includes('opacity-100'), 'Unblanked layer must not have opacity-100');
-  assert.ok(unblanked.includes('pointer-events-none'), 'Unblanked layer must have pointer-events-none');
-  assert.ok(unblanked.includes('duration-300'), 'Unblanked layer must declare 300ms transition duration');
+  // 1. cut and none (instant 0ms cut)
+  const cutBlanked = getBlankTransitionStyle('cut', true);
+  assert.equal(cutBlanked.opacity, 1);
+  assert.equal(cutBlanked.visibility, 'visible');
+  assert.equal(cutBlanked.transition, 'none');
 
-  // When blanked (blank=true)
-  const blanked = computeBlankLayerClass(true);
-  assert.ok(blanked.includes('opacity-100'), 'Blanked layer must have opacity-100');
-  assert.ok(!blanked.includes('opacity-0'), 'Blanked layer must not have opacity-0');
-  assert.ok(blanked.includes('pointer-events-none'), 'Blanked layer must have pointer-events-none');
+  const cutUnblanked = getBlankTransitionStyle('cut', false);
+  assert.equal(cutUnblanked.opacity, 0);
+  assert.equal(cutUnblanked.visibility, 'hidden');
+  assert.equal(cutUnblanked.transition, 'none');
 
-  // Slide advancement while blanked: simulated state machine
-  let state = { index: 0, blank: true };
-  assert.ok(computeBlankLayerClass(state.blank).includes('opacity-100'));
-  // Advance slide index
-  state.index = 1;
-  assert.equal(state.index, 1);
-  assert.ok(computeBlankLayerClass(state.blank).includes('opacity-100'), 'Overlay remains at opacity-100 during slide navigation');
+  const noneBlanked = getBlankTransitionStyle('none', true);
+  assert.equal(noneBlanked.opacity, 1);
+  assert.equal(noneBlanked.visibility, 'visible');
+  assert.equal(noneBlanked.transition, 'none');
+
+  // 2. fade and dissolve (smooth 300ms opacity fade)
+  const fadeBlanked = getBlankTransitionStyle('fade', true);
+  assert.equal(fadeBlanked.opacity, 1);
+  assert.equal(fadeBlanked.visibility, 'visible');
+  assert.equal(fadeBlanked.transition, 'opacity 300ms ease-in-out, visibility 300ms ease-in-out');
+
+  const fadeUnblanked = getBlankTransitionStyle('fade', false);
+  assert.equal(fadeUnblanked.opacity, 0);
+  assert.equal(fadeUnblanked.visibility, 'hidden');
+  assert.equal(fadeUnblanked.transition, 'opacity 300ms ease-in-out, visibility 300ms ease-in-out');
+
+  // 3. push (Adaptive A/V Guard: adapts to opacity fade, avoids sliding black box across display)
+  const pushBlanked = getBlankTransitionStyle('push', true);
+  assert.equal(pushBlanked.opacity, 1);
+  assert.equal(pushBlanked.visibility, 'visible');
+  assert.equal(pushBlanked.transition, 'opacity 300ms ease-in-out, visibility 300ms ease-in-out');
+  assert.equal(pushBlanked.transform, undefined, 'Push blackout must NOT apply transform translate');
+
+  const pushUnblanked = getBlankTransitionStyle('push', false);
+  assert.equal(pushUnblanked.opacity, 0);
+  assert.equal(pushUnblanked.visibility, 'hidden');
+  assert.equal(pushUnblanked.transition, 'opacity 300ms ease-in-out, visibility 300ms ease-in-out');
+  assert.equal(pushUnblanked.transform, undefined, 'Push unblank must NOT apply transform translate');
 });
 
-test('SPEC-104-01: Defect injection proof — verifyBlankTransitionGuard detects missing transition or improper layer', () => {
+test('SPEC-108-02: Defect injection proof — verifyBlankTransitionGuard detects missing transition or improper layer', () => {
   function verifyBlankTransitionGuard(src) {
     if (!src.includes('data-testid="projector-blank-layer"')) {
       return { pass: false, reason: 'missing-test-id' };
     }
-    if (!src.includes('duration-300')) {
-      return { pass: false, reason: 'missing-duration' };
+    if (!src.includes('getBlankTransitionStyle')) {
+      return { pass: false, reason: 'missing-transition-style' };
     }
     if (!src.includes('pointer-events-none')) {
       return { pass: false, reason: 'missing-pointer-events-none' };
@@ -98,19 +114,19 @@ test('SPEC-104-01: Defect injection proof — verifyBlankTransitionGuard detects
   }
 
   // Defect 1: Missing test ID
-  assert.equal(verifyBlankTransitionGuard('<div className="z-50 duration-300 pointer-events-none" />').reason, 'missing-test-id');
+  assert.equal(verifyBlankTransitionGuard('<div className="z-50 pointer-events-none" style={getBlankTransitionStyle(transition, blank)} />').reason, 'missing-test-id');
 
-  // Defect 2: Missing duration-300
-  assert.equal(verifyBlankTransitionGuard('<div data-testid="projector-blank-layer" className="z-50 pointer-events-none" />').reason, 'missing-duration');
+  // Defect 2: Missing getBlankTransitionStyle
+  assert.equal(verifyBlankTransitionGuard('<div data-testid="projector-blank-layer" className="z-50 pointer-events-none" />').reason, 'missing-transition-style');
 
   // Defect 3: Missing pointer-events-none
-  assert.equal(verifyBlankTransitionGuard('<div data-testid="projector-blank-layer" className="z-50 duration-300" />').reason, 'missing-pointer-events-none');
+  assert.equal(verifyBlankTransitionGuard('<div data-testid="projector-blank-layer" className="z-50" style={getBlankTransitionStyle(transition, blank)} />').reason, 'missing-pointer-events-none');
 
   // Defect 4: Conditional unmounting instead of persistent layer
-  assert.equal(verifyBlankTransitionGuard('<div data-testid="projector-blank-layer" className="z-50 duration-300 pointer-events-none" />\n{blank ? <div aria-hidden="true" className="z-50" /> : null}').reason, 'conditional-unmounting');
+  assert.equal(verifyBlankTransitionGuard('<div data-testid="projector-blank-layer" className="z-50 pointer-events-none" style={getBlankTransitionStyle(transition, blank)} />\n{blank ? <div aria-hidden="true" className="z-50" /> : null}').reason, 'conditional-unmounting');
 });
 
-test('SPEC-104-02: ProjectorClient renders decoupled scripture overlay layer at z-20 preserving continuous slide rendering', () => {
+test('SPEC-108-03: ProjectorClient renders decoupled scripture overlay layer at z-20 with canonical AD-23 transition styling', () => {
   const src = getProjectorClientSource();
 
   // Dedicated scripture layer at z-20
@@ -127,16 +143,29 @@ test('SPEC-104-02: ProjectorClient renders decoupled scripture overlay layer at 
     'Scripture overlay must be positioned at z-20'
   );
 
-  // Transition classes duration-300 ease-in-out pointer-events-none
+  // Must consume getScriptureTransitionStyle
   assert.ok(
-    src.includes('transition-opacity duration-300 ease-in-out pointer-events-none'),
-    'Scripture overlay must declare transition-opacity duration-300 ease-in-out pointer-events-none'
+    src.includes('getScriptureTransitionStyle'),
+    'ProjectorClient must consume getScriptureTransitionStyle for canonical transition parity'
+  );
+
+  // Absence guard: Static duration-300 class must NOT be on scripture container
+  assert.equal(
+    /data-testid="projector-scripture-layer"[^>]*duration-300/i.test(src),
+    false,
+    'Static duration-300 class must not be on active scripture container'
   );
 
   // Guard against repeated clear stranding exit timer
   assert.ok(
     src.includes("!activeOverlayRef.current || overlayPhaseRef.current === 'exiting'"),
     'clearScriptureOverlay must guard against repeated clear when no active overlay or already exiting'
+  );
+
+  // Idempotency guard: identical content and page must not re-trigger animation
+  assert.ok(
+    src.includes('currentActive.reference === newScripture.reference'),
+    'applyScriptureOverlay must guard against re-animating identical scripture content'
   );
 
   // Continuous slide mounting: incoming slide container must render SlideView directly without conditional overlay replacement
@@ -147,13 +176,83 @@ test('SPEC-104-02: ProjectorClient renders decoupled scripture overlay layer at 
   );
 });
 
-test('SPEC-104-02: Scripture transition state machine handles entrance, exit, crossfade, and mount-time sync', async () => {
+test('SPEC-108-03: getScriptureTransitionStyle produces exact canonical styles across all transitions and directions', async () => {
+  const { getScriptureTransitionStyle } = await import(srcUrl('lib', 'transitions.ts'));
+
+  // 1. fade (500ms opacity)
+  const fadeStart = getScriptureTransitionStyle('fade', 'entering-start');
+  assert.equal(fadeStart.opacity, 0);
+
+  const fadeActive = getScriptureTransitionStyle('fade', 'active');
+  assert.equal(fadeActive.opacity, 1);
+  assert.equal(fadeActive.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const fadeExit = getScriptureTransitionStyle('fade', 'exiting');
+  assert.equal(fadeExit.opacity, 0);
+  assert.equal(fadeExit.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 2. dissolve (500ms opacity)
+  const dissolveActive = getScriptureTransitionStyle('dissolve', 'active');
+  assert.equal(dissolveActive.opacity, 1);
+  assert.equal(dissolveActive.transition, 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 3. push next/initial (450ms transform)
+  const pushNextStart = getScriptureTransitionStyle('push', 'entering-start', 'next');
+  assert.equal(pushNextStart.transform, 'translateX(100%)');
+
+  const pushNextActive = getScriptureTransitionStyle('push', 'active', 'next');
+  assert.equal(pushNextActive.transform, 'translateX(0)');
+  assert.equal(pushNextActive.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const pushNextExit = getScriptureTransitionStyle('push', 'exiting', 'next');
+  assert.equal(pushNextExit.transform, 'translateX(-100%)');
+  assert.equal(pushNextExit.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 4. push prev (bidirectional return, 450ms transform)
+  const pushPrevStart = getScriptureTransitionStyle('push', 'entering-start', 'prev');
+  assert.equal(pushPrevStart.transform, 'translateX(-100%)');
+
+  const pushPrevActive = getScriptureTransitionStyle('push', 'active', 'prev');
+  assert.equal(pushPrevActive.transform, 'translateX(0)');
+  assert.equal(pushPrevActive.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  const pushPrevExit = getScriptureTransitionStyle('push', 'exiting', 'prev');
+  assert.equal(pushPrevExit.transform, 'translateX(100%)');
+  assert.equal(pushPrevExit.transition, 'transform 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+
+  // 5. push same-page (in-place crossfade opacity over 450ms, zero horizontal displacement)
+  const pushSameStart = getScriptureTransitionStyle('push', 'entering-start', 'same-page');
+  assert.equal(pushSameStart.opacity, 0);
+  assert.equal(pushSameStart.transform, undefined);
+
+  const pushSameActive = getScriptureTransitionStyle('push', 'active', 'same-page');
+  assert.equal(pushSameActive.opacity, 1);
+  assert.equal(pushSameActive.transition, 'opacity 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+  assert.equal(pushSameActive.transform, undefined);
+
+  const pushSameExit = getScriptureTransitionStyle('push', 'exiting', 'same-page');
+  assert.equal(pushSameExit.opacity, 0);
+  assert.equal(pushSameExit.transition, 'opacity 450ms cubic-bezier(0.4, 0, 0.2, 1)');
+  assert.equal(pushSameExit.transform, undefined);
+
+  // 6. cut and none (0ms / empty style)
+  assert.deepEqual(getScriptureTransitionStyle('cut', 'active'), {});
+  assert.deepEqual(getScriptureTransitionStyle('none', 'active'), {});
+  assert.deepEqual(getScriptureTransitionStyle('cut', 'entering-start'), {});
+  assert.deepEqual(getScriptureTransitionStyle('none', 'exiting'), {});
+});
+
+test('SPEC-108-03: Scripture transition state machine handles entrance, exit, bidirectional push, same-page, cut, mount sync, and rapid interruption', async () => {
+  const { SLIDE_TRANSITION_SPECS } = await import(srcUrl('lib', 'transitions.ts'));
+
   class ScriptureTransitionStateMachine {
-    constructor() {
+    constructor(transition = 'fade') {
+      this.transition = transition;
       this.activeOverlay = null;
       this.outgoingOverlay = null;
-      this.overlayPhase = 'hidden'; // 'hidden' | 'entering' | 'active' | 'exiting'
+      this.overlayPhase = 'hidden'; // 'hidden' | 'entering-start' | 'active' | 'exiting'
       this.outgoingPhase = 'hidden'; // 'hidden' | 'exiting-start' | 'exiting'
+      this.direction = 'initial';
       this.timer = null;
       this.outgoingTimer = null;
     }
@@ -167,6 +266,7 @@ test('SPEC-104-02: Scripture transition state machine handles entrance, exit, cr
           this.outgoingOverlay = null;
           this.overlayPhase = 'active';
           this.outgoingPhase = 'hidden';
+          this.direction = 'initial';
         } else {
           this.activeOverlay = null;
           this.outgoingOverlay = null;
@@ -182,26 +282,67 @@ test('SPEC-104-02: Scripture transition state machine handles entrance, exit, cr
       }
     }
 
-    onScripture(scripture) {
+    onScripture(newScripture) {
+      const currentActive = this.activeOverlay;
+      if (
+        currentActive &&
+        currentActive.reference === newScripture.reference &&
+        currentActive.displayReference === newScripture.displayReference &&
+        currentActive.text === newScripture.text &&
+        currentActive.mode === newScripture.mode &&
+        currentActive.currentPage === newScripture.currentPage &&
+        currentActive.totalPages === newScripture.totalPages &&
+        currentActive.typographyMode === newScripture.typographyMode &&
+        currentActive.isContinuation === newScripture.isContinuation &&
+        currentActive.continuationIndex === newScripture.continuationIndex &&
+        currentActive.continuationCount === newScripture.continuationCount &&
+        currentActive.estimatedVisualLines === newScripture.estimatedVisualLines
+      ) {
+        return;
+      }
+
       if (this.timer) { clearTimeout(this.timer); this.timer = null; }
-      if (!this.activeOverlay) {
-        // Entrance from hidden
-        if (this.outgoingTimer) { clearTimeout(this.outgoingTimer); this.outgoingTimer = null; }
+      if (this.outgoingTimer) { clearTimeout(this.outgoingTimer); this.outgoingTimer = null; }
+
+      let dir = 'initial';
+      if (currentActive) {
+        const newPage = newScripture.currentPage ?? 0;
+        const curPage = currentActive.currentPage ?? 0;
+        if (newPage === curPage) {
+          dir = 'same-page';
+        } else if (newPage > curPage) {
+          dir = 'next';
+        } else {
+          dir = 'prev';
+        }
+      }
+      this.direction = dir;
+
+      const durationMs = SLIDE_TRANSITION_SPECS[this.transition]?.browser.durationMs ?? 0;
+
+      if (durationMs === 0) {
         this.outgoingOverlay = null;
         this.outgoingPhase = 'hidden';
-        this.activeOverlay = scripture;
-        this.overlayPhase = 'entering';
+        this.activeOverlay = newScripture;
+        this.overlayPhase = 'active';
+        return;
+      }
+
+      if (!currentActive) {
+        this.outgoingOverlay = null;
+        this.outgoingPhase = 'hidden';
+        this.activeOverlay = newScripture;
+        this.overlayPhase = 'entering-start';
         this.timer = setTimeout(() => {
           this.overlayPhase = 'active';
           this.timer = null;
         }, 20);
       } else {
-        // Crossfade replacement
-        if (this.outgoingTimer) { clearTimeout(this.outgoingTimer); this.outgoingTimer = null; }
-        this.outgoingOverlay = this.activeOverlay;
+        this.outgoingOverlay = currentActive;
         this.outgoingPhase = 'exiting-start';
-        this.activeOverlay = scripture;
-        this.overlayPhase = 'entering';
+        this.activeOverlay = newScripture;
+        this.overlayPhase = 'entering-start';
+
         this.timer = setTimeout(() => {
           this.outgoingPhase = 'exiting';
           this.overlayPhase = 'active';
@@ -209,86 +350,149 @@ test('SPEC-104-02: Scripture transition state machine handles entrance, exit, cr
             this.outgoingOverlay = null;
             this.outgoingPhase = 'hidden';
             this.outgoingTimer = null;
-          }, 300);
+          }, durationMs);
           this.timer = null;
         }, 20);
       }
     }
 
     onClearScripture() {
-      // Guard against repeated clear stranding the exit timer
       if (!this.activeOverlay || this.overlayPhase === 'exiting') {
         return;
       }
       if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+      if (this.outgoingTimer) { clearTimeout(this.outgoingTimer); this.outgoingTimer = null; }
+
+      // Atomically clear outgoing overlay
+      this.outgoingOverlay = null;
+      this.outgoingPhase = 'hidden';
+
+      const durationMs = SLIDE_TRANSITION_SPECS[this.transition]?.browser.durationMs ?? 0;
+      if (durationMs === 0) {
+        this.activeOverlay = null;
+        this.overlayPhase = 'hidden';
+        return;
+      }
+
       this.overlayPhase = 'exiting';
       this.timer = setTimeout(() => {
         this.activeOverlay = null;
-        this.outgoingOverlay = null;
         this.overlayPhase = 'hidden';
-        this.outgoingPhase = 'hidden';
         this.timer = null;
-      }, 300);
+      }, durationMs);
     }
   }
 
   // 1. Mount-time sync with scripture mounts immediately at phase active
-  const sm1 = new ScriptureTransitionStateMachine();
-  sm1.onSync({ reference: 'John 3:16', text: 'For God so loved...' }, true);
+  const sm1 = new ScriptureTransitionStateMachine('fade');
+  sm1.onSync({ reference: 'John 3:16', text: 'For God so loved...', currentPage: 1 }, true);
   assert.equal(sm1.overlayPhase, 'active');
   assert.equal(sm1.activeOverlay?.reference, 'John 3:16');
   assert.equal(sm1.outgoingOverlay, null);
 
-  // 2. Entrance from hidden
-  const sm2 = new ScriptureTransitionStateMachine();
-  assert.equal(sm2.overlayPhase, 'hidden');
-  sm2.onScripture({ reference: 'Gen 1:1', text: 'In the beginning...' });
-  assert.equal(sm2.overlayPhase, 'entering');
-  assert.equal(sm2.activeOverlay?.reference, 'Gen 1:1');
-  assert.equal(sm2.outgoingOverlay, null);
-
-  // Advance 25ms to let entering promote to active
-  await new Promise((r) => setTimeout(r, 25));
-  assert.equal(sm2.overlayPhase, 'active');
-
-  // 3. Clear initiates exit phase and sets overlayPhase to exiting
-  sm2.onClearScripture();
-  assert.equal(sm2.overlayPhase, 'exiting');
-  assert.ok(sm2.activeOverlay, 'Active overlay stays mounted during exiting phase to animate opacity from 100 to 0');
-
-  // Repeated clear while already exiting must be a no-op (does not cancel running exit timer)
-  const timerBefore = sm2.timer;
-  sm2.onClearScripture();
-  assert.equal(sm2.timer, timerBefore, 'Repeated clear must not strand or clear active exit timer');
-
-  // Advance 310ms to let exiting finish
-  await new Promise((r) => setTimeout(r, 310));
-  assert.equal(sm2.overlayPhase, 'hidden');
-  assert.equal(sm2.activeOverlay, null);
-
-  // 4. Crossfade replacement
-  sm1.onScripture({ reference: 'Rom 8:28', text: 'And we know...' });
-  assert.equal(sm1.overlayPhase, 'entering');
-  assert.equal(sm1.outgoingPhase, 'exiting-start');
-  assert.equal(sm1.outgoingOverlay?.reference, 'John 3:16');
-  assert.equal(sm1.activeOverlay?.reference, 'Rom 8:28');
+  // 2. Entrance from hidden in push transition
+  const smPush = new ScriptureTransitionStateMachine('push');
+  assert.equal(smPush.overlayPhase, 'hidden');
+  smPush.onScripture({ reference: 'Gen 1:1', text: 'In the beginning...', currentPage: 1 });
+  assert.equal(smPush.overlayPhase, 'entering-start');
+  assert.equal(smPush.direction, 'initial');
+  assert.equal(smPush.activeOverlay?.reference, 'Gen 1:1');
+  assert.equal(smPush.outgoingOverlay, null);
 
   await new Promise((r) => setTimeout(r, 25));
-  assert.equal(sm1.overlayPhase, 'active');
-  assert.equal(sm1.outgoingPhase, 'exiting');
+  assert.equal(smPush.overlayPhase, 'active');
 
-  await new Promise((r) => setTimeout(r, 310));
-  assert.equal(sm1.outgoingOverlay, null);
-  assert.equal(sm1.outgoingPhase, 'hidden');
+  // 3. Bidirectional Push next page
+  smPush.onScripture({ reference: 'Gen 1:1', text: 'In the beginning...', currentPage: 2 });
+  assert.equal(smPush.overlayPhase, 'entering-start');
+  assert.equal(smPush.outgoingPhase, 'exiting-start');
+  assert.equal(smPush.direction, 'next');
+
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smPush.overlayPhase, 'active');
+  assert.equal(smPush.outgoingPhase, 'exiting');
+
+  await new Promise((r) => setTimeout(r, 460));
+  assert.equal(smPush.outgoingOverlay, null);
+  assert.equal(smPush.outgoingPhase, 'hidden');
+
+  // 4. Bidirectional Push prev page
+  smPush.onScripture({ reference: 'Gen 1:1', text: 'In the beginning...', currentPage: 1 });
+  assert.equal(smPush.direction, 'prev');
+  assert.equal(smPush.overlayPhase, 'entering-start');
+
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smPush.overlayPhase, 'active');
+  assert.equal(smPush.outgoingPhase, 'exiting');
+  await new Promise((r) => setTimeout(r, 460));
+
+  // 5. Same-page update
+  smPush.onScripture({ reference: 'Gen 1:1-2', text: 'Updated verse text', currentPage: 1 });
+  assert.equal(smPush.direction, 'same-page');
+
+  // 6. Idempotency no-op
+  const timerBefore = smPush.timer;
+  smPush.onScripture({ reference: 'Gen 1:1-2', text: 'Updated verse text', currentPage: 1 });
+  assert.equal(smPush.timer, timerBefore, 'Idempotent re-sync must be a no-op');
+
+  // 7. Cut transition: instant 0ms mount and unmount
+  const smCut = new ScriptureTransitionStateMachine('cut');
+  smCut.onScripture({ reference: 'Rom 8:28', text: 'And we know...', currentPage: 1 });
+  assert.equal(smCut.overlayPhase, 'active');
+  assert.equal(smCut.activeOverlay?.reference, 'Rom 8:28');
+  assert.equal(smCut.outgoingOverlay, null);
+
+  smCut.onClearScripture();
+  assert.equal(smCut.overlayPhase, 'hidden');
+  assert.equal(smCut.activeOverlay, null);
+
+  // 8. Rapid interruption: rapid next -> prev within 10ms
+  smPush.onScripture({ reference: 'Ps 23', text: 'Page 2', currentPage: 2 });
+  smPush.onScripture({ reference: 'Ps 23', text: 'Page 1', currentPage: 1 });
+  assert.equal(smPush.direction, 'prev');
+  assert.equal(smPush.activeOverlay?.currentPage, 1);
+
+  // 9. Mid-transition clear atomically clears outgoingOverlay (SPEC-108 no ghost text)
+  const smGhost = new ScriptureTransitionStateMachine('push');
+  smGhost.onScripture({ reference: 'Ps 23', text: 'Page 1', currentPage: 1 });
+  await new Promise((r) => setTimeout(r, 25));
+  // Start page transition to Page 2
+  smGhost.onScripture({ reference: 'Ps 23', text: 'Page 2', currentPage: 2 });
+  assert.ok(smGhost.outgoingOverlay, 'Outgoing overlay must be staged during page transition');
+  // Clear scripture mid-transition
+  smGhost.onClearScripture();
+  assert.equal(smGhost.outgoingOverlay, null, 'Outgoing overlay must be atomically cleared on clear');
+  assert.equal(smGhost.outgoingPhase, 'hidden');
+
+  // 10. Live transition update via ref: changing transition dynamically to cut immediately uses 0ms
+  const smLive = new ScriptureTransitionStateMachine('fade');
+  smLive.onScripture({ reference: 'Matt 5:3', text: 'Blessed are the poor...', currentPage: 1 });
+  await new Promise((r) => setTimeout(r, 25));
+  assert.equal(smLive.overlayPhase, 'active');
+  // Live transition change to cut
+  smLive.transition = 'cut';
+  smLive.onClearScripture();
+  assert.equal(smLive.overlayPhase, 'hidden', 'Cut transition must unmount overlay immediately without 500ms fade delay');
+  assert.equal(smLive.activeOverlay, null);
+
+  // 11. Display-relevant field update on same page triggers update
+  const smDisplay = new ScriptureTransitionStateMachine('push');
+  smDisplay.onScripture({ reference: 'John 1:1', displayReference: 'Yohanes 1:1', text: 'In the beginning...', currentPage: 1 });
+  await new Promise((r) => setTimeout(r, 25));
+  smDisplay.onScripture({ reference: 'John 1:1', displayReference: 'John 1:1 (KJV)', text: 'In the beginning...', currentPage: 1 });
+  assert.equal(smDisplay.direction, 'same-page', 'Display-relevant metadata change on same page must trigger same-page update');
 });
 
-test('SPEC-104-02: Defect injection proof — verifyScriptureOverlayGuard detects coupled slide or missing z-20', () => {
+test('SPEC-108-03: Defect injection proof — verifyScriptureOverlayGuard detects coupled slide or missing z-20', () => {
   function verifyScriptureOverlayGuard(src) {
     if (!src.includes('data-testid="projector-scripture-layer"')) {
       return { pass: false, reason: 'missing-scripture-layer-testid' };
     }
     if (!src.includes('z-20')) {
       return { pass: false, reason: 'missing-z20' };
+    }
+    if (!src.includes('getScriptureTransitionStyle')) {
+      return { pass: false, reason: 'missing-transition-style' };
     }
     if (/overlay\s*\?\s*\(?\s*<ScriptureOverlayView/i.test(src)) {
       return { pass: false, reason: 'coupled-slide-replacement' };
@@ -302,9 +506,12 @@ test('SPEC-104-02: Defect injection proof — verifyScriptureOverlayGuard detect
   // Defect 2: Missing z-20
   assert.equal(verifyScriptureOverlayGuard('<div data-testid="projector-scripture-layer" className="z-10" />').reason, 'missing-z20');
 
-  // Defect 3: Coupled slide replacement
+  // Defect 3: Missing getScriptureTransitionStyle
+  assert.equal(verifyScriptureOverlayGuard('<div data-testid="projector-scripture-layer" className="z-20" />').reason, 'missing-transition-style');
+
+  // Defect 4: Coupled slide replacement
   assert.equal(
-    verifyScriptureOverlayGuard('<div data-testid="projector-scripture-layer" className="z-20" />\n{overlay ? <ScriptureOverlayView /> : <SlideView />}').reason,
+    verifyScriptureOverlayGuard('<div data-testid="projector-scripture-layer" className="z-20" style={getScriptureTransitionStyle(transition, "active")} />\n{overlay ? <ScriptureOverlayView /> : <SlideView />}').reason,
     'coupled-slide-replacement'
   );
 });

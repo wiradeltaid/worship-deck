@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-13, FR-16, FR-19, AD-23]
 **Blocked by:** SPEC-108-03
-**Status:** open
+**Status:** closed
 
 **What to build:** In `tests/projected-transitions.test.mjs` (or `tests/projector-scripture-transitions.test.mjs`):
 

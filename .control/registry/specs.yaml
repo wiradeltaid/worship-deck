@@ -4504,7 +4504,7 @@ waves:
           - tests/projected-transitions.test.mjs
 
   - id: SPEC-108
-    status: open
+    status: closed
     release: scripture-and-blank-display-transition-parity
     prd: [operator-turn]
     fr: [FR-16, FR-19]

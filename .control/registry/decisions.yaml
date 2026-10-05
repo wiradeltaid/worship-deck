@@ -1988,6 +1988,26 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-107-guest-capture-timer-receiver-binding-resilience/
 
+  - id: DEC-094
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-10-05)"
+    title: Daily Autopilot mandate for Scripture and Blank Display Transition Parity (SPEC-108)
+    file: .control/decisions/DEC-094-daily-autopilot-mandate-scripture-and-blank-display-transition-parity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-12'
+    touches:
+      - .control/memlog/autopilot-DEC-094.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-108-scripture-and-blank-display-transition-parity/
+
+
 
 
 
