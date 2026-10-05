@@ -15,6 +15,19 @@ belongs under **Unreleased** and stays there until the owner decides.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-05
+
+### Added
+- **Multi-Screen Display Targeting and Congregation Screen Placement:** The presenter console now provides display target selection (Window Mode or detected external displays) with automatic single-screen safe fallback, plus direct keyboard slide navigation (arrow keys) from the congregation screen.
+- **Scripture Ergonomics, Whole Chapter Lookup, and Pagination:** Operators can now look up and display full chapters (such as John 3 or 1 Corinthians 13) in addition to verse ranges. Scripture display supports both Slide mode and Overlay mode, adaptive typography density scaling, and automatic line-budget pagination that continues long passages onto additional slides without overflow.
+- **Smooth Display Transitions and Continuous Backdrop:** Blanking and restoring the congregation screen now uses a smooth 300ms fade transition. Scripture overlays use crossfade transitions, while a persistent backdrop layer eliminates background flickering and transparency artifacts as scripture pages advance.
+- **Presenter Session Recovery and Smart Resume:** Fail-closed session preservation in local browser storage continuously tracks slide position, blank status, live transition styles, and active scripture overlays, allowing the operator console to resume cleanly if the window is refreshed or accidentally closed during a service.
+- **Guest Speaker HDMI Video Capture Input:** Built-in capture broker supporting external HDMI video capture cards and USB cameras, offering device selection, live preview in presenter row 3, and channel synchronization to display the guest speaker video feed on the congregation screen.
+
+### Boundaries and Limitations
+- Guest Speaker HDMI capture is video-only; physical audio from guest laptops or video feeds must remain connected directly to the church sound system or mixer.
+- Guest Speaker HDMI capture is optimized for browser mode (Google Chrome or Microsoft Edge); in the standalone desktop window, capture activation depends on Windows system camera permissions and WebView2 runtime policies. If capture permission is unavailable, the console safely falls back to standard slide deck presentation.
+
 ## [0.1.1] - 2026-10-01
 
 ### Added
