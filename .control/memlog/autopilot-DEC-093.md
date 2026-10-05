@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer
 
 ## Resume
 
-- Iteration: I-1 (SPEC-107-04 closed; all tickets in SPEC-107 closed)
+- Iteration: I-1 (final)
 - Run branch: autopilot/DEC-093
-- Stopped at: In progress (all 4 tickets closed; preparing spec close and full verification)
+- Stopped at: Complete — All FR/Tickets/Specs in scope (SPEC-107) delivered, verified, and mandate applied
 - Blocked: —
 - Parked: —
-- Next: Close SPEC-107, run full verification, push run branch, and conclude mandate
+- Next: Owner review and merge of PR
 
 ## Decisions
 
@@ -30,3 +30,4 @@ artifact: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer
 - SPEC-107-02: PASS (ProjectorGuestMediaBridge timer/interval receiver binding, default environment strict window verification, zero handle cancellation, and immediate sync cleanup verified; tests/projector-guest-media-bridge.test.mjs green)
 - SPEC-107-03: PASS (Presenter header row 3 tiering, row 1/row 2 exclusivity, actions container containment, and defect injection verified; tests/presenter-guest-feed-controls.test.mjs green)
 - SPEC-107-04: PASS (Phase-driven mounting, retained media stream during exit, canonical AD-23 SLIDE_TRANSITION_SPECS consumption, track ended listener, and defect injection verified; tests/projected-transitions.test.mjs green)
+- SPEC-107: PASS (npm run smoke:spec-107, 75 tests green across device enumeration, feed controls, media bridge, and projected transitions)

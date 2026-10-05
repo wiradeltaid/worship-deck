@@ -1971,7 +1971,7 @@ decisions:
 
   - id: DEC-093
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-05)"
     title: Daily Autopilot mandate for Guest Video Capture Native Timer Receiver Binding, Header Row 3 Tiering, and Projector Transition Parity (SPEC-107)
     file: .control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer-receiver-binding-and-transitions.md

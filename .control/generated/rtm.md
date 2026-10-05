@@ -1640,10 +1640,10 @@ rtm:
   release: guest-capture-timer-receiver-binding-and-presenter-transitions
   test:
   - tests/capture-broker-device-enumeration.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1654,10 +1654,10 @@ rtm:
   release: guest-capture-timer-receiver-binding-and-presenter-transitions
   test:
   - tests/projector-guest-media-bridge.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1668,10 +1668,10 @@ rtm:
   release: guest-capture-timer-receiver-binding-and-presenter-transitions
   test:
   - tests/presenter-guest-feed-controls.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1682,10 +1682,10 @@ rtm:
   release: guest-capture-timer-receiver-binding-and-presenter-transitions
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
