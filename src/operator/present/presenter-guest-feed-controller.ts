@@ -79,6 +79,7 @@ export class PresenterGuestFeedController {
   constructor(env: ControllerEnv) {
     this.broker = env.broker;
     this.broadcastSync = env.broadcastSync;
+<<<<<<< Updated upstream
     const timerTarget = typeof window !== 'undefined' ? window : globalThis;
     const rawSetTimeout =
       env.setTimeout ??
@@ -92,6 +93,18 @@ export class PresenterGuestFeedController {
         : globalThis.clearTimeout);
     this.envSetTimeout = (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms);
     this.envClearTimeout = (id: any) => rawClearTimeout.call(timerTarget, id);
+=======
+    const rawSetTimeout = env.setTimeout;
+    const rawClearTimeout = env.clearTimeout;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+
+    this.envSetTimeout = rawSetTimeout
+      ? (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms)
+      : (fn: () => void, ms: number) => setTimeout(fn, ms);
+    this.envClearTimeout = rawClearTimeout
+      ? (id: any) => rawClearTimeout.call(timerTarget, id)
+      : (id: any) => clearTimeout(id);
+>>>>>>> Stashed changes
     this.envNow = env.now || (() => Date.now());
     this.envRandomUUID =
       env.randomUUID ||

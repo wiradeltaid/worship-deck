@@ -128,6 +128,7 @@ export class CaptureBroker {
           ? navigator.mediaDevices
           : undefined;
 
+<<<<<<< Updated upstream
     const timerTarget = typeof window !== 'undefined' ? window : globalThis;
     const rawSetTimeout =
       env.setTimeout ??
@@ -139,6 +140,11 @@ export class CaptureBroker {
       (typeof window !== 'undefined' && typeof window.clearTimeout === 'function'
         ? window.clearTimeout
         : globalThis.clearTimeout);
+=======
+    const rawSetTimeout = env.setTimeout;
+    const rawClearTimeout = env.clearTimeout;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+>>>>>>> Stashed changes
 
     this.env = {
       isSecureContext:
@@ -172,8 +178,17 @@ export class CaptureBroker {
         (typeof document !== 'undefined'
           ? () => document.createElement('video')
           : undefined),
+<<<<<<< Updated upstream
       setTimeout: (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms),
       clearTimeout: (id: any) => rawClearTimeout.call(timerTarget, id),
+=======
+      setTimeout: rawSetTimeout
+        ? (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms)
+        : (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: rawClearTimeout
+        ? (id: any) => rawClearTimeout.call(timerTarget, id)
+        : (id: any) => clearTimeout(id),
+>>>>>>> Stashed changes
       now: env.now || (() => Date.now()),
       randomUUID:
         env.randomUUID ||

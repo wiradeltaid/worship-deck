@@ -57,6 +57,7 @@ export class ProjectorGuestMediaBridge {
   private activeAcquireGeneration = 0;
 
   constructor(env: ProjectorMediaBridgeEnv) {
+<<<<<<< Updated upstream
     const resolveTimer = <T extends Function>(
       override: T | undefined,
       methodName: 'setTimeout' | 'clearTimeout' | 'setInterval' | 'clearInterval'
@@ -74,6 +75,13 @@ export class ProjectorGuestMediaBridge {
     const tClearTimeout = resolveTimer(env.clearTimeout, 'clearTimeout');
     const tSetInterval = resolveTimer(env.setInterval, 'setInterval');
     const tClearInterval = resolveTimer(env.clearInterval, 'clearInterval');
+=======
+    const rawSetTimeout = env.setTimeout;
+    const rawClearTimeout = env.clearTimeout;
+    const rawSetInterval = env.setInterval;
+    const rawClearInterval = env.clearInterval;
+    const timerTarget = typeof window !== 'undefined' ? window : globalThis;
+>>>>>>> Stashed changes
 
     this.env = {
       getOpener:
@@ -85,10 +93,25 @@ export class ProjectorGuestMediaBridge {
         (typeof document !== 'undefined'
           ? () => document.createElement('video')
           : undefined),
+<<<<<<< Updated upstream
       setTimeout: (fn: () => void, ms: number) => tSetTimeout.fn.call(tSetTimeout.target, fn, ms),
       clearTimeout: (id: any) => tClearTimeout.fn.call(tClearTimeout.target, id),
       setInterval: (fn: () => void, ms: number) => tSetInterval.fn.call(tSetInterval.target, fn, ms),
       clearInterval: (id: any) => tClearInterval.fn.call(tClearInterval.target, id),
+=======
+      setTimeout: rawSetTimeout
+        ? (fn: () => void, ms: number) => rawSetTimeout.call(timerTarget, fn, ms)
+        : (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: rawClearTimeout
+        ? (id: any) => rawClearTimeout.call(timerTarget, id)
+        : (id: any) => clearTimeout(id),
+      setInterval: rawSetInterval
+        ? (fn: () => void, ms: number) => rawSetInterval.call(timerTarget, fn, ms)
+        : (fn: () => void, ms: number) => setInterval(fn, ms),
+      clearInterval: rawClearInterval
+        ? (id: any) => rawClearInterval.call(timerTarget, id)
+        : (id: any) => clearInterval(id),
+>>>>>>> Stashed changes
       now: env.now || (() => Date.now()),
     };
   }
