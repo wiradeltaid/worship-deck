@@ -1752,10 +1752,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1766,10 +1766,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1780,10 +1780,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2388,10 +2388,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -2402,10 +2402,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -2416,10 +2416,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -5373,10 +5373,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -5387,10 +5387,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
@@ -5401,10 +5401,10 @@ rtm:
   release: scripture-pagination-crossfade-backdrop-continuity
   test:
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22

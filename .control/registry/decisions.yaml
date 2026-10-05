@@ -2009,7 +2009,7 @@ decisions:
 
   - id: DEC-095
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-05)"
     title: Daily Autopilot mandate for Scripture Overlay Pagination Crossfade Backdrop Continuity Parity (SPEC-109)
     file: .control/decisions/DEC-095-daily-autopilot-mandate-scripture-pagination-crossfade-backdrop-continuity.md
