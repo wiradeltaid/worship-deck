@@ -4545,6 +4545,42 @@ waves:
         tests:
           - tests/projected-transitions.test.mjs
 
+  - id: SPEC-109
+    status: open
+    release: scripture-pagination-crossfade-backdrop-continuity
+    prd: [operator-turn]
+    fr: [FR-16, FR-19]
+    size: S
+    depends_on: [SPEC-108]
+    spec_folder: .scratch/SPEC-109-scripture-pagination-crossfade-backdrop-continuity/
+    spec_reviewed:
+      date: '2026-10-05'
+      sha: '82786f6aeee91a9e463b8a71e111666a2df1cdc8'
+      lenses: [structure, prose, edge-case-hunter, transition-parity, backdrop-continuity, reload-invariants]
+    tickets:
+      - id: "SPEC-109-01"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-109-02"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
+        blocked_by: ["SPEC-109-01"]
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-109-03"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
+        blocked_by: ["SPEC-109-02"]
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+
+
 
 
 
