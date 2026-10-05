@@ -1,4 +1,4 @@
-asof: '2026-10-04'
+asof: '2026-10-05'
 capabilities:
 - id: CAP-1
   text: Intake a Rundown into a weekly payload from the Hub form
@@ -533,6 +533,10 @@ capabilities:
     - SPEC-105-02
     - SPEC-106-01
     - SPEC-106-02
+    - SPEC-107-01
+    - SPEC-107-02
+    - SPEC-107-03
+    - SPEC-107-04
     - SPEC-37-02
     - SPEC-41-01
     - SPEC-41-02
@@ -605,9 +609,7 @@ capabilities:
     actual_start: '2026-09-18'
     actual_end: ''
     state: in-progress
-  waiting_on:
-  - SPEC-106-01
-  - SPEC-106-02
+  waiting_on: []
 - id: CAP-7
   text: Run-Sheet of the full worship order
   size: ''
@@ -1193,6 +1195,4 @@ capabilities:
     actual_end: ''
     state: in-progress
   waiting_on: []
-uncommitted_tickets:
-- SPEC-106-01
-- SPEC-106-02
+uncommitted_tickets: []

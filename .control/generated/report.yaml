@@ -1,15 +1,13 @@
-asof: '2026-10-04'
+asof: '2026-10-05'
 since: ''
 since_report: ''
-sha: f64ac7d53bffad4d5a2c8d11c454036e40d1a469
-registry_dirty: true
-uncommitted_tickets:
-- SPEC-106-01
-- SPEC-106-02
+sha: 4583b677a9ae58f9907eab7e343f9b23a235ec14
+registry_dirty: false
+uncommitted_tickets: []
 promise_progress: 100%
 rtm_rows:
-  green: 766
-  counted: 768
+  green: 772
+  counted: 772
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-100
@@ -43,10 +41,15 @@ work_progress:
   tickets_total: 3
   work_progress: 100%
 - spec: SPEC-106
-  status: open
-  tickets_done: 0
+  status: closed
+  tickets_done: 2
   tickets_total: 2
-  work_progress: 0%
+  work_progress: 100%
+- spec: SPEC-107
+  status: closed
+  tickets_done: 4
+  tickets_total: 4
+  work_progress: 100%
 - spec: SPEC-12
   status: closed
   tickets_done: 8
