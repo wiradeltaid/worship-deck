@@ -4503,6 +4503,49 @@ waves:
         tests:
           - tests/projected-transitions.test.mjs
 
+  - id: SPEC-108
+    status: open
+    release: scripture-and-blank-display-transition-parity
+    prd: [operator-turn]
+    fr: [FR-16, FR-19]
+    size: M
+    depends_on: [SPEC-107]
+    spec_folder: .scratch/SPEC-108-scripture-and-blank-display-transition-parity/
+    spec_reviewed:
+      date: '2026-10-05'
+      sha: '76ad88fd8d9546238b0758cad9ccedc47939af38'
+      lenses: [structure, prose, edge-case-hunter, transition-parity, bidirectional-motion, av-blackout-policy]
+    tickets:
+      - id: "SPEC-108-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-108-02"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-108-01"]
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-108-03"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
+        blocked_by: ["SPEC-108-02"]
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+      - id: "SPEC-108-04"
+        component: presenter
+        satisfies: [UC-12, UC-13, FR-16, FR-19]
+        blocked_by: ["SPEC-108-03"]
+        touches: [present-channel]
+        tests:
+          - tests/projected-transitions.test.mjs
+
+
 
 
 

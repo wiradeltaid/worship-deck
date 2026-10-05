@@ -1691,6 +1691,62 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-108-01
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-108-02
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-108-03
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-108-04
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -2252,6 +2308,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-108-03
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-19
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-108-04
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-19
@@ -5167,6 +5251,34 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-108-03
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-22
+  DEC: []
+  UC: UC-13
+  ticket: SPEC-108-04
+  spec: SPEC-108
+  release: scripture-and-blank-display-transition-parity
+  test:
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-10
   FR: FR-22
