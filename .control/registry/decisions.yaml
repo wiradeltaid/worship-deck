@@ -1990,7 +1990,7 @@ decisions:
 
   - id: DEC-094
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-05)"
     title: Daily Autopilot mandate for Scripture and Blank Display Transition Parity (SPEC-108)
     file: .control/decisions/DEC-094-daily-autopilot-mandate-scripture-and-blank-display-transition-parity.md
