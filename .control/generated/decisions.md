@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**93 decisions** — accepted: 1 · applied: 91 · superseded: 1.
+**94 decisions** — accepted: 2 · applied: 91 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -101,3 +101,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-091` | Daily Autopilot mandate for Presenter Blank Transition, Scripture Overlay, and Session Recovery (SPEC-104 & S… | `applied` | mandate | `.control/memlog/autopilot-DEC-091.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-104-presenter-blank-transition-scripture-overlay-and-autocomplete-ergonomics/`, `.scratch/SPEC-105-presenter-session-recovery-and-run-sheet-smart-resume/` | `.control/decisions/DEC-091-daily-autopilot-mandate-presenter-overlays-and-session-recovery.md` |
 | `DEC-092` | Daily Autopilot mandate for Guest Video Capture Permission Discovery, Web API Receiver Binding, and Dropdown… | `applied` | mandate | `.control/memlog/autopilot-DEC-092.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-106-guest-capture-permission-discovery-and-invocation-fix/` | `.control/decisions/DEC-092-daily-autopilot-mandate-guest-capture-permission-and-invocation.md` |
 | `DEC-093` | Daily Autopilot mandate for Guest Video Capture Native Timer Receiver Binding, Header Row 3 Tiering, and Proj… | `applied` | mandate | `.control/memlog/autopilot-DEC-093.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-107-guest-capture-timer-receiver-binding-resilience/` | `.control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer-receiver-binding-and-transitions.md` |
+| `DEC-094` | Daily Autopilot mandate for Scripture and Blank Display Transition Parity (SPEC-108) | `accepted` | mandate | `.control/memlog/autopilot-DEC-094.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-108-scripture-and-blank-display-transition-parity/` | `.control/decisions/DEC-094-daily-autopilot-mandate-scripture-and-blank-display-transition-parity.md` |
