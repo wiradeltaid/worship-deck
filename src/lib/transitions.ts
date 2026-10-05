@@ -45,6 +45,7 @@ export type TransitionLayerStyle = {
   readonly opacity?: number;
   readonly transform?: string;
   readonly transition?: string;
+  readonly visibility?: 'visible' | 'hidden' | 'collapse';
 };
 
 type TransitionLayerKeyframes = {
@@ -254,4 +255,126 @@ export function getGuestTransitionStyle(
     transition: `opacity ${durationMs}ms ${easing}`,
   };
 }
+
+export type ScriptureTransitionPhase = 'entering-start' | 'active' | 'exiting';
+export type ScripturePageDirection = 'next' | 'prev' | 'initial' | 'same-page';
+
+/**
+ * Computes canonical AD-23 transition styling for the Projector Scripture Overlay layer.
+ * Conforms to SLIDE_TRANSITION_SPECS:
+ * - cut/none: 0ms instant swap (returns empty object {})
+ * - fade/dissolve: 500ms opacity transition
+ * - push: 450ms transform translateX transition bidirectional according to ScripturePageDirection
+ *   (next/initial slides from +100% to 0, prev slides from -100% to 0, same-page crossfades opacity in-place).
+ */
+export function getScriptureTransitionStyle(
+  transition: SlideTransition,
+  phase: ScriptureTransitionPhase,
+  direction: ScripturePageDirection = 'next'
+): TransitionLayerStyle {
+  const spec = SLIDE_TRANSITION_SPECS[transition] || SLIDE_TRANSITION_SPECS.fade;
+  const durationMs = spec.browser.durationMs;
+  const isAnimated = durationMs > 0;
+  const easing = spec.browser.easing || EASING;
+
+  if (!isAnimated) {
+    return {};
+  }
+
+  if (spec.browser.property === 'transform') {
+    if (direction === 'same-page') {
+      if (phase === 'entering-start') {
+        return { opacity: 0 };
+      }
+      if (phase === 'active') {
+        return {
+          opacity: 1,
+          transition: `opacity ${durationMs}ms ${easing}`,
+        };
+      }
+      // phase === 'exiting'
+      return {
+        opacity: 0,
+        transition: `opacity ${durationMs}ms ${easing}`,
+      };
+    }
+
+    if (direction === 'prev') {
+      if (phase === 'entering-start') {
+        return { transform: 'translateX(-100%)' };
+      }
+      if (phase === 'active') {
+        return {
+          transform: 'translateX(0)',
+          transition: `transform ${durationMs}ms ${easing}`,
+        };
+      }
+      // phase === 'exiting'
+      return {
+        transform: 'translateX(100%)',
+        transition: `transform ${durationMs}ms ${easing}`,
+      };
+    }
+
+    // direction === 'next' || direction === 'initial'
+    if (phase === 'entering-start') {
+      return { transform: 'translateX(100%)' };
+    }
+    if (phase === 'active') {
+      return {
+        transform: 'translateX(0)',
+        transition: `transform ${durationMs}ms ${easing}`,
+      };
+    }
+    // phase === 'exiting'
+    return {
+      transform: 'translateX(-100%)',
+      transition: `transform ${durationMs}ms ${easing}`,
+    };
+  }
+
+  // fade, dissolve, etc.
+  if (phase === 'entering-start') {
+    return { opacity: 0 };
+  }
+  if (phase === 'active') {
+    return {
+      opacity: 1,
+      transition: `opacity ${durationMs}ms ${easing}`,
+    };
+  }
+  // phase === 'exiting'
+  return {
+    opacity: 0,
+    transition: `opacity ${durationMs}ms ${easing}`,
+  };
+}
+
+/**
+ * Computes canonical AD-23 blackout layer styling for the Projector Blank Screen.
+ * - cut/none: 0ms instant cut (transition: 'none')
+ * - fade/dissolve/push: smooth 300ms opacity fade (adaptive blackout policy: avoids sliding black box across sanctuary display).
+ */
+export function getBlankTransitionStyle(
+  transition: SlideTransition,
+  blank: boolean
+): TransitionLayerStyle {
+  const spec = SLIDE_TRANSITION_SPECS[transition] || SLIDE_TRANSITION_SPECS.fade;
+  const durationMs = spec.browser.durationMs;
+
+  if (durationMs === 0) {
+    return {
+      opacity: blank ? 1 : 0,
+      visibility: blank ? 'visible' : 'hidden',
+      transition: 'none',
+    };
+  }
+
+  return {
+    opacity: blank ? 1 : 0,
+    visibility: blank ? 'visible' : 'hidden',
+    transition: 'opacity 300ms ease-in-out, visibility 300ms ease-in-out',
+  };
+}
+
 

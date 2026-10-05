@@ -22,9 +22,13 @@ import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
 import {
   transitionLayerStyle,
   getGuestTransitionStyle,
+  getScriptureTransitionStyle,
+  getBlankTransitionStyle,
   SLIDE_TRANSITION_SPECS,
   type SlideTransition,
   type GuestMediaPhase,
+  type ScriptureTransitionPhase,
+  type ScripturePageDirection,
 } from '@/lib/transitions';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { useProjectedShell } from '@/lib/use-projected-shell';
@@ -56,6 +60,8 @@ export default function ProjectorClient({
   const [transition, setTransition] = useState<SlideTransition>(
     configuredTransition
   );
+  const transitionRef = useRef<SlideTransition>(configuredTransition);
+  transitionRef.current = transition;
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
   const patchRevisionsRef = useRef<Map<number, number>>(new Map());
 
@@ -74,47 +80,94 @@ export default function ProjectorClient({
   const [blank, setBlank] = useState(false);
   const [stalePlan, setStalePlan] = useState(false);
 
-  // SPEC-104-02: Decoupled scripture overlay transition state machine
+  // SPEC-104-02 & SPEC-108-03: Decoupled scripture overlay transition state machine
   const [activeOverlay, setActiveOverlay] = useState<ScriptureOverlay | null>(null);
   const [outgoingOverlay, setOutgoingOverlay] = useState<ScriptureOverlay | null>(null);
-  const [overlayPhase, setOverlayPhase] = useState<'hidden' | 'entering' | 'active' | 'exiting'>('hidden');
+  const [overlayPhase, setOverlayPhase] = useState<'hidden' | 'entering-start' | 'active' | 'exiting'>('hidden');
   const [outgoingPhase, setOutgoingPhase] = useState<'hidden' | 'exiting-start' | 'exiting'>('hidden');
+  const [scriptureDirection, setScriptureDirection] = useState<ScripturePageDirection>('initial');
   const activeOverlayRef = useRef<ScriptureOverlay | null>(null);
   activeOverlayRef.current = activeOverlay;
-  const overlayPhaseRef = useRef<'hidden' | 'entering' | 'active' | 'exiting'>('hidden');
+  const overlayPhaseRef = useRef<'hidden' | 'entering-start' | 'active' | 'exiting'>('hidden');
   overlayPhaseRef.current = overlayPhase;
+  const scriptureDirectionRef = useRef<ScripturePageDirection>('initial');
+  scriptureDirectionRef.current = scriptureDirection;
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const outgoingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialSyncRef = useRef<boolean>(true);
 
   const applyScriptureOverlay = (newScripture: ScriptureOverlay) => {
+    const currentActive = activeOverlayRef.current;
+
+    // Idempotency guard: if all display-relevant fields match, avoid re-triggering animations or flickering
+    if (
+      currentActive &&
+      currentActive.reference === newScripture.reference &&
+      currentActive.displayReference === newScripture.displayReference &&
+      currentActive.text === newScripture.text &&
+      currentActive.mode === newScripture.mode &&
+      currentActive.currentPage === newScripture.currentPage &&
+      currentActive.totalPages === newScripture.totalPages &&
+      currentActive.typographyMode === newScripture.typographyMode &&
+      currentActive.isContinuation === newScripture.isContinuation &&
+      currentActive.continuationIndex === newScripture.continuationIndex &&
+      currentActive.continuationCount === newScripture.continuationCount &&
+      currentActive.estimatedVisualLines === newScripture.estimatedVisualLines
+    ) {
+      return;
+    }
+
     if (overlayTimerRef.current) {
       clearTimeout(overlayTimerRef.current);
       overlayTimerRef.current = null;
     }
-    const currentActive = activeOverlayRef.current;
-    if (!currentActive) {
-      if (outgoingTimerRef.current) {
-        clearTimeout(outgoingTimerRef.current);
-        outgoingTimerRef.current = null;
+    if (outgoingTimerRef.current) {
+      clearTimeout(outgoingTimerRef.current);
+      outgoingTimerRef.current = null;
+    }
+
+    let dir: ScripturePageDirection = 'initial';
+    if (currentActive) {
+      const newPage = newScripture.currentPage ?? 0;
+      const curPage = currentActive.currentPage ?? 0;
+      if (newPage === curPage) {
+        dir = 'same-page';
+      } else if (newPage > curPage) {
+        dir = 'next';
+      } else {
+        dir = 'prev';
       }
+    }
+    setScriptureDirection(dir);
+    scriptureDirectionRef.current = dir;
+
+    // Use current transition through ref to avoid stale closures in BroadcastChannel listeners
+    const activeTransition = transitionRef.current;
+    const durationMs = SLIDE_TRANSITION_SPECS[activeTransition]?.browser.durationMs ?? 0;
+
+    if (durationMs === 0) {
+      // Instantaneous cut / none
       setOutgoingOverlay(null);
       setOutgoingPhase('hidden');
       setActiveOverlay(newScripture);
-      setOverlayPhase('entering');
+      setOverlayPhase('active');
+      return;
+    }
+
+    if (!currentActive) {
+      setOutgoingOverlay(null);
+      setOutgoingPhase('hidden');
+      setActiveOverlay(newScripture);
+      setOverlayPhase('entering-start');
       overlayTimerRef.current = setTimeout(() => {
         setOverlayPhase('active');
         overlayTimerRef.current = null;
       }, 20);
     } else {
-      if (outgoingTimerRef.current) {
-        clearTimeout(outgoingTimerRef.current);
-        outgoingTimerRef.current = null;
-      }
       setOutgoingOverlay(currentActive);
       setOutgoingPhase('exiting-start');
       setActiveOverlay(newScripture);
-      setOverlayPhase('entering');
+      setOverlayPhase('entering-start');
 
       overlayTimerRef.current = setTimeout(() => {
         setOutgoingPhase('exiting');
@@ -123,7 +176,7 @@ export default function ProjectorClient({
           setOutgoingOverlay(null);
           setOutgoingPhase('hidden');
           outgoingTimerRef.current = null;
-        }, 300);
+        }, durationMs);
         overlayTimerRef.current = null;
       }, 20);
     }
@@ -138,14 +191,30 @@ export default function ProjectorClient({
       clearTimeout(overlayTimerRef.current);
       overlayTimerRef.current = null;
     }
+    if (outgoingTimerRef.current) {
+      clearTimeout(outgoingTimerRef.current);
+      outgoingTimerRef.current = null;
+    }
+
+    // Atomically reset any outgoing overlay in flight to prevent ghost text or stranded layers
+    setOutgoingOverlay(null);
+    setOutgoingPhase('hidden');
+
+    // Use current transition through ref to avoid stale closures
+    const activeTransition = transitionRef.current;
+    const durationMs = SLIDE_TRANSITION_SPECS[activeTransition]?.browser.durationMs ?? 0;
+    if (durationMs === 0) {
+      setActiveOverlay(null);
+      setOverlayPhase('hidden');
+      return;
+    }
+
     setOverlayPhase('exiting');
     overlayTimerRef.current = setTimeout(() => {
       setActiveOverlay(null);
-      setOutgoingOverlay(null);
       setOverlayPhase('hidden');
-      setOutgoingPhase('hidden');
       overlayTimerRef.current = null;
-    }, 300);
+    }, durationMs);
   };
 
   const setOverlay = (scripture: ScriptureOverlay | null) => {
@@ -644,16 +713,19 @@ export default function ProjectorClient({
         ) : null}
       </div>
 
-      {/* Decoupled Scripture Overlay Layer (SPEC-104-02):
+      {/* Decoupled Scripture Overlay Layer (SPEC-104-02 & SPEC-108-03):
           Rendered at z-20 above slides (z-0..10) and below guest video (z-30) and blackout (z-50).
-          Smooth entrance, exit, and crossfade opacity transitions over 300ms. */}
-      {outgoingOverlay ? (
+          Canonical AD-23 transition styling conforming to SLIDE_TRANSITION_SPECS. */}
+      {outgoingOverlay && outgoingPhase !== 'hidden' ? (
         <div
           key="scripture-outgoing"
           data-testid="projector-scripture-outgoing"
-          className={`absolute inset-0 z-20 transition-opacity duration-300 ease-in-out pointer-events-none ${
-            outgoingPhase === 'exiting' ? 'opacity-0' : 'opacity-100'
-          }`}
+          className="absolute inset-0 z-20 pointer-events-none"
+          style={
+            outgoingPhase === 'exiting'
+              ? getScriptureTransitionStyle(transition, 'exiting', scriptureDirection)
+              : { transform: 'translateX(0)', opacity: 1, transition: 'none' }
+          }
         >
           <ScriptureOverlayView
             reference={outgoingOverlay.displayReference || outgoingOverlay.reference}
@@ -669,13 +741,18 @@ export default function ProjectorClient({
         </div>
       ) : null}
 
-      {activeOverlay ? (
+      {activeOverlay && overlayPhase !== 'hidden' ? (
         <div
           key="scripture-active"
           data-testid="projector-scripture-layer"
-          className={`absolute inset-0 z-20 transition-opacity duration-300 ease-in-out pointer-events-none ${
-            overlayPhase === 'active' ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="absolute inset-0 z-20 pointer-events-none"
+          style={
+            overlayPhase === 'entering-start'
+              ? getScriptureTransitionStyle(transition, 'entering-start', scriptureDirection)
+              : overlayPhase === 'active'
+              ? getScriptureTransitionStyle(transition, 'active', scriptureDirection)
+              : getScriptureTransitionStyle(transition, 'exiting', scriptureDirection)
+          }
         >
           <ScriptureOverlayView
             reference={activeOverlay.displayReference || activeOverlay.reference}
@@ -732,21 +809,17 @@ export default function ProjectorClient({
           </button>
         </div>
       ) : null}
-      {/* Persistent blackout transition overlay layer (SPEC-104-01).
+      {/* Persistent blackout transition overlay layer (SPEC-104-01 & SPEC-108-02).
           Positioned at z-50 above slides (z-0..10), scripture overlay (z-20),
           guest video (z-30), and onboarding guidance hint (z-40).
-          Smoothly transitions opacity over 300ms while preserving underlying
-          slide and overlay state unperturbed (UC-12, BR-6). */}
+          Conforms to canonical AD-23 blackout policy: 0ms cut on cut/none, and smooth
+          300ms opacity fade on fade/dissolve/push while preserving underlying
+          slide and overlay state unperturbed (UC-12, FR-16). */}
       <div
         aria-hidden="true"
         data-testid="projector-blank-layer"
-        className={`absolute inset-0 z-50 bg-black transition-opacity duration-300 ease-in-out pointer-events-none ${
-          blank ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={{
-          transition: 'opacity 300ms ease-in-out, visibility 300ms ease-in-out',
-          visibility: blank ? 'visible' : 'hidden',
-        }}
+        className="absolute inset-0 z-50 bg-black pointer-events-none"
+        style={getBlankTransitionStyle(transition, blank)}
       />
     </div>
   );

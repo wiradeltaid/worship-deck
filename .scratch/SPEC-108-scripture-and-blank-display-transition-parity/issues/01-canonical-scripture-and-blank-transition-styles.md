@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, AD-23]
 **Blocked by:** none
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/lib/transitions.ts`:
 

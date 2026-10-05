@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-13, FR-16, FR-19, AD-23]
 **Blocked by:** SPEC-108-02
-**Status:** open
+**Status:** closed
 
 **What to build:** In `src/projected/ProjectorClient.tsx`:
 
