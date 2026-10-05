@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**94 decisions** — accepted: 1 · applied: 92 · superseded: 1.
+**95 decisions** — accepted: 1 · applied: 93 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -102,3 +102,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-092` | Daily Autopilot mandate for Guest Video Capture Permission Discovery, Web API Receiver Binding, and Dropdown… | `applied` | mandate | `.control/memlog/autopilot-DEC-092.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-106-guest-capture-permission-discovery-and-invocation-fix/` | `.control/decisions/DEC-092-daily-autopilot-mandate-guest-capture-permission-and-invocation.md` |
 | `DEC-093` | Daily Autopilot mandate for Guest Video Capture Native Timer Receiver Binding, Header Row 3 Tiering, and Proj… | `applied` | mandate | `.control/memlog/autopilot-DEC-093.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-107-guest-capture-timer-receiver-binding-resilience/` | `.control/decisions/DEC-093-daily-autopilot-mandate-guest-capture-timer-receiver-binding-and-transitions.md` |
 | `DEC-094` | Daily Autopilot mandate for Scripture and Blank Display Transition Parity (SPEC-108) | `applied` | mandate | `.control/memlog/autopilot-DEC-094.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-108-scripture-and-blank-display-transition-parity/` | `.control/decisions/DEC-094-daily-autopilot-mandate-scripture-and-blank-display-transition-parity.md` |
+| `DEC-095` | Daily Autopilot mandate for Scripture Overlay Pagination Crossfade Backdrop Continuity Parity (SPEC-109) | `applied` | mandate | `.control/memlog/autopilot-DEC-095.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-109-scripture-pagination-crossfade-backdrop-continuity/` | `.control/decisions/DEC-095-daily-autopilot-mandate-scripture-pagination-crossfade-backdrop-continuity.md` |

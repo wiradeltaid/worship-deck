@@ -2007,6 +2007,25 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-108-scripture-and-blank-display-transition-parity/
 
+  - id: DEC-095
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-10-05)"
+    title: Daily Autopilot mandate for Scripture Overlay Pagination Crossfade Backdrop Continuity Parity (SPEC-109)
+    file: .control/decisions/DEC-095-daily-autopilot-mandate-scripture-pagination-crossfade-backdrop-continuity.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-12'
+    touches:
+      - .control/memlog/autopilot-DEC-095.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-109-scripture-pagination-crossfade-backdrop-continuity/
+
 
 
 

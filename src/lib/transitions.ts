@@ -377,4 +377,324 @@ export function getBlankTransitionStyle(
   };
 }
 
+export type ScriptureBackdropPhase = 'hidden' | 'entering-start' | 'active' | 'exiting';
+
+/**
+ * Computes canonical AD-23 transition styling for the Projector Scripture Backdrop layer (SPEC-109).
+ * Conforms to SLIDE_TRANSITION_SPECS:
+ * - hidden: opacity 0, visibility hidden
+ * - none/cut: 0ms instant swap (opacity 1, visibility visible, transition: 'none')
+ * - fade/dissolve: 500ms opacity transition (opacity 500ms cubic-bezier(0.4, 0, 0.2, 1))
+ * - push: 450ms opacity transition (adapts to opacity fade using canonical push duration, avoiding sliding black seams)
+ */
+export function getScriptureBackdropStyle(
+  transition: SlideTransition,
+  phase: ScriptureBackdropPhase
+): TransitionLayerStyle {
+  if (phase === 'hidden') {
+    return {
+      opacity: 0,
+      visibility: 'hidden',
+    };
+  }
+
+  const spec = SLIDE_TRANSITION_SPECS[transition] || SLIDE_TRANSITION_SPECS.fade;
+  const durationMs = spec.browser.durationMs;
+  const easing = spec.browser.easing || EASING;
+
+  if (durationMs === 0) {
+    return {
+      opacity: 1,
+      visibility: 'visible',
+      transition: 'none',
+    };
+  }
+
+  if (phase === 'entering-start') {
+    return {
+      opacity: 0,
+      visibility: 'visible',
+    };
+  }
+
+  if (phase === 'active') {
+    return {
+      opacity: 1,
+      visibility: 'visible',
+      transition: `opacity ${durationMs}ms ${easing}`,
+    };
+  }
+
+  // phase === 'exiting'
+  return {
+    opacity: 0,
+    visibility: 'visible',
+    transition: `opacity ${durationMs}ms ${easing}`,
+  };
+}
+
+export interface ScriptureOverlayItem {
+  reference: string;
+  displayReference?: string;
+  text: string;
+  mode?: 'per-verse' | 'inline';
+  verses?: Array<{ reference: string; text: string }>;
+  currentPage?: number;
+  totalPages?: number;
+  typographyMode?: 'chapter' | 'verse';
+  isContinuation?: boolean;
+  continuationIndex?: number;
+  continuationCount?: number;
+  estimatedVisualLines?: number;
+}
+
+/**
+ * Authoritative lifecycle state machine for Projector scripture overlay and persistent backdrop (SPEC-104, SPEC-108, SPEC-109).
+ * Preserves AD-23 transition durations, eliminates alpha bleed through continuous backdrop opacity,
+ * and maintains synchronous ref authority against race conditions.
+ */
+export class ScriptureOverlayStateMachine {
+  transition: SlideTransition;
+  activeOverlay: ScriptureOverlayItem | null = null;
+  outgoingOverlay: ScriptureOverlayItem | null = null;
+  overlayPhase: 'hidden' | 'entering-start' | 'active' | 'exiting' = 'hidden';
+  outgoingPhase: 'hidden' | 'exiting-start' | 'exiting' = 'hidden';
+  backdropPhase: ScriptureBackdropPhase = 'hidden';
+  direction: ScripturePageDirection = 'initial';
+
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private outgoingTimer: ReturnType<typeof setTimeout> | null = null;
+  private backdropTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(transition: SlideTransition = 'fade') {
+    this.transition = transition;
+  }
+
+  setTransition(nextTransition: SlideTransition) {
+    this.transition = nextTransition;
+    const durationMs = SLIDE_TRANSITION_SPECS[nextTransition]?.browser.durationMs ?? 0;
+    if (durationMs === 0) {
+      if (this.overlayPhase === 'exiting') {
+        if (this.timer) {
+          clearTimeout(this.timer);
+          this.timer = null;
+        }
+        this.activeOverlay = null;
+        this.overlayPhase = 'hidden';
+      }
+      if (this.backdropPhase === 'exiting') {
+        if (this.backdropTimer) {
+          clearTimeout(this.backdropTimer);
+          this.backdropTimer = null;
+        }
+        this.backdropPhase = 'hidden';
+      }
+      if (this.outgoingOverlay) {
+        if (this.outgoingTimer) {
+          clearTimeout(this.outgoingTimer);
+          this.outgoingTimer = null;
+        }
+        this.outgoingOverlay = null;
+        this.outgoingPhase = 'hidden';
+      }
+    }
+  }
+
+  onSync(scripture: ScriptureOverlayItem | null, isMountTime = false) {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.outgoingTimer) {
+      clearTimeout(this.outgoingTimer);
+      this.outgoingTimer = null;
+    }
+    if (this.backdropTimer) {
+      clearTimeout(this.backdropTimer);
+      this.backdropTimer = null;
+    }
+
+    if (isMountTime) {
+      if (scripture) {
+        this.activeOverlay = scripture;
+        this.outgoingOverlay = null;
+        this.overlayPhase = 'active';
+        this.outgoingPhase = 'hidden';
+        this.backdropPhase = 'active';
+      } else {
+        this.activeOverlay = null;
+        this.outgoingOverlay = null;
+        this.overlayPhase = 'hidden';
+        this.outgoingPhase = 'hidden';
+        this.backdropPhase = 'hidden';
+      }
+      return;
+    }
+
+    if (scripture) {
+      this.applyScripture(scripture);
+    } else {
+      this.clearScripture();
+    }
+  }
+
+  applyScripture(newScripture: ScriptureOverlayItem) {
+    const currentActive = this.activeOverlay;
+    if (
+      currentActive &&
+      currentActive.reference === newScripture.reference &&
+      currentActive.displayReference === newScripture.displayReference &&
+      currentActive.text === newScripture.text &&
+      currentActive.mode === newScripture.mode &&
+      currentActive.currentPage === newScripture.currentPage &&
+      currentActive.totalPages === newScripture.totalPages &&
+      currentActive.typographyMode === newScripture.typographyMode &&
+      currentActive.isContinuation === newScripture.isContinuation &&
+      currentActive.continuationIndex === newScripture.continuationIndex &&
+      currentActive.continuationCount === newScripture.continuationCount &&
+      currentActive.estimatedVisualLines === newScripture.estimatedVisualLines
+    ) {
+      return;
+    }
+
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.outgoingTimer) {
+      clearTimeout(this.outgoingTimer);
+      this.outgoingTimer = null;
+    }
+    if (this.backdropTimer) {
+      clearTimeout(this.backdropTimer);
+      this.backdropTimer = null;
+    }
+
+    let dir: ScripturePageDirection = 'initial';
+    if (currentActive) {
+      const newPage = newScripture.currentPage ?? 0;
+      const curPage = currentActive.currentPage ?? 0;
+      if (newPage === curPage) {
+        dir = 'same-page';
+      } else if (newPage > curPage) {
+        dir = 'next';
+      } else {
+        dir = 'prev';
+      }
+    }
+    this.direction = dir;
+
+    const durationMs = SLIDE_TRANSITION_SPECS[this.transition]?.browser.durationMs ?? 0;
+
+    if (durationMs === 0) {
+      this.outgoingOverlay = null;
+      this.outgoingPhase = 'hidden';
+      this.activeOverlay = newScripture;
+      this.overlayPhase = 'active';
+      this.backdropPhase = 'active';
+      return;
+    }
+
+    if (!currentActive) {
+      this.outgoingOverlay = null;
+      this.outgoingPhase = 'hidden';
+      this.activeOverlay = newScripture;
+      this.overlayPhase = 'entering-start';
+      this.backdropPhase = 'entering-start';
+
+      this.timer = setTimeout(() => {
+        this.overlayPhase = 'active';
+        this.timer = null;
+      }, 20);
+      this.backdropTimer = setTimeout(() => {
+        this.backdropPhase = 'active';
+        this.backdropTimer = null;
+      }, 20);
+    } else {
+      this.backdropPhase = 'active';
+      this.outgoingOverlay = currentActive;
+      this.outgoingPhase = 'exiting-start';
+      this.activeOverlay = newScripture;
+      this.overlayPhase = 'entering-start';
+
+      this.timer = setTimeout(() => {
+        this.outgoingPhase = 'exiting';
+        this.overlayPhase = 'active';
+        this.outgoingTimer = setTimeout(() => {
+          this.outgoingOverlay = null;
+          this.outgoingPhase = 'hidden';
+          this.outgoingTimer = null;
+        }, durationMs);
+        this.timer = null;
+      }, 20);
+    }
+  }
+
+  clearScripture() {
+    if (!this.activeOverlay || this.overlayPhase === 'exiting' || this.overlayPhase === 'hidden') {
+      return;
+    }
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.outgoingTimer) {
+      clearTimeout(this.outgoingTimer);
+      this.outgoingTimer = null;
+    }
+    if (this.backdropTimer) {
+      clearTimeout(this.backdropTimer);
+      this.backdropTimer = null;
+    }
+
+    this.outgoingOverlay = null;
+    this.outgoingPhase = 'hidden';
+
+    const durationMs = SLIDE_TRANSITION_SPECS[this.transition]?.browser.durationMs ?? 0;
+    if (durationMs === 0) {
+      this.activeOverlay = null;
+      this.overlayPhase = 'hidden';
+      this.backdropPhase = 'hidden';
+      return;
+    }
+
+    this.overlayPhase = 'exiting';
+    this.backdropPhase = 'exiting';
+
+    this.timer = setTimeout(() => {
+      this.activeOverlay = null;
+      this.overlayPhase = 'hidden';
+      this.timer = null;
+    }, durationMs);
+    this.backdropTimer = setTimeout(() => {
+      this.backdropPhase = 'hidden';
+      this.backdropTimer = null;
+    }, durationMs);
+  }
+
+  handleStalePlan() {
+    this.activeOverlay = null;
+    this.outgoingOverlay = null;
+    this.overlayPhase = 'hidden';
+    this.outgoingPhase = 'hidden';
+    this.backdropPhase = 'hidden';
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.outgoingTimer) {
+      clearTimeout(this.outgoingTimer);
+      this.outgoingTimer = null;
+    }
+    if (this.backdropTimer) {
+      clearTimeout(this.backdropTimer);
+      this.backdropTimer = null;
+    }
+  }
+
+  teardown() {
+    this.handleStalePlan();
+  }
+}
+
 

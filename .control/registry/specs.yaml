@@ -4546,7 +4546,7 @@ waves:
           - tests/projected-transitions.test.mjs
 
   - id: SPEC-109
-    status: open
+    status: closed
     release: scripture-pagination-crossfade-backdrop-continuity
     prd: [operator-turn]
     fr: [FR-16, FR-19]
