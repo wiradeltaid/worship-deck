@@ -78,17 +78,19 @@ export const MediaTopBar = memo(function MediaTopBar({
 
   const handleFadeOut = useCallback(async () => {
     if (!isCued || !state.isPlaying) return;
+    const originalVolume = state.volume;
     store.dispatch({ type: 'SET_FADING', isFading: true });
-    await engine.fade({
-      durationMs: 3000,
-      stepIntervalMs: 50,
-      onStep: (v) => {
-        store.dispatch({ type: 'SET_VOLUME', volume: v });
-      },
-    });
-    store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
-    store.dispatch({ type: 'SET_FADING', isFading: false });
-  }, [isCued, state.isPlaying, engine, store]);
+    try {
+      await engine.fade({
+        durationMs: 3000,
+        stepIntervalMs: 50,
+      });
+    } finally {
+      store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+      store.dispatch({ type: 'SET_FADING', isFading: false });
+      store.dispatch({ type: 'SET_VOLUME', volume: originalVolume });
+    }
+  }, [isCued, state.isPlaying, state.volume, engine, store]);
 
   const handleToggleMute = useCallback(() => {
     if (!isCued) return;

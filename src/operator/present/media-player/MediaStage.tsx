@@ -35,9 +35,12 @@ export const MediaStage = memo(function MediaStage({
       activeItemRef.current = current;
 
       if (current && (!prev || prev.id !== current.id || prev.url !== current.url)) {
+        const baseVol = typeof engine.getBaseVolume === 'function' ? engine.getBaseVolume() : state.volume;
         if (current.type === 'video') {
           if (videoRef.current) {
             videoRef.current.src = current.url;
+            videoRef.current.muted = state.isMuted;
+            videoRef.current.volume = baseVol;
             videoRef.current.load();
           }
           if (audioRef.current) {
@@ -46,6 +49,8 @@ export const MediaStage = memo(function MediaStage({
         } else {
           if (audioRef.current) {
             audioRef.current.src = current.url;
+            audioRef.current.muted = state.isMuted;
+            audioRef.current.volume = baseVol;
             audioRef.current.load();
           }
           if (videoRef.current) {
@@ -57,7 +62,7 @@ export const MediaStage = memo(function MediaStage({
         if (videoRef.current) videoRef.current.pause();
       }
     });
-  }, [store, audioRef, videoRef]);
+  }, [store, engine, audioRef, videoRef]);
 
   const handleTimeUpdate = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {
@@ -135,9 +140,8 @@ export const MediaStage = memo(function MediaStage({
   return (
     <div
       data-testid="media-stage-host"
-      className="hidden"
+      className="absolute h-px w-px opacity-0 pointer-events-none overflow-hidden"
       aria-hidden="true"
-      style={{ display: 'none' }}
     >
       <audio
         ref={audioRef}

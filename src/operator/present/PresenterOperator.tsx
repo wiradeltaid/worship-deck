@@ -557,6 +557,7 @@ export default function PresenterOperator({
   const patchRevisionsRef = useRef<Map<number, number>>(new Map());
   const tabInstanceIdRef = useRef(Math.floor(Math.random() * 900 + 100));
   const localSeqRef = useRef(0);
+  const mediaClockRevisionRef = useRef(1);
 
   // SPEC-105-02: Pre-sync hydration from saved presenter session
   const restoredSession = useMemo(() => {
@@ -973,13 +974,44 @@ export default function PresenterOperator({
     channelRef.current?.postMessage(msg);
   }, [setScriptureOverlay, persistCurrentSession]);
 
-  // Synchronize media video projection state over present-channel
+  // Synchronize media video projection state over present-channel (SPEC-110-03, SPEC-113-01)
   useEffect(() => {
     let lastWasProjected = false;
     let lastActiveId: string | null = null;
     let lastPlaying = false;
+    let lastEmittedWallTime = 0;
+    let lastEmittedPosition = 0;
+    let clockDebounceTimer: any = null;
 
-    return mediaStore.subscribe(() => {
+    const getLiveMediaTime = (): number => {
+      const snap = mediaStore.getSnapshot();
+      const active = snap.items.find((i) => i.id === snap.activeId);
+      const el = active?.type === 'video' ? mediaVideoRef.current : mediaAudioRef.current;
+      if (el && Number.isFinite(el.currentTime)) {
+        return el.currentTime;
+      }
+      return snap.currentTime;
+    };
+
+    const emitMediaClock = (currentTime: number, isPlaying: boolean, activeId: string) => {
+      mediaClockRevisionRef.current++;
+      const now = Date.now();
+      lastEmittedWallTime = now;
+      lastEmittedPosition = currentTime;
+
+      const clockMsg: PresentMessage = {
+        type: 'media-clock',
+        mediaId: activeId,
+        mediaTime: currentTime,
+        at: now,
+        isPlaying,
+        revision: mediaClockRevisionRef.current,
+        planIdentity: planIdentityRef.current,
+      };
+      channelRef.current?.postMessage(clockMsg);
+    };
+
+    const unsubscribe = mediaStore.subscribe(() => {
       const snap = mediaStore.getSnapshot();
       const active = snap.items.find((i) => i.id === snap.activeId);
       const isProj = snap.isProjected && active?.type === 'video';
@@ -989,28 +1021,34 @@ export default function PresenterOperator({
         guestFeedControllerRef.current?.teardownGuestFeed();
       }
 
+      const liveTime = getLiveMediaTime();
+
+      if (isProj && active) {
+        const projSource: ProjectedSource = {
+          kind: 'media',
+          mediaId: active.id,
+          mediaUrl: active.url,
+          source: active.source,
+          isPlaying: snap.isPlaying,
+          mediaTime: liveTime,
+          at: Date.now(),
+          revision: mediaClockRevisionRef.current,
+        };
+        projectionRef.current = projSource;
+      } else if (lastWasProjected) {
+        projectionRef.current = { kind: 'deck' };
+      }
+
       if (isProj || lastWasProjected) {
-        if (
+        const stateChanged =
           isProj !== lastWasProjected ||
           snap.activeId !== lastActiveId ||
-          snap.isPlaying !== lastPlaying
-        ) {
+          snap.isPlaying !== lastPlaying;
+
+        if (stateChanged) {
           lastWasProjected = isProj;
           lastActiveId = snap.activeId;
           lastPlaying = snap.isPlaying;
-
-          const projSource: ProjectedSource =
-            isProj && active
-              ? {
-                  kind: 'media',
-                  mediaId: active.id,
-                  mediaUrl: active.url,
-                  isPlaying: snap.isPlaying,
-                  mediaTime: snap.currentTime,
-                  at: Date.now(),
-                  revision: 1,
-                }
-              : { kind: 'deck' };
 
           broadcast({
             type: 'sync',
@@ -1018,15 +1056,55 @@ export default function PresenterOperator({
             blank: blankRef.current,
             transition: transitionRef.current,
             background: backgroundRef.current,
-            scripture: scriptureOverlay,
+            scripture: scriptureOverlayRef.current,
             planIdentity: planIdentityRef.current,
             patches: patchesRef.current,
-            projection: projSource,
+            projection: projectionRef.current,
             guestAttemptId: null,
           });
+
+          if (isProj && active) {
+            emitMediaClock(liveTime, snap.isPlaying, active.id);
+          }
+        } else if (isProj && active) {
+          // Detect scrub / seek jump discontinuity (jump backward or wall-clock deviation > 350ms)
+          const now = Date.now();
+          const wallDeltaSec = (now - lastEmittedWallTime) / 1000;
+          const posDeltaSec = liveTime - lastEmittedPosition;
+          const isDiscontinuity =
+            lastEmittedWallTime > 0 &&
+            (posDeltaSec < -0.1 || Math.abs(posDeltaSec - wallDeltaSec) > 0.35);
+
+          if (isDiscontinuity) {
+            if (clockDebounceTimer) clearTimeout(clockDebounceTimer);
+            clockDebounceTimer = setTimeout(() => {
+              const freshSnap = mediaStore.getSnapshot();
+              const freshActive = freshSnap.items.find((i) => i.id === freshSnap.activeId);
+              if (freshSnap.isProjected && freshActive?.type === 'video') {
+                const freshTime = getLiveMediaTime();
+                emitMediaClock(freshTime, freshSnap.isPlaying, freshActive.id);
+              }
+            }, 150);
+          }
         }
       }
     });
+
+    // 2s heartbeat when projected to continuously maintain clock sync and correct drift
+    const clockHeartbeatInterval = setInterval(() => {
+      const snap = mediaStore.getSnapshot();
+      const active = snap.items.find((i) => i.id === snap.activeId);
+      if (snap.isProjected && active?.type === 'video') {
+        const liveTime = getLiveMediaTime();
+        emitMediaClock(liveTime, snap.isPlaying, active.id);
+      }
+    }, 2000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(clockHeartbeatInterval);
+      if (clockDebounceTimer) clearTimeout(clockDebounceTimer);
+    };
   }, [mediaStore, broadcast]);
 
   const setIndexAndSync = useCallback(
@@ -1261,34 +1339,37 @@ export default function PresenterOperator({
     // Read from the refs, never from the rendered values: this listener is
     // installed once per service and would otherwise answer with whatever the
     // deck looked like at mount.
-    const currentState = (): PresentMessage => ({
-      type: 'sync',
-      index: indexRef.current,
-      blank: blankRef.current,
-      transition: transitionRef.current,
-      background: backgroundRef.current,
-      scripture: scriptureOverlayRef.current,
-      planIdentity: planIdentityRef.current,
-      patches: patchesRef.current,
-      projection:
-        mediaStore.getSnapshot().isProjected &&
-        mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)?.type === 'video'
-          ? {
-              kind: 'media',
-              mediaId: mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)!.id,
-              mediaUrl: mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)!.url,
-              isPlaying: mediaStore.getSnapshot().isPlaying,
-              mediaTime: mediaStore.getSnapshot().currentTime,
-              at: Date.now(),
-              revision: 1,
-            }
-          : projectionRef.current,
-      guestAttemptId:
-        mediaStore.getSnapshot().isProjected &&
-        mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)?.type === 'video'
-          ? null
-          : guestAttemptIdRef.current,
-    });
+    const currentState = (): PresentMessage => {
+      const snap = mediaStore.getSnapshot();
+      const active = snap.items.find((i) => i.id === snap.activeId);
+      const isProj = snap.isProjected && active?.type === 'video';
+
+      const currentProj: ProjectedSource = isProj && active
+        ? {
+            kind: 'media',
+            mediaId: active.id,
+            mediaUrl: active.url,
+            source: active.source,
+            isPlaying: snap.isPlaying,
+            mediaTime: snap.currentTime,
+            at: Date.now(),
+            revision: mediaClockRevisionRef.current,
+          }
+        : projectionRef.current;
+
+      return {
+        type: 'sync',
+        index: indexRef.current,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+        background: backgroundRef.current,
+        scripture: scriptureOverlayRef.current,
+        planIdentity: planIdentityRef.current,
+        patches: patchesRef.current,
+        projection: currentProj,
+        guestAttemptId: isProj ? null : guestAttemptIdRef.current,
+      };
+    };
 
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
@@ -1332,6 +1413,19 @@ export default function PresenterOperator({
       }
       if (msg.type === 'request-sync') {
         ch.postMessage(currentState());
+        const snap = mediaStore.getSnapshot();
+        const active = snap.items.find((i) => i.id === snap.activeId);
+        if (snap.isProjected && active?.type === 'video') {
+          ch.postMessage({
+            type: 'media-clock',
+            mediaId: active.id,
+            mediaTime: snap.currentTime,
+            at: Date.now(),
+            isPlaying: snap.isPlaying,
+            revision: mediaClockRevisionRef.current,
+            planIdentity: planIdentityRef.current,
+          });
+        }
       } else if (msg.type === 'slide-patch') {
         const patch = slidePatchOf(msg);
         if (

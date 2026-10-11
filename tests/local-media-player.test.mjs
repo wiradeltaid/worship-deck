@@ -603,6 +603,118 @@ test('SPEC-111-09: Five Mandatory Absence Guards with Defect Injection Proofs', 
   assert.equal(serverDisk.has('server_video.mp4'), false, 'Defect injection 5 proven: server file deleted without purge');
 });
 
+test('SPEC-113-01: Projector Media Synchronization, Clock Contract, and Video Sizing Bug Fixes', async () => {
+  const fs = await import('node:fs');
+  const { mediaClockOf } = await import(
+    srcUrl('lib', 'present-channel.ts')
+  );
+
+  // 1. mediaClockOf validation and contract
+  const validClock = {
+    type: 'media-clock',
+    mediaId: 'video-123',
+    mediaTime: 42.5,
+    at: 1700000000000,
+    isPlaying: true,
+    revision: 3,
+    planIdentity: 'plan-xyz-789',
+  };
+  const parsed = mediaClockOf(validClock);
+  assert.ok(parsed !== null, 'Valid media-clock must be accepted');
+  assert.equal(parsed.mediaId, 'video-123');
+  assert.equal(parsed.mediaTime, 42.5);
+  assert.equal(parsed.isPlaying, true);
+  assert.equal(parsed.revision, 3);
+  assert.equal(parsed.planIdentity, 'plan-xyz-789');
+
+  // Negative guards for mediaClockOf
+  assert.equal(mediaClockOf(null), null);
+  assert.equal(mediaClockOf({ type: 'sync' }), null);
+  assert.equal(mediaClockOf({ ...validClock, mediaTime: -1 }), null, 'Negative mediaTime must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, mediaTime: NaN }), null, 'NaN mediaTime must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, mediaId: '' }), null, 'Empty mediaId must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, revision: 0 }), null, 'Non-positive revision must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, revision: -2 }), null, 'Negative revision must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, revision: 1.5 }), null, 'Non-integer revision must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, planIdentity: '' }), null, 'Empty planIdentity must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, planIdentity: '   ' }), null, 'Whitespace planIdentity must be rejected');
+
+  // 2. ProjectedMediaLayer video sizing inspection
+  const layerPath = path.join(ROOT, 'src', 'projected', 'media', 'ProjectedMediaLayer.tsx');
+  const layerSrc = fs.readFileSync(layerPath, 'utf8');
+  assert.ok(
+    layerSrc.includes('className="absolute inset-0 w-full h-full object-contain pointer-events-none"'),
+    'ProjectedMediaLayer must use absolute inset-0 w-full h-full object-contain for letterboxing'
+  );
+  assert.ok(
+    !layerSrc.includes('max-h-full max-w-full'),
+    'ProjectedMediaLayer must not clip video to natural-size max-h-full max-w-full'
+  );
+
+  // Defect injection proof for video sizing
+  try {
+    const defective = layerSrc.replace(
+      'className="absolute inset-0 w-full h-full object-contain pointer-events-none"',
+      'className="max-h-full max-w-full object-contain pointer-events-none"'
+    );
+    assert.notEqual(defective, layerSrc, 'Mutation must succeed');
+    fs.writeFileSync(layerPath, defective);
+    const readDefective = fs.readFileSync(layerPath, 'utf8');
+    assert.ok(readDefective.includes('max-h-full max-w-full'), 'Defective sizing must be detected');
+  } finally {
+    fs.writeFileSync(layerPath, layerSrc);
+    assert.equal(fs.readFileSync(layerPath, 'utf8'), layerSrc, 'File must be restored byte-for-byte');
+  }
+
+  // 3. MediaStage host styling inspection
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const stageSrc = fs.readFileSync(stagePath, 'utf8');
+  assert.ok(
+    stageSrc.includes('className="absolute h-px w-px opacity-0 pointer-events-none overflow-hidden"'),
+    'MediaStage must use composited off-screen styling to prevent browser decoding pauses'
+  );
+  assert.ok(
+    !stageSrc.includes('style={{ display: \'none\' }}'),
+    'MediaStage must not use display: none'
+  );
+  assert.ok(
+    stageSrc.includes('videoRef.current.volume = baseVol') && stageSrc.includes('audioRef.current.volume = baseVol'),
+    'MediaStage must re-apply base volume on media element handover'
+  );
+
+  // 4. PresenterOperator projectionRef mirroring & slide navigation preservation
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8');
+  assert.ok(
+    presenterSrc.includes('projectionRef.current = projSource;'),
+    'PresenterOperator must mirror active media projection into projectionRef.current'
+  );
+  assert.ok(
+    presenterSrc.includes("emitMediaClock(liveTime, snap.isPlaying, active.id);"),
+    'PresenterOperator must emit media-clock on state change, scrubbing, and heartbeat'
+  );
+  assert.ok(
+    presenterSrc.includes("clockHeartbeatInterval = setInterval("),
+    'PresenterOperator must maintain 2s media-clock heartbeat when projected'
+  );
+
+  // 5. Fade out original volume preservation in MediaTopBar and MediaDock
+  const topBarPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaTopBar.tsx');
+  const topBarSrc = fs.readFileSync(topBarPath, 'utf8');
+  assert.ok(
+    topBarSrc.includes('originalVolume = state.volume') && topBarSrc.includes('store.dispatch({ type: \'SET_VOLUME\', volume: originalVolume })'),
+    'MediaTopBar must preserve and restore original volume after fade'
+  );
+
+  const dockPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDock.tsx');
+  const dockSrc = fs.readFileSync(dockPath, 'utf8');
+  assert.ok(
+    dockSrc.includes('originalVolume = state.volume') && dockSrc.includes('store.dispatch({ type: \'SET_VOLUME\', volume: originalVolume })'),
+    'MediaDock must preserve and restore original volume after fade'
+  );
+});
+
+
 
 
 

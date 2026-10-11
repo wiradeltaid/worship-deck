@@ -70,6 +70,16 @@ export type ProjectorMediaStatusMessage = {
   reason?: ProjectorMediaStatusReason;
 };
 
+export type MediaClockMessage = {
+  type: 'media-clock';
+  mediaId: string;
+  mediaTime: number;
+  at: number;
+  isPlaying: boolean;
+  revision: number;
+  planIdentity: string;
+};
+
 export type PresentMessage =
   | {
       type: 'sync';
@@ -106,7 +116,8 @@ export type PresentMessage =
   | { type: 'clear-scripture'; planIdentity: string }
   | { type: 'nav-next'; serviceId: string; planIdentity: string }
   | { type: 'nav-prev'; serviceId: string; planIdentity: string }
-  | ProjectorMediaStatusMessage;
+  | ProjectorMediaStatusMessage
+  | MediaClockMessage;
 
 /**
  * The blank state a message asserts, or `null` when it says nothing about it —
@@ -326,7 +337,10 @@ export function projectionOf(msg: PresentMessage): ProjectedSource | null {
         ? rawMedia.at
         : Date.now();
     const revision =
-      typeof rawMedia.revision === 'number' && Number.isFinite(rawMedia.revision)
+      typeof rawMedia.revision === 'number' &&
+      Number.isFinite(rawMedia.revision) &&
+      Number.isInteger(rawMedia.revision) &&
+      rawMedia.revision > 0
         ? rawMedia.revision
         : 1;
 
@@ -352,6 +366,41 @@ export const CLOSED_PROJECTOR_MEDIA_REASONS = new Set<string>([
   'consumer-attach-failed',
   'video-error',
 ]);
+
+/**
+ * Validates and extracts a media-clock message from wire.
+ */
+export function mediaClockOf(msg: unknown): MediaClockMessage | null {
+  if (!msg || typeof msg !== 'object') return null;
+  const m = msg as Record<string, unknown>;
+  if (m.type !== 'media-clock') return null;
+  if (
+    typeof m.mediaId !== 'string' ||
+    !m.mediaId.trim() ||
+    typeof m.mediaTime !== 'number' ||
+    !Number.isFinite(m.mediaTime) ||
+    m.mediaTime < 0 ||
+    typeof m.at !== 'number' ||
+    !Number.isFinite(m.at) ||
+    typeof m.revision !== 'number' ||
+    !Number.isFinite(m.revision) ||
+    !Number.isInteger(m.revision) ||
+    m.revision <= 0 ||
+    typeof m.planIdentity !== 'string' ||
+    !m.planIdentity.trim()
+  ) {
+    return null;
+  }
+  return {
+    type: 'media-clock',
+    mediaId: m.mediaId.trim(),
+    mediaTime: m.mediaTime,
+    at: m.at,
+    isPlaying: Boolean(m.isPlaying),
+    revision: m.revision,
+    planIdentity: m.planIdentity.trim(),
+  };
+}
 
 /**
  * Validates a projector-media-status telemetry message against closed shape and reasons.

@@ -12,6 +12,7 @@ import {
   projectionOf,
   slidePatchOf,
   syncPatchesOf,
+  mediaClockOf,
   type PresentMessage,
   type ScriptureOverlay,
   type ProjectedSource,
@@ -789,6 +790,21 @@ export default function ProjectorClient({
         });
       } else if (msg.type === 'clear-scripture') {
         clearScriptureOverlay();
+      } else if (msg.type === 'media-clock') {
+        const clock = mediaClockOf(msg);
+        if (clock && clock.planIdentity === planIdentityRef.current) {
+          setMediaSource((prev) => {
+            if (!prev || prev.mediaId !== clock.mediaId) return prev;
+            if (clock.revision < prev.revision) return prev;
+            return {
+              ...prev,
+              isPlaying: clock.isPlaying,
+              mediaTime: clock.mediaTime,
+              at: clock.at,
+              revision: clock.revision,
+            };
+          });
+        }
       }
     };
 
