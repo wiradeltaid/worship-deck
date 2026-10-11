@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-05"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement the two-tab layout in `MediaDrawer.tsx` (Pustaka Cloud vs Media Laptop), the accessible 4-state status badge contract without emojis, and manual local file import.
@@ -26,3 +26,7 @@ Implement the two-tab layout in `MediaDrawer.tsx` (Pustaka Cloud vs Media Laptop
 - Clicking between `Pustaka Cloud` and `Media Laptop` tabs preserves scroll position and playback state.
 - Badges render accessible SVG icons and text labels without emoji characters.
 - Manual local file import accurately links matching cloud items without uploading bytes.
+
+## Comments
+
+- 2026-10-11: Implemented two-tab layout (Pustaka Cloud vs Media Laptop) in `MediaDrawer.tsx`, 4-state accessible badge contract without emojis in `MediaStatusBadge.tsx`, manual local media import with on-the-fly hashing, and verified absence guards in `tests/local-media-player.test.mjs`.

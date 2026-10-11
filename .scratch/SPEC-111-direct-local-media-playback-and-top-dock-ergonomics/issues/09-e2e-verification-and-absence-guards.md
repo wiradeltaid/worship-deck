@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-08"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement automated test suite in `tests/local-media-player.test.mjs` and browser/desktop integration test script verifying the complete two-tier media workflow, web/desktop parity, and five mandatory architectural absence guards with injected defect proofs.
@@ -26,3 +26,7 @@ Implement automated test suite in `tests/local-media-player.test.mjs` and browse
 - Full test suite passes under Node test runner (`node --test tests/local-media-player.test.mjs`).
 - Browser/desktop integration script verifies Range 206 streaming and controller reload recovery.
 - All five absence guards proven red through defect injection before passing assertions.
+
+## Comments
+
+- 2026-10-11: Verified complete two-tier media workflow, tested all 5 architectural absence guards with injected defect proofs in `tests/local-media-player.test.mjs`, verified `public-repo-guard.test.mjs` green with synthetic fixtures, and closed ticket SPEC-111-09.

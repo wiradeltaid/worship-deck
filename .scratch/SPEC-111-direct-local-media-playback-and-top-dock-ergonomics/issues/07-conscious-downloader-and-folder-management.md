@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-06"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement the conscious media downloader engine in `MediaDrawer.tsx`, supporting single and bulk download queues, directory handle persistence, atomic writable streams, and OPFS fallback.
@@ -25,3 +25,7 @@ Implement the conscious media downloader engine in `MediaDrawer.tsx`, supporting
 - Single item download and bulk "Unduh Semua" write verified files to the chosen local directory.
 - Download errors or hash mismatches cleanly abort without writing partial files or corrupted records.
 - Deleting a downloaded item from the local tab leaves the physical file intact on disk.
+
+## Comments
+
+- 2026-10-11: Implemented `ConsciousDownloaderEngine` with sequential queue (concurrency 1), bulk preflight calculations, atomic streaming write with sha256 verification and clean abort on mismatch, directory/OPFS storage ladder persistence, and verified physical file preservation on unlink in `tests/local-media-player.test.mjs`.

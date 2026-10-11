@@ -2045,6 +2045,36 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-110-presenter-in-console-media-player/
 
+  - id: DEC-097
+    type: mandate
+    status: applied
+    accepted_by: "kodesh87 (2026-10-11)"
+    title: Daily Autopilot mandate for Direct Local Media Playback, Conscious Offline Downloader, and Two-Tab Media Library (SPEC-111)
+    file: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-playback-and-top-dock-ergonomics.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-18'
+    touches:
+      - .control/memlog/autopilot-DEC-097.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/
+
+  - id: DEC-098
+    type: decision
+    status: applied
+    accepted_by: "DEC-097"
+    title: Storage Ladder, WebView2 File System Access, and Service Worker Stream Resolution for Local Media Playback
+    file: .control/decisions/DEC-098-storage-ladder-webview2-file-system-access-and-service-worker-stream-resolution.md
+    touches:
+      - src/operator/present/media-player/storage-ladder.ts
+      - tests/local-media-player.test.mjs
+      - .scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/
+
 
 
 

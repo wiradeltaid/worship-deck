@@ -11,6 +11,8 @@ export interface PlaylistItem {
   size?: number;
   status?: MediaStatus;
   errorMessage?: string;
+  sha256?: string;
+  source?: 'local' | 'cloud';
 }
 
 export interface PlaylistState {

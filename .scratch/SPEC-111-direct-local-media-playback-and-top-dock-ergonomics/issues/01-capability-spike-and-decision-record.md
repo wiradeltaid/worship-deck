@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** none
-**Status:** open
+**Status:** done
 
 ## Summary
 Conduct a focused capability spike verifying directory picker support in Windows WebView2, Service Worker handle accessibility from IndexedDB, and OPFS fallback behavior, recording architectural decisions as a DEC.
@@ -20,3 +20,7 @@ Conduct a focused capability spike verifying directory picker support in Windows
 - Verified matrix of storage capability across Google Chrome, Microsoft Edge, and packaged WebView2.
 - Clean capability decision recorded before downloader and Service Worker implementation begins.
 - Guard test verifies fallback activation when directory picker is unavailable.
+
+## Comments
+
+- 2026-10-11: Completed capability spike, ratified storage ladder DEC-098, implemented `storage-ladder.ts`, and verified fallback hierarchy and `<a download>` absence guard in `tests/local-media-player.test.mjs`.

@@ -64,6 +64,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/upload", s.postUpload)
 	mux.HandleFunc("POST /api/upload/from-url", s.postUploadFromURL)
 	mux.HandleFunc("GET /api/uploads/{filename}", s.getUpload)
+	// SPEC-111: Media Playlist REST API & Content Range Streaming
+	mux.HandleFunc("GET /api/media/playlist", s.listMediaPlaylistItems)
+	mux.HandleFunc("POST /api/media/playlist", s.createMediaPlaylistItem)
+	mux.HandleFunc("PATCH /api/media/playlist/reorder", s.reorderMediaPlaylistItems)
+	mux.HandleFunc("DELETE /api/media/playlist/{id}", s.deleteMediaPlaylistItem)
+	mux.HandleFunc("POST /api/media/assets/{storageKey}/purge", s.purgeMediaAsset)
+	mux.HandleFunc("GET /api/media/{id}/content", s.getMediaContent)
 	mux.HandleFunc("GET /api/fonts", s.listFonts)
 	mux.HandleFunc("GET /api/fonts/{id}", s.getFont)
 	mux.HandleFunc("GET /api/admin/accounts", s.listAccounts)
