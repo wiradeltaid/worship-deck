@@ -1971,6 +1971,63 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-113-01
+  spec: SPEC-113
+  release: unified-media-control-bar-and-single-list-library
+  test:
+  - tests/local-media-player.test.mjs
+  - tests/projected-transitions.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-113-02
+  spec: SPEC-113
+  release: unified-media-control-bar-and-single-list-library
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-113-03
+  spec: SPEC-113
+  release: unified-media-control-bar-and-single-list-library
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-113-04
+  spec: SPEC-113
+  release: unified-media-control-bar-and-single-list-library
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
