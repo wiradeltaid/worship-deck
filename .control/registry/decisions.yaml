@@ -2028,7 +2028,7 @@ decisions:
 
   - id: DEC-096
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-11)"
     title: Daily Autopilot mandate for Presenter In-Console Media Player and Congregation Video Projection (SPEC-110)
     file: .control/decisions/DEC-096-daily-autopilot-mandate-presenter-in-console-media-player.md
