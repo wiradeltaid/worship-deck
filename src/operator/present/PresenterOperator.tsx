@@ -970,6 +970,62 @@ export default function PresenterOperator({
     channelRef.current?.postMessage(msg);
   }, [setScriptureOverlay, persistCurrentSession]);
 
+  // Synchronize media video projection state over present-channel
+  useEffect(() => {
+    let lastWasProjected = false;
+    let lastActiveId: string | null = null;
+    let lastPlaying = false;
+
+    return mediaStore.subscribe(() => {
+      const snap = mediaStore.getSnapshot();
+      const active = snap.items.find((i) => i.id === snap.activeId);
+      const isProj = snap.isProjected && active?.type === 'video';
+
+      // Mutual exclusivity: If media projection activated, tear down guest feed
+      if (isProj && !lastWasProjected) {
+        guestFeedControllerRef.current?.teardownGuestFeed();
+      }
+
+      if (isProj || lastWasProjected) {
+        if (
+          isProj !== lastWasProjected ||
+          snap.activeId !== lastActiveId ||
+          snap.isPlaying !== lastPlaying
+        ) {
+          lastWasProjected = isProj;
+          lastActiveId = snap.activeId;
+          lastPlaying = snap.isPlaying;
+
+          const projSource: ProjectedSource =
+            isProj && active
+              ? {
+                  kind: 'media',
+                  mediaId: active.id,
+                  mediaUrl: active.url,
+                  isPlaying: snap.isPlaying,
+                  mediaTime: snap.currentTime,
+                  at: Date.now(),
+                  revision: 1,
+                }
+              : { kind: 'deck' };
+
+          broadcast({
+            type: 'sync',
+            index: indexRef.current,
+            blank: blankRef.current,
+            transition: transitionRef.current,
+            background: backgroundRef.current,
+            scripture: scriptureOverlayRef.current,
+            planIdentity: planIdentityRef.current,
+            patches: patchesRef.current,
+            projection: projSource,
+            guestAttemptId: null,
+          });
+        }
+      }
+    });
+  }, [mediaStore, broadcast]);
+
   const setIndexAndSync = useCallback(
     (next: number) => {
       const clamped = clampSlideIndex(next, activeSlides.length);
@@ -1202,23 +1258,47 @@ export default function PresenterOperator({
     // Read from the refs, never from the rendered values: this listener is
     // installed once per service and would otherwise answer with whatever the
     // deck looked like at mount.
-    const currentState = (): PresentMessage => ({
-      type: 'sync',
-      index: indexRef.current,
-      blank: blankRef.current,
-      transition: transitionRef.current,
-      background: backgroundRef.current,
-      scripture: scriptureOverlayRef.current,
-      planIdentity: planIdentityRef.current,
-      patches: patchesRef.current,
-      projection: projectionRef.current,
-      guestAttemptId: guestAttemptIdRef.current,
-    });
+    const currentState = (): PresentMessage => {
+      const mediaSnap = mediaStore.getSnapshot();
+      const activeMedia = mediaSnap.items.find((i) => i.id === mediaSnap.activeId);
+      const isMediaProjected = mediaSnap.isProjected && activeMedia?.type === 'video';
+
+      const resolvedProjection: ProjectedSource = isMediaProjected && activeMedia
+        ? {
+            kind: 'media',
+            mediaId: activeMedia.id,
+            mediaUrl: activeMedia.url,
+            isPlaying: mediaSnap.isPlaying,
+            mediaTime: mediaSnap.currentTime,
+            at: Date.now(),
+            revision: 1,
+          }
+        : projectionRef.current;
+
+      return {
+        type: 'sync',
+        index: indexRef.current,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+        background: backgroundRef.current,
+        scripture: scriptureOverlayRef.current,
+        planIdentity: planIdentityRef.current,
+        patches: patchesRef.current,
+        projection: resolvedProjection,
+        guestAttemptId: isMediaProjected ? null : guestAttemptIdRef.current,
+      };
+    };
 
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
       if (isProjectorMediaStatus(msg)) {
+        if (msg.mediaId) {
+          mediaStore.dispatch({
+            type: 'SET_PROJECT_STATUS',
+            projectStatus: msg.state === 'attached' ? 'on_screen' : 'error',
+          });
+        }
         guestFeedControllerRef.current?.handleProjectorMediaStatus(msg);
         return;
       }

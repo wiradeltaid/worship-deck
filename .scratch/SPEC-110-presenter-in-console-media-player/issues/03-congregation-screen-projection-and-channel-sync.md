@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-28, FR-16, FR-33]
 **Blocked by:** [SPEC-110-02]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Extend `present-channel.ts` and `ProjectorClient.tsx` to support `ProjectedSource` with `kind: 'media'`, allowing manual video projection with crossfade transitions, mutual exclusivity with guest feeds, and projector-side mute enforcement.

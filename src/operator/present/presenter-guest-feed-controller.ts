@@ -274,6 +274,10 @@ export class PresenterGuestFeedController {
     }
   }
 
+  public teardownGuestFeed(): void {
+    this.revertToDeck('media-activated');
+  }
+
   public onScriptureAction(): void {
     // Exclusivity: entering scripture clears guest intent and returns to Deck
     if (this.uiState === 'guest-pending' || this.uiState === 'confirmed-live') {

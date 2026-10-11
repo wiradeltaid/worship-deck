@@ -227,3 +227,87 @@ test('SPEC-110-02: Presenter Dock and Non-Modal Drawer UI component contracts', 
   assert.ok(presenterSrc.includes('MediaStage'), 'PresenterOperator mounts MediaStage');
 });
 
+test('SPEC-110-03: Congregation Screen Video Projection & Channel Sync', async () => {
+  const fs = await import('node:fs');
+  const { projectionOf, isProjectorMediaStatus } = await import(
+    srcUrl('lib', 'present-channel.ts')
+  );
+
+  // 1. present-channel wire parsing of kind: 'media'
+  const validSync = {
+    type: 'sync',
+    index: 0,
+    blank: false,
+    transition: 'fade',
+    planIdentity: 'plan-1',
+    projection: {
+      kind: 'media',
+      mediaId: 'med-123',
+      mediaUrl: '/api/uploads/video.mp4',
+      isPlaying: true,
+      mediaTime: 12.5,
+      at: 100000,
+      revision: 1,
+    },
+  };
+
+  const parsed = projectionOf(validSync);
+  assert.equal(parsed?.kind, 'media');
+  if (parsed?.kind === 'media') {
+    assert.equal(parsed.mediaId, 'med-123');
+    assert.equal(parsed.mediaUrl, '/api/uploads/video.mp4');
+    assert.equal(parsed.isPlaying, true);
+    assert.equal(parsed.mediaTime, 12.5);
+  }
+
+  // Fail-closed on missing mediaUrl or mediaId
+  const invalidSync = {
+    type: 'sync',
+    index: 0,
+    blank: false,
+    transition: 'fade',
+    planIdentity: 'plan-1',
+    projection: {
+      kind: 'media',
+      mediaId: '',
+      mediaUrl: '',
+    },
+  };
+  assert.deepEqual(projectionOf(invalidSync), { kind: 'deck' });
+
+  // 2. Projector media status message parsing
+  assert.equal(
+    isProjectorMediaStatus({
+      type: 'projector-media-status',
+      mediaId: 'med-123',
+      state: 'attached',
+    }),
+    true
+  );
+  assert.equal(
+    isProjectorMediaStatus({
+      type: 'projector-media-status',
+      mediaId: 'med-123',
+      state: 'unavailable',
+      reason: 'video-error',
+    }),
+    true
+  );
+
+  // 3. ProjectorClient / ProjectedMediaLayer source contracts
+  const projectorClientPath = path.join(ROOT, 'src', 'projected', 'ProjectorClient.tsx');
+  const mediaLayerPath = path.join(ROOT, 'src', 'projected', 'media', 'ProjectedMediaLayer.tsx');
+
+  assert.ok(fs.existsSync(mediaLayerPath), 'ProjectedMediaLayer.tsx must exist');
+  const mediaLayerSrc = fs.readFileSync(mediaLayerPath, 'utf8');
+  const projectorClientSrc = fs.readFileSync(projectorClientPath, 'utf8');
+
+  // Mute enforcement invariant: video MUST have muted attribute and muted=true
+  assert.ok(mediaLayerSrc.includes('muted'), 'Projected video must have muted attribute');
+  assert.ok(mediaLayerSrc.includes('video.muted = true') || mediaLayerSrc.includes('el.muted = true') || mediaLayerSrc.includes('.muted = true'), 'Projected video enforces muted property in runtime');
+
+  // ProjectorClient layer integration at z-30
+  assert.ok(projectorClientSrc.includes('ProjectedMediaLayer') || projectorClientSrc.includes('projector-media-video-container'), 'ProjectorClient integrates projected media video');
+});
+
+

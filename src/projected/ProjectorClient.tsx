@@ -35,6 +35,10 @@ import {
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { useProjectedShell } from '@/lib/use-projected-shell';
 import { useSlideTransition } from '@/lib/use-slide-transition';
+import {
+  ProjectedMediaLayer,
+  type ProjectedMediaSource,
+} from './media/ProjectedMediaLayer';
 import '@/projected/projected.css';
 
 export { getGuestTransitionStyle };
@@ -302,6 +306,58 @@ export default function ProjectorClient({
   const channelRef = useRef<BroadcastChannel | null>(null);
   const serviceIdRef = useRef(serviceId);
   serviceIdRef.current = serviceId;
+
+  // SPEC-110-03: Projected Media Layer states
+  const [mediaSource, setMediaSource] = useState<ProjectedMediaSource | null>(null);
+  const [retainedMediaSource, setRetainedMediaSource] = useState<ProjectedMediaSource | null>(null);
+  const [mediaPhase, setMediaPhase] = useState<'hidden' | 'entering-start' | 'active' | 'exiting'>('hidden');
+  const mediaTimerRef = useRef<any>(null);
+  const mediaPhaseRef = useRef(mediaPhase);
+  mediaPhaseRef.current = mediaPhase;
+
+  useEffect(() => {
+    const spec = SLIDE_TRANSITION_SPECS[transition] || SLIDE_TRANSITION_SPECS.fade;
+    const durationMs = spec.browser.durationMs;
+
+    if (mediaSource) {
+      if (mediaTimerRef.current) {
+        clearTimeout(mediaTimerRef.current);
+        mediaTimerRef.current = null;
+      }
+      setRetainedMediaSource(mediaSource);
+
+      if (durationMs === 0 || mediaPhaseRef.current === 'active' || mediaPhaseRef.current === 'exiting') {
+        setMediaPhase('active');
+      } else {
+        setMediaPhase('entering-start');
+        mediaTimerRef.current = setTimeout(() => {
+          setMediaPhase('active');
+          mediaTimerRef.current = null;
+        }, 20);
+      }
+    } else {
+      if (mediaTimerRef.current) {
+        clearTimeout(mediaTimerRef.current);
+        mediaTimerRef.current = null;
+      }
+
+      if (mediaPhaseRef.current === 'hidden') {
+        return;
+      }
+
+      if (durationMs === 0 || !retainedMediaSource) {
+        setRetainedMediaSource(null);
+        setMediaPhase('hidden');
+      } else {
+        setMediaPhase('exiting');
+        mediaTimerRef.current = setTimeout(() => {
+          setRetainedMediaSource(null);
+          setMediaPhase('hidden');
+          mediaTimerRef.current = null;
+        }, durationMs);
+      }
+    }
+  }, [mediaSource, transition]);
 
   useEffect(() => {
     if (videoRef.current && retainedGuestStream) {
@@ -647,11 +703,27 @@ export default function ProjectorClient({
         isInitialSyncRef.current = false;
 
         const proj = projectionOf(msg);
-        const isGuest = proj?.kind === 'guest';
-        setIsGuestIntent(isGuest);
-        void bridge.syncProjection(proj, msg.guestAttemptId || null).then(() => {
-          setGuestStream(bridge.getActiveStream());
-        });
+        if (proj?.kind === 'media') {
+          // Mutual exclusivity: Guest stream teardown
+          setIsGuestIntent(false);
+          bridge.releaseMedia();
+          setGuestStream(null);
+          setMediaSource({
+            mediaId: proj.mediaId,
+            mediaUrl: proj.mediaUrl,
+            isPlaying: proj.isPlaying,
+            mediaTime: proj.mediaTime,
+            at: proj.at,
+            revision: proj.revision,
+          });
+        } else {
+          setMediaSource(null);
+          const isGuest = proj?.kind === 'guest';
+          setIsGuestIntent(isGuest);
+          void bridge.syncProjection(proj, msg.guestAttemptId || null).then(() => {
+            setGuestStream(bridge.getActiveStream());
+          });
+        }
 
         const patches = syncPatchesOf(msg);
         if (patches !== null) {
@@ -910,6 +982,21 @@ export default function ProjectorClient({
           />
         </div>
       ) : null}
+
+      {/* Projected Media Video Layer (SPEC-110-03): rendered at z-30 under z-40 hint and z-50 blanking */}
+      <ProjectedMediaLayer
+        source={retainedMediaSource}
+        phase={mediaPhase}
+        transition={transition}
+        onStatusChange={(mediaId, state, reason) => {
+          channelRef.current?.postMessage({
+            type: 'projector-media-status',
+            mediaId,
+            state,
+            reason,
+          });
+        }}
+      />
 
       {/* Ephemeral F11 fullscreen guidance onboarding banner (SPEC-94-02).
           Authorized exception to UC-12 room-facing chrome prohibition:
