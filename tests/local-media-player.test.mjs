@@ -276,5 +276,71 @@ test('SPEC-111-06: Two-Tab MediaDrawer & Accessible 4-State Badge Contract (No E
   assert.ok(drawerCode.includes('btn-add-local-media'), 'Must provide "btn-add-local-media" manual import');
 });
 
+test('SPEC-111-07: Conscious Downloader Engine, Preflight Bulk Calculation, and Abort Verification', async () => {
+  const { ConsciousDownloaderEngine } = await import(
+    srcUrl('operator', 'present', 'media-player', 'downloader-engine.ts')
+  );
+  const { localMediaRegistry } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+
+  const engine = new ConsciousDownloaderEngine();
+
+  // 1. Bulk preflight calculation
+  const mockItems = [
+    { id: '1', name: 'Song 1', url: '/1.mp3', sha256: 'a'.repeat(64), size: 10 * 1024 * 1024, type: 'audio' },
+    { id: '2', name: 'Song 2', url: '/2.mp3', sha256: 'b'.repeat(64), size: 25 * 1024 * 1024, type: 'audio' },
+  ];
+  const preflight = engine.calculateBulkPreflight(mockItems);
+  assert.equal(preflight.count, 2);
+  assert.equal(preflight.totalSizeBytes, 35 * 1024 * 1024);
+  assert.equal(preflight.totalSizeFormatted, '35.0 MB');
+
+  // Gigabyte formatting check
+  const largePreflight = engine.calculateBulkPreflight([
+    { id: '3', name: 'Large Video', url: '/large.mp4', sha256: 'c'.repeat(64), size: 1.5 * 1024 * 1024 * 1024, type: 'video' },
+  ]);
+  assert.equal(largePreflight.totalSizeFormatted, '1.50 GB');
+
+  // 2. Cancellation
+  const cancelSHA = 'd'.repeat(64);
+  engine.enqueueItem({
+    id: '4',
+    name: 'Cancelled.mp4',
+    url: 'http://localhost:9999/dummy',
+    sha256: cancelSHA,
+    size: 1000,
+    type: 'video',
+  });
+  engine.cancelDownload(cancelSHA);
+  assert.equal(engine.getProgress(cancelSHA)?.state, 'cancelled');
+
+  // 3. Invariant: Unlinking from local registry leaves physical file intact
+  const testDirHandle = {
+    name: 'TestMediaDir',
+    files: new Map([['test.mp4', { name: 'test.mp4' }]]),
+  };
+  await localMediaRegistry.setDirectoryHandle(testDirHandle);
+
+  const record = {
+    sha256: 'e'.repeat(64),
+    name: 'test.mp4',
+    sizeBytes: 500,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    lastModified: 1700000000000,
+    verifiedAt: new Date().toISOString(),
+  };
+  await localMediaRegistry.saveRecord(record);
+  assert.equal(localMediaRegistry.hasRecord(record.sha256), true);
+
+  // Unlink
+  await localMediaRegistry.removeRecord(record.sha256);
+  assert.equal(localMediaRegistry.hasRecord(record.sha256), false);
+  // Physical directory handle and its file are untouched
+  assert.equal(testDirHandle.files.has('test.mp4'), true, 'Physical file must remain intact in directory handle');
+});
+
+
 
 
