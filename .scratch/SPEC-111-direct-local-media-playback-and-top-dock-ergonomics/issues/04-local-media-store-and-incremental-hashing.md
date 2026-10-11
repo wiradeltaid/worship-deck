@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-03"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement client-side local media storage in IndexedDB with separate directory and media index stores, off-thread incremental SHA-256 calculation in a Web Worker, and an in-memory matching map for 60fps status rendering.
@@ -26,3 +26,7 @@ Implement client-side local media storage in IndexedDB with separate directory a
 - Local storage cleanly separates directory handle settings from the content-addressed media index.
 - Metadata is never used as a proxy for file identity; matching strictly requires verified SHA-256.
 - Unit tests verify IndexedDB storage, worker hashing parity, and matching map lookups.
+
+## Comments
+
+- 2026-10-11: Implemented `computeBlobSHA256` chunked streaming hasher in `media-hasher.ts`, `LocalMediaRegistry` with dual IndexedDB stores and in-memory O(1) matching map in `local-media-registry.ts`, exported via index, and verified in `tests/local-media-player.test.mjs`.

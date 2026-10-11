@@ -7,3 +7,5 @@ export * from './MediaDock';
 export * from './MediaDrawer';
 export * from './MediaUploader';
 export * from './storage-ladder';
+export * from './media-hasher';
+export * from './local-media-registry';
