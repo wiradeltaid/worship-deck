@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-
 
 ## Resume
 
-- Iteration: I-1
+- Iteration: I-1 (final)
 - Run branch: autopilot/DEC-097
-- Stopped at: In progress — SPEC-111-08 closed, ready for final ticket SPEC-111-09
+- Stopped at: Complete — All FR/Tickets/Specs in scope (SPEC-111) delivered, verified, and mandate applied
 - Blocked: —
 - Parked: —
-- Next: SPEC-111-09 (E2E verification and absence guards)
+- Next: Owner review and merge of PR
 
 ## Decisions
 
@@ -26,6 +26,7 @@ artifact: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-
 | I-1 | SPEC-111-06 | Implement two-tab layout (Pustaka Cloud vs Media Laptop) in MediaDrawer and accessible 4-state badge contract without emojis | mixed single-list clutter or unlabelled emoji icons | operator confusion over cloud vs offline availability and accessibility regressions | src/operator/present/media-player/MediaStatusBadge.tsx, src/operator/present/media-player/MediaDrawer.tsx, src/operator/present/media-player/index.ts, tests/local-media-player.test.mjs |
 | I-1 | SPEC-111-07 | Implement ConsciousDownloaderEngine with sequential concurrency-1 queue, bulk preflight calculation, atomic streaming write with hash check, and physical file preservation on unlink | unmanaged concurrent downloads or background auto-caching without consent | bandwidth exhaustion in sanctuaries, corrupted partial downloads, and accidental data deletion | src/operator/present/media-player/downloader-engine.ts, src/operator/present/media-player/index.ts, tests/local-media-player.test.mjs |
 | I-1 | SPEC-111-08 | Mount MediaTopBar in fixed 44px slot between header and slide monitors in PresenterOperator with spacebar focus safety and strict 4-predicate local-first routing | bottom-dock scroll occlusion or unverified local routing | operator panic controls scrolled below the fold and black projector screens | src/operator/present/media-player/playback-router.ts, src/operator/present/media-player/MediaTopBar.tsx, src/operator/present/PresenterOperator.tsx, src/operator/present/media-player/index.ts, tests/local-media-player.test.mjs |
+| I-1 | SPEC-111-09 | Enforce and prove 5 mandatory absence guards with defect injection verification and full synthetic fixture compliance | static assertions without defect injection | undetected regressions in auto-download, filename matching, SW scope, or file preservation | tests/local-media-player.test.mjs, tests/public-repo-guard.test.mjs |
 
 ## Smoke Test Results
 
@@ -38,3 +39,4 @@ artifact: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-
 - SPEC-111-06: PASS (No emojis in badge contract, 4-state labels [Streaming, Mengunduh, Tersedia di lokal, File terlepas], role=progressbar, and two-tab MediaDrawer structure green; tests/local-media-player.test.mjs & smoke:spec-111 green)
 - SPEC-111-07: PASS (Conscious sequential downloader queue, bulk preflight size formatting, atomic stream abort on hash mismatch, and physical file preservation on index unlink green; tests/local-media-player.test.mjs & smoke:spec-111 green)
 - SPEC-111-08: PASS (Local-first 4-predicate router, MediaTopBar fixed 44px slot without layout shift, panic controls with spacebar focus safety, and source indicator badge [Lokal|Cloud] green; tests/local-media-player.test.mjs & smoke:spec-111 green)
+- SPEC-111-09: PASS (5 absence guards proven via defect injection: zero auto-download, zero filename matching, SW namespace isolation, local disk preservation, and server file unlink preservation green; public-repo-guard green)

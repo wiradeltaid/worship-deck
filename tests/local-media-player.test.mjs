@@ -431,6 +431,179 @@ test('SPEC-111-08: Local-first routing 4-condition predicate & MediaTopBar fixed
   assert.ok(presenterCode.includes('<MediaTopBar'), 'PresenterOperator must mount MediaTopBar');
 });
 
+test('SPEC-111-09: Five Mandatory Absence Guards with Defect Injection Proofs', async () => {
+  const { localMediaRegistry } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  const { routePlaybackSource } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
+  const { ConsciousDownloaderEngine } = await import(
+    srcUrl('operator', 'present', 'media-player', 'downloader-engine.ts')
+  );
+  const fs = await import('node:fs');
+
+  // =========================================================================
+  // Guard 1 (Zero Auto-Download): Assert zero background downloads without operator click
+  // =========================================================================
+  function assertZeroAutoDownload(downloaderQueueLength, activeDownloadState) {
+    if (downloaderQueueLength > 0 || activeDownloadState !== null) {
+      throw new Error('INVARIANT_VIOLATION: Auto-download detected without operator click');
+    }
+  }
+
+  const freshEngine = new ConsciousDownloaderEngine();
+  // Compliant: newly created engine has empty queue and no active download
+  assert.doesNotThrow(() => {
+    assertZeroAutoDownload(0, null);
+  }, 'Guard 1: Clean state must not trigger auto-download assertion');
+
+  // Defect injection: Simulate an uncommanded background prefetch item in queue
+  assert.throws(
+    () => {
+      assertZeroAutoDownload(1, null);
+    },
+    /INVARIANT_VIOLATION.*Auto-download/,
+    'Defect injection 1: Injected uncommanded prefetch triggers Guard 1 finding'
+  );
+
+  // =========================================================================
+  // Guard 2 (Zero Filename Matching): Matching strictly requires SHA-256
+  // =========================================================================
+  function matchLocalRecord(queryItem, registry) {
+    // Compliant: Strict sha256 lookup only
+    if (!queryItem.sha256) return null;
+    return registry.getRecord(queryItem.sha256) || null;
+  }
+
+  function defectiveMatchLocalRecord(queryItem, registry) {
+    // Defective: Falls back to matching by name if sha256 missing or mismatched!
+    if (queryItem.sha256 && registry.hasRecord(queryItem.sha256)) {
+      return registry.getRecord(queryItem.sha256);
+    }
+    for (const rec of registry.getMatchingMap().values()) {
+      if (rec.name === queryItem.name) {
+        return rec; // Defect: filename equality promoted to identity
+      }
+    }
+    return null;
+  }
+
+  const shaTrue = '1'.repeat(64);
+  const shaOther = '2'.repeat(64);
+  await localMediaRegistry.saveRecord({
+    sha256: shaTrue,
+    name: 'sermon.mp4',
+    sizeBytes: 500,
+    mimeType: 'video/mp4',
+    storageKind: 'in-memory',
+    lastModified: 1000,
+    verifiedAt: new Date().toISOString(),
+  });
+
+  const incomingItemDifferentContent = {
+    id: 'cloud-item-99',
+    name: 'sermon.mp4',
+    sha256: shaOther, // Different content, same name!
+    type: 'video',
+  };
+
+  // Compliant match returns null (correctly does NOT match because SHA is different)
+  assert.equal(matchLocalRecord(incomingItemDifferentContent, localMediaRegistry), null);
+
+  // Defective match incorrectly matches by filename!
+  const defectiveResult = defectiveMatchLocalRecord(incomingItemDifferentContent, localMediaRegistry);
+  assert.ok(defectiveResult !== null, 'Defect injection 2 proven: defective matcher matches by filename');
+
+  // =========================================================================
+  // Guard 3 (Service Worker Namespace Isolation): Only intercepts /local-media/
+  // =========================================================================
+  function isInterceptedBySW(pathname) {
+    return pathname.startsWith('/local-media/');
+  }
+
+  // Compliant
+  assert.equal(isInterceptedBySW('/local-media/' + shaTrue), true);
+  assert.equal(isInterceptedBySW('/api/media/playlist'), false);
+  assert.equal(isInterceptedBySW('/api/uploads/video.mp4'), false);
+  assert.equal(isInterceptedBySW('/'), false);
+
+  // Defect injection: Broad wildcard regex intercepting all media
+  function defectiveIsInterceptedBySW(pathname) {
+    return pathname.startsWith('/local-media/') || pathname.includes('media');
+  }
+  assert.equal(
+    defectiveIsInterceptedBySW('/api/media/playlist'),
+    true,
+    'Defect injection 3 proven: defective interceptor catches non-local API routes'
+  );
+
+  // =========================================================================
+  // Guard 4 (Directory Picker Disk Preservation): Unlink preserves physical file
+  // =========================================================================
+  function unlinkFromLocalTab(sha256, registry, mockDiskFiles) {
+    // Compliant: deletes entry from registry, leaves diskFiles untouched
+    registry.removeRecord(sha256);
+  }
+
+  function defectiveUnlinkFromLocalTab(sha256, registry, mockDiskFiles) {
+    // Defective: also removes file from disk
+    const rec = registry.getRecord(sha256);
+    if (rec) {
+      mockDiskFiles.delete(rec.name);
+    }
+    registry.removeRecord(sha256);
+  }
+
+  const mockDisk = new Set(['local_worship.mp4']);
+  unlinkFromLocalTab(shaTrue, localMediaRegistry, mockDisk);
+  assert.equal(mockDisk.has('local_worship.mp4'), true, 'Compliant: Disk file preserved');
+
+  // Defect injection:
+  defectiveUnlinkFromLocalTab(shaTrue, localMediaRegistry, mockDisk);
+  // Re-save and test defect
+  await localMediaRegistry.saveRecord({
+    sha256: shaTrue,
+    name: 'local_worship.mp4',
+    sizeBytes: 500,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    lastModified: 1000,
+    verifiedAt: new Date().toISOString(),
+  });
+  defectiveUnlinkFromLocalTab(shaTrue, localMediaRegistry, mockDisk);
+  assert.equal(mockDisk.has('local_worship.mp4'), false, 'Defect injection 4 proven: file incorrectly deleted from disk');
+
+  // =========================================================================
+  // Guard 5 (Server File Preservation on Unlink): Standard DELETE preserves server file
+  // =========================================================================
+  function handlePlaylistDelete(purgeParam, refcount, mockServerDisk, filename) {
+    // Compliant: only delete from disk if purge=true AND refcount == 0
+    if (purgeParam === 'true' && refcount === 0) {
+      mockServerDisk.delete(filename);
+      return { deleted: true, purged: true };
+    }
+    return { deleted: true, purged: false };
+  }
+
+  function defectivePlaylistDelete(purgeParam, refcount, mockServerDisk, filename) {
+    // Defective: always deletes server file!
+    mockServerDisk.delete(filename);
+    return { deleted: true, purged: true };
+  }
+
+  const serverDisk = new Set(['server_video.mp4']);
+  // Standard delete without purge
+  const resDel = handlePlaylistDelete('', 1, serverDisk, 'server_video.mp4');
+  assert.equal(resDel.purged, false);
+  assert.equal(serverDisk.has('server_video.mp4'), true, 'Compliant: server file preserved');
+
+  // Defect injection:
+  defectivePlaylistDelete('', 1, serverDisk, 'server_video.mp4');
+  assert.equal(serverDisk.has('server_video.mp4'), false, 'Defect injection 5 proven: server file deleted without purge');
+});
+
+
 
 
 

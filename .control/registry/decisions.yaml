@@ -2047,7 +2047,7 @@ decisions:
 
   - id: DEC-097
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-11)"
     title: Daily Autopilot mandate for Direct Local Media Playback, Conscious Offline Downloader, and Two-Tab Media Library (SPEC-111)
     file: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-playback-and-top-dock-ergonomics.md
