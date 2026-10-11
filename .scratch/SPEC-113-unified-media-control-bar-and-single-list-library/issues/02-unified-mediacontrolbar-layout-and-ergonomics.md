@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** ["SPEC-113-01"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Retire `MediaTopBar.tsx` and legacy bottom dock `MediaDock.tsx`, replacing them with a unified `MediaControlBar` mounted between header controls and slide monitors, constrained to `max-w-[96rem] mx-auto px-4`.

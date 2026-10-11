@@ -425,10 +425,13 @@ test('SPEC-111-08: Local-first routing 4-condition predicate & MediaTopBar fixed
   assert.ok(topBarCode.includes('media-source-indicator'), 'Must contain source indicator');
   assert.ok(topBarCode.includes('e.preventDefault()'), 'Must contain spacebar focus safety handlers');
 
-  // Verification that MediaTopBar is mounted in PresenterOperator
+  // Verification that MediaTopBar or MediaControlBar is mounted in PresenterOperator
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const presenterCode = fs.readFileSync(presenterPath, 'utf8');
-  assert.ok(presenterCode.includes('<MediaTopBar'), 'PresenterOperator must mount MediaTopBar');
+  assert.ok(
+    presenterCode.includes('<MediaTopBar') || presenterCode.includes('<MediaControlBar'),
+    'PresenterOperator must mount MediaTopBar or MediaControlBar'
+  );
 });
 
 test('SPEC-111-09: Five Mandatory Absence Guards with Defect Injection Proofs', async () => {
@@ -712,6 +715,70 @@ test('SPEC-113-01: Projector Media Synchronization, Clock Contract, and Video Si
     dockSrc.includes('originalVolume = state.volume') && dockSrc.includes('store.dispatch({ type: \'SET_VOLUME\', volume: originalVolume })'),
     'MediaDock must preserve and restore original volume after fade'
   );
+});
+
+test('SPEC-113-02: Unified MediaControlBar Layout, Zero Layout Shift, and Ergonomics', async () => {
+  const fs = await import('node:fs');
+
+  // 1. Structural inspection of MediaControlBar
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  assert.ok(fs.existsSync(barPath), 'MediaControlBar.tsx must exist');
+  const barCode = fs.readFileSync(barPath, 'utf8');
+
+  // Fixed height 52px (h-13), zero layout shift
+  assert.ok(barCode.includes('h-13'), 'MediaControlBar must use fixed h-13 slot');
+  assert.ok(barCode.includes('data-testid="media-control-bar"'), 'Must have test ID');
+  assert.ok(barCode.includes('data-testid="media-control-bar-play"'), 'Must contain play button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-stop"'), 'Must contain stop button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-fade"'), 'Must contain fade button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-mute"'), 'Must contain mute button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-project"'), 'Must contain projector video button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-drawer"'), 'Must contain drawer launcher button');
+  assert.ok(barCode.includes('w-24'), 'Must have volume slider w-24 next to mute');
+  assert.ok(barCode.includes('e.preventDefault()'), 'Must contain spacebar focus safety handlers');
+
+  // 2. Integration in PresenterOperator
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterCode = fs.readFileSync(presenterPath, 'utf8');
+
+  assert.ok(presenterCode.includes('<MediaControlBar'), 'PresenterOperator must mount MediaControlBar');
+  assert.ok(
+    presenterCode.includes('max-w-[96rem]') && presenterCode.includes('pt-3'),
+    'MediaControlBar container must be constrained to max-w-[96rem] px-4 pt-3'
+  );
+  assert.ok(
+    presenterCode.includes("calc((100dvh - 33.5rem) * 16 / 9)"),
+    'STAGE_VARS must update stage calculation to calc((100dvh - 33.5rem) * 16 / 9)'
+  );
+  assert.ok(
+    !presenterCode.includes('<MediaDock'),
+    'Legacy bottom MediaDock must be removed from PresenterOperator'
+  );
+  assert.ok(
+    !presenterCode.includes('<MediaTopBar'),
+    'Legacy MediaTopBar must be removed from PresenterOperator'
+  );
+
+  // Defect injection proof 1: re-injecting legacy MediaDock trips absence assertion
+  try {
+    const defectiveDock = presenterCode.replace('</main>', '</main>\n      <MediaDock store={mediaStore} engine={mediaEngine} onOpenDrawer={() => {}} />');
+    assert.notEqual(defectiveDock, presenterCode, 'Mutation must succeed');
+    assert.ok(defectiveDock.includes('<MediaDock'), 'Defective presenter code must contain legacy MediaDock');
+  } catch (e) {
+    assert.fail(e);
+  }
+
+  // Defect injection proof 2: removing MediaControlBar fails assertion
+  try {
+    const defective = presenterCode.replace('<MediaControlBar', '<DisabledControlBar');
+    assert.notEqual(defective, presenterCode, 'Mutation must succeed');
+    fs.writeFileSync(presenterPath, defective);
+    const readDefective = fs.readFileSync(presenterPath, 'utf8');
+    assert.ok(!readDefective.includes('<MediaControlBar'), 'Defective presenter code must not have MediaControlBar');
+  } finally {
+    fs.writeFileSync(presenterPath, presenterCode);
+    assert.equal(fs.readFileSync(presenterPath, 'utf8'), presenterCode, 'File must be restored byte-for-byte');
+  }
 });
 
 

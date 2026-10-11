@@ -933,6 +933,7 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'media.dock.projectedBadge': 'Screen',
   'media.dock.seekAriaLabel': 'Media playback position',
   'media.dock.volumeAriaLabel': 'Media volume',
+  'media.controlBar.videoOnlyTooltip': 'Video projection is available for video files only',
   // SPEC-112: Media Status Badge
   'media.badge.local': 'Available locally',
   'media.badge.downloading': 'Downloading {percent}%',

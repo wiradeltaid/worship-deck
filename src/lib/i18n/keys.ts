@@ -858,6 +858,7 @@ export const I18N_KEYS = [
   'media.dock.projectedBadge',
   'media.dock.seekAriaLabel',
   'media.dock.volumeAriaLabel',
+  'media.controlBar.videoOnlyTooltip',
   // SPEC-112: Media Status Badge
   'media.badge.local',
   'media.badge.downloading',

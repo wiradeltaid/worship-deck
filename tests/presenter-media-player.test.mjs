@@ -222,7 +222,7 @@ test('SPEC-110-02: Presenter Dock and Non-Modal Drawer UI component contracts', 
 
   // PresenterOperator integration
   assert.ok(presenterSrc.includes('MediaLauncherButton'), 'PresenterOperator mounts MediaLauncherButton');
-  assert.ok(presenterSrc.includes('MediaDock'), 'PresenterOperator mounts MediaDock');
+  assert.ok(presenterSrc.includes('MediaDock') || presenterSrc.includes('MediaControlBar'), 'PresenterOperator mounts MediaDock or MediaControlBar');
   assert.ok(presenterSrc.includes('MediaDrawer'), 'PresenterOperator mounts MediaDrawer');
   assert.ok(presenterSrc.includes('MediaStage'), 'PresenterOperator mounts MediaStage');
 });

@@ -162,8 +162,7 @@ import {
   createMediaEngine,
   MediaStage,
   MediaLauncherButton,
-  MediaDock,
-  MediaTopBar,
+  MediaControlBar,
   MediaDrawer,
   type MediaStore,
   type MediaEngine,
@@ -292,7 +291,7 @@ function applyTextPatchToSlide(
  * adds no clipping risk that the shipped layout did not already carry.
  */
 const STAGE_VARS: CssVars = {
-  '--presenter-stage': 'max(24rem, min(64rem, calc((100dvh - 30rem) * 16 / 9)))',
+  '--presenter-stage': 'max(24rem, min(64rem, calc((100dvh - 33.5rem) * 16 / 9)))',
 };
 
 const BADGE_BASE =
@@ -2373,12 +2372,14 @@ export default function PresenterOperator({
         ) : null}
       </header>
 
-      {/* SPEC-111: Fixed-Height Top Control Bar (~44px, zero layout shift) */}
-      <MediaTopBar
-        store={mediaStore}
-        engine={mediaEngine}
-        onOpenDrawer={() => setMediaDrawerOpen(true)}
-      />
+      {/* SPEC-113: Unified MediaControlBar Layout (~52px, zero layout shift) */}
+      <div className="mx-auto w-full max-w-[96rem] px-4 pt-3">
+        <MediaControlBar
+          store={mediaStore}
+          engine={mediaEngine}
+          onOpenDrawer={() => setMediaDrawerOpen(true)}
+        />
+      </div>
 
       {pendingPatches.length > 0 && !isOffline && (
         <div
@@ -3001,12 +3002,6 @@ export default function PresenterOperator({
           </section>
         </aside>
       </main>
-
-      <MediaDock
-        store={mediaStore}
-        engine={mediaEngine}
-        onOpenDrawer={() => setMediaDrawerOpen(true)}
-      />
 
       <MediaDrawer
         open={mediaDrawerOpen}

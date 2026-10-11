@@ -8,10 +8,10 @@ artifact: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reco
 
 - Iteration: I-1
 - Run branch: autopilot/DEC-099
-- Stopped at: SPEC-113-01 closed, moving to SPEC-113-02
+- Stopped at: SPEC-113-02 closed, moving to SPEC-113-03
 - Blocked: —
 - Parked: —
-- Next: SPEC-113-02 (Unified MediaControlBar Layout and Ergonomics)
+- Next: SPEC-113-03 (Unified Playlist Model and IDB Schema)
 
 ## Decisions
 
@@ -23,6 +23,7 @@ artifact: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reco
 | I-1 | SPEC-112-03 | Fully localize PresenterOperator, SlideGridDialog, and PresenterDisplayControl, replacing raw Indonesian error toasts/reconciliation banners and hardcoded badges, mapping default chip fallbacks, and adding 3-component absence scan with 3 defect injection proofs | leaving raw Indonesian text in stage monitors and error banners | locale leakage during live presenter emergency reconciliation and grid navigation | src/operator/present/PresenterOperator.tsx, src/operator/present/SlideGridDialog.tsx, src/operator/present/PresenterDisplayControl.tsx, tests/bilingual-i18n-parity.test.mjs |
 | I-1 | SPEC-112-04 | Localize RunSheetPage, OfflineReadinessBadge, DynamicFormBody, ImageCropDialog, Header, BackgroundLibraryPanel, and FormLayoutAdminPanel, ratify mandatory bilingual i18n standard in codebase-conventions-guide.md, and enforce absence scan with defect injection proofs | allowing hardcoded UI text in admin forms and unratified conventions | dictionary regressions in future PRs and untracked drift | spa/src/pages/RunSheetPage.tsx, src/components/offline/OfflineReadinessBadge.tsx, src/operator/DynamicFormBody.tsx, src/components/media/ImageCropDialog.tsx, src/components/Header.tsx, src/components/admin/BackgroundLibraryPanel.tsx, src/components/admin/FormLayoutAdminPanel.tsx, .constitution/project/codebase-conventions-guide.md, tests/bilingual-i18n-parity.test.mjs |
 | I-1 | SPEC-113-01 | Establish media-clock wire contract, live element time emission, discontinuity gating, projectionRef mirroring on slide navigation, full-bleed letterboxed video sizing, element handover volume/mute persistence, and fade volume decoupling | stale snapshot clock drift, reset to deck on slide advance, and unletterboxed video clipping | 5% video playback speedup on projector and black screens on next slide | src/lib/present-channel.ts, src/operator/present/PresenterOperator.tsx, src/projected/ProjectorClient.tsx, src/projected/media/ProjectedMediaLayer.tsx, src/operator/present/media-player/MediaStage.tsx, src/operator/present/media-player/MediaTopBar.tsx, src/operator/present/media-player/MediaDock.tsx, tests/local-media-player.test.mjs |
+| I-1 | SPEC-113-02 | Unify MediaControlBar in top slot (~52px, h-13) with panic controls, volume slider w-24, full seekbar, projector video toggle, spacebar focus safety, retired bottom MediaDock, and updated STAGE_VARS stage calculation | redundant dual docks (top bar + bottom dock) or missing seek/volume controls in top bar | spacebar accidental playback triggers and layout shift below header | src/operator/present/media-player/MediaControlBar.tsx, src/operator/present/media-player/index.ts, src/operator/present/PresenterOperator.tsx, tests/local-media-player.test.mjs, tests/presenter-media-player.test.mjs, tests/bilingual-i18n-parity.test.mjs |
 
 ## Smoke Test Results
 
@@ -32,3 +33,4 @@ artifact: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reco
 - SPEC-112-03: PASS (PresenterOperator, SlideGridDialog, and PresenterDisplayControl localized via useT(), 15 parity tests pass, scanPresenterConsoleLocalization proven red via real-file injections in SlideGridDialog.tsx and PresenterOperator.tsx [both Indonesian error toast and English loop toast]; public-repo-guard green)
 - SPEC-112-04: PASS (RunSheetPage, OfflineReadinessBadge, DynamicFormBody, ImageCropDialog, Header, BackgroundLibraryPanel, and FormLayoutAdminPanel localized via useT(), 19 parity tests pass, scanRunSheetAndFormLocalization proven red via real-file injections in Header.tsx and OfflineReadinessBadge.tsx, conventions guide ratified; public-repo-guard green)
 - SPEC-113-01: PASS (mediaClockOf wire validation & negative guards, projectionRef mirroring, 38 smoke tests in smoke:spec-111 pass, ProjectedMediaLayer video sizing class proven red via real-file injection; public-repo-guard green)
+- SPEC-113-02: PASS (MediaControlBar unified component, h-13 slot, volume slider placement, STAGE_VARS update, legacy dock removal absence guards proven red via real-file defect injection, 39 smoke tests in smoke:spec-111 pass, 30 tests in smoke:spec-110 pass; public-repo-guard green)
