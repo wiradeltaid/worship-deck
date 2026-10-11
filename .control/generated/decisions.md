@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**98 decisions** — accepted: 1 · applied: 96 · superseded: 1.
+**99 decisions** — accepted: 2 · applied: 96 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -106,3 +106,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-096` | Daily Autopilot mandate for Presenter In-Console Media Player and Congregation Video Projection (SPEC-110) | `applied` | mandate | `.control/memlog/autopilot-DEC-096.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-110-presenter-in-console-media-player/` | `.control/decisions/DEC-096-daily-autopilot-mandate-presenter-in-console-media-player.md` |
 | `DEC-097` | Daily Autopilot mandate for Direct Local Media Playback, Conscious Offline Downloader, and Two-Tab Media Libr… | `applied` | mandate | `.control/memlog/autopilot-DEC-097.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/` | `.control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-playback-and-top-dock-ergonomics.md` |
 | `DEC-098` | Storage Ladder, WebView2 File System Access, and Service Worker Stream Resolution for Local Media Playback | `applied` | decision | `src/operator/present/media-player/storage-ladder.ts`, `tests/local-media-player.test.mjs`, `.scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/` | `.control/decisions/DEC-098-storage-ladder-webview2-file-system-access-and-service-worker-stream-resolution.md` |
+| `DEC-099` | Daily Autopilot mandate for Mandatory Bilingual i18n Reconciliation (SPEC-112) and Unified Media Control Bar… | `accepted` | mandate | `.control/memlog/autopilot-DEC-099.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-112-mandatory-i18n-reconciliation-and-enforcement-guards/`, `.scratch/SPEC-113-unified-media-control-bar-and-single-list-library/` | `.control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reconciliation-and-unified-media-control-bar.md` |
