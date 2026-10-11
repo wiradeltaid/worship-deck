@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-04"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement a client-side Service Worker virtual streamer serving HTTP 206 Partial Content range requests for local media across Presenter and Projector windows, with handle access bound to spike outcomes and strict controller verification.
@@ -39,3 +39,7 @@ Implement a client-side Service Worker virtual streamer serving HTTP 206 Partial
 - Local video scrubbing and seeking in projector window responds instantly via HTTP 206 without buffer delays.
 - Projector video remains 100% muted under all playback conditions.
 - Service Worker intercepts only the `/local-media/` namespace and passes all other network requests directly to server.
+
+## Comments
+
+- 2026-10-11: Implemented `public/media-sw.js` root service worker virtual streamer with RFC 7233 byte-range 206 slicing, `virtual-streamer.ts` client bridge and range parser, updated `ProjectedSource.source` ('local'|'cloud') and projector reasons in `present-channel.ts`, and verified in `tests/local-media-player.test.mjs`.

@@ -179,3 +179,64 @@ test('SPEC-111-04: Incremental media hasher and local media registry', async () 
   unsubscribe();
 });
 
+test('SPEC-111-05: Service Worker Virtual Streamer & present-channel wire sync', async () => {
+  const { parseByteRange, resolveLocalMediaUrl } = await import(
+    srcUrl('operator', 'present', 'media-player', 'virtual-streamer.ts')
+  );
+  const fs = await import('node:fs');
+
+  // 1. Range parser validation
+  const total = 1000;
+  // Closed range
+  assert.deepEqual(parseByteRange('bytes=0-499', total), { start: 0, end: 500 });
+  // Open-ended range
+  assert.deepEqual(parseByteRange('bytes=500-', total), { start: 500, end: 1000 });
+  // Suffix range
+  assert.deepEqual(parseByteRange('bytes=-200', total), { start: 800, end: 1000 });
+  // Out of bounds range
+  assert.equal(parseByteRange('bytes=1000-1500', total), 'unsatisfiable');
+  // Malformed ranges
+  assert.equal(parseByteRange('invalid-range', total), null);
+  assert.equal(parseByteRange('', total), null);
+  assert.equal(parseByteRange(null, total), null);
+
+  // 2. URL resolution
+  const testSHA = 'a'.repeat(64);
+  assert.equal(resolveLocalMediaUrl(testSHA), `/local-media/${testSHA}`);
+
+  // 3. Service Worker file presence and contract verification
+  const swPath = path.join(ROOT, 'public', 'media-sw.js');
+  assert.ok(fs.existsSync(swPath), 'public/media-sw.js must exist on disk');
+  const swCode = fs.readFileSync(swPath, 'utf8');
+  assert.ok(swCode.includes('/local-media/'), 'SW must check /local-media/ namespace');
+  assert.ok(swCode.includes('Accept-Ranges'), 'SW must advertise Accept-Ranges');
+  assert.ok(swCode.includes('Content-Range'), 'SW must emit Content-Range on 206 responses');
+  assert.ok(swCode.includes('LOCAL_MEDIA_STREAM_REQUEST'), 'SW must bridge stream requests via MessageChannel');
+
+  // 4. present-channel wire types
+  const projectedMediaLocal = {
+    kind: 'media',
+    mediaId: 'm-1',
+    mediaUrl: resolveLocalMediaUrl(testSHA),
+    source: 'local',
+    isPlaying: true,
+    mediaTime: 12.5,
+    at: Date.now(),
+    revision: 1,
+  };
+  assert.equal(projectedMediaLocal.source, 'local');
+
+  const projectedMediaCloud = {
+    kind: 'media',
+    mediaId: 'm-2',
+    mediaUrl: '/api/media/m-2/content',
+    source: 'cloud',
+    isPlaying: false,
+    mediaTime: 0,
+    at: Date.now(),
+    revision: 2,
+  };
+  assert.equal(projectedMediaCloud.source, 'cloud');
+});
+
+

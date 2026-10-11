@@ -44,6 +44,7 @@ export type ProjectedSource =
       kind: 'media';
       mediaId: string;
       mediaUrl: string;
+      source?: 'local' | 'cloud'; // SPEC-111
       isPlaying: boolean;
       mediaTime: number;
       at: number;
@@ -53,7 +54,12 @@ export type ProjectedSource =
 export type ProjectorMediaStatusReason =
   | 'opener-unavailable'
   | 'consumer-attach-failed'
-  | 'video-error';
+  | 'video-error'
+  | 'sw-unregistered'
+  | 'controller-missing'
+  | 'handle-missing'
+  | 'io-error'
+  | 'decode-error';
 
 export type ProjectorMediaStatusMessage = {
   type: 'projector-media-status';

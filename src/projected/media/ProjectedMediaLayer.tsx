@@ -11,6 +11,7 @@ import type { ProjectorMediaStatusReason } from '@/lib/present-channel';
 export interface ProjectedMediaSource {
   mediaId: string;
   mediaUrl: string;
+  source?: 'local' | 'cloud';
   isPlaying: boolean;
   mediaTime: number;
   at: number;
