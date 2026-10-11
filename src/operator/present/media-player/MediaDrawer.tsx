@@ -264,12 +264,15 @@ export const MediaDrawer = memo(function MediaDrawer({
 
       {/* Two-Tab Switcher */}
       <div className="flex border-b border-border bg-muted/30 p-1 gap-1">
-        <button
+        <Button
           type="button"
+          size="sm"
+          variant="ghost"
           data-testid="tab-cloud"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => setActiveTab('cloud')}
           className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium rounded-sm transition-colors text-center cursor-pointer',
+            'flex-1 flex items-center justify-center gap-1.5 h-8 py-1.5 px-3 text-xs font-medium rounded-sm transition-colors text-center cursor-pointer',
             activeTab === 'cloud'
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
@@ -277,13 +280,16 @@ export const MediaDrawer = memo(function MediaDrawer({
         >
           <Cloud className="h-3.5 w-3.5" />
           <span>Pustaka Cloud</span>
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          size="sm"
+          variant="ghost"
           data-testid="tab-local"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => setActiveTab('local')}
           className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-medium rounded-sm transition-colors text-center cursor-pointer',
+            'flex-1 flex items-center justify-center gap-1.5 h-8 py-1.5 px-3 text-xs font-medium rounded-sm transition-colors text-center cursor-pointer',
             activeTab === 'local'
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'
@@ -291,7 +297,7 @@ export const MediaDrawer = memo(function MediaDrawer({
         >
           <HardDrive className="h-3.5 w-3.5" />
           <span>Media Laptop</span>
-        </button>
+        </Button>
       </div>
 
       {/* Cloud Tab View */}
