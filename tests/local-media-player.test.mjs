@@ -781,6 +781,168 @@ test('SPEC-113-02: Unified MediaControlBar Layout, Zero Layout Shift, and Ergono
   }
 });
 
+test('SPEC-113-03: Unified Single-List Playlist Model, DEC-098 Storage Ladder, and IDB Schema', async () => {
+  const { deriveAvailability, mergeUnifiedPlaylistItem } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playlist-model.ts')
+  );
+  const { LocalMediaRegistry, localMediaRegistry, DB_VERSION } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  const { resolveLazyMediaUrl, revokeActiveMediaBlobUrl } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
+
+  // 1. Unified availability derivation
+  const cloudOnlyItem = {
+    id: 'item-1',
+    name: 'Sermon Video',
+    url: '/api/uploads/sermon.mp4',
+    type: 'video',
+    source: 'cloud',
+    sha256: 'a'.repeat(64),
+  };
+  assert.equal(deriveAvailability(cloudOnlyItem), 'cloud-only');
+
+  const localOnlyItem = {
+    id: 'local-1',
+    name: 'Choir Recording',
+    url: 'blob:http://localhost/abc',
+    type: 'audio',
+    source: 'local',
+    sha256: 'b'.repeat(64),
+    local: { storageKind: 'directory-handle', stale: false },
+  };
+  assert.equal(deriveAvailability(localOnlyItem), 'local-only');
+
+  const syncedItem = {
+    id: 'item-2',
+    name: 'Opening Hymn Video',
+    url: '/api/uploads/hymn.mp4',
+    type: 'video',
+    sha256: 'c'.repeat(64),
+    cloud: { id: 'item-2', name: 'Opening Hymn Video', url: '/api/uploads/hymn.mp4' },
+    local: { storageKind: 'directory-handle', stale: false },
+  };
+  assert.equal(deriveAvailability(syncedItem), 'synced');
+
+  // Stale local presence must accurately degrade to cloud-only
+  const staleLocalItem = {
+    ...syncedItem,
+    local: { storageKind: 'directory-handle', stale: true },
+  };
+  assert.equal(deriveAvailability(staleLocalItem), 'cloud-only', 'Stale local record must not be classified as synced');
+
+  // 2. Metadata merge policy: Server name and orderKey are authoritative
+  const localRecord = {
+    sha256: 'c'.repeat(64),
+    name: 'local_file_raw.mp4',
+    storageKind: 'directory-handle',
+    orderKey: '0|hzzzzz:',
+    fileHandle: { getFile: async () => ({ size: 1024, lastModified: 5000 }) },
+  };
+  const merged = mergeUnifiedPlaylistItem(
+    { ...syncedItem, orderKey: '0|h00000:' },
+    localRecord
+  );
+  assert.equal(merged.name, 'Opening Hymn Video', 'Server name must be authoritative over local filename');
+  assert.equal(merged.orderKey, '0|h00000:', 'Server orderKey must be authoritative over local orderKey');
+  assert.equal(merged.availability, 'synced');
+  assert.equal(merged.source, 'local', 'Synced item prioritizes local playback source');
+  assert.ok(merged.local?.fileHandle, 'Local handle must be preserved for offline stream routing');
+
+  // 3. DEC-098 Storage Ladder & IDB Version Upgrade
+  assert.ok(DB_VERSION >= 2, 'IDB version must be at least 2 for FileSystemFileHandle and orderKey');
+
+  const registry = new LocalMediaRegistry();
+  // checkHandleStaleness with matching size and mtime
+  const validStatus = await registry.checkHandleStaleness({
+    sha256: 'c'.repeat(64),
+    name: 'video.mp4',
+    sizeBytes: 1024,
+    lastModified: 5000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: { getFile: async () => ({ size: 1024, lastModified: 5000 }) },
+  });
+  assert.equal(validStatus, 'valid', 'Matching live file handle must evaluate to valid');
+
+  // checkHandleStaleness with modified file (size mismatch)
+  const staleStatus = await registry.checkHandleStaleness({
+    sha256: 'c'.repeat(64),
+    name: 'video.mp4',
+    sizeBytes: 1024,
+    lastModified: 5000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: { getFile: async () => ({ size: 2048, lastModified: 6000 }) },
+  });
+  assert.equal(staleStatus, 'detached', 'Size or mtime mismatch must evaluate to detached');
+
+  // checkHandleStaleness without handle degrades to detached unless in-memory
+  const handlelessStatus = await registry.checkHandleStaleness({
+    sha256: 'd'.repeat(64),
+    name: 'offline.mp4',
+    sizeBytes: 500,
+    lastModified: 1000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+  });
+  assert.equal(handlelessStatus, 'detached', 'Handleless directory-handle record must be detached');
+
+  // 4. projectionOf fail-closed positive integer revision
+  const { projectionOf } = await import(srcUrl('lib', 'present-channel.ts'));
+  const validMediaProjMsg = {
+    type: 'sync',
+    projection: {
+      kind: 'media',
+      mediaId: 'v1',
+      mediaUrl: 'blob:abc',
+      isPlaying: true,
+      mediaTime: 10,
+      at: 1000,
+      revision: 1,
+    },
+  };
+  assert.equal(projectionOf(validMediaProjMsg)?.kind, 'media');
+  assert.equal(projectionOf({ ...validMediaProjMsg, projection: { ...validMediaProjMsg.projection, revision: 0 } })?.kind, 'deck', 'Revision 0 must fail closed');
+  assert.equal(projectionOf({ ...validMediaProjMsg, projection: { ...validMediaProjMsg.projection, revision: -1 } })?.kind, 'deck', 'Revision -1 must fail closed');
+  assert.equal(projectionOf({ ...validMediaProjMsg, projection: { ...validMediaProjMsg.projection, revision: 1.5 } })?.kind, 'deck', 'Non-integer revision must fail closed');
+
+  // 5. Lazy URL resolution and staleness protection
+  const lazyRes = await resolveLazyMediaUrl(cloudOnlyItem, { customSWActive: false });
+  assert.equal(lazyRes.url, '/api/uploads/sermon.mp4');
+
+  // Stale local file does NOT get served as blob URL
+  await localMediaRegistry.saveRecord({
+    sha256: 'e'.repeat(64),
+    name: 'stale.mp4',
+    sizeBytes: 500,
+    lastModified: 1000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: new Blob(['fake content'], { type: 'video/mp4' }),
+  });
+  const staleItem = {
+    id: 'stale-1',
+    name: 'Stale Item',
+    url: '/api/uploads/stale.mp4',
+    type: 'video',
+    sha256: 'e'.repeat(64),
+  };
+  // Simulate size mismatch
+  const staleLazyRes = await resolveLazyMediaUrl(staleItem, {
+    customSWActive: false,
+    currentSizeBytes: 9999, // Stale!
+  });
+  assert.equal(staleLazyRes.url, '/api/uploads/stale.mp4', 'Stale file must not be served as blob URL');
+
+  assert.doesNotThrow(() => revokeActiveMediaBlobUrl());
+});
+
 
 
 

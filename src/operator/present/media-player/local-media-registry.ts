@@ -16,12 +16,13 @@ export interface LocalMediaRecord {
   lastModified: number;
   verifiedAt: string;
   opfsPath?: string;
+  orderKey?: string; // Fractional order key for local-only sorting (SPEC-113-03)
 }
 
 export type StalenessStatus = 'valid' | 'detached';
 
 export const DB_NAME = 'worship-deck-media';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2; // Upgraded for persistent FileSystemFileHandle and orderKey (SPEC-113-03)
 export const SETTINGS_STORE = 'media-settings';
 export const INDEX_STORE = 'media-index';
 
@@ -47,6 +48,11 @@ export class LocalMediaRegistry {
 
     this.dbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onblocked = () => {
+        if (typeof console !== 'undefined') {
+          console.warn('[LocalMediaRegistry] IDB upgrade blocked by another connection');
+        }
+      };
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
@@ -138,6 +144,32 @@ export class LocalMediaRegistry {
     // Allow up to 2000ms delta for filesystem timestamp granularity differences
     if (Math.abs(record.lastModified - currentLastModified) > 2000) {
       return 'detached';
+    }
+    return 'valid';
+  }
+
+  /**
+   * Compares stored record metadata against live file handle attributes.
+   */
+  async checkHandleStaleness(record: LocalMediaRecord): Promise<StalenessStatus> {
+    if (!record.fileHandle) {
+      // In-memory blobs remain valid while active; detached handles require file presence
+      return record.storageKind === 'in-memory' ? 'valid' : 'detached';
+    }
+    if (typeof record.fileHandle.getFile === 'function') {
+      try {
+        const file = await record.fileHandle.getFile();
+        return this.checkStaleness(record, file.size, file.lastModified);
+      } catch {
+        return 'detached';
+      }
+    }
+    if (typeof record.fileHandle.size === 'number') {
+      return this.checkStaleness(
+        record,
+        record.fileHandle.size,
+        record.fileHandle.lastModified ?? record.lastModified
+      );
     }
     return 'valid';
   }

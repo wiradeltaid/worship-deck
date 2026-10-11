@@ -336,13 +336,15 @@ export function projectionOf(msg: PresentMessage): ProjectedSource | null {
       typeof rawMedia.at === 'number' && Number.isFinite(rawMedia.at)
         ? rawMedia.at
         : Date.now();
-    const revision =
-      typeof rawMedia.revision === 'number' &&
-      Number.isFinite(rawMedia.revision) &&
-      Number.isInteger(rawMedia.revision) &&
-      rawMedia.revision > 0
-        ? rawMedia.revision
-        : 1;
+    if (
+      typeof rawMedia.revision !== 'number' ||
+      !Number.isFinite(rawMedia.revision) ||
+      !Number.isInteger(rawMedia.revision) ||
+      rawMedia.revision <= 0
+    ) {
+      return { kind: 'deck' };
+    }
+    const revision = rawMedia.revision;
 
     if (mediaId.length > 0 && mediaUrl.length > 0) {
       return {

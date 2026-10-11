@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-113-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Refactor `playlist-model.ts` to merge cloud and local state by `sha256` join key, maintain DEC-098 storage ladder preservation, implement pure availability derivation, and upgrade IndexedDB storage to persist file handles and fractional order keys.
