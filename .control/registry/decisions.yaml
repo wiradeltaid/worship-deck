@@ -2064,6 +2064,17 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/
 
+  - id: DEC-098
+    type: decision
+    status: applied
+    accepted_by: "DEC-097"
+    title: Storage Ladder, WebView2 File System Access, and Service Worker Stream Resolution for Local Media Playback
+    file: .control/decisions/DEC-098-storage-ladder-webview2-file-system-access-and-service-worker-stream-resolution.md
+    touches:
+      - src/operator/present/media-player/storage-ladder.ts
+      - tests/local-media-player.test.mjs
+      - .scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/
+
 
 
 

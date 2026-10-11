@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**97 decisions** — accepted: 2 · applied: 94 · superseded: 1.
+**98 decisions** — accepted: 2 · applied: 95 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -105,3 +105,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-095` | Daily Autopilot mandate for Scripture Overlay Pagination Crossfade Backdrop Continuity Parity (SPEC-109) | `applied` | mandate | `.control/memlog/autopilot-DEC-095.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-109-scripture-pagination-crossfade-backdrop-continuity/` | `.control/decisions/DEC-095-daily-autopilot-mandate-scripture-pagination-crossfade-backdrop-continuity.md` |
 | `DEC-096` | Daily Autopilot mandate for Presenter In-Console Media Player and Congregation Video Projection (SPEC-110) | `applied` | mandate | `.control/memlog/autopilot-DEC-096.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-110-presenter-in-console-media-player/` | `.control/decisions/DEC-096-daily-autopilot-mandate-presenter-in-console-media-player.md` |
 | `DEC-097` | Daily Autopilot mandate for Direct Local Media Playback, Conscious Offline Downloader, and Two-Tab Media Libr… | `accepted` | mandate | `.control/memlog/autopilot-DEC-097.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/` | `.control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-playback-and-top-dock-ergonomics.md` |
+| `DEC-098` | Storage Ladder, WebView2 File System Access, and Service Worker Stream Resolution for Local Media Playback | `applied` | decision | `src/operator/present/media-player/storage-ladder.ts`, `tests/local-media-player.test.mjs`, `.scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/` | `.control/decisions/DEC-098-storage-ladder-webview2-file-system-access-and-service-worker-stream-resolution.md` |

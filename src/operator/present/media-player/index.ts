@@ -6,3 +6,4 @@ export * from './MediaLauncherButton';
 export * from './MediaDock';
 export * from './MediaDrawer';
 export * from './MediaUploader';
+export * from './storage-ladder';
