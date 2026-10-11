@@ -464,3 +464,135 @@ test('SPEC-112-02: Real-file defect injection — raw un-localized string in Med
     );
   }
 });
+
+export function scanPresenterConsoleLocalization(
+  presentDir = path.join(rootDir, 'src', 'operator', 'present')
+) {
+  const findings = [];
+  const operatorSrc = fs.readFileSync(path.join(presentDir, 'PresenterOperator.tsx'), 'utf8');
+  const gridSrc = fs.readFileSync(path.join(presentDir, 'SlideGridDialog.tsx'), 'utf8');
+  const displayCtrlSrc = fs.readFileSync(path.join(presentDir, 'PresenterDisplayControl.tsx'), 'utf8');
+
+  if (!operatorSrc.includes('useT()')) {
+    findings.push('PresenterOperator.tsx must consume useT()');
+  }
+  if (!gridSrc.includes('useT()')) {
+    findings.push('SlideGridDialog.tsx must consume useT()');
+  }
+  if (!displayCtrlSrc.includes('useT()')) {
+    findings.push('PresenterDisplayControl.tsx must consume useT()');
+  }
+
+  const forbiddenRaw = [
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: '<span className="font-semibold">Terdapat koreksi panggung:</span>' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'perubahan tersimpan secara lokal' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Projector blanked' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Scripture live' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'End of deck — nothing after this slide.' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Gagal menyimpan koreksi darurat lokal:' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Koreksi panggung diterapkan ke layar (lokal)' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Gagal memuat status server:' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Konflik: Susunan acara di server telah berubah' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Konflik versi: Layanan telah diubah di server' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Koreksi panggung berhasil disimpan ke server' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Koreksi lokal dibuang, kembali ke versi server' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Gagal memproses gambar lokal' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Current slide is not in an announcement section' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: "|| 'Storage error'" },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'data-testid="list-hidden-badge"\n          className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.25 rounded border border-zinc-700 bg-zinc-900/90 text-zinc-300"\n        >\n          Hidden' },
+    { src: displayCtrlSrc, file: 'PresenterDisplayControl.tsx', raw: 'Presentation Lock is active. Are you sure you want to close' },
+    { src: displayCtrlSrc, file: 'PresenterDisplayControl.tsx', raw: '(1 Screen detected)' },
+    { src: gridSrc, file: 'SlideGridDialog.tsx', raw: '<DialogTitle>All slides</DialogTitle>' },
+  ];
+
+  for (const { src, file, raw } of forbiddenRaw) {
+    if (src.includes(raw)) {
+      findings.push(`${file} contains un-localized raw string: ${raw}`);
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-112-03: Presenter console, slide grid, and display control consume useT() without raw strings', () => {
+  const findings = scanPresenterConsoleLocalization();
+  assert.deepEqual(findings, [], `Expected 0 findings in presenter console, got: ${findings.join(', ')}`);
+});
+
+test('SPEC-112-03: Real-file defect injection — raw string in SlideGridDialog.tsx fails scan', () => {
+  const gridPath = path.join(rootDir, 'src', 'operator', 'present', 'SlideGridDialog.tsx');
+  const original = fs.readFileSync(gridPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "<DialogTitle>{t('grid.title', { count: entries.length })}</DialogTitle>",
+      '<DialogTitle>All slides</DialogTitle>'
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(gridPath, defective);
+
+    const findings = scanPresenterConsoleLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('SlideGridDialog.tsx contains un-localized raw string')),
+      'Expected raw string in SlideGridDialog.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(gridPath, original);
+    assert.equal(
+      fs.readFileSync(gridPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});
+
+test('SPEC-112-03: Real-file defect injection — raw error toast in PresenterOperator.tsx fails scan', () => {
+  const operatorPath = path.join(rootDir, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const original = fs.readFileSync(operatorPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "toast.success(t('edit.emergency.appliedToast'));",
+      "toast.success('Koreksi panggung diterapkan ke layar (lokal)');"
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(operatorPath, defective);
+
+    const findings = scanPresenterConsoleLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('PresenterOperator.tsx contains un-localized raw string')),
+      'Expected raw string in PresenterOperator.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(operatorPath, original);
+    assert.equal(
+      fs.readFileSync(operatorPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});
+
+test('SPEC-112-03: Real-file defect injection — raw English announcement toast in PresenterOperator.tsx fails scan', () => {
+  const operatorPath = path.join(rootDir, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const original = fs.readFileSync(operatorPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "toast.error(t('presenter.loop.notInAnnouncementSection'));",
+      "toast.error('Current slide is not in an announcement section');"
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(operatorPath, defective);
+
+    const findings = scanPresenterConsoleLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('Current slide is not in an announcement section')),
+      'Expected raw English toast in PresenterOperator.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(operatorPath, original);
+    assert.equal(
+      fs.readFileSync(operatorPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});

@@ -118,14 +118,12 @@ export default memo(function PresenterDisplayControl({
     if (presentationLock) {
       const confirmed =
         typeof window !== 'undefined' && typeof window.confirm === 'function'
-          ? window.confirm(
-              'Presentation Lock is active. Are you sure you want to close the congregation projector display?'
-            )
+          ? window.confirm(t('presenter.lockConfirmWarning'))
           : true;
       if (!confirmed) return;
     }
     onCloseProjector();
-  }, [onCloseProjector, presentationLock]);
+  }, [onCloseProjector, presentationLock, t]);
 
   // External and primary screen categorization
   const externalScreens = useMemo(() => screens.filter(isExternalScreen), [screens]);
@@ -296,7 +294,7 @@ export default memo(function PresenterDisplayControl({
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium text-foreground">{t('presenter.displayTarget.openExternal')}</span>
                   <span className="text-[10px] text-amber-600 dark:text-amber-400">
-                    {t('presenter.displayTarget.windowSafe')} (1 Screen detected)
+                    {t('presenter.displayTarget.windowSafe')} {t('presenter.displayTarget.singleScreenDetected')}
                   </span>
                 </div>
               </DropdownMenuRadioItem>
