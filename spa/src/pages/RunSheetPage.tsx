@@ -489,11 +489,11 @@ export default function RunSheetPage() {
         <div data-testid="header-meta-cluster" className="min-w-0 flex flex-col justify-center">
           <h1
             className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate whitespace-nowrap"
-            title={`Run-Sheet: ${svc.date || svc.id}`}
+            title={`${t('runsheet.headerTitle')}: ${svc.date || svc.id}`}
           >
-            Run-Sheet: {svc.date || svc.id}
+            {t('runsheet.headerTitle')}: {svc.date || svc.id}
           </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t('runsheet.serviceId', { id: svc.id })}</p>
         </div>
 
         {/* Column 2 (Right 50%): Structured Action Clusters */}
@@ -514,10 +514,10 @@ export default function RunSheetPage() {
                   : 'px-4',
                 'h-9 font-bold shadow-xs'
               )}
-              title={sessionInfo.hasSession && sessionInfo.isBlank ? 'Screen is blanked' : undefined}
+              title={sessionInfo.hasSession && sessionInfo.isBlank ? t('runsheet.screenBlankedTitle') : undefined}
             >
               {sessionInfo.hasSession
-                ? `Resume (Slide ${sessionInfo.slideNumber})`
+                ? t('runsheet.resumeAction', { slide: sessionInfo.slideNumber })
                 : t('edit.actions.present')}
             </Link>
             {sessionInfo.hasSession && (
@@ -536,7 +536,7 @@ export default function RunSheetPage() {
                     onClick={() => navigate(`/services/${svc.id}/present`)}
                     className="cursor-pointer font-medium"
                   >
-                    Resume (Slide {sessionInfo.slideNumber})
+                    {t('runsheet.resumeAction', { slide: sessionInfo.slideNumber })}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
@@ -545,7 +545,7 @@ export default function RunSheetPage() {
                     }}
                     className="cursor-pointer text-destructive focus:text-destructive"
                   >
-                    Start from Beginning (Slide 1)
+                    {t('runsheet.startBeginningOption')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -581,7 +581,7 @@ export default function RunSheetPage() {
                 aria-label={t('edit.actions.downloadPptx')}
                 className="rounded-r-none h-auto px-3 py-2 border-r-0 text-xs font-medium cursor-pointer"
               >
-                {isDownloadingPptx ? 'Exporting…' : t('edit.actions.downloadPptx')}
+                {isDownloadingPptx ? t('runsheet.exporting') : t('edit.actions.downloadPptx')}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger

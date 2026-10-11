@@ -228,6 +228,7 @@ function PredefinedFieldSlotRenderer({
   onAcceptSuggestion,
   disabled = false,
 }: PredefinedFieldSlotRendererProps) {
+  const { t } = useT();
   const label = fieldDef?.shown_text || refKey;
   const fieldType = fieldDef?.field_type || 'text';
 
@@ -252,7 +253,7 @@ function PredefinedFieldSlotRenderer({
         {hasSuggestion && (
           <div className="flex items-center gap-1.5">
             <Badge variant="secondary" className="text-[10px] font-normal border-primary/30">
-              Suggestion: {suggestion.slice(0, 30)}
+              {t('form.suggestionLabel')} {suggestion.slice(0, 30)}
               {suggestion.length > 30 ? '...' : ''}
             </Badge>
             <Button
@@ -263,7 +264,7 @@ function PredefinedFieldSlotRenderer({
               onClick={onAcceptSuggestion}
               disabled={disabled}
             >
-              Use
+              {t('form.useSuggestion')}
             </Button>
           </div>
         )}
@@ -409,7 +410,7 @@ function SongSetSlotRenderer({
         {suggestion && (
           <div className="flex items-center gap-1.5">
             <Badge variant="outline" className="border-primary/40 text-[10px]">
-              Suggestion: #{suggestion.songNumber || suggestion.number} ({suggestion.songBookCode || 'SDAH'})
+              {t('form.suggestionLabel')} #{suggestion.songNumber || suggestion.number} ({suggestion.songBookCode || 'SDAH'})
             </Badge>
             <Button
               type="button"
@@ -419,7 +420,7 @@ function SongSetSlotRenderer({
               onClick={onAcceptSuggestion}
               disabled={disabled}
             >
-              Use
+              {t('form.useSuggestion')}
             </Button>
           </div>
         )}
@@ -434,7 +435,7 @@ function SongSetSlotRenderer({
             disabled={disabled}
           >
             <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="Book" />
+              <SelectValue placeholder={t('form.songSet.bookPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
               {songBooks.map((b) => (
@@ -453,7 +454,7 @@ function SongSetSlotRenderer({
             bookCode={selectedBookCode}
             onChange={(v) => onChange('songNumber', v)}
             hymnIndex={hymnIndex}
-            placeholder="Song number..."
+            placeholder={t('form.songSet.songNumberPlaceholder')}
             disabled={disabled}
           />
         </div>
@@ -497,15 +498,15 @@ function SongSetSlotRenderer({
                   </span>
                 </div>
               ) : (
-                <SelectValue placeholder="Use Song-Set Default" />
+                <SelectValue placeholder={t('form.songSet.useDefaultBackground')} />
               )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="default">
                 <span className="truncate text-xs text-muted-foreground">
                   {songSetDefaultBg
-                    ? `Use Song-Set Default (#${songSetDefaultBg.id})`
-                    : 'Use Song-Set Default'}
+                    ? `${t('form.songSet.useDefaultBackground')} (#${songSetDefaultBg.id})`
+                    : t('form.songSet.useDefaultBackground')}
                 </span>
               </SelectItem>
               {backgroundLibrary.map((img) => (

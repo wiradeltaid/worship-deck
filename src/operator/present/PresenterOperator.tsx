@@ -346,6 +346,7 @@ function SlideListRow({
   activeRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
 }) {
+  const { t } = useT();
   const isHidden = Boolean(slide?.hidden);
   return (
     <Button
@@ -383,7 +384,7 @@ function SlideListRow({
           data-testid="list-hidden-badge"
           className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.25 rounded border border-zinc-700 bg-zinc-900/90 text-zinc-300"
         >
-          Hidden
+          {t('slide.visibility.hidden')}
         </span>
       )}
       <span className="truncate text-xs">{entry.title ?? ''}</span>
@@ -417,6 +418,7 @@ const FilmstripFrame = memo(function FilmstripFrame({
   onSelect: (index: number) => void;
   backgroundOverride?: string | null;
 }) {
+  const { t } = useT();
   const isHidden = Boolean(slide?.hidden);
   // The caption is clipped at 8rem, so the full text lives in the tooltip —
   // minus the headline when it only repeats the label ("Thank You · Thank You").
@@ -429,7 +431,7 @@ const FilmstripFrame = memo(function FilmstripFrame({
         type="button"
         variant="ghost"
         aria-current={active ? 'true' : undefined}
-        title={`${entry.index + 1} · ${entry.label}${detail}${isHidden ? ' (Hidden)' : ''}`}
+        title={`${entry.index + 1} · ${entry.label}${detail}${isHidden ? ` (${t('slide.visibility.hidden')})` : ''}`}
         onClick={() => onSelect(entry.index)}
         className={`h-auto w-32 flex-col items-stretch rounded-md border p-1 text-left font-normal ${
           isHidden ? 'opacity-50 bg-muted/20' : ''
@@ -448,7 +450,7 @@ const FilmstripFrame = memo(function FilmstripFrame({
               data-testid="filmstrip-hidden-badge"
               className="absolute top-1 right-1 text-[8px] font-bold uppercase bg-zinc-900/90 text-zinc-300 px-1 py-0.5 rounded border border-zinc-700"
             >
-              Hidden
+              {t('slide.visibility.hidden')}
             </span>
           )}
         </span>
@@ -1643,7 +1645,7 @@ export default function PresenterOperator({
     try {
       await saveEmergencyPatch(newPatchRecord);
     } catch (err: any) {
-      toast.error('Gagal menyimpan koreksi darurat lokal: ' + (err?.message || 'Storage error'));
+      toast.error(`${t('edit.emergency.saveFailed')}: ${err?.message || t('presenter.stage.storageError')}`);
       return;
     }
 
@@ -1678,7 +1680,7 @@ export default function PresenterOperator({
     });
 
     setEmergencyOpen(false);
-    toast.success('Koreksi panggung diterapkan ke layar (lokal)');
+    toast.success(t('edit.emergency.appliedToast'));
   };
 
   const handleSyncToServer = async () => {
@@ -1687,7 +1689,7 @@ export default function PresenterOperator({
     try {
       const getRes = await fetch(`/api/services/${serviceId}`, { credentials: 'same-origin' });
       if (!getRes.ok) {
-        throw new Error(`Gagal memuat status server: HTTP ${getRes.status}`);
+        throw new Error(`${t('edit.emergency.loadServerFailed')}: HTTP ${getRes.status}`);
       }
       const remoteData = await getRes.json();
 
@@ -1701,7 +1703,7 @@ export default function PresenterOperator({
         (p) => p.basePlanIdentity && remoteData.plan_identity && p.basePlanIdentity !== remoteData.plan_identity
       );
       if (divergentPatch) {
-        setReconcileError('Konflik: Susunan acara di server telah berubah sejak koreksi dibuat. Silakan periksa perubahan.');
+        setReconcileError(t('edit.emergency.conflictError'));
         return;
       }
 
@@ -1738,11 +1740,11 @@ export default function PresenterOperator({
       });
 
       if (putRes.status === 409) {
-        setReconcileError('Konflik versi: Layanan telah diubah di server. Silakan muat ulang atau periksa perubahan.');
+        setReconcileError(t('edit.emergency.conflictError'));
         return;
       }
       if (!putRes.ok) {
-        throw new Error(`Gagal menyimpan ke server: HTTP ${putRes.status}`);
+        throw new Error(`${t('edit.emergency.syncFailed')}: HTTP ${putRes.status}`);
       }
 
       const updatedService = await putRes.json().catch(() => null);
@@ -1752,9 +1754,9 @@ export default function PresenterOperator({
 
       await clearEmergencyPatches(serviceId);
       setPendingPatches([]);
-      toast.success('Koreksi panggung berhasil disimpan ke server');
+      toast.success(t('edit.emergency.syncSuccessToast'));
     } catch (err: any) {
-      setReconcileError(err.message || 'Gagal menyimpan ke server');
+      setReconcileError(err.message || t('edit.emergency.syncFailed'));
     } finally {
       setIsReconciling(false);
     }
@@ -1767,7 +1769,7 @@ export default function PresenterOperator({
       if (!isOffline) {
         const getRes = await fetch(`/api/services/${serviceId}`, { credentials: 'same-origin' });
         if (!getRes.ok) {
-          throw new Error(`Gagal memuat status server: HTTP ${getRes.status}`);
+          throw new Error(`${t('edit.emergency.loadServerFailed')}: HTTP ${getRes.status}`);
         }
         const remoteData = await getRes.json();
         const putRes = await fetch(`/api/services/${serviceId}`, {
@@ -1784,11 +1786,11 @@ export default function PresenterOperator({
         });
 
         if (putRes.status === 409) {
-          setReconcileError('Konflik versi: Layanan telah diubah di server. Silakan muat ulang.');
+          setReconcileError(t('edit.emergency.conflictError'));
           return;
         }
         if (!putRes.ok) {
-          throw new Error(`Gagal membuang koreksi di server: HTTP ${putRes.status}`);
+          throw new Error(`${t('edit.emergency.discardFailed')}: HTTP ${putRes.status}`);
         }
 
         const resData = await putRes.json().catch(() => null);
@@ -1822,9 +1824,9 @@ export default function PresenterOperator({
         projection: projectionRef.current,
         guestAttemptId: guestAttemptIdRef.current,
       });
-      toast.info('Koreksi lokal dibuang, kembali ke versi server');
+      toast.info(t('edit.emergency.discardToast'));
     } catch (err: any) {
-      setReconcileError(err.message || 'Gagal membuang koreksi');
+      setReconcileError(err.message || t('edit.emergency.discardFailed'));
     } finally {
       setIsReconciling(false);
     }
@@ -2291,8 +2293,8 @@ export default function PresenterOperator({
           className="mx-4 mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2"
         >
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Terdapat koreksi panggung:</span>
-            <span>{pendingPatches.length} perubahan tersimpan secara lokal</span>
+            <span className="font-semibold">{t('edit.emergency.bannerPrefix')}</span>
+            <span>{t('edit.emergency.changesSaved', { n: pendingPatches.length })}</span>
             {reconcileError && (
               <span className="text-destructive font-medium ml-2">({reconcileError})</span>
             )}
@@ -2307,7 +2309,7 @@ export default function PresenterOperator({
               onClick={handleSyncToServer}
               className="h-7 px-2.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
             >
-              {isReconciling ? 'Menyimpan...' : 'Simpan ke Server'}
+              {isReconciling ? t('edit.emergency.saving') : t('edit.emergency.syncServer')}
             </Button>
             <Button
               type="button"
@@ -2318,7 +2320,7 @@ export default function PresenterOperator({
               onClick={handleDiscardPatches}
               className="h-7 px-2.5 text-xs border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
             >
-              Buang
+              {t('edit.emergency.discard')}
             </Button>
           </div>
         </div>
@@ -2339,13 +2341,13 @@ export default function PresenterOperator({
               as before and only the frame and the badge change. */}
           <section>
             <p className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Current
+              {t('presenter.stage.current')}
               {blank ? (
                 <span
                   role="status"
                   className={`${BADGE_CLASS} border-amber-400/50 bg-amber-400/15 text-amber-300`}
                 >
-                  Projector blanked
+                  {t('presenter.stage.projectorBlanked')}
                 </span>
               ) : null}
               {scriptureOverlay ? (
@@ -2353,7 +2355,7 @@ export default function PresenterOperator({
                   role="status"
                   className={`${BADGE_CLASS} border-emerald-400/50 bg-emerald-400/15 text-emerald-700 dark:text-emerald-300`}
                 >
-                  Scripture live
+                  {t('presenter.stage.scriptureLive')}
                 </span>
               ) : null}
             </p>
@@ -2366,7 +2368,7 @@ export default function PresenterOperator({
               {isLooping ? (
                 <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 rounded-full bg-amber-500 text-black px-2.5 py-0.5 text-[11px] font-bold shadow-md animate-pulse">
                   <Repeat className="w-3 h-3" />
-                  Looping ({loopInterval}s)
+                  {t('presenter.stage.loopingBadge', { interval: loopInterval })}
                 </div>
               ) : null}
               {scriptureOverlay ? (
@@ -2448,7 +2450,7 @@ export default function PresenterOperator({
                   }
                   const bounds = findAnnouncementSectionBounds(activeSlides, index);
                   if (!bounds) {
-                    toast.error('Current slide is not in an announcement section');
+                    toast.error(t('presenter.loop.notInAnnouncementSection'));
                     return;
                   }
                   isLoopingRef.current = true;
@@ -2535,11 +2537,11 @@ export default function PresenterOperator({
               className="flex items-center gap-2 text-xs text-muted-foreground"
             >
               <span className="flex items-center gap-1.5">
-                Background
+                {t('presenter.stage.bgLive')}
                 <span
                   className={`${BADGE_CLASS} border-border bg-muted text-muted-foreground`}
                 >
-                  Live only · not saved
+                  {t('presenter.stage.bgLiveBadge')}
                 </span>
               </span>
               <Select
@@ -2562,12 +2564,12 @@ export default function PresenterOperator({
                       </span>
                     </div>
                   ) : (
-                    <SelectValue placeholder="Deck default" />
+                    <SelectValue placeholder={t('presenter.stage.deckDefault')} />
                   )}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="default">
-                    <span className="truncate text-xs text-muted-foreground">Deck default</span>
+                    <span className="truncate text-xs text-muted-foreground">{t('presenter.stage.deckDefault')}</span>
                   </SelectItem>
                   {backgroundLibrary.map((bg) => (
                     <SelectItem key={bg.id} value={bg.url}>
@@ -2626,7 +2628,7 @@ export default function PresenterOperator({
             className={`flex min-h-[16rem] flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
           >
             <h2 className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Slides
+              {t('presenter.stage.slidesHeader')}
             </h2>
             <div
               ref={slideListContainerRef}
@@ -2657,9 +2659,15 @@ export default function PresenterOperator({
                             : 'border-primary/40 bg-primary/15 text-primary'
                         }`}
                       >
-                        {row.groupKind === 'announcement' ? 'Announcement' : 'Song Set'}
+                        {row.groupKind === 'announcement' ? t('presenter.stage.announcementChip') : t('presenter.stage.songSetChip')}
                       </span>
-                      <span className="truncate font-medium">{row.label}</span>
+                      <span className="truncate font-medium">
+                        {row.label === 'Announcement' || row.label === 'Song Set'
+                          ? (row.groupKind === 'announcement'
+                              ? t('presenter.stage.announcementChip')
+                              : t('presenter.stage.songSetChip'))
+                          : row.label}
+                      </span>
                     </p>
                     <div className="ml-3 border-l border-border pl-1">
                       {row.entries.map((entry) => (
@@ -2686,7 +2694,7 @@ export default function PresenterOperator({
         >
           <section>
             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Next
+              {t('presenter.stage.next')}
             </p>
             <div
               data-testid="presenter-next-slide-frame"
@@ -2699,7 +2707,7 @@ export default function PresenterOperator({
                 />
               ) : (
                 <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                  End of deck — nothing after this slide.
+                  {t('presenter.stage.endOfDeck')}
                 </div>
               )}
             </div>
@@ -3196,7 +3204,7 @@ export function EmergencyCanvasDesignerModal({
           handleUpdateImage(dataUrl, selectedElement?.style?.objectFit);
         }
       } catch {
-        toast.error('Gagal memproses gambar lokal');
+        toast.error(t('emergency.modal.processImageFailed'));
       }
     } finally {
       setIsUploadingImage(false);

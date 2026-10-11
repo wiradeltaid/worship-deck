@@ -5815,10 +5815,10 @@ rtm:
   test:
   - tests/bilingual-i18n-parity.test.mjs
   - tests/i18n.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-25
@@ -5829,10 +5829,10 @@ rtm:
   release: mandatory-i18n-reconciliation-and-enforcement-guards
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-25
@@ -5843,10 +5843,10 @@ rtm:
   release: mandatory-i18n-reconciliation-and-enforcement-guards
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-25
@@ -5857,10 +5857,10 @@ rtm:
   release: mandatory-i18n-reconciliation-and-enforcement-guards
   test:
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-10
   FR: FR-25

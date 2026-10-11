@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import SlideView from '@/components/SlideView';
 import { Button } from '@/components/ui/button';
 import type { SlidePlanItem } from '@/lib/slide-plan';
+import { useT } from '@/lib/i18n/operator';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ function SlideGrid({
   currentIndex: number;
   onPick: (index: number) => Promise<boolean | void> | boolean | void;
 }) {
+  const { t } = useT();
   // Mounted fresh each time the dialog opens, so the selection always starts on
   // the slide the operator is actually showing without an effect to reset it.
   const [selected, setSelected] = useState(() =>
@@ -92,10 +94,9 @@ function SlideGrid({
   return (
     <div className="flex min-h-0 flex-col gap-3" onKeyDown={onKeyDown}>
       <DialogHeader>
-        <DialogTitle>All slides</DialogTitle>
+        <DialogTitle>{t('grid.title', { count: entries.length })}</DialogTitle>
         <DialogDescription>
-          {entries.length} slides · arrow keys move the selection, Enter or a
-          click jumps the deck and the projector.
+          {t('grid.desc')}
         </DialogDescription>
       </DialogHeader>
 
@@ -129,7 +130,7 @@ function SlideGrid({
                 {slide ? <SlideView slide={slide} /> : null}
                 {isCurrent ? (
                   <span className="absolute top-1 left-1 rounded bg-primary px-1 py-px text-[9px] font-bold uppercase text-primary-foreground">
-                    Now
+                    {t('grid.nowBadge')}
                   </span>
                 ) : null}
                 {slide?.hidden ? (
@@ -137,7 +138,7 @@ function SlideGrid({
                     data-testid="grid-hidden-badge"
                     className="absolute top-1 right-1 rounded border border-zinc-700 bg-zinc-900/90 px-1 py-px text-[9px] font-bold uppercase text-zinc-300"
                   >
-                    Hidden
+                    {t('grid.hiddenBadge')}
                   </span>
                 ) : null}
               </span>

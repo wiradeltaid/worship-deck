@@ -15,14 +15,25 @@ export function missingKeyMarker(key: string): string {
 
 /**
  * Key + locale → string. Pure, callable directly by `node:test`.
+ * Supports `{token}` parameter interpolation when `params` is provided.
  *
  * A missing entry renders a defect marker and logs on the server; it does not
  * fall back to `en`. Client callers still render the marker without browser logging.
  */
-export function resolveString(key: I18nKey, locale: UiLocale): string {
+export function resolveString(
+  key: I18nKey,
+  locale: UiLocale,
+  params?: Record<string, string | number>
+): string {
   const table = CATALOGUES[locale];
   const value = table[key];
-  if (value !== undefined) return value;
+  if (value !== undefined) {
+    if (!params) return value;
+    return value.replace(/\{(\w+)\}/g, (match, token) => {
+      const paramVal = params[token];
+      return paramVal !== undefined ? String(paramVal) : match;
+    });
+  }
 
   if (typeof window === 'undefined') {
     console.error(

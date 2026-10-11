@@ -19,7 +19,7 @@ import {
 
 type LocaleApi = {
   locale: UiLocale;
-  t: (key: I18nKey) => string;
+  t: (key: I18nKey, params?: Record<string, string | number>) => string;
 };
 
 const Ctx = createContext<LocaleApi | null>(null);
@@ -49,7 +49,7 @@ export function OperatorUiLocaleProvider({ children }: { children: ReactNode }) 
   const value = useMemo<LocaleApi>(
     () => ({
       locale,
-      t: (key) => resolveString(key, locale),
+      t: (key, params) => resolveString(key, locale, params),
     }),
     [locale]
   );
@@ -61,6 +61,6 @@ export function useT(): LocaleApi {
   if (ctx) return ctx;
   return {
     locale: 'en',
-    t: (key) => resolveString(key, 'en'),
+    t: (key, params) => resolveString(key, 'en', params),
   };
 }

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-10, FR-16, FR-25]
 **Blocked by:** ["SPEC-112-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Localize unmigrated surfaces in `PresenterOperator.tsx`, fully localize `SlideGridDialog.tsx`, and wire i18n keys for confirmation dialogs in `PresenterDisplayControl.tsx`.

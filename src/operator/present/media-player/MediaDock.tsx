@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
 import type { PlaylistState, PlaylistItem } from './playlist-model';
+import { useT } from '@/lib/i18n/operator';
 
 export interface MediaDockProps {
   store: MediaStore;
@@ -45,6 +46,7 @@ export const MediaDock = memo(function MediaDock({
   onDismiss,
   className,
 }: MediaDockProps) {
+  const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
   const [seekingTime, setSeekingTime] = useState<number | null>(null);
   const isSeekingRef = useRef(false);
@@ -164,7 +166,7 @@ export const MediaDock = memo(function MediaDock({
           onMouseDown={(e) => e.preventDefault()}
           onClick={handlePlayPause}
           className="h-8 w-8 p-0"
-          title={state.isPlaying ? 'Jeda (Pause)' : 'Putar (Play)'}
+          title={state.isPlaying ? t('media.topBar.pauseTitle') : t('media.topBar.playTitle')}
         >
           {state.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
         </Button>
@@ -179,10 +181,10 @@ export const MediaDock = memo(function MediaDock({
           onClick={handleFade}
           disabled={!state.isPlaying && !state.isFading}
           className="h-8 gap-1 px-2 text-xs"
-          title="Fade Out Volume 3 detik lalu jeda"
+          title={t('media.topBar.fadeTitle')}
         >
           <TrendingDown className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Fade</span>
+          <span className="hidden sm:inline">{t('media.topBar.fadeLabel')}</span>
         </Button>
 
         {/* Mute */}
@@ -194,7 +196,7 @@ export const MediaDock = memo(function MediaDock({
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleMute}
           className="h-8 w-8 p-0"
-          title={state.isMuted ? 'Batal Bisukan' : 'Bisukan Suara (Mute)'}
+          title={state.isMuted ? t('media.topBar.unmuteTitle') : t('media.topBar.muteTitle')}
         >
           {state.isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </Button>
@@ -209,10 +211,10 @@ export const MediaDock = memo(function MediaDock({
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleTakeOffScreen}
             className="h-8 gap-1 px-2 text-xs"
-            title="Tarik video dari layar jemaat kembali ke slide"
+            title={t('media.topBar.takeOffTitle')}
           >
             <MonitorOff className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Tarik Layar</span>
+            <span className="hidden md:inline">{t('media.topBar.takeOffLabel')}</span>
           </Button>
         )}
 
@@ -225,7 +227,7 @@ export const MediaDock = memo(function MediaDock({
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleStopAndClose}
           className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          title="Berhenti & Tutup Dock"
+          title={t('media.topBar.stopTitle')}
         >
           <Square className="h-3.5 w-3.5" />
         </Button>
@@ -240,11 +242,11 @@ export const MediaDock = memo(function MediaDock({
             <Music className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           )}
           <span className="truncate text-xs font-medium text-foreground">
-            {activeItem?.name || 'Tidak ada media'}
+            {activeItem?.name || t('media.topBar.emptyPlaceholder')}
           </span>
           {state.isProjected && (
             <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-semibold text-blue-700 dark:text-blue-300 uppercase shrink-0">
-              Layar
+              {t('media.dock.projectedBadge')}
             </span>
           )}
         </div>
@@ -263,7 +265,7 @@ export const MediaDock = memo(function MediaDock({
             onChange={handleSeekChange}
             onPointerUp={handleSeekCommit}
             onMouseDown={(e) => e.stopPropagation()}
-            aria-label="Posisi pemutaran media"
+            aria-label={t('media.dock.seekAriaLabel')}
             className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
           />
           <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
@@ -284,7 +286,7 @@ export const MediaDock = memo(function MediaDock({
             value={state.isMuted ? 0 : state.volume}
             onChange={handleVolumeChange}
             onMouseDown={(e) => e.stopPropagation()}
-            aria-label="Volume media"
+            aria-label={t('media.dock.volumeAriaLabel')}
             className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
           />
         </div>
@@ -297,10 +299,10 @@ export const MediaDock = memo(function MediaDock({
           onMouseDown={(e) => e.preventDefault()}
           onClick={onOpenDrawer}
           className="h-8 gap-1.5 px-2 text-xs font-medium"
-          title="Buka Daftar Putar"
+          title={t('media.dock.openPlaylist')}
         >
           <ListMusic className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">Playlist</span>
+          <span className="hidden md:inline">{t('media.dock.playlistLabel')}</span>
         </Button>
       </div>
     </aside>

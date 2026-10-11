@@ -4700,7 +4700,7 @@ waves:
           - tests/local-media-player.test.mjs
 
   - id: SPEC-112
-    status: open
+    status: closed
     release: mandatory-i18n-reconciliation-and-enforcement-guards
     prd: [operator-turn]
     fr: [FR-25]
@@ -4716,7 +4716,7 @@ waves:
         component: hub
         satisfies: [UC-10, FR-25]
         blocked_by: []
-        touches: [i18n-catalogue, tests]
+        touches: [settings]
         tests:
           - tests/bilingual-i18n-parity.test.mjs
           - tests/i18n.test.mjs
@@ -4724,21 +4724,21 @@ waves:
         component: presenter
         satisfies: [UC-10, FR-16, FR-25]
         blocked_by: ["SPEC-112-01"]
-        touches: [operator-present, media-player]
+        touches: [present-channel]
         tests:
           - tests/local-media-player.test.mjs
       - id: "SPEC-112-03"
         component: presenter
         satisfies: [UC-10, FR-16, FR-25]
         blocked_by: ["SPEC-112-02"]
-        touches: [operator-present]
+        touches: [present-channel]
         tests:
           - tests/local-media-player.test.mjs
       - id: "SPEC-112-04"
         component: hub
         satisfies: [UC-10, FR-25]
         blocked_by: ["SPEC-112-03"]
-        touches: [hub-chrome, conventions]
+        touches: [services]
         tests:
           - tests/bilingual-i18n-parity.test.mjs
 
@@ -4759,7 +4759,7 @@ waves:
         component: presenter
         satisfies: [UC-12, FR-16]
         blocked_by: []
-        touches: [present-channel, operator-present]
+        touches: [present-channel]
         tests:
           - tests/local-media-player.test.mjs
           - tests/projected-transitions.test.mjs
@@ -4767,21 +4767,21 @@ waves:
         component: presenter
         satisfies: [UC-12, FR-16, FR-25]
         blocked_by: ["SPEC-113-01"]
-        touches: [operator-present, media-player]
+        touches: [present-channel]
         tests:
           - tests/local-media-player.test.mjs
       - id: "SPEC-113-03"
         component: presenter
         satisfies: [UC-12, FR-16]
         blocked_by: ["SPEC-113-02"]
-        touches: [media-player]
+        touches: [present-channel, uploads]
         tests:
           - tests/local-media-player.test.mjs
       - id: "SPEC-113-04"
         component: presenter
         satisfies: [UC-12, FR-16, FR-25]
         blocked_by: ["SPEC-113-03"]
-        touches: [operator-present, media-player]
+        touches: [present-channel]
         tests:
           - tests/local-media-player.test.mjs
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useT } from '@/lib/i18n/operator';
 import {
   getServiceSnapshot,
   subscribeServiceReadiness,
@@ -19,6 +20,7 @@ export function OfflineReadinessBadge({
   serviceData?: any;
   className?: string;
 }) {
+  const { t } = useT();
   const [readiness, setReadiness] = useState<OfflineReadiness | null>(null);
   const [retrying, setRetrying] = useState(false);
   const retrySeqRef = useRef(0);
@@ -102,13 +104,13 @@ export function OfflineReadinessBadge({
       if (seq === retrySeqRef.current && !receivedLiveEventRef.current) {
         setReadiness(res);
         if (res.status === 'ready') {
-          toast.success('Penyimpanan offline berhasil diperbarui');
+          toast.success(t('offline.statusReady'));
         } else {
           const failedRefs = res.scriptures?.failedRefs || [];
           if (failedRefs.length > 0) {
-            toast.error(`Gagal memuat ayat offline: ${failedRefs.join(', ')}`);
+            toast.error(t('offline.statusScriptureFailed', { refs: failedRefs.join(', ') }));
           } else {
-            toast.error(`Penyimpanan offline belum lengkap (${res.failed} gagal)`);
+            toast.error(t('offline.statusStale'));
           }
         }
       }
@@ -162,7 +164,7 @@ export function OfflineReadinessBadge({
           disabled={retrying}
           className="h-5 px-1 text-[10px] text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
         >
-          {retrying ? '...' : 'Retry'}
+          {retrying ? '...' : t('common.retry')}
         </Button>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-10, FR-25]
 **Blocked by:** ["SPEC-112-03"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Localize Run-Sheet page header controls, offline readiness badges, Dynamic Form slots, Image Crop presets, and admin panels. Ratify the mandatory bilingual i18n convention in `.constitution/project/codebase-conventions-guide.md` as an accepted project standard.

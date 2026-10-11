@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { compileProfileRegex, extractPredefinedFields, reconcileDynamicUnmappedLines } from '@/lib/parser-rules';
 import type { SongSetEntrySlot } from '@/lib/song-set-matching';
 import type { FormLayoutData, FormGroupingDef, PredefinedFieldDef } from '@/lib/form-layout';
+import { useT } from '@/lib/i18n/operator';
 
 type AdminTab = 'layout' | 'fields' | 'sandbox';
 
@@ -30,6 +31,7 @@ Closing Prayer: Deacon Michael
 Family & Youth: Johnson Family`;
 
 export function FormLayoutAdminPanel() {
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<AdminTab>('layout');
   const [layoutData, setLayoutData] = useState<FormLayoutData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -761,7 +763,7 @@ export function FormLayoutAdminPanel() {
   };
 
   if (loading && !layoutData) {
-    return <div className="p-8 text-center text-xs text-muted-foreground">Loading Form Layout Settings...</div>;
+    return <div className="p-8 text-center text-xs text-muted-foreground">{t('admin.formLayout.loading')}</div>;
   }
 
   return (
@@ -777,7 +779,7 @@ export function FormLayoutAdminPanel() {
               className="text-xs font-semibold"
               onClick={() => setActiveTab('layout')}
             >
-              Card Groupings & Layout
+              {t('admin.formLayout.tabGroupings')}
             </Button>
             <Button
               type="button"
@@ -786,7 +788,7 @@ export function FormLayoutAdminPanel() {
               className="text-xs font-semibold"
               onClick={() => setActiveTab('fields')}
             >
-              Predefined Fields & Regex
+              {t('admin.formLayout.tabFields')}
             </Button>
             <Button
               type="button"
@@ -795,7 +797,7 @@ export function FormLayoutAdminPanel() {
               className="text-xs font-semibold"
               onClick={() => setActiveTab('sandbox')}
             >
-              Rundown Test Area & Sandbox
+              {t('admin.formLayout.tabSandbox')}
             </Button>
           </div>
 
@@ -809,7 +811,7 @@ export function FormLayoutAdminPanel() {
               disabled={seeding}
             >
               <Sparkles className="w-3.5 h-3.5 text-primary" />
-              {seeding ? 'Seeding...' : 'Seed Default Predefined Fields'}
+              {seeding ? t('admin.formLayout.seeding') : t('admin.formLayout.seedDefaults')}
             </Button>
             <Button
               type="button"
@@ -817,7 +819,7 @@ export function FormLayoutAdminPanel() {
               size="sm"
               className="h-8 w-8 p-0"
               onClick={fetchLayout}
-              title="Refresh Layout"
+              title={t('admin.formLayout.refresh')}
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>

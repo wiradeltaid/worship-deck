@@ -51,11 +51,12 @@ export default function ImageCropDialog({
   file,
   defaultAspect = null,
   defaultResize = '1080p',
-  title = 'Crop & Resize Image',
+  title,
   onComplete,
   onCancel,
 }: ImageCropDialogProps) {
   const { t } = useT();
+  const dialogTitle = title || t('crop.dialogTitle');
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -146,11 +147,25 @@ export default function ImageCropDialog({
     !croppedAreaPixels ||
     (selectedPreset === 'custom' && !customValidation.isValid);
 
+  const getPresetDesc = (id: AspectPresetId): string => {
+    switch (id) {
+      case 'original': return t('crop.presetOriginalDesc');
+      case '16:9': return t('crop.presetWidescreenDesc');
+      case '4:3': return t('crop.presetStandardDesc');
+      case '1:1': return t('crop.presetSquareDesc');
+      case '3:4': return t('crop.presetPortraitDesc');
+      case '2:3': return t('crop.presetCoverDesc');
+      case '9:16': return t('crop.presetStoryDesc');
+      case 'a4': return t('crop.presetFlyerDesc');
+      case 'custom': return t('crop.presetCustomDesc');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onCancel(); }}>
       <DialogContent className="max-w-2xl sm:max-w-2xl p-4 gap-3 bg-popover text-popover-foreground">
         <DialogHeader className="pb-1 border-b border-border/50">
-          <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
+          <DialogTitle className="text-base font-semibold">{dialogTitle}</DialogTitle>
         </DialogHeader>
 
         {errorMessage && (
@@ -185,7 +200,7 @@ export default function ImageCropDialog({
           {/* Zoom Slider */}
           <div className="flex items-center gap-3">
             <Label htmlFor={zoomSliderId} className="w-12 shrink-0 font-medium text-xs">
-              Zoom:
+              {t('crop.zoomLabel')}
             </Label>
             <input
               id={zoomSliderId}
@@ -205,7 +220,7 @@ export default function ImageCropDialog({
           {/* Aspect Ratio Preset Selector */}
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="w-12 shrink-0 font-medium text-xs text-foreground">Ratio:</span>
+              <span className="w-12 shrink-0 font-medium text-xs text-foreground">{t('crop.ratioLabel')}</span>
               <div className="flex flex-wrap gap-1">
                 {ASPECT_RATIO_PRESETS.map((preset) => {
                   const isActive = selectedPreset === preset.id;
@@ -220,7 +235,7 @@ export default function ImageCropDialog({
                         setCroppedAreaPixels(null);
                         setSelectedPreset(preset.id);
                       }}
-                      title={preset.desc}
+                      title={getPresetDesc(preset.id)}
                     >
                       {preset.label}
                     </Button>

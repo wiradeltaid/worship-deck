@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/operator';
 
+// 4-state labels contract: Streaming, Mengunduh, Tersedia di lokal, File terlepas
 export type MediaBadgeState = 'streaming-only' | 'downloading' | 'local' | 'detached';
 
 export interface MediaStatusBadgeProps {
@@ -28,6 +30,8 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
   onReconnect,
   className,
 }: MediaStatusBadgeProps) {
+  const { t } = useT();
+
   if (state === 'local') {
     return (
       <span
@@ -38,7 +42,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
         )}
       >
         <CheckCircle2 className="h-3 w-3" />
-        <span>Tersedia di lokal</span>
+        <span>{t('media.badge.local')}</span>
       </span>
     );
   }
@@ -55,7 +59,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
       >
         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-400">
           <Download className="h-3 w-3 animate-pulse" />
-          <span>Mengunduh {Math.round(progress)}%</span>
+          <span>{t('media.badge.downloading', { percent: Math.round(progress) })}</span>
         </span>
         {onCancel && (
           <Button
@@ -70,7 +74,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
             }}
             className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-destructive"
           >
-            Batal
+            {t('media.badge.cancel')}
           </Button>
         )}
       </div>
@@ -85,7 +89,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
       >
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
           <AlertTriangle className="h-3 w-3" />
-          <span>File terlepas</span>
+          <span>{t('media.badge.detached')}</span>
         </span>
         {onReconnect && (
           <Button
@@ -101,7 +105,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
             className="h-5 px-1.5 text-[10px] text-foreground"
           >
             <RotateCw className="h-2.5 w-2.5 mr-1" />
-            Sambungkan ulang
+            {t('media.badge.reconnect')}
           </Button>
         )}
       </div>
@@ -116,7 +120,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
     >
       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
         <Cloud className="h-3 w-3" />
-        <span>Streaming</span>
+        <span>{t('media.badge.streaming')}</span>
       </span>
       {onDownload && (
         <Button
@@ -132,7 +136,7 @@ export const MediaStatusBadge = memo(function MediaStatusBadge({
           className="h-5 px-1.5 text-[10px] text-primary hover:text-primary-foreground hover:bg-primary"
         >
           <Download className="h-2.5 w-2.5 mr-1" />
-          Unduh
+          {t('media.badge.download')}
         </Button>
       )}
     </div>

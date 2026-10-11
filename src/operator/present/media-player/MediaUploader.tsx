@@ -8,6 +8,7 @@ import { Upload, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { MediaStore } from './media-store';
 import type { PlaylistItem, MediaType } from './playlist-model';
+import { useT } from '@/lib/i18n/operator';
 
 export interface MediaUploaderProps {
   store: MediaStore;
@@ -24,6 +25,7 @@ export const MediaUploader = memo(function MediaUploader({
   onToastError,
   className,
 }: MediaUploaderProps) {
+  const { t } = useT();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export const MediaUploader = memo(function MediaUploader({
 
           // Check size limit
           if (file.size > MAX_FILE_SIZE_BYTES) {
-            const err = `Berkas "${file.name}" melebihi batas 500 MiB`;
+            const err = `${file.name}: ${t('media.uploader.maxSizeExceeded')}`;
             setErrorMessage(err);
             if (onToastError) onToastError(err);
             continue;
@@ -54,7 +56,7 @@ export const MediaUploader = memo(function MediaUploader({
           const isVideo = SUPPORTED_VIDEO_EXT.test(file.name);
 
           if (!isAudio && !isVideo) {
-            const err = `Format "${file.name}" tidak didukung. Gunakan .mp3, .wav, .m4a, .ogg, .mp4, atau .webm`;
+            const err = `${file.name}: ${t('media.uploader.unsupportedFormat')}`;
             setErrorMessage(err);
             if (onToastError) onToastError(err);
             continue;
@@ -72,7 +74,7 @@ export const MediaUploader = memo(function MediaUploader({
           });
 
           if (!res.ok) {
-            const err = `Gagal mengunggah "${file.name}" (${res.statusText})`;
+            const err = `${t('media.uploader.uploadFailed')} "${file.name}" (${res.statusText})`;
             setErrorMessage(err);
             if (onToastError) onToastError(err);
             continue;
@@ -97,7 +99,7 @@ export const MediaUploader = memo(function MediaUploader({
           store.dispatch({ type: 'ADD_ITEMS', items: itemsToAdd });
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Galat saat mengunggah media';
+        const msg = err instanceof Error ? err.message : t('media.uploader.genericError');
         setErrorMessage(msg);
         if (onToastError) onToastError(msg);
       } finally {
@@ -107,7 +109,7 @@ export const MediaUploader = memo(function MediaUploader({
         }
       }
     },
-    [store, onToastError]
+    [store, onToastError, t]
   );
 
   return (
@@ -133,7 +135,7 @@ export const MediaUploader = memo(function MediaUploader({
         className="h-8 w-full gap-2 text-xs border-dashed"
       >
         <Upload className="h-3.5 w-3.5" />
-        <span>{isUploading ? 'Mengunggah...' : 'Tambah Audio / Video (Maks 500 MiB)'}</span>
+        <span>{isUploading ? t('media.uploader.uploading') : t('media.uploader.addMedia')}</span>
       </Button>
 
       {errorMessage && (
