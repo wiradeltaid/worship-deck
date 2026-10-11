@@ -5747,6 +5747,63 @@ rtm:
   FR: FR-25
   DEC: []
   UC: UC-10
+  ticket: SPEC-112-01
+  spec: SPEC-112
+  release: mandatory-i18n-reconciliation-and-enforcement-guards
+  test:
+  - tests/bilingual-i18n-parity.test.mjs
+  - tests/i18n.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-25
+  DEC: []
+  UC: UC-10
+  ticket: SPEC-112-02
+  spec: SPEC-112
+  release: mandatory-i18n-reconciliation-and-enforcement-guards
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-25
+  DEC: []
+  UC: UC-10
+  ticket: SPEC-112-03
+  spec: SPEC-112
+  release: mandatory-i18n-reconciliation-and-enforcement-guards
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-25
+  DEC: []
+  UC: UC-10
+  ticket: SPEC-112-04
+  spec: SPEC-112
+  release: mandatory-i18n-reconciliation-and-enforcement-guards
+  test:
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-10
+  FR: FR-25
+  DEC: []
+  UC: UC-10
   ticket: W9-02
   spec: W9
   release: hub-admin-mgmt
