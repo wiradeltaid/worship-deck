@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-07"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement local-first playback priority routing with strict cue-time verification predicates and relocate media controls to a fixed-height horizontal bar positioned between the header cluster and slide monitors.
@@ -29,3 +29,7 @@ Implement local-first playback priority routing with strict cue-time verificatio
 - Any predicate failure at cue time falls back gracefully to cloud stream with an informative operator toast.
 - Top control bar renders in a fixed slot without shifting slide preview monitors when activated or dismissed.
 - Panic controls remain responsive in 1 click even under Presentation Lock.
+
+## Comments
+
+- 2026-10-11: Implemented 4-condition local-first playback router `playback-router.ts`, fixed ~44px `MediaTopBar.tsx` positioned between header and slide monitors in `PresenterOperator.tsx`, panic controls with spacebar focus safety, source indicator badge ('Lokal'|'Cloud'), and verified in `tests/local-media-player.test.mjs`.

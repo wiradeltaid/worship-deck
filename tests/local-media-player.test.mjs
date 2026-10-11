@@ -341,6 +341,97 @@ test('SPEC-111-07: Conscious Downloader Engine, Preflight Bulk Calculation, and 
   assert.equal(testDirHandle.files.has('test.mp4'), true, 'Physical file must remain intact in directory handle');
 });
 
+test('SPEC-111-08: Local-first routing 4-condition predicate & MediaTopBar fixed 44px slot', async () => {
+  const { routePlaybackSource } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
+  const { localMediaRegistry } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  const fs = await import('node:fs');
+
+  const validSHA = 'f'.repeat(64);
+  const localItem = {
+    id: 'item-100',
+    name: 'Song.mp4',
+    url: '/api/uploads/song.mp4',
+    sha256: validSHA,
+    size: 2048,
+    type: 'video',
+  };
+
+  // Condition 1: Not in index -> falls back to cloud
+  const res1 = routePlaybackSource(localItem, { customSWActive: true });
+  assert.equal(res1.canRouteLocal, false);
+  assert.equal(res1.source, 'cloud');
+  assert.equal(res1.reason, 'not-in-local-index');
+
+  // Register in local index
+  await localMediaRegistry.saveRecord({
+    sha256: validSHA,
+    name: 'Song.mp4',
+    sizeBytes: 2048,
+    mimeType: 'video/mp4',
+    storageKind: 'opfs',
+    lastModified: 1700000000000,
+    verifiedAt: new Date().toISOString(),
+  });
+
+  // Condition 2: SW controller missing -> falls back to cloud
+  const res2 = routePlaybackSource(localItem, { customSWActive: false });
+  assert.equal(res2.canRouteLocal, false);
+  assert.equal(res2.source, 'cloud');
+  assert.equal(res2.reason, 'sw-controller-missing');
+
+  // Condition 3: File stale on disk -> falls back to cloud
+  const res3 = routePlaybackSource(localItem, {
+    customSWActive: true,
+    currentSizeBytes: 9999, // size changed!
+  });
+  assert.equal(res3.canRouteLocal, false);
+  assert.equal(res3.source, 'cloud');
+  assert.equal(res3.reason, 'file-stale-or-detached');
+
+  // Condition 4: All predicates met -> Local priority!
+  const res4 = routePlaybackSource(localItem, {
+    customSWActive: true,
+    currentSizeBytes: 2048,
+    currentLastModified: 1700000000000,
+  });
+  assert.equal(res4.canRouteLocal, true);
+  assert.equal(res4.source, 'local');
+  assert.equal(res4.resolvedUrl, `/local-media/${validSHA}`);
+  assert.equal(res4.reason, 'all-predicates-met');
+
+  // Missing sha256 -> falls back to cloud
+  const noShaItem = { id: 'item-200', name: 'NoSha.mp3', url: '/no-sha.mp3', type: 'audio' };
+  const resNoSha = routePlaybackSource(noShaItem, { customSWActive: true });
+  assert.equal(resNoSha.canRouteLocal, false);
+  assert.equal(resNoSha.source, 'cloud');
+  assert.equal(resNoSha.reason, 'no-sha256');
+
+  // 2. Structural verification of MediaTopBar
+  const topBarPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaTopBar.tsx');
+  assert.ok(fs.existsSync(topBarPath), 'MediaTopBar.tsx must exist');
+  const topBarCode = fs.readFileSync(topBarPath, 'utf8');
+
+  // Fixed height 44px (h-11)
+  assert.ok(topBarCode.includes('h-11'), 'Must have fixed h-11 slot for zero layout shift');
+  assert.ok(topBarCode.includes('data-testid="media-top-bar"'), 'Must have test ID');
+  assert.ok(topBarCode.includes('media-top-bar-play'), 'Must contain play button');
+  assert.ok(topBarCode.includes('media-top-bar-fade'), 'Must contain 3s fade button');
+  assert.ok(topBarCode.includes('media-top-bar-mute'), 'Must contain mute button');
+  assert.ok(topBarCode.includes('media-top-bar-take-off'), 'Must contain take-off button');
+  assert.ok(topBarCode.includes('media-source-indicator'), 'Must contain source indicator');
+  assert.ok(topBarCode.includes('e.preventDefault()'), 'Must contain spacebar focus safety handlers');
+
+  // Verification that MediaTopBar is mounted in PresenterOperator
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterCode = fs.readFileSync(presenterPath, 'utf8');
+  assert.ok(presenterCode.includes('<MediaTopBar'), 'PresenterOperator must mount MediaTopBar');
+});
+
+
 
 
 

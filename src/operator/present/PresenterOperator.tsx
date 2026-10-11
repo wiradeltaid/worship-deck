@@ -163,6 +163,7 @@ import {
   MediaStage,
   MediaLauncherButton,
   MediaDock,
+  MediaTopBar,
   MediaDrawer,
   type MediaStore,
   type MediaEngine,
@@ -2275,6 +2276,13 @@ export default function PresenterOperator({
           </p>
         ) : null}
       </header>
+
+      {/* SPEC-111: Fixed-Height Top Control Bar (~44px, zero layout shift) */}
+      <MediaTopBar
+        store={mediaStore}
+        engine={mediaEngine}
+        onOpenDrawer={() => setMediaDrawerOpen(true)}
+      />
 
       {pendingPatches.length > 0 && !isOffline && (
         <div
