@@ -1015,7 +1015,7 @@ export default function PresenterOperator({
             blank: blankRef.current,
             transition: transitionRef.current,
             background: backgroundRef.current,
-            scripture: scriptureOverlayRef.current,
+            scripture: scriptureOverlay,
             planIdentity: planIdentityRef.current,
             patches: patchesRef.current,
             projection: projSource,
@@ -1258,36 +1258,34 @@ export default function PresenterOperator({
     // Read from the refs, never from the rendered values: this listener is
     // installed once per service and would otherwise answer with whatever the
     // deck looked like at mount.
-    const currentState = (): PresentMessage => {
-      const mediaSnap = mediaStore.getSnapshot();
-      const activeMedia = mediaSnap.items.find((i) => i.id === mediaSnap.activeId);
-      const isMediaProjected = mediaSnap.isProjected && activeMedia?.type === 'video';
-
-      const resolvedProjection: ProjectedSource = isMediaProjected && activeMedia
-        ? {
-            kind: 'media',
-            mediaId: activeMedia.id,
-            mediaUrl: activeMedia.url,
-            isPlaying: mediaSnap.isPlaying,
-            mediaTime: mediaSnap.currentTime,
-            at: Date.now(),
-            revision: 1,
-          }
-        : projectionRef.current;
-
-      return {
-        type: 'sync',
-        index: indexRef.current,
-        blank: blankRef.current,
-        transition: transitionRef.current,
-        background: backgroundRef.current,
-        scripture: scriptureOverlayRef.current,
-        planIdentity: planIdentityRef.current,
-        patches: patchesRef.current,
-        projection: resolvedProjection,
-        guestAttemptId: isMediaProjected ? null : guestAttemptIdRef.current,
-      };
-    };
+    const currentState = (): PresentMessage => ({
+      type: 'sync',
+      index: indexRef.current,
+      blank: blankRef.current,
+      transition: transitionRef.current,
+      background: backgroundRef.current,
+      scripture: scriptureOverlayRef.current,
+      planIdentity: planIdentityRef.current,
+      patches: patchesRef.current,
+      projection:
+        mediaStore.getSnapshot().isProjected &&
+        mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)?.type === 'video'
+          ? {
+              kind: 'media',
+              mediaId: mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)!.id,
+              mediaUrl: mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)!.url,
+              isPlaying: mediaStore.getSnapshot().isPlaying,
+              mediaTime: mediaStore.getSnapshot().currentTime,
+              at: Date.now(),
+              revision: 1,
+            }
+          : projectionRef.current,
+      guestAttemptId:
+        mediaStore.getSnapshot().isProjected &&
+        mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)?.type === 'video'
+          ? null
+          : guestAttemptIdRef.current,
+    });
 
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
@@ -2225,23 +2223,23 @@ export default function PresenterOperator({
             >
               {t('presenter.runSheet')}
             </Button>
-          </div>
-
-          {/* Row 3 (Guest Media & In-Console Media Player Controls) */}
-          <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
             <MediaLauncherButton
               itemCount={mediaItemCount}
               isPlaying={mediaIsPlaying}
               isDrawerOpen={mediaDrawerOpen}
               onClick={() => setMediaDrawerOpen((prev) => !prev)}
             />
-            {guestFeedControllerRef.current && (
+          </div>
+
+          {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
+          {guestFeedControllerRef.current && (
+            <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
               <PresenterGuestFeedControl
                 controller={guestFeedControllerRef.current}
                 isProjectorResponding={liveness.verdict === 'live'}
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
         {projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">

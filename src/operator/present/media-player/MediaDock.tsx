@@ -235,15 +235,15 @@ export const MediaDock = memo(function MediaDock({
       <div className="flex flex-1 items-center gap-3 min-w-0 max-w-2xl">
         <div className="flex items-center gap-2 min-w-0 max-w-[12rem] shrink-0">
           {activeItem?.type === 'video' ? (
-            <Video className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+            <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
           ) : (
-            <Music className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+            <Music className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           )}
           <span className="truncate text-xs font-medium text-foreground">
             {activeItem?.name || 'Tidak ada media'}
           </span>
           {state.isProjected && (
-            <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-semibold text-blue-300 uppercase shrink-0">
+            <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-semibold text-blue-700 dark:text-blue-300 uppercase shrink-0">
               Layar
             </span>
           )}

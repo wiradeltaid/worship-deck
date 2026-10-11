@@ -186,26 +186,30 @@ export const MediaDrawer = memo(function MediaDrawer({
                 {/* Left: Reorder controls & Icon */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <div className="flex flex-col">
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="ghost"
                       disabled={index === 0}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => handleMoveUp(e, index)}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
+                      className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
                       title="Pindah ke atas"
                     >
                       <ChevronUp className="h-3 w-3" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="ghost"
                       disabled={index === state.items.length - 1}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => handleMoveDown(e, index)}
-                      className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
+                      className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
                       title="Pindah ke bawah"
                     >
                       <ChevronDown className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </div>
 
                   <Button
@@ -229,11 +233,11 @@ export const MediaDrawer = memo(function MediaDrawer({
                 <div className="flex flex-1 flex-col min-w-0 pr-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     {item.type === 'video' ? (
-                      <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-semibold text-blue-400 shrink-0">
+                      <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-semibold text-blue-600 dark:text-blue-400 shrink-0">
                         VIDEO
                       </span>
                     ) : (
-                      <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[9px] font-semibold text-emerald-400 shrink-0">
+                      <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
                         AUDIO
                       </span>
                     )}

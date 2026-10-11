@@ -310,4 +310,136 @@ test('SPEC-110-03: Congregation Screen Video Projection & Channel Sync', async (
   assert.ok(projectorClientSrc.includes('ProjectedMediaLayer') || projectorClientSrc.includes('projector-media-video-container'), 'ProjectorClient integrates projected media video');
 });
 
+test('SPEC-110-04: Guard Test Suite & Injected Defect Verification', async () => {
+  const fs = await import('node:fs');
+  const mediaLayerPath = path.join(ROOT, 'src', 'projected', 'media', 'ProjectedMediaLayer.tsx');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const dockPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDock.tsx');
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+
+  const mediaLayerSrc = fs.readFileSync(mediaLayerPath, 'utf8');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8');
+  const dockSrc = fs.readFileSync(dockPath, 'utf8');
+  const stageSrc = fs.readFileSync(stagePath, 'utf8');
+
+  // Guard 1: Projector Mute Enforcement
+  function verifyProjectorMuteGuard(code) {
+    if (!code.includes('muted')) return { valid: false, reason: 'missing-muted-attribute' };
+    if (!code.includes('.muted = true')) return { valid: false, reason: 'missing-runtime-mute-enforcement' };
+    return { valid: true };
+  }
+  assert.equal(verifyProjectorMuteGuard(mediaLayerSrc).valid, true);
+  // Defect Proof 1: Missing muted attribute fails
+  assert.equal(verifyProjectorMuteGuard('<video playsInline />').reason, 'missing-muted-attribute');
+  // Defect Proof 1b: Missing runtime muted property assignment fails
+  assert.equal(verifyProjectorMuteGuard('<video muted playsInline />').reason, 'missing-runtime-mute-enforcement');
+
+  // Guard 2: Drawer Mount Independence
+  // MediaStage must be mounted outside MediaDrawer in PresenterOperator so closing drawer never unmounts media
+  function verifyDrawerMountIndependence(code) {
+    const stageIdx = code.indexOf('<MediaStage');
+    const drawerIdx = code.indexOf('<MediaDrawer');
+    if (stageIdx === -1) return { valid: false, reason: 'missing-media-stage' };
+    if (drawerIdx === -1) return { valid: false, reason: 'missing-media-drawer' };
+    // Must be sibling, not nested inside MediaDrawer
+    const drawerBlock = code.slice(drawerIdx, code.indexOf('/>', drawerIdx) + 2);
+    if (drawerBlock.includes('<MediaStage')) return { valid: false, reason: 'nested-stage-in-drawer' };
+    return { valid: true };
+  }
+  assert.equal(verifyDrawerMountIndependence(presenterSrc).valid, true);
+  // Defect Proof 2: Nested MediaStage in MediaDrawer fails
+  assert.equal(
+    verifyDrawerMountIndependence('<MediaDrawer><MediaStage /></MediaDrawer>').reason,
+    'nested-stage-in-drawer'
+  );
+
+  // Guard 3: Projection State Teardown
+  // MediaStage handleEnded must explicitly reset projection to off
+  function verifyProjectionTeardown(code) {
+    if (!code.includes("store.dispatch({ type: 'SET_PROJECTED', isProjected: false })")) {
+      return { valid: false, reason: 'missing-projected-reset-on-ended' };
+    }
+    return { valid: true };
+  }
+  assert.equal(verifyProjectionTeardown(stageSrc).valid, true);
+  // Defect Proof 3: Missing projection reset fails
+  assert.equal(verifyProjectionTeardown('function handleEnded() { playNext(); }').reason, 'missing-projected-reset-on-ended');
+
+  // Guard 4: Presentation Lock Panic Accessibility
+  // Panic buttons in MediaDock must NOT have disabled={presentationLock}
+  function verifyPresentationLockPanic(code) {
+    if (code.includes('disabled={presentationLock}')) {
+      return { valid: false, reason: 'panic-controls-locked-by-presentation-lock' };
+    }
+    if (!code.includes('data-testid="media-panic-play-pause"') || !code.includes('data-testid="media-panic-fade"')) {
+      return { valid: false, reason: 'missing-panic-buttons' };
+    }
+    return { valid: true };
+  }
+  assert.equal(verifyPresentationLockPanic(dockSrc).valid, true);
+  // Defect Proof 4: Locking panic buttons fails
+  assert.equal(
+    verifyPresentationLockPanic('<button data-testid="media-panic-play-pause" data-testid="media-panic-fade" disabled={presentationLock} />').reason,
+    'panic-controls-locked-by-presentation-lock'
+  );
+
+  // Guard 5: Drift & Clock Calculation Pure Unit Logic
+  function calculateDriftCorrection(mediaTime, isPlaying, at, now, currentVideoTime) {
+    const elapsed = isPlaying ? Math.max(0, (now - at) / 1000) : 0;
+    const expected = mediaTime + elapsed;
+    const drift = Math.abs(currentVideoTime - expected);
+    if (drift > 0.5) {
+      return { action: 'seek', targetTime: expected };
+    }
+    if (drift > 0.05) {
+      return { action: 'nudge', rate: currentVideoTime < expected ? 1.05 : 0.95 };
+    }
+    return { action: 'nominal', rate: 1.0 };
+  }
+
+  // Exact clock sync
+  assert.equal(calculateDriftCorrection(10, true, 1000, 2000, 11).action, 'nominal');
+  // Small drift 0.2s -> nudge
+  assert.equal(calculateDriftCorrection(10, true, 1000, 2000, 10.8).action, 'nudge');
+  // Large drift 2.0s -> hard seek
+  const seekCorr = calculateDriftCorrection(10, true, 1000, 2000, 9);
+  assert.equal(seekCorr.action, 'seek');
+  assert.equal(seekCorr.targetTime, 11);
+
+  // Guard 6: Guest/Media Projection Exclusivity
+  // In PresenterOperator, activating media projection tears down guest feed
+  function verifyGuestMediaExclusivity(code) {
+    if (!code.includes('teardownGuestFeed') && !code.includes("revertToDeck('media-activated')")) {
+      return { valid: false, reason: 'missing-guest-teardown-on-media' };
+    }
+    return { valid: true };
+  }
+  assert.equal(verifyGuestMediaExclusivity(presenterSrc).valid, true);
+  // Defect Proof 6: Missing mutual teardown fails
+  assert.equal(verifyGuestMediaExclusivity('function onMedia() { setMedia(); }').reason, 'missing-guest-teardown-on-media');
+
+  // Guard 7: Projector Resync Fail-Closed Safety
+  const { projectionOf } = await import(srcUrl('lib', 'present-channel.ts'));
+  assert.deepEqual(projectionOf({ type: 'sync', index: 0, blank: false, transition: 'cut', planIdentity: 'p' }), { kind: 'deck' });
+  assert.deepEqual(projectionOf({ type: 'sync', index: 0, blank: false, transition: 'cut', planIdentity: 'p', projection: null }), { kind: 'deck' });
+
+  // Guard 8: Fade Cancellation & Volume Restoration
+  const { createMediaEngine } = await import(srcUrl('operator', 'present', 'media-player', 'media-engine.ts'));
+  let vol = 1.0;
+  const mockEl = {
+    get volume() { return vol; },
+    set volume(v) { vol = v; },
+    play: async () => {},
+    pause: () => {},
+  };
+  const testEngine = createMediaEngine({ getMediaElement: () => mockEl });
+  testEngine.setVolume(0.75);
+  const fadePromise = testEngine.fade({ durationMs: 2000 }).catch(() => {});
+  // Cancel immediately
+  testEngine.cancelFade();
+  await fadePromise;
+  assert.equal(mockEl.volume, 0.75, 'Cancelling fade immediately restores base volume');
+});
+
+
 

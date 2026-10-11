@@ -28,7 +28,7 @@ export interface ProjectedMediaLayerProps {
   ) => void;
 }
 
-export const ProjectedMediaLayer = memo(function ProjectedMediaLayer({
+export default function ProjectedMediaLayer({
   source,
   phase,
   transition,
@@ -123,4 +123,6 @@ export const ProjectedMediaLayer = memo(function ProjectedMediaLayer({
       />
     </div>
   );
-});
+}
+
+export { ProjectedMediaLayer };

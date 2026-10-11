@@ -36,7 +36,7 @@ export const MediaLauncherButton = memo(function MediaLauncherButton({
       <Music
         className={cn(
           'h-3.5 w-3.5',
-          isPlaying && 'text-emerald-400 animate-pulse'
+          isPlaying && 'text-emerald-600 dark:text-emerald-400 animate-pulse'
         )}
       />
       <span>Media</span>
