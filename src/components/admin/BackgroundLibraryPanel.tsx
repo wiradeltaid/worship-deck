@@ -352,7 +352,7 @@ export function BackgroundLibraryPanel() {
 
             {/* Category selection directly above the inputs with high contrast */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">Media Category:</Label>
+              <Label className="text-xs font-semibold text-foreground">{t('admin.media.categoryLabel')}</Label>
               <div className="flex flex-wrap items-center gap-2">
                 {(['announcement', 'background', 'general'] as const).map((cat) => {
                   const isSelected = uploadCategory === cat;
@@ -371,7 +371,7 @@ export function BackgroundLibraryPanel() {
                       onClick={() => setUploadCategory(cat)}
                     >
                       {isSelected ? <Check className="mr-1.5 h-3.5 w-3.5 stroke-[2.5]" /> : null}
-                      {cat === 'announcement' ? 'Announcement' : cat === 'background' ? 'Background' : 'General'}
+                      {cat === 'announcement' ? t('admin.media.filterAnnouncements') : cat === 'background' ? t('admin.media.filterBackgrounds') : t('admin.media.filterGeneral')}
                     </Button>
                   );
                 })}
@@ -497,12 +497,12 @@ export function BackgroundLibraryPanel() {
                     onClick={() => setCategoryFilter(cat)}
                   >
                     {cat === 'all'
-                      ? 'All Assets'
+                      ? t('admin.media.filterAll')
                       : cat === 'announcement'
-                      ? 'Announcements'
+                      ? t('admin.media.filterAnnouncements')
                       : cat === 'background'
-                      ? 'Backgrounds'
-                      : 'General'}
+                      ? t('admin.media.filterBackgrounds')
+                      : t('admin.media.filterGeneral')}
                   </Button>
                 );
               })}

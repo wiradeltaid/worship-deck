@@ -119,14 +119,14 @@ export default function Header({
             className={getLinkClass(pathname === '/new')}
             aria-current={pathname === '/new' ? 'page' : undefined}
           >
-            New Workspace Mockup
+            {t('chrome.nav.mockup')}
           </CustomLink>
           {isAdmin && (
             isOffline ? (
               <span
                 data-testid="offline-admin-disabled"
                 className="text-xs text-muted-foreground/60 px-3 py-1.5 cursor-not-allowed select-none border border-dashed border-border/50 rounded-md"
-                title="Pengaturan server dinonaktifkan saat offline"
+                title={t('chrome.offline.settingsDisabledTooltip')}
               >
                 {t('chrome.nav.settings')} (Offline)
               </span>

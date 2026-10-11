@@ -596,3 +596,110 @@ test('SPEC-112-03: Real-file defect injection — raw English announcement toast
     );
   }
 });
+
+export function scanRunSheetAndFormLocalization() {
+  const findings = [];
+  const runSheetSrc = fs.readFileSync(path.join(rootDir, 'spa', 'src', 'pages', 'RunSheetPage.tsx'), 'utf8');
+  const headerSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'Header.tsx'), 'utf8');
+  const bgPanelSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'admin', 'BackgroundLibraryPanel.tsx'), 'utf8');
+  const formLayoutSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'admin', 'FormLayoutAdminPanel.tsx'), 'utf8');
+  const dynamicFormSrc = fs.readFileSync(path.join(rootDir, 'src', 'operator', 'DynamicFormBody.tsx'), 'utf8');
+  const badgeSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'offline', 'OfflineReadinessBadge.tsx'), 'utf8');
+
+  const forbiddenRaw = [
+    { src: runSheetSrc, file: 'RunSheetPage.tsx', raw: '<h1\n            className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate whitespace-nowrap"\n            title={`Run-Sheet: ${svc.date || svc.id}`}\n          >\n            Run-Sheet: ' },
+    { src: runSheetSrc, file: 'RunSheetPage.tsx', raw: '<p className="mt-0.5 text-xs text-muted-foreground">Service ID: {svc.id}</p>' },
+    { src: headerSrc, file: 'Header.tsx', raw: 'New Workspace Mockup' },
+    { src: headerSrc, file: 'Header.tsx', raw: 'title="Pengaturan server dinonaktifkan saat offline"' },
+    { src: bgPanelSrc, file: 'BackgroundLibraryPanel.tsx', raw: '<Label className="text-xs font-semibold text-foreground">Media Category:</Label>' },
+    { src: bgPanelSrc, file: 'BackgroundLibraryPanel.tsx', raw: "cat === 'all'\n                      ? 'All Assets'" },
+    { src: formLayoutSrc, file: 'FormLayoutAdminPanel.tsx', raw: 'Loading Form Layout Settings...' },
+    { src: formLayoutSrc, file: 'FormLayoutAdminPanel.tsx', raw: 'Card Groupings & Layout\n            </Button>' },
+    { src: formLayoutSrc, file: 'FormLayoutAdminPanel.tsx', raw: "'Seeding...'" },
+    { src: dynamicFormSrc, file: 'DynamicFormBody.tsx', raw: 'Suggestion: {suggestion.slice(0, 30)}' },
+    { src: dynamicFormSrc, file: 'DynamicFormBody.tsx', raw: 'placeholder="Use Song-Set Default"' },
+    { src: badgeSrc, file: 'OfflineReadinessBadge.tsx', raw: 'Offline scripture failed:' },
+  ];
+
+  for (const { src, file, raw } of forbiddenRaw) {
+    if (src.includes(raw)) {
+      findings.push(`${file} contains un-localized raw string: ${raw}`);
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-112-04: RunSheet, DynamicForm, Header, and Admin panels avoid hardcoded raw strings', () => {
+  const findings = scanRunSheetAndFormLocalization();
+  assert.deepEqual(findings, [], `Expected 0 findings in runsheet and forms, got: ${findings.join(', ')}`);
+});
+
+test('SPEC-112-04: Codebase conventions guide permanently binds mandatory bilingual i18n convention', () => {
+  const guidePath = path.join(rootDir, '.constitution', 'project', 'codebase-conventions-guide.md');
+  const content = fs.readFileSync(guidePath, 'utf8');
+  assert.ok(
+    content.includes('Mandatory Bilingual i18n & UI Chrome Separation (WDI Playbook 07 § 4)'),
+    'codebase-conventions-guide.md must contain the ratified i18n section'
+  );
+  assert.ok(
+    content.includes('Pemisahan Kamus i18n Terjaga `[L2-Guard]`'),
+    'codebase-conventions-guide.md must bind L2-Guard i18n dictionary separation'
+  );
+  assert.ok(
+    content.includes('Larangan Teks Mentah (Raw String Prohibition) `[L2-Guard]`'),
+    'codebase-conventions-guide.md must bind raw string prohibition'
+  );
+});
+
+test('SPEC-112-04: Real-file defect injection — raw mockup string in Header.tsx fails scan', () => {
+  const headerPath = path.join(rootDir, 'src', 'components', 'Header.tsx');
+  const original = fs.readFileSync(headerPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "{t('chrome.nav.mockup')}",
+      'New Workspace Mockup'
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(headerPath, defective);
+
+    const findings = scanRunSheetAndFormLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('Header.tsx contains un-localized raw string: New Workspace Mockup')),
+      'Expected raw mockup string in Header.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(headerPath, original);
+    assert.equal(
+      fs.readFileSync(headerPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});
+
+test('SPEC-112-04: Real-file defect injection — raw toast in OfflineReadinessBadge.tsx fails scan', () => {
+  const badgePath = path.join(rootDir, 'src', 'components', 'offline', 'OfflineReadinessBadge.tsx');
+  const original = fs.readFileSync(badgePath, 'utf8');
+  try {
+    const defective = original.replace(
+      "toast.error(t('offline.statusScriptureFailed', { refs: failedRefs.join(', ') }));",
+      "toast.error(`Offline scripture failed: ${failedRefs.join(', ')}`);"
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(badgePath, defective);
+
+    const findings = scanRunSheetAndFormLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('OfflineReadinessBadge.tsx contains un-localized raw string: Offline scripture failed:')),
+      'Expected raw string in OfflineReadinessBadge.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(badgePath, original);
+    assert.equal(
+      fs.readFileSync(badgePath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});

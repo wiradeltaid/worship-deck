@@ -943,7 +943,22 @@ export const I18N_KEYS = [
   'offline.statusSyncing',
   'offline.statusStale',
   'offline.statusOffline',
+  'offline.statusScriptureFailed',
   'presenter.lockConfirmWarning',
+  'chrome.nav.mockup',
+  'chrome.offline.settingsDisabledTooltip',
+  'admin.media.categoryLabel',
+  'admin.media.filterAll',
+  'admin.media.filterAnnouncements',
+  'admin.media.filterBackgrounds',
+  'admin.media.filterGeneral',
+  'admin.formLayout.tabGroupings',
+  'admin.formLayout.tabFields',
+  'admin.formLayout.tabSandbox',
+  'admin.formLayout.seedDefaults',
+  'admin.formLayout.seeding',
+  'admin.formLayout.refresh',
+  'admin.formLayout.loading',
 ] as const;
 
 export type I18nKey = (typeof I18N_KEYS)[number];
