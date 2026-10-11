@@ -917,6 +917,15 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'media.drawer.addLocal': 'Pilih Folder',
   'media.drawer.processing': 'Memproses berkas lokal…',
   'media.drawer.availableBadge': 'Tersedia',
+  'media.drawer.liveLabel': 'LIVE',
+  'media.drawer.sendLabel': 'KIRIM',
+  'media.drawer.fileFilterDesc': 'Berkas media',
+  'media.launcher.label': 'Media',
+  'media.dock.openPlaylist': 'Buka Daftar Putar',
+  'media.dock.playlistLabel': 'Playlist',
+  'media.dock.projectedBadge': 'Layar',
+  'media.dock.seekAriaLabel': 'Posisi pemutaran media',
+  'media.dock.volumeAriaLabel': 'Volume media',
   // SPEC-112: Media Status Badge
   'media.badge.local': 'Tersedia di lokal',
   'media.badge.downloading': 'Mengunduh {percent}%',
@@ -947,8 +956,8 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   // SPEC-112: Media Uploader & Errors
   'media.uploader.addMedia': 'Tambah Berkas Media',
   'media.uploader.uploading': 'Mengunggah…',
-  'media.uploader.maxSizeExceeded': 'Ukuran berkas melebihi batas maksimum (100MB)',
-  'media.uploader.unsupportedFormat': 'Format tidak didukung. Harap pilih video MP4 atau WebM.',
+  'media.uploader.maxSizeExceeded': 'Ukuran berkas melebihi batas maksimum (500 MiB)',
+  'media.uploader.unsupportedFormat': 'Format tidak didukung. Harap pilih MP3, WAV, M4A, OGG, MP4, atau WebM.',
   'media.uploader.uploadFailed': 'Gagal mengunggah berkas media',
   'media.uploader.genericError': 'Terjadi kesalahan saat mengunggah media',
   // SPEC-112: Presenter Stage & Monitors

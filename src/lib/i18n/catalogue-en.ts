@@ -915,6 +915,15 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'media.drawer.addLocal': 'Choose Folder',
   'media.drawer.processing': 'Processing local files…',
   'media.drawer.availableBadge': 'Available',
+  'media.drawer.liveLabel': 'LIVE',
+  'media.drawer.sendLabel': 'SEND',
+  'media.drawer.fileFilterDesc': 'Media files',
+  'media.launcher.label': 'Media',
+  'media.dock.openPlaylist': 'Open Playlist',
+  'media.dock.playlistLabel': 'Playlist',
+  'media.dock.projectedBadge': 'Screen',
+  'media.dock.seekAriaLabel': 'Media playback position',
+  'media.dock.volumeAriaLabel': 'Media volume',
   // SPEC-112: Media Status Badge
   'media.badge.local': 'Available locally',
   'media.badge.downloading': 'Downloading {percent}%',
@@ -945,8 +954,8 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   // SPEC-112: Media Uploader & Errors
   'media.uploader.addMedia': 'Add Media File',
   'media.uploader.uploading': 'Uploading…',
-  'media.uploader.maxSizeExceeded': 'File exceeds maximum size limit (100MB)',
-  'media.uploader.unsupportedFormat': 'Unsupported format. Please select MP4 or WebM video.',
+  'media.uploader.maxSizeExceeded': 'File exceeds maximum size limit (500 MiB)',
+  'media.uploader.unsupportedFormat': 'Unsupported format. Please select MP3, WAV, M4A, OGG, MP4, or WebM.',
   'media.uploader.uploadFailed': 'Failed to upload media file',
   'media.uploader.genericError': 'An error occurred during media upload',
   // SPEC-112: Presenter Stage & Monitors

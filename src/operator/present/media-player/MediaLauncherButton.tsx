@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n/operator';
 
 export interface MediaLauncherButtonProps {
   itemCount: number;
@@ -18,6 +19,8 @@ export const MediaLauncherButton = memo(function MediaLauncherButton({
   onClick,
   className,
 }: MediaLauncherButtonProps) {
+  const { t } = useT();
+
   return (
     <Button
       type="button"
@@ -31,7 +34,7 @@ export const MediaLauncherButton = memo(function MediaLauncherButton({
         isDrawerOpen && 'border-primary bg-primary/10 text-primary',
         className
       )}
-      title="Buka Media Player & Playlist"
+      title={t('media.topBar.openDrawerTitle')}
     >
       <Music
         className={cn(
@@ -39,7 +42,7 @@ export const MediaLauncherButton = memo(function MediaLauncherButton({
           isPlaying && 'text-emerald-600 dark:text-emerald-400 animate-pulse'
         )}
       />
-      <span>Media</span>
+      <span>{t('media.launcher.label')}</span>
       {itemCount > 0 && (
         <span
           data-testid="media-launcher-count-badge"

@@ -25,6 +25,7 @@ import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
 import { canProjectMediaItem, type PlaylistState, type PlaylistItem } from './playlist-model';
 import { routePlaybackSource } from './playback-router';
+import { useT } from '@/lib/i18n/operator';
 
 export interface MediaTopBarProps {
   store: MediaStore;
@@ -39,6 +40,7 @@ export const MediaTopBar = memo(function MediaTopBar({
   onOpenDrawer,
   className,
 }: MediaTopBarProps) {
+  const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
 
   useEffect(() => {
@@ -129,17 +131,17 @@ export const MediaTopBar = memo(function MediaTopBar({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => void handlePlayPause()}
           className="h-8 px-2.5 gap-1.5 font-medium"
-          title={state.isPlaying ? 'Jeda Media (Pause)' : 'Putar Media (Play)'}
+          title={state.isPlaying ? t('media.topBar.pauseTitle') : t('media.topBar.playTitle')}
         >
           {state.isPlaying ? (
             <>
               <Pause className="h-3.5 w-3.5" />
-              <span>JEDA</span>
+              <span>{t('media.topBar.pauseLabel')}</span>
             </>
           ) : (
             <>
               <Play className="h-3.5 w-3.5" />
-              <span>PUTAR</span>
+              <span>{t('media.topBar.playLabel')}</span>
             </>
           )}
         </Button>
@@ -153,7 +155,7 @@ export const MediaTopBar = memo(function MediaTopBar({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => void handleStop()}
           className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          title="Berhenti (Stop)"
+          title={t('media.topBar.stopTitle')}
         >
           <Square className="h-3.5 w-3.5" />
         </Button>
@@ -171,10 +173,10 @@ export const MediaTopBar = memo(function MediaTopBar({
             'h-8 px-2 gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10',
             state.isFading && 'animate-pulse bg-amber-500/20'
           )}
-          title="Redam Audio (Fade Out ~3s)"
+          title={t('media.topBar.fadeTitle')}
         >
           <Volume1 className="h-3.5 w-3.5" />
-          <span>FADE</span>
+          <span>{t('media.topBar.fadeLabel')}</span>
         </Button>
 
         {/* Mute Toggle */}
@@ -192,7 +194,7 @@ export const MediaTopBar = memo(function MediaTopBar({
               ? 'bg-destructive/15 text-destructive border-destructive/40'
               : 'text-muted-foreground hover:text-foreground'
           )}
-          title={state.isMuted ? 'Bunyikan (Unmute)' : 'Senyapkan (Mute)'}
+          title={state.isMuted ? t('media.topBar.unmuteTitle') : t('media.topBar.muteTitle')}
         >
           {state.isMuted ? (
             <VolumeX className="h-3.5 w-3.5" />
@@ -218,19 +220,19 @@ export const MediaTopBar = memo(function MediaTopBar({
             )}
             title={
               state.isProjected
-                ? 'Panic: Tarik dari layar proyektor'
-                : 'Tayangkan video ke layar proyektor'
+                ? t('media.topBar.takeOffTitle')
+                : t('media.topBar.projectVideoTitle')
             }
           >
             {state.isProjected ? (
               <>
                 <Monitor className="h-3.5 w-3.5" />
-                <span>OFF SCREEN</span>
+                <span>{t('media.topBar.takeOffLabel')}</span>
               </>
             ) : (
               <>
                 <MonitorOff className="h-3.5 w-3.5" />
-                <span>KE LAYAR</span>
+                <span>{t('media.topBar.projectVideoLabel')}</span>
               </>
             )}
           </Button>
@@ -264,12 +266,12 @@ export const MediaTopBar = memo(function MediaTopBar({
               {activeSource === 'local' ? (
                 <>
                   <HardDrive className="h-2.5 w-2.5" />
-                  <span>Lokal</span>
+                  <span>{t('media.topBar.sourceLocal')}</span>
                 </>
               ) : (
                 <>
                   <Cloud className="h-2.5 w-2.5" />
-                  <span>Cloud</span>
+                  <span>{t('media.topBar.sourceCloud')}</span>
                 </>
               )}
             </span>
@@ -280,7 +282,7 @@ export const MediaTopBar = memo(function MediaTopBar({
           </>
         ) : (
           <span className="text-muted-foreground/70 italic text-[11px]">
-            Belum ada media yang dipilih (Bilah kontrol tetap ~44px tanpa pergeseran layar)
+            {t('media.topBar.emptyPlaceholder')}
           </span>
         )}
       </div>
@@ -295,10 +297,10 @@ export const MediaTopBar = memo(function MediaTopBar({
           onMouseDown={(e) => e.preventDefault()}
           onClick={onOpenDrawer}
           className="h-8 px-2.5 gap-1.5 text-xs text-foreground font-medium"
-          title="Buka Pustaka Media"
+          title={t('media.topBar.openDrawerTitle')}
         >
           <ListMusic className="h-3.5 w-3.5 text-primary" />
-          <span>Pustaka ({state.items.length})</span>
+          <span>{t('media.topBar.drawerCount', { count: state.items.length })}</span>
         </Button>
       </div>
     </div>

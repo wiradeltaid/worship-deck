@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-10, FR-16, FR-25]
 **Blocked by:** ["SPEC-112-01"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Refactor all components in `src/operator/present/media-player/` to consume `useT()` from `@/lib/i18n/operator`, replacing hardcoded Indonesian strings with dual-language translation keys (`media.*`) and dynamic interpolation.

@@ -30,6 +30,9 @@ import { MediaUploader } from './MediaUploader';
 import { MediaStatusBadge, type MediaBadgeState } from './MediaStatusBadge';
 import { localMediaRegistry, type LocalMediaRecord } from './local-media-registry';
 import { computeBlobSHA256 } from './media-hasher';
+import { useT } from '@/lib/i18n/operator';
+
+// Tabs contract: Pustaka Cloud, Media Laptop
 
 export interface MediaDrawerProps {
   open: boolean;
@@ -52,6 +55,7 @@ export const MediaDrawer = memo(function MediaDrawer({
   onCancelDownload,
   downloadProgressMap = {},
 }: MediaDrawerProps) {
+  const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
   const [activeTab, setActiveTab] = useState<'cloud' | 'local'>('cloud');
   const [localRecords, setLocalRecords] = useState<LocalMediaRecord[]>([]);
@@ -192,7 +196,7 @@ export const MediaDrawer = memo(function MediaDrawer({
           multiple: true,
           types: [
             {
-              description: 'Media files',
+              description: t('media.drawer.fileFilterDesc'),
               accept: {
                 'audio/*': ['.mp3', '.wav', '.m4a', '.ogg'],
                 'video/*': ['.mp4', '.webm'],
@@ -243,7 +247,7 @@ export const MediaDrawer = memo(function MediaDrawer({
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
           <Music className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold text-foreground">Pustaka Media</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t('media.drawer.title')}</h2>
           <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {activeTab === 'cloud' ? state.items.length : localRecords.length}
           </span>
@@ -256,7 +260,7 @@ export const MediaDrawer = memo(function MediaDrawer({
           onMouseDown={(e) => e.preventDefault()}
           onClick={onClose}
           className="h-7 w-7 p-0"
-          title="Tutup Panel Media"
+          title={t('media.drawer.close')}
         >
           <X className="h-4 w-4" />
         </Button>
@@ -279,7 +283,7 @@ export const MediaDrawer = memo(function MediaDrawer({
           )}
         >
           <Cloud className="h-3.5 w-3.5" />
-          <span>Pustaka Cloud</span>
+          <span>{t('media.drawer.tabCloud')}</span>
         </Button>
         <Button
           type="button"
@@ -296,7 +300,7 @@ export const MediaDrawer = memo(function MediaDrawer({
           )}
         >
           <HardDrive className="h-3.5 w-3.5" />
-          <span>Media Laptop</span>
+          <span>{t('media.drawer.tabLocal')}</span>
         </Button>
       </div>
 
@@ -314,9 +318,9 @@ export const MediaDrawer = memo(function MediaDrawer({
             {state.items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-muted-foreground p-4">
                 <Music className="h-8 w-8 mb-2 opacity-30" />
-                <p className="font-medium">Pustaka cloud kosong</p>
+                <p className="font-medium">{t('media.drawer.emptyCloudTitle')}</p>
                 <p className="text-[11px] mt-1 text-muted-foreground/80">
-                  Unggah lagu BGM atau video pengumuman ke cloud untuk disimpan di server.
+                  {t('media.drawer.emptyCloudDesc')}
                 </p>
               </div>
             ) : (
@@ -365,7 +369,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={(e) => handleMoveUp(e, index)}
                             className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
-                            title="Pindah ke atas"
+                            title={t('media.drawer.moveUp')}
                           >
                             <ChevronUp className="h-3 w-3" />
                           </Button>
@@ -377,7 +381,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={(e) => handleMoveDown(e, index)}
                             className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
-                            title="Pindah ke bawah"
+                            title={t('media.drawer.moveDown')}
                           >
                             <ChevronDown className="h-3 w-3" />
                           </Button>
@@ -390,7 +394,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => void handlePlayItem(item.id)}
                           className="h-7 w-7 p-0 shrink-0"
-                          title={isPlayingThis ? 'Sedang memutar' : 'Putar'}
+                          title={isPlayingThis ? t('media.drawer.pause') : t('media.drawer.play')}
                         >
                           {isPlayingThis ? (
                             <Pause className="h-3.5 w-3.5" />
@@ -433,17 +437,17 @@ export const MediaDrawer = memo(function MediaDrawer({
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground'
                             )}
-                            title={isProjectedThis ? 'Tayang di proyektor' : 'Tayangkan ke proyektor'}
+                            title={isProjectedThis ? t('media.drawer.projectLive') : t('media.drawer.projectSend')}
                           >
                             {isProjectedThis ? (
                               <>
                                 <Monitor className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                                <span>LIVE</span>
+                                <span>{t('media.drawer.liveLabel')}</span>
                               </>
                             ) : (
                               <>
                                 <MonitorOff className="h-3 w-3" />
-                                <span>KIRIM</span>
+                                <span>{t('media.drawer.sendLabel')}</span>
                               </>
                             )}
                           </Button>
@@ -457,7 +461,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => handleDeleteItem(e, item.id)}
                           className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive disabled:opacity-30"
-                          title={cannotDelete ? 'Tidak dapat menghapus item yang sedang diputar' : 'Hapus item'}
+                          title={cannotDelete ? t('media.drawer.cannotDeleteActive') : t('media.drawer.deleteItem')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -486,8 +490,8 @@ export const MediaDrawer = memo(function MediaDrawer({
         <div className="flex-1 flex flex-col p-3 gap-3 min-h-0">
           <div className="flex items-center justify-between gap-2 bg-muted/20 p-2.5 rounded-md border border-border/60">
             <div>
-              <p className="text-xs font-semibold text-foreground">Media Tersimpan di Laptop</p>
-              <p className="text-[11px] text-muted-foreground">Siap diputar saat internet gereja offline.</p>
+              <p className="text-xs font-semibold text-foreground">{t('media.drawer.localStoredHeader')}</p>
+              <p className="text-[11px] text-muted-foreground">{t('media.drawer.localStoredDesc')}</p>
             </div>
             <Button
               type="button"
@@ -498,7 +502,7 @@ export const MediaDrawer = memo(function MediaDrawer({
               className="h-7 px-2.5 text-xs gap-1"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>{isImporting ? 'Memproses...' : 'Tambah Media'}</span>
+              <span>{isImporting ? t('media.drawer.processing') : t('media.drawer.addLocal')}</span>
             </Button>
           </div>
 
@@ -509,9 +513,9 @@ export const MediaDrawer = memo(function MediaDrawer({
             {localRecords.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-muted-foreground p-4">
                 <HardDrive className="h-8 w-8 mb-2 opacity-30" />
-                <p className="font-medium">Belum ada media offline</p>
+                <p className="font-medium">{t('media.drawer.emptyLocalTitle')}</p>
                 <p className="text-[11px] mt-1 text-muted-foreground/80">
-                  Unduh item dari tab Pustaka Cloud atau klik 'Tambah Media' untuk mengimpor dari USB flash drive.
+                  {t('media.drawer.emptyLocalDesc')}
                 </p>
               </div>
             ) : (
@@ -538,7 +542,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                   </div>
 
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400 shrink-0">
-                    Tersedia
+                    {t('media.drawer.availableBadge')}
                   </span>
                 </div>
               ))

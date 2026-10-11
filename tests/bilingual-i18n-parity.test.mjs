@@ -374,3 +374,93 @@ test('SPEC-112-01: Real-file defect injection — missing key in catalogue-en.ts
     );
   }
 });
+
+export function scanMediaPlayerSuiteLocalization(
+  mediaDir = path.join(rootDir, 'src', 'operator', 'present', 'media-player')
+) {
+  const findings = [];
+  const files = [
+    'MediaDrawer.tsx',
+    'MediaTopBar.tsx',
+    'MediaStatusBadge.tsx',
+    'MediaUploader.tsx',
+    'MediaLauncherButton.tsx',
+    'MediaDock.tsx',
+  ];
+
+  for (const file of files) {
+    const fullPath = path.join(mediaDir, file);
+    if (!fs.existsSync(fullPath)) {
+      findings.push(`File missing: ${file}`);
+      continue;
+    }
+    const content = fs.readFileSync(fullPath, 'utf8');
+    if (!content.includes('useT()')) {
+      findings.push(`${file} must consume useT() hook`);
+    }
+  }
+
+  const drawerSrc = fs.readFileSync(path.join(mediaDir, 'MediaDrawer.tsx'), 'utf8');
+  const topBarSrc = fs.readFileSync(path.join(mediaDir, 'MediaTopBar.tsx'), 'utf8');
+  const dockSrc = fs.readFileSync(path.join(mediaDir, 'MediaDock.tsx'), 'utf8');
+  const uploaderSrc = fs.readFileSync(path.join(mediaDir, 'MediaUploader.tsx'), 'utf8');
+  const launcherSrc = fs.readFileSync(path.join(mediaDir, 'MediaLauncherButton.tsx'), 'utf8');
+
+  // Forbidden un-localized literals
+  const forbiddenRawStrings = [
+    { src: drawerSrc, file: 'MediaDrawer.tsx', raw: 'Tutup Panel Media' },
+    { src: drawerSrc, file: 'MediaDrawer.tsx', raw: '<h2 className="text-sm font-semibold text-foreground">Pustaka Media</h2>' },
+    { src: drawerSrc, file: 'MediaDrawer.tsx', raw: 'Pustaka cloud kosong' },
+    { src: drawerSrc, file: 'MediaDrawer.tsx', raw: 'Belum ada media offline' },
+    { src: drawerSrc, file: 'MediaDrawer.tsx', raw: "description: 'Media files'" },
+    { src: drawerSrc, file: 'MediaDrawer.tsx', raw: '<span>KIRIM</span>' },
+    { src: topBarSrc, file: 'MediaTopBar.tsx', raw: '<span>PUTAR</span>' },
+    { src: topBarSrc, file: 'MediaTopBar.tsx', raw: '<span>JEDA</span>' },
+    { src: topBarSrc, file: 'MediaTopBar.tsx', raw: '<span>FADE</span>' },
+    { src: topBarSrc, file: 'MediaTopBar.tsx', raw: 'title="Berhenti (Stop)"' },
+    { src: dockSrc, file: 'MediaDock.tsx', raw: 'title="Buka Daftar Putar"' },
+    { src: dockSrc, file: 'MediaDock.tsx', raw: 'aria-label="Posisi pemutaran media"' },
+    { src: dockSrc, file: 'MediaDock.tsx', raw: 'aria-label="Volume media"' },
+    { src: launcherSrc, file: 'MediaLauncherButton.tsx', raw: 'title="Buka Media Player & Playlist"' },
+    { src: uploaderSrc, file: 'MediaUploader.tsx', raw: 'Tambah Audio / Video (Maks 500 MiB)' },
+  ];
+
+  for (const { src, file, raw } of forbiddenRawStrings) {
+    if (src.includes(raw)) {
+      findings.push(`${file} contains un-localized raw string: ${raw}`);
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-112-02: Media player suite components consume useT() and avoid hardcoded raw strings', () => {
+  const findings = scanMediaPlayerSuiteLocalization();
+  assert.deepEqual(findings, [], `Expected 0 findings in media player suite, got: ${findings.join(', ')}`);
+});
+
+test('SPEC-112-02: Real-file defect injection — raw un-localized string in MediaDock.tsx fails scan', () => {
+  const dockPath = path.join(rootDir, 'src', 'operator', 'present', 'media-player', 'MediaDock.tsx');
+  const original = fs.readFileSync(dockPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "{t('media.dock.openPlaylist')}",
+      '"Buka Daftar Putar"'
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(dockPath, defective);
+
+    const findings = scanMediaPlayerSuiteLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('MediaDock.tsx contains un-localized raw string')),
+      'Expected raw string in MediaDock.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(dockPath, original);
+    assert.equal(
+      fs.readFileSync(dockPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});
