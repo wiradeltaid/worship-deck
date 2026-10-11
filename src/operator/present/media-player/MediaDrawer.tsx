@@ -431,7 +431,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                           >
                             {isProjectedThis ? (
                               <>
-                                <Monitor className="h-3 w-3 text-emerald-400" />
+                                <Monitor className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                                 <span>LIVE</span>
                               </>
                             ) : (
@@ -517,9 +517,9 @@ export const MediaDrawer = memo(function MediaDrawer({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {record.mimeType.startsWith('video') ? (
-                      <Video className="h-4 w-4 text-blue-500 shrink-0" />
+                      <Video className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
                     ) : (
-                      <Music className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <Music className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     )}
                     <div className="flex flex-col min-w-0">
                       <span className="font-medium text-foreground truncate" title={record.name}>

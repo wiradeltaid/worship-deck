@@ -242,9 +242,9 @@ export const MediaTopBar = memo(function MediaTopBar({
         {activeItem ? (
           <>
             {activeItem.type === 'video' ? (
-              <Video className="h-4 w-4 text-blue-500 shrink-0" />
+              <Video className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
             ) : (
-              <Music className="h-4 w-4 text-emerald-500 shrink-0" />
+              <Music className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             )}
 
             <span className="font-semibold text-foreground truncate max-w-[14rem]" title={activeItem.name}>
