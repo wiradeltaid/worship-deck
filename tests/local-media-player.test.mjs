@@ -239,4 +239,42 @@ test('SPEC-111-05: Service Worker Virtual Streamer & present-channel wire sync',
   assert.equal(projectedMediaCloud.source, 'cloud');
 });
 
+test('SPEC-111-06: Two-Tab MediaDrawer & Accessible 4-State Badge Contract (No Emojis)', async () => {
+  const fs = await import('node:fs');
+
+  // 1. Structural inspection of MediaStatusBadge
+  const badgeSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStatusBadge.tsx');
+  assert.ok(fs.existsSync(badgeSourcePath), 'MediaStatusBadge.tsx must exist');
+  const badgeCode = fs.readFileSync(badgeSourcePath, 'utf8');
+
+  // Absence guard: No emoji characters in badge component
+  // Unicode ranges for emojis: \p{Extended_Pictographic}
+  const emojiRegex = /\p{Extended_Pictographic}/u;
+  assert.equal(
+    emojiRegex.test(badgeCode),
+    false,
+    'Absence guard: MediaStatusBadge must strictly avoid emoji characters'
+  );
+
+  // Accessible 4-state labels
+  assert.ok(badgeCode.includes('Streaming'), 'Must contain visible label "Streaming"');
+  assert.ok(badgeCode.includes('Mengunduh'), 'Must contain visible label "Mengunduh"');
+  assert.ok(badgeCode.includes('Tersedia di lokal'), 'Must contain visible label "Tersedia di lokal"');
+  assert.ok(badgeCode.includes('File terlepas'), 'Must contain visible label "File terlepas"');
+  assert.ok(badgeCode.includes('role="progressbar"'), 'Must have role="progressbar" for downloading');
+  assert.ok(badgeCode.includes('aria-valuenow'), 'Must have aria-valuenow attribute');
+
+  // 2. Structural inspection of MediaDrawer two-tab layout
+  const drawerSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
+  const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
+
+  assert.ok(drawerCode.includes('Pustaka Cloud'), 'Must contain "Pustaka Cloud" tab');
+  assert.ok(drawerCode.includes('Media Laptop'), 'Must contain "Media Laptop" tab');
+  assert.ok(drawerCode.includes('tab-cloud'), 'Must contain data-testid="tab-cloud"');
+  assert.ok(drawerCode.includes('tab-local'), 'Must contain data-testid="tab-local"');
+  assert.ok(drawerCode.includes('btn-add-local-media'), 'Must provide "btn-add-local-media" manual import');
+});
+
+
 

@@ -8,10 +8,10 @@ artifact: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-
 
 - Iteration: I-1
 - Run branch: autopilot/DEC-097
-- Stopped at: In progress — SPEC-111-05 closed, ready for SPEC-111-06
+- Stopped at: In progress — SPEC-111-06 closed, ready for SPEC-111-07
 - Blocked: —
 - Parked: —
-- Next: SPEC-111-06 (Two-tab drawer UI and badge contracts)
+- Next: SPEC-111-07 (Conscious downloader and folder management)
 
 ## Decisions
 
@@ -23,6 +23,7 @@ artifact: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-
 | I-1 | SPEC-111-03 | Implement playlist REST endpoints, refcounted asset purge with 409 conflict guard, and HTTP 206 Partial Content byte range streaming | unconditional physical file deletion or non-streamable whole-file delivery | broken media references in other services and video seeking freezes in presenter | internal/httpapi/media_playlist.go, internal/httpapi/server.go, internal/httpapi/media_playlist_test.go |
 | I-1 | SPEC-111-04 | Implement LocalMediaRegistry with separate directory handle and sha256 index stores, O(1) matching map, and chunked streaming hasher | relying on filename/metadata equality or main-thread hashing | UI lockups during 1GB video ingest and false matching across distinct media | src/operator/present/media-player/media-hasher.ts, src/operator/present/media-player/local-media-registry.ts, src/operator/present/media-player/index.ts, tests/local-media-player.test.mjs |
 | I-1 | SPEC-111-05 | Implement root public/media-sw.js virtual streamer for /local-media/ namespace, RFC 7233 byte-range slicing, and present-channel source: local wire protocol | loading whole files into memory or streaming local media through loopback HTTP | excessive memory consumption on 1GB videos and broken projector seeking | public/media-sw.js, src/operator/present/media-player/virtual-streamer.ts, src/lib/present-channel.ts, src/projected/media/ProjectedMediaLayer.tsx, tests/local-media-player.test.mjs |
+| I-1 | SPEC-111-06 | Implement two-tab layout (Pustaka Cloud vs Media Laptop) in MediaDrawer and accessible 4-state badge contract without emojis | mixed single-list clutter or unlabelled emoji icons | operator confusion over cloud vs offline availability and accessibility regressions | src/operator/present/media-player/MediaStatusBadge.tsx, src/operator/present/media-player/MediaDrawer.tsx, src/operator/present/media-player/index.ts, tests/local-media-player.test.mjs |
 
 ## Smoke Test Results
 
@@ -32,3 +33,4 @@ artifact: .control/decisions/DEC-097-daily-autopilot-mandate-direct-local-media-
 - SPEC-111-03: PASS (Playlist CRUD, PATCH reordering, HTTP 206 Content-Range streaming, 416 OOB range handling, refcounted unlinking, and 409 purge conflict guard green; internal/httpapi/media_playlist_test.go green)
 - SPEC-111-04: PASS (Chunked streaming SHA-256 with progress callback, empty blob hash parity, LocalMediaRegistry dual stores, staleness detection on size/mtime change, and O(1) matching map green; tests/local-media-player.test.mjs & smoke:spec-111 green)
 - SPEC-111-05: PASS (RFC 7233 byte range parser, /local-media/ URL resolution, media-sw.js namespace isolation, ProjectedSource.source wire synchronization, and projector muted invariant green; tests/local-media-player.test.mjs & smoke:spec-111 green)
+- SPEC-111-06: PASS (No emojis in badge contract, 4-state labels [Streaming, Mengunduh, Tersedia di lokal, File terlepas], role=progressbar, and two-tab MediaDrawer structure green; tests/local-media-player.test.mjs & smoke:spec-111 green)
