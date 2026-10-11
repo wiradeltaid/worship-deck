@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-28, FR-16, FR-33]
 **Blocked by:** none
-**Status:** open
+**Status:** closed
 
 ## Summary
 Implement the underlying domain model, pure playlist transitions, external subscription store, and singleton HTMLMediaElement engine wrapper in `src/operator/present/media-player/`.
