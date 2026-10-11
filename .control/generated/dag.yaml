@@ -101,6 +101,16 @@ dag:
     - SPEC-111-03
   - parallel:
     - SPEC-111-04
+  - parallel:
+    - SPEC-111-05
+  - parallel:
+    - SPEC-111-06
+  - parallel:
+    - SPEC-111-07
+  - parallel:
+    - SPEC-111-08
+  - parallel:
+    - SPEC-111-09
 - spec: SPEC-12
   order:
   - parallel:

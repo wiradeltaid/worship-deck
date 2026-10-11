@@ -4632,8 +4632,8 @@ waves:
     spec_folder: .scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/
     spec_reviewed:
       date: '2026-10-11'
-      sha: 'c373ca46'
-      lenses: [structure, prose, edge-case-hunter, requirements-traceability, present-channel-protocol, runtime-testability]
+      sha: 'f38929f5'
+      lenses: [structure, prose, edge-case-hunter, traceability, protocol-contract, platform-storage, testability]
     tickets:
       - id: "SPEC-111-01"
         component: presenter
@@ -4646,21 +4646,56 @@ waves:
         component: presenter
         satisfies: [UC-12, FR-16]
         blocked_by: ["SPEC-111-01"]
-        touches: [operator-present, projector-client, present-channel]
+        touches: [uploads]
         tests:
           - tests/local-media-player.test.mjs
       - id: "SPEC-111-03"
         component: presenter
         satisfies: [UC-12, FR-16]
         blocked_by: ["SPEC-111-02"]
-        touches: [operator-present]
+        touches: [uploads]
         tests:
           - tests/local-media-player.test.mjs
       - id: "SPEC-111-04"
         component: presenter
         satisfies: [UC-12, FR-16]
         blocked_by: ["SPEC-111-03"]
+        touches: [operator-present]
+        tests:
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-111-05"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-111-04"]
         touches: [operator-present, projector-client, present-channel]
+        tests:
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-111-06"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-111-05"]
+        touches: [operator-present]
+        tests:
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-111-07"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-111-06"]
+        touches: [operator-present]
+        tests:
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-111-08"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-111-07"]
+        touches: [operator-present, projector-client, present-channel]
+        tests:
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-111-09"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: ["SPEC-111-08"]
+        touches: [operator-present, projector-client, present-channel, uploads]
         tests:
           - tests/local-media-player.test.mjs
 
