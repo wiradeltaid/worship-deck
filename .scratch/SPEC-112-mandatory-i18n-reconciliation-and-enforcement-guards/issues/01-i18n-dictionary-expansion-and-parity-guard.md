@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-10, FR-25]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Upgrade the i18n resolver with token interpolation (`{variable}`), expand dictionary keys in `keys.ts`, `catalogue-en.ts`, and `catalogue-id.ts`, and consolidate automated guards in `tests/bilingual-i18n-parity.test.mjs` with parity validation and scoped raw string detection.

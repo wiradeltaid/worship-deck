@@ -226,3 +226,151 @@ test('SPEC-86-06: Real-file defect injection — missing key declaration in keys
     assert.equal(fs.readFileSync(keysPath, 'utf8'), original, 'file must be restored identically');
   }
 });
+
+export function scanAllKeysBilingualParity(
+  enPath = catalogueEnPath,
+  idPath = catalogueIdPath,
+  kPath = keysPath
+) {
+  const findings = [];
+  const enSrc = fs.readFileSync(enPath, 'utf8');
+  const idSrc = fs.readFileSync(idPath, 'utf8');
+  const keysSrc = fs.readFileSync(kPath, 'utf8');
+
+  for (const key of I18N_KEYS) {
+    const keyLiteral = `'${key}'`;
+    if (!keysSrc.includes(keyLiteral)) {
+      findings.push(`keys.ts missing key declaration: ${key}`);
+    }
+    if (!enSrc.includes(`${keyLiteral}:`)) {
+      findings.push(`catalogue-en.ts missing translation for key: ${key}`);
+    }
+    if (!idSrc.includes(`${keyLiteral}:`)) {
+      findings.push(`catalogue-id.ts missing translation for key: ${key}`);
+    }
+
+    const enVal = resolveString(key, 'en');
+    const idVal = resolveString(key, 'id');
+    if (!enVal || enVal.trim() === '' || enVal.startsWith('[missing:')) {
+      findings.push(`English translation missing or empty for key: ${key}`);
+    }
+    if (!idVal || idVal.trim() === '' || idVal.startsWith('[missing:')) {
+      findings.push(`Indonesian translation missing or empty for key: ${key}`);
+    }
+  }
+
+  return findings;
+}
+
+test('SPEC-112-01: Full dictionary parity across all I18N_KEYS', () => {
+  const findings = scanAllKeysBilingualParity();
+  assert.deepEqual(
+    findings,
+    [],
+    `Expected 0 findings across all ${I18N_KEYS.length} keys, got: ${findings.join(', ')}`
+  );
+});
+
+test('SPEC-112-01: Interpolation engine replaces {variable} tokens and handles edge cases', () => {
+  // 1. Numeric percent interpolation
+  assert.equal(
+    resolveString('media.badge.downloading', 'en', { percent: 45 }),
+    'Downloading 45%'
+  );
+  assert.equal(
+    resolveString('media.badge.downloading', 'id', { percent: 45 }),
+    'Mengunduh 45%'
+  );
+
+  // 2. Count interpolation
+  assert.equal(
+    resolveString('media.topBar.drawerCount', 'en', { count: 3 }),
+    'Media (3)'
+  );
+  assert.equal(
+    resolveString('media.topBar.drawerCount', 'id', { count: 3 }),
+    'Media (3)'
+  );
+
+  // 3. Interval interpolation
+  assert.equal(
+    resolveString('presenter.stage.loopingBadge', 'en', { interval: 5 }),
+    'Looping (5s)'
+  );
+  assert.equal(
+    resolveString('presenter.stage.loopingBadge', 'id', { interval: 5 }),
+    'Looping (5s)'
+  );
+
+  // 4. Slide index interpolation
+  assert.equal(
+    resolveString('runsheet.resumeAction', 'en', { slide: 12 }),
+    'Resume (Slide 12)'
+  );
+  assert.equal(
+    resolveString('runsheet.resumeAction', 'id', { slide: 12 }),
+    'Lanjutkan (Slide 12)'
+  );
+
+  // 5. Missing param preserves {token}
+  assert.equal(
+    resolveString('media.badge.downloading', 'en', {}),
+    'Downloading {percent}%'
+  );
+
+  // 6. Missing key defect marker invariant
+  assert.equal(
+    resolveString('nonexistent.key.xyz', 'en'),
+    '[missing:i18n:nonexistent.key.xyz]'
+  );
+});
+
+test('SPEC-112-01: operator.tsx static contract wires optional params in LocaleApi.t and useT()', () => {
+  const operatorSrc = fs.readFileSync(
+    path.join(rootDir, 'src', 'lib', 'i18n', 'operator.tsx'),
+    'utf8'
+  );
+  assert.ok(
+    operatorSrc.includes(
+      't: (key: I18nKey, params?: Record<string, string | number>) => string;'
+    ),
+    'LocaleApi.t must declare optional params parameter'
+  );
+  assert.ok(
+    operatorSrc.includes('t: (key, params) => resolveString(key, locale, params)'),
+    'OperatorUiLocaleProvider must forward params to resolveString'
+  );
+  assert.ok(
+    operatorSrc.includes("t: (key, params) => resolveString(key, 'en', params)"),
+    'useT fallback must forward params to resolveString'
+  );
+});
+
+test('SPEC-112-01: Real-file defect injection — missing key in catalogue-en.ts fails all-keys parity guard', () => {
+  const original = fs.readFileSync(catalogueEnPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "'media.badge.downloading': 'Downloading {percent}%',",
+      ''
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(catalogueEnPath, defective);
+
+    const findings = scanAllKeysBilingualParity();
+    assert.ok(
+      findings.some((f) =>
+        f.includes(
+          'catalogue-en.ts missing translation for key: media.badge.downloading'
+        )
+      ),
+      'Expected missing key in catalogue-en.ts to fail guard'
+    );
+  } finally {
+    fs.writeFileSync(catalogueEnPath, original);
+    assert.equal(
+      fs.readFileSync(catalogueEnPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});
