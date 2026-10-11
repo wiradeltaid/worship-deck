@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-02"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement Go HTTP API routes for cloud media playlist CRUD, reordering, reference-counted file unlinking/purging addressed by durable storage key, and HTTP 206 Partial Content range streaming.
@@ -26,3 +26,7 @@ Implement Go HTTP API routes for cloud media playlist CRUD, reordering, referenc
 - `purge` endpoint correctly deletes physical files when refcount = 0 and safely preserves them when refcount > 0.
 - `GET /api/media/:id/content` properly answers Range headers with HTTP 206 and accurate `Content-Range`.
 - Automated Go HTTP tests cover all routes, reordering, refcount query logic, and path traversal guards.
+
+## Comments
+
+- 2026-10-11: Implemented playlist REST endpoints (GET, POST, PATCH reorder, DELETE with refcounted purge), purge by storage key with 409 conflict on active references, and HTTP 206 Content-Range streaming in `media_playlist.go`, registered in `server.go`, and verified in `media_playlist_test.go`.
