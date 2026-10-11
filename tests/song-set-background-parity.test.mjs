@@ -74,12 +74,12 @@ test('SPEC-81-03: DynamicFormBody background selector wires Use Song-Set Default
   // 3. Select placeholder and option use "Use Song-Set Default"
   assert.match(
     src,
-    /Use Song-Set Default/,
+    /Use Song-Set Default|form\.songSet\.useDefaultBackground/,
     'SelectTrigger or content must show "Use Song-Set Default"'
   );
   assert.match(
     src,
-    /Use Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)/,
+    /Use Song-Set Default \(#\$\{songSetDefaultBg\.id\}\)|form\.songSet\.useDefaultBackground/,
     'Select option must render "Use Song-Set Default (#{id})"'
   );
 
@@ -144,7 +144,7 @@ test('SPEC-82-02: Song-Set Background Dropdown Containment & Typography in Dynam
   // 7. SelectItem value="default" in SelectContent retains full descriptive label
   assert.match(
     src,
-    /<SelectItem\s+value=['"]default['"]>[\s\S]*?Use Song-Set Default/,
+    /<SelectItem\s+value=['"]default['"]>[\s\S]*?(?:Use Song-Set Default|form\.songSet\.useDefaultBackground)/,
     'SelectContent must retain Use Song-Set Default in options list'
   );
 });
@@ -302,7 +302,7 @@ test('SPEC-81-03: Real-file defect injection proofs for DynamicFormBody and canv
     const hasProp = /backgroundLibrary\s*:\s*Array<\{[\s\S]*?defaultRoles\?\s*:\s*string\[\]/.test(source);
     const hasSongSetDefaultBg = /const\s+songSetDefaultBg\s*=\s*backgroundLibrary\.find/.test(source);
     const hasRoleCheck = /b\.defaultRoles\?\.includes\(['"]song_set['"]\)/.test(source);
-    const hasLabel = /Use Song-Set Default/.test(source);
+    const hasLabel = /Use Song-Set Default|form\.songSet\.useDefaultBackground/.test(source);
     const hasThumb = /<img\s+src=\{songSetDefaultBg\.url\}/.test(source);
     return hasProp && hasSongSetDefaultBg && hasRoleCheck && hasLabel && hasThumb;
   }
@@ -327,7 +327,9 @@ test('SPEC-81-03: Real-file defect injection proofs for DynamicFormBody and canv
   }
 
   // Defect 2: Injected missing label in DynamicFormBody.tsx
-  const defectForm2 = originalFormBody.replace(/Use Song-Set Default/g, 'Default Background');
+  const defectForm2 = originalFormBody.includes('form.songSet.useDefaultBackground')
+    ? originalFormBody.replace(/form\.songSet\.useDefaultBackground/g, 'defaultBackground')
+    : originalFormBody.replace(/Use Song-Set Default/g, 'Default Background');
   try {
     fs.writeFileSync(FORM_BODY_PATH, defectForm2, 'utf8');
     assert.equal(verifyFormBody(readFormBodySource()), false, 'Must detect reverted label');

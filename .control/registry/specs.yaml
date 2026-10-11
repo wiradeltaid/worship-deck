@@ -4743,7 +4743,7 @@ waves:
           - tests/bilingual-i18n-parity.test.mjs
 
   - id: SPEC-113
-    status: open
+    status: closed
     release: unified-media-control-bar-and-single-list-library
     prd: [operator-turn]
     fr: [FR-16, FR-25]

@@ -269,11 +269,14 @@ test('SPEC-111-06: Two-Tab MediaDrawer & Accessible 4-State Badge Contract (No E
   assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
   const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
 
-  assert.ok(drawerCode.includes('Pustaka Cloud'), 'Must contain "Pustaka Cloud" tab');
-  assert.ok(drawerCode.includes('Media Laptop'), 'Must contain "Media Laptop" tab');
-  assert.ok(drawerCode.includes('tab-cloud'), 'Must contain data-testid="tab-cloud"');
-  assert.ok(drawerCode.includes('tab-local'), 'Must contain data-testid="tab-local"');
-  assert.ok(drawerCode.includes('btn-add-local-media'), 'Must provide "btn-add-local-media" manual import');
+  assert.ok(
+    drawerCode.includes('unified-media-list') || drawerCode.includes('tab-cloud'),
+    'Must contain unified-media-list or legacy tab-cloud'
+  );
+  assert.ok(
+    drawerCode.includes('btn-add-media') || drawerCode.includes('btn-add-local-media'),
+    'Must provide add media button'
+  );
 });
 
 test('SPEC-111-07: Conscious Downloader Engine, Preflight Bulk Calculation, and Abort Verification', async () => {
@@ -941,6 +944,56 @@ test('SPEC-113-03: Unified Single-List Playlist Model, DEC-098 Storage Ladder, a
   assert.equal(staleLazyRes.url, '/api/uploads/stale.mp4', 'Stale file must not be served as blob URL');
 
   assert.doesNotThrow(() => revokeActiveMediaBlobUrl());
+});
+
+test('SPEC-113-04: Unified Media Drawer UI, 4-Way Segmented Filter, and Dual Action Workflows', async () => {
+  const fs = await import('node:fs');
+
+  // 1. Structural inspection of MediaDrawer unified list and filter bar
+  const drawerSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
+  const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
+
+  function assertUnifiedMediaDrawerContract(code) {
+    // Single unified list and primary entry door
+    assert.ok(code.includes('data-testid="unified-media-list"'), 'Must contain unified single list');
+    assert.ok(code.includes('data-testid="btn-add-media"'), 'Must provide primary "btn-add-media" button');
+
+    // 4-way filter bar
+    assert.ok(code.includes('data-testid="media-drawer-filter-bar"'), 'Must contain 4-way filter bar');
+    assert.ok(code.includes('data-testid={`filter-${mode.id}`}') || code.includes('data-testid="filter-all"'), 'Must contain filter testids');
+    assert.ok(code.includes("'cloud-only'") && code.includes("'local-only'") && code.includes("'synced'"), 'Must contain all 4 filter modes');
+
+    // Status icons
+    assert.ok(code.includes('data-testid={`status-icon-${item.id}`}'), 'Must contain compact status icon element');
+    assert.ok(code.includes('h-3.5 w-3.5 text-emerald-600'), 'Must contain synced status icon');
+    assert.ok(code.includes('h-3.5 w-3.5 text-blue-600'), 'Must contain local-only status icon');
+
+    // Dual action workflows & deletions
+    assert.ok(code.includes("t('media.drawer.downloadToLocal')"), 'Must provide cloud-to-local download action');
+    assert.ok(code.includes("t('media.drawer.uploadToCloud')"), 'Must provide local-to-cloud upload action');
+    assert.ok(code.includes("t('media.drawer.deleteFromCloud')"), 'Must provide cloud deletion action');
+    assert.ok(code.includes("t('media.drawer.deleteFromLocal')"), 'Must provide local unlinking action');
+  }
+
+  // 1. Pristine code must satisfy all structural contracts
+  assertUnifiedMediaDrawerContract(drawerCode);
+
+  // 2. Defect injection proof: removing unified list throws assertion failure
+  try {
+    const defective = drawerCode.replace('data-testid="unified-media-list"', 'data-testid="legacy-list"');
+    assert.notEqual(defective, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerSourcePath, defective);
+    const readDefective = fs.readFileSync(drawerSourcePath, 'utf8');
+    assert.throws(
+      () => assertUnifiedMediaDrawerContract(readDefective),
+      /Must contain unified single list/,
+      'Defect injection proof: missing unified list throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerSourcePath, drawerCode);
+    assert.equal(fs.readFileSync(drawerSourcePath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
 });
 
 

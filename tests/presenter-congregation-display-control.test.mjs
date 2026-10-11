@@ -343,7 +343,7 @@ test('SPEC-103-04: structural scan and defect injection verify handleCloseClick 
   const src = fs.readFileSync(compPath, 'utf8');
 
   function validateCloseHandlerGuard(code) {
-    const fnMatch = code.match(/const handleCloseClick = useCallback\([\s\S]*?\[onCloseProjector, presentationLock\]\s*\);/);
+    const fnMatch = code.match(/const handleCloseClick = useCallback\([\s\S]*?\[onCloseProjector,\s*presentationLock(?:,\s*t)?\]\s*\);/);
     if (!fnMatch) throw new Error('handleCloseClick callback missing');
     const body = fnMatch[0];
     if (!/if\s*\(\s*presentationLock\s*\)[\s\S]*?window\.confirm[\s\S]*?if\s*\(\s*!confirmed\s*\)\s*return;/.test(body)) {

@@ -31,6 +31,8 @@ export interface PlaylistItem {
   sha256?: string;
   source?: 'local' | 'cloud';
   orderKey?: string;
+  cloud?: CloudPresence;
+  local?: LocalPresence;
 }
 
 export interface UnifiedPlaylistItem extends PlaylistItem {

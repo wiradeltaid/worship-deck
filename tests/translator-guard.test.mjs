@@ -1,9 +1,8 @@
 /**
- * Guard test against multi-argument translator calls across src/ and spa/src/.
+ * Guard test against invalid excessive translator calls across src/ and spa/src/.
  *
- * `LocaleApi.t` takes exactly one argument `(key: I18nKey) => string`.
- * Any call like `t('some.key', { ... })` drops the params object and leaks
- * raw template placeholders (e.g. `{n}`) to the screen.
+ * SPEC-112 ratified `LocaleApi.t(key: I18nKey, params?: Record<string, string | number>)`.
+ * Any call with more than two arguments (e.g. `t(key, params, extra)`) is invalid.
  */
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -42,25 +41,55 @@ function relPosix(absPath) {
 export function scanTranslatorCalls(source, rel) {
   const findings = [];
   const clean = stripComments(source);
-  // Match t('key', or t("key", across multiple lines
-  const pattern = /\bt\(\s*['"][^'"]+['"]\s*,/g;
+  const startRegex = /\bt\(\s*(['"][^'"]+['"])\s*,/g;
   let match;
 
-  while ((match = pattern.exec(clean)) !== null) {
-    const matchIndex = match.index;
-    // Derive line number from the match offset in clean
-    const lineNo = clean.slice(0, matchIndex).split('\n').length;
-    // Find the full line text where the call starts
-    const lineStart = clean.lastIndexOf('\n', matchIndex) + 1;
-    let lineEnd = clean.indexOf('\n', matchIndex);
-    if (lineEnd === -1) lineEnd = clean.length;
-    const line = clean.slice(lineStart, lineEnd).trim();
+  while ((match = startRegex.exec(clean)) !== null) {
+    const startIdx = match.index;
+    const argsStart = match.index + match[0].length;
+    let depthParen = 1;
+    let depthBrace = 0;
+    let depthBracket = 0;
+    let inQuote = null;
+    let topLevelCommas = 1;
 
-    findings.push({
-      rel,
-      lineNo,
-      line,
-    });
+    let i = argsStart;
+    while (i < clean.length) {
+      const ch = clean[i];
+      if (inQuote) {
+        if (ch === inQuote && clean[i - 1] !== '\\') inQuote = null;
+      } else if (ch === '"' || ch === "'" || ch === '`') {
+        inQuote = ch;
+      } else if (ch === '(') {
+        depthParen++;
+      } else if (ch === ')') {
+        depthParen--;
+        if (depthParen === 0) break;
+      } else if (ch === '{') {
+        depthBrace++;
+      } else if (ch === '}') {
+        depthBrace--;
+      } else if (ch === '[') {
+        depthBracket++;
+      } else if (ch === ']') {
+        depthBracket--;
+      } else if (ch === ',' && depthParen === 1 && depthBrace === 0 && depthBracket === 0) {
+        topLevelCommas++;
+      }
+      i++;
+    }
+
+    if (topLevelCommas >= 2) {
+      const lineNo = clean.slice(0, startIdx).split('\n').length;
+      const lineStart = clean.lastIndexOf('\n', startIdx) + 1;
+      let lineEnd = clean.indexOf('\n', startIdx);
+      if (lineEnd === -1) lineEnd = clean.length;
+      findings.push({
+        rel,
+        lineNo,
+        line: clean.slice(lineStart, lineEnd).trim(),
+      });
+    }
   }
   return findings;
 }
@@ -74,34 +103,34 @@ function allFindings() {
   return files.flatMap(scanFile);
 }
 
-test('src/ and spa/src/ contain no multi-argument translator calls t(key, params)', () => {
+test('src/ and spa/src/ contain no excessive (>2) translator calls t(key, params, ...)', () => {
   const findings = allFindings();
   assert.deepEqual(
     findings,
     [],
     findings.length
-      ? `Found multi-argument translator calls:\n${findings
+      ? `Found excessive translator calls:\n${findings
           .map((f) => `  ${f.rel}:${f.lineNo} ${f.line}`)
           .join('\n')}`
       : undefined
   );
 });
 
-test('guard proof: multi-arg t() call with params object is detected', () => {
+test('guard proof: excessive (>2) args in t() call is detected', () => {
   assert.deepEqual(
-    scanTranslatorCalls("return t('form.preview.role.verse', { n: 1 });", 'src/lib/artifacts/preview-model.ts'),
+    scanTranslatorCalls("return t('form.preview.role.verse', { n: 1 }, 'extra');", 'src/lib/artifacts/preview-model.ts'),
     [
       {
         rel: 'src/lib/artifacts/preview-model.ts',
         lineNo: 1,
-        line: "return t('form.preview.role.verse', { n: 1 });",
+        line: "return t('form.preview.role.verse', { n: 1 }, 'extra');",
       },
     ]
   );
 });
 
-test('guard proof: wrapped multi-line t() call is detected', () => {
-  const wrappedCall = `const x = t('form.preview.role.verse',\n  { n: 1 });`;
+test('guard proof: wrapped multi-line t() call with excessive args is detected', () => {
+  const wrappedCall = `const x = t('form.preview.role.verse',\n  { n: 1 },\n  'extra');`;
   assert.deepEqual(
     scanTranslatorCalls(wrappedCall, 'src/example.ts'),
     [

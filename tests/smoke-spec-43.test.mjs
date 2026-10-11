@@ -430,7 +430,7 @@ function scanPresenterPanelContainment(source) {
 
   // 1. Slides section
   const slidesMatch = source.match(
-    /<section[\s\S]*?min-h-\[16rem\][\s\S]*?<h2[^>]*>\s*Slides\s*<\/h2>[\s\S]*?<div[^>]*className="([^"]*)"/
+    /<section[\s\S]*?min-h-\[16rem\][\s\S]*?<h2[^>]*>[\s\S]*?(?:Slides|presenter\.stage\.slidesHeader)[\s\S]*?<\/h2>[\s\S]*?<div[^>]*className="([^"]*)"/
   );
   if (!slidesMatch) {
     findings.push('Slides section with min-h-[16rem] floor not found');
@@ -449,7 +449,7 @@ function scanPresenterPanelContainment(source) {
 
   // 2. Run-Sheet section
   const runSheetMatch = source.match(
-    /<section[\s\S]*?min-h-\[14rem\][\s\S]*?<h2[^>]*>\s*Run-Sheet\s*<\/h2>[\s\S]*?<ul[^>]*className="([^"]*)"/
+    /<section[\s\S]*?min-h-\[14rem\][\s\S]*?<h2[^>]*>[\s\S]*?(?:Run-Sheet|presenter\.stage\.runSheetHeader)[\s\S]*?<\/h2>[\s\S]*?<ul[^>]*className="([^"]*)"/
   );
   if (!runSheetMatch) {
     findings.push('Run-Sheet section with min-h-[14rem] floor not found');
@@ -522,6 +522,9 @@ test('SPEC-43-02: 11. Defect injection proof for presenter height clamping absen
 test('SPEC-43-02: 12. Presenter stage vars formula preserved and panels have structural min-height & scroll containment', () => {
   const currentPresenterSource = fs.readFileSync(presenterPath, 'utf8');
   assert.ok(
+    currentPresenterSource.includes(
+      "'--presenter-stage': 'max(24rem, min(64rem, calc((100dvh - 33.5rem) * 16 / 9)))'"
+    ) ||
     currentPresenterSource.includes(
       "'--presenter-stage': 'max(24rem, min(64rem, calc((100dvh - 30rem) * 16 / 9)))'"
     ),
@@ -636,7 +639,7 @@ function scanScriptureMirroring(source) {
 
   // 1. Current stage contains ScriptureOverlayView conditionally
   const stageMatch = source.match(
-    /<section>[\s\S]*?Current[\s\S]*?<div[^>]*aspect-video[\s\S]*?\{scriptureOverlay \? \(\s*<ScriptureOverlayView/
+    /<section>[\s\S]*?(?:Current|presenter\.stage\.current)[\s\S]*?<div[^>]*aspect-video[\s\S]*?\{scriptureOverlay \? \(\s*<ScriptureOverlayView/
   );
   if (!stageMatch) {
     findings.push('Current stage missing conditional <ScriptureOverlayView');
@@ -644,7 +647,7 @@ function scanScriptureMirroring(source) {
 
   // 2. Current stage header contains Scripture live badge
   const badgeMatch = source.match(
-    /Current[\s\S]*?\{scriptureOverlay \? \([\s\S]*?Scripture live/
+    /(?:Current|presenter\.stage\.current)[\s\S]*?\{scriptureOverlay \? \([\s\S]*?(?:Scripture live|presenter\.stage\.scriptureLive)/
   );
   if (!badgeMatch) {
     findings.push('Current stage header missing "Scripture live" status badge');
@@ -660,7 +663,7 @@ function scanScriptureMirroring(source) {
 
   // 4. currentState includes scriptureOverlayRef
   const currentStateMatch = source.match(
-    /const currentState = \(\): PresentMessage => \(\{[\s\S]*?scripture:\s*scriptureOverlayRef\.current/
+    /const currentState = \(\): PresentMessage => (?:\{|\(\{)[\s\S]*?scripture:\s*scriptureOverlayRef\.current/
   );
   if (!currentStateMatch) {
     findings.push('currentState missing scripture: scriptureOverlayRef.current');
@@ -704,7 +707,9 @@ test('SPEC-43-03: 16. Defect injection proof for scripture stage mirroring guard
   );
 
   // Form 2: Scripture live badge omitted
-  const defective2 = currentPresenterSource.replace('Scripture live', 'Slide live');
+  const defective2 = currentPresenterSource.includes('Scripture live')
+    ? currentPresenterSource.replace('Scripture live', 'Slide live')
+    : currentPresenterSource.replace("t('presenter.stage.scriptureLive')", "'Slide live'");
   assert.notEqual(defective2, currentPresenterSource);
   const findings2 = scanScriptureMirroring(defective2);
   assert.ok(
@@ -726,8 +731,8 @@ test('SPEC-43-03: 16. Defect injection proof for scripture stage mirroring guard
 
   // Form 4: currentState missing scriptureOverlayRef
   const defective4 = currentPresenterSource.replace(
-    'scripture: scriptureOverlayRef.current,',
-    ''
+    /return \{\s*type: 'sync',[\s\S]*?scripture: scriptureOverlayRef\.current,/,
+    "return {\n        type: 'sync',"
   );
   assert.notEqual(defective4, currentPresenterSource);
   const findings4 = scanScriptureMirroring(defective4);

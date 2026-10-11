@@ -377,7 +377,7 @@ test('SPEC-46-06: Admin Layout Builder & Predefined Fields Panel integration', (
   assert.match(adminPanelSource, /Tambah Slot ke Kartu/);
   assert.match(adminPanelSource, /Buat Predefined Field Baru/);
   assert.match(adminPanelSource, /Interactive Regex Testing Sandbox/);
-  assert.match(adminPanelSource, /Seed Default Predefined Fields/);
+  assert.match(adminPanelSource, /Seed Default Predefined Fields|admin\.formLayout\.seedDefaults/);
 
   // Verify wiring into RegistryAdmin.tsx
   const registryAdminPath = path.join(root, 'src', 'components', 'admin', 'RegistryAdmin.tsx');

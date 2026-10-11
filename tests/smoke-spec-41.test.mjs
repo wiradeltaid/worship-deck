@@ -232,6 +232,7 @@ test('SPEC-41-02: 1. PresenterOperator discriminates announcement groupKind and 
     'PresenterOperator must apply purple badge styling for announcement groups'
   );
   assert.ok(
+    presenterOpCode.includes("row.groupKind === 'announcement' ? t('presenter.stage.announcementChip') : t('presenter.stage.songSetChip')") ||
     presenterOpCode.includes("row.groupKind === 'announcement' ? 'Announcement' : 'Song Set'"),
     'PresenterOperator must dynamically display Announcement vs Song Set badge text'
   );
@@ -291,6 +292,7 @@ test('SPEC-41-03: 2. Executable absence guards & defect-injection proofs for ann
   // Guard 2: PresenterOperator must dynamically render Announcement badge and not hardcode Song Set
   function verifyPresenterBadgeDiscrimination(source) {
     assert.ok(
+      source.includes("row.groupKind === 'announcement' ? t('presenter.stage.announcementChip') : t('presenter.stage.songSetChip')") ||
       source.includes("row.groupKind === 'announcement' ? 'Announcement' : 'Song Set'"),
       'PresenterOperator must discriminate Announcement vs Song Set'
     );
@@ -304,7 +306,7 @@ test('SPEC-41-03: 2. Executable absence guards & defect-injection proofs for ann
 
   // Defect injection 2: hardcoding Song Set badge
   const defect2 = presenterOpCode.replace(
-    "row.groupKind === 'announcement' ? 'Announcement' : 'Song Set'",
+    /row\.groupKind === 'announcement' \? [^:]+ : [^\n]+/,
     "'Song Set'"
   );
   assert.throws(

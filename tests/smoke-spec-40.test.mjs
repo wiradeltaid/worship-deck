@@ -227,6 +227,7 @@ test('SPEC-40-03: 2. Executable absence guard & defect injection for Cache-Contr
   // Guard C: Category reconciliation in BackgroundLibraryPanel must not leak 'flyer'
   function verifyCategoryReconciliation(panelSource) {
     assert.ok(
+      panelSource.includes("cat === 'announcement' ? t('admin.media.filterAnnouncements')") ||
       panelSource.includes("cat === 'announcement' ? 'Announcement'"),
       'Panel must display Announcement category button'
     );
@@ -239,10 +240,9 @@ test('SPEC-40-03: 2. Executable absence guard & defect injection for Cache-Contr
   assert.doesNotThrow(() => verifyCategoryReconciliation(panelCode));
 
   // Defect injection C1: reintroducing flyer button
-  const defectC1 = panelCode.replace(
-    "cat === 'announcement' ? 'Announcement'",
-    "cat === 'flyer' ? 'Flyer'"
-  );
+  const defectC1 = panelCode.includes("cat === 'announcement' ? t('admin.media.filterAnnouncements')")
+    ? panelCode.replace("cat === 'announcement' ? t('admin.media.filterAnnouncements')", "cat === 'flyer' ? 'Flyer'")
+    : panelCode.replace("cat === 'announcement' ? 'Announcement'", "cat === 'flyer' ? 'Flyer'");
   assert.throws(
     () => verifyCategoryReconciliation(defectC1),
     /Panel must display Announcement category button/,

@@ -26,6 +26,7 @@ export type MediaAction =
   | { type: 'SET_PROJECTED'; isProjected: boolean }
   | { type: 'SET_PROJECT_STATUS'; projectStatus: ProjectStatus }
   | { type: 'UPDATE_ITEM_STATUS'; id: string; status: MediaStatus; errorMessage?: string }
+  | { type: 'UPDATE_ITEM'; id: string; patch: Partial<PlaylistItem> }
   | { type: 'RESET' };
 
 export interface MediaStore {
@@ -108,6 +109,19 @@ export function createMediaStore(initialState?: Partial<PlaylistState>): MediaSt
           ...target,
           status: action.status,
           errorMessage: action.errorMessage,
+        };
+        return { ...current, items: updated };
+      }
+
+      case 'UPDATE_ITEM': {
+        const itemIndex = current.items.findIndex((i) => i.id === action.id);
+        if (itemIndex === -1) return current;
+        const target = current.items[itemIndex];
+        if (!target) return current;
+        const updated = [...current.items];
+        updated[itemIndex] = {
+          ...target,
+          ...action.patch,
         };
         return { ...current, items: updated };
       }

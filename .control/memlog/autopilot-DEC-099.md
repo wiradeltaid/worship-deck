@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reco
 
 ## Resume
 
-- Iteration: I-1
+- Iteration: I-1 (Completed)
 - Run branch: autopilot/DEC-099
-- Stopped at: SPEC-113-03 closed, moving to SPEC-113-04
+- Stopped at: Mandate DEC-099 completed (all FRs in SPEC-112 and SPEC-113 delivered, verified, peer-reviewed, and closed)
 - Blocked: —
 - Parked: —
-- Next: SPEC-113-04 (Unified Media Drawer UI and Dual-Action Workflows)
+- Next: Mandate DEC-099 applied, ready for final PR
 
 ## Decisions
 
@@ -25,6 +25,7 @@ artifact: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reco
 | I-1 | SPEC-113-01 | Establish media-clock wire contract, live element time emission, discontinuity gating, projectionRef mirroring on slide navigation, full-bleed letterboxed video sizing, element handover volume/mute persistence, and fade volume decoupling | stale snapshot clock drift, reset to deck on slide advance, and unletterboxed video clipping | 5% video playback speedup on projector and black screens on next slide | src/lib/present-channel.ts, src/operator/present/PresenterOperator.tsx, src/projected/ProjectorClient.tsx, src/projected/media/ProjectedMediaLayer.tsx, src/operator/present/media-player/MediaStage.tsx, src/operator/present/media-player/MediaTopBar.tsx, src/operator/present/media-player/MediaDock.tsx, tests/local-media-player.test.mjs |
 | I-1 | SPEC-113-02 | Unify MediaControlBar in top slot (~52px, h-13) with panic controls, volume slider w-24, full seekbar, projector video toggle, spacebar focus safety, retired bottom MediaDock, and updated STAGE_VARS stage calculation | redundant dual docks (top bar + bottom dock) or missing seek/volume controls in top bar | spacebar accidental playback triggers and layout shift below header | src/operator/present/media-player/MediaControlBar.tsx, src/operator/present/media-player/index.ts, src/operator/present/PresenterOperator.tsx, tests/local-media-player.test.mjs, tests/presenter-media-player.test.mjs, tests/bilingual-i18n-parity.test.mjs |
 | I-1 | SPEC-113-03 | Establish unified playlist data model, pure deriveAvailability with stale local degradation, server-authoritative name/orderKey merge policy, IDB v2 upgrade with handle staleness check, lazy URL resolution, and fail-closed projectionOf revision | duplicate disjoint lists, hardcoded blob creation on import, or serving stale files from cache | memory bloat from unreleased blob URLs and false synced status on stale files | src/operator/present/media-player/playlist-model.ts, src/operator/present/media-player/local-media-registry.ts, src/operator/present/media-player/playback-router.ts, src/lib/present-channel.ts, tests/local-media-player.test.mjs |
+| I-1 | SPEC-113-04 | Redesign MediaDrawer into single unified list, 4-way segmented filter bar with localRecords dependency, compact status icons with WCAG paired shades, primary btn-add-media door with batch dedup, upload-to-cloud workflow with playlist metadata registration, and dual independent deletions with active playback safety | fragmented two-tab drawer UX, unlinked cloud uploads, and unsafe file deletion while playing | user confusion over media storage boundaries and disrupted playback | src/operator/present/media-player/MediaDrawer.tsx, src/operator/present/media-player/media-store.ts, src/operator/present/media-player/playlist-model.ts, tests/local-media-player.test.mjs, tests/operator-shadcn-guard.test.mjs, tests/theme-chrome.test.mjs |
 
 ## Smoke Test Results
 
@@ -36,3 +37,5 @@ artifact: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reco
 - SPEC-113-01: PASS (mediaClockOf wire validation & negative guards, projectionRef mirroring, 38 smoke tests in smoke:spec-111 pass, ProjectedMediaLayer video sizing class proven red via real-file injection; public-repo-guard green)
 - SPEC-113-02: PASS (MediaControlBar unified component, h-13 slot, volume slider placement, STAGE_VARS update, legacy dock removal absence guards proven red via real-file defect injection, 39 smoke tests in smoke:spec-111 pass, 30 tests in smoke:spec-110 pass; public-repo-guard green)
 - SPEC-113-03: PASS (deriveAvailability pure derivation with stale protection, mergeUnifiedPlaylistItem server-authoritative policy, IDB v2 handle staleness check, lazy URL resolution and blob revocation, fail-closed projectionOf revision, 40 smoke tests in smoke:spec-111 pass; public-repo-guard green)
+- SPEC-113-04: PASS (Single unified playlist, 4-way segmented filter, compact status icons, batch deduplication, upload-to-cloud with playlist sync, dual deletion safety, 41 smoke tests in smoke:spec-111 pass, 11 tests in local-media-player.test.mjs pass, assertUnifiedMediaDrawerContract proven red via real-file defect injection; public-repo-guard green)
+- Final Verification: PASS (All 1,909 unit & integration tests pass with 0 failures, Go test suite green, tsc --noEmit clean, Vite build clean, validate.py baseline green)
