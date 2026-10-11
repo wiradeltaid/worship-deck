@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-28, FR-16, FR-33]
 **Blocked by:** [SPEC-110-03]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Build automated test suite in `tests/presenter-media-player.test.mjs` verifying all eight mandatory architectural absence guards with injected defect proofs.

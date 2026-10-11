@@ -1789,6 +1789,62 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-110-01
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-110-02
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-110-03
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-110-04
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -8614,6 +8670,62 @@ rtm:
   release: presenter-live
   test:
   - tests/background-library.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-34
+  DEC: []
+  UC: UC-28
+  ticket: SPEC-110-01
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-34
+  DEC: []
+  UC: UC-28
+  ticket: SPEC-110-02
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-34
+  DEC: []
+  UC: UC-28
+  ticket: SPEC-110-03
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-4
+  FR: FR-34
+  DEC: []
+  UC: UC-28
+  ticket: SPEC-110-04
+  spec: SPEC-110
+  release: presenter-in-console-media-player
+  test:
+  - tests/presenter-media-player.test.mjs
   status: done
   exempt: false
   green: true

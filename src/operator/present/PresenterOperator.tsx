@@ -158,6 +158,16 @@ import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadg
 import SlideGridDialog from './SlideGridDialog';
 import PresenterDisplayControl from './PresenterDisplayControl';
 import {
+  createMediaStore,
+  createMediaEngine,
+  MediaStage,
+  MediaLauncherButton,
+  MediaDock,
+  MediaDrawer,
+  type MediaStore,
+  type MediaEngine,
+} from './media-player';
+import {
   resolveLaunchTarget,
   getDisplayTargetConfig,
   detectAvailableScreens,
@@ -505,6 +515,39 @@ export default function PresenterOperator({
   const [isHydratingPatches, setIsHydratingPatches] = useState(true);
   const [isReconciling, setIsReconciling] = useState(false);
   const [reconcileError, setReconcileError] = useState<string | null>(null);
+
+  // SPEC-110: In-Console Media Player & Audio/Video projection
+  const mediaAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaVideoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStoreRef = useRef<MediaStore | null>(null);
+  if (!mediaStoreRef.current) {
+    mediaStoreRef.current = createMediaStore();
+  }
+  const mediaStore = mediaStoreRef.current;
+
+  const mediaEngineRef = useRef<MediaEngine | null>(null);
+  if (!mediaEngineRef.current) {
+    mediaEngineRef.current = createMediaEngine({
+      getMediaElement: () => {
+        const state = mediaStore.getSnapshot();
+        const active = state.items.find((i) => i.id === state.activeId);
+        return active?.type === 'video' ? mediaVideoRef.current : mediaAudioRef.current;
+      },
+    });
+  }
+  const mediaEngine = mediaEngineRef.current;
+
+  const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
+  const [mediaItemCount, setMediaItemCount] = useState(0);
+  const [mediaIsPlaying, setMediaIsPlaying] = useState(false);
+
+  useEffect(() => {
+    return mediaStore.subscribe(() => {
+      const snap = mediaStore.getSnapshot();
+      setMediaItemCount(snap.items.length);
+      setMediaIsPlaying(snap.isPlaying);
+    });
+  }, [mediaStore]);
 
   const patchRevisionRef = useRef(0);
   const patchesRef = useRef<SlidePatch[]>([]);
@@ -927,6 +970,62 @@ export default function PresenterOperator({
     channelRef.current?.postMessage(msg);
   }, [setScriptureOverlay, persistCurrentSession]);
 
+  // Synchronize media video projection state over present-channel
+  useEffect(() => {
+    let lastWasProjected = false;
+    let lastActiveId: string | null = null;
+    let lastPlaying = false;
+
+    return mediaStore.subscribe(() => {
+      const snap = mediaStore.getSnapshot();
+      const active = snap.items.find((i) => i.id === snap.activeId);
+      const isProj = snap.isProjected && active?.type === 'video';
+
+      // Mutual exclusivity: If media projection activated, tear down guest feed
+      if (isProj && !lastWasProjected) {
+        guestFeedControllerRef.current?.teardownGuestFeed();
+      }
+
+      if (isProj || lastWasProjected) {
+        if (
+          isProj !== lastWasProjected ||
+          snap.activeId !== lastActiveId ||
+          snap.isPlaying !== lastPlaying
+        ) {
+          lastWasProjected = isProj;
+          lastActiveId = snap.activeId;
+          lastPlaying = snap.isPlaying;
+
+          const projSource: ProjectedSource =
+            isProj && active
+              ? {
+                  kind: 'media',
+                  mediaId: active.id,
+                  mediaUrl: active.url,
+                  isPlaying: snap.isPlaying,
+                  mediaTime: snap.currentTime,
+                  at: Date.now(),
+                  revision: 1,
+                }
+              : { kind: 'deck' };
+
+          broadcast({
+            type: 'sync',
+            index: indexRef.current,
+            blank: blankRef.current,
+            transition: transitionRef.current,
+            background: backgroundRef.current,
+            scripture: scriptureOverlay,
+            planIdentity: planIdentityRef.current,
+            patches: patchesRef.current,
+            projection: projSource,
+            guestAttemptId: null,
+          });
+        }
+      }
+    });
+  }, [mediaStore, broadcast]);
+
   const setIndexAndSync = useCallback(
     (next: number) => {
       const clamped = clampSlideIndex(next, activeSlides.length);
@@ -1168,14 +1267,36 @@ export default function PresenterOperator({
       scripture: scriptureOverlayRef.current,
       planIdentity: planIdentityRef.current,
       patches: patchesRef.current,
-      projection: projectionRef.current,
-      guestAttemptId: guestAttemptIdRef.current,
+      projection:
+        mediaStore.getSnapshot().isProjected &&
+        mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)?.type === 'video'
+          ? {
+              kind: 'media',
+              mediaId: mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)!.id,
+              mediaUrl: mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)!.url,
+              isPlaying: mediaStore.getSnapshot().isPlaying,
+              mediaTime: mediaStore.getSnapshot().currentTime,
+              at: Date.now(),
+              revision: 1,
+            }
+          : projectionRef.current,
+      guestAttemptId:
+        mediaStore.getSnapshot().isProjected &&
+        mediaStore.getSnapshot().items.find((i) => i.id === mediaStore.getSnapshot().activeId)?.type === 'video'
+          ? null
+          : guestAttemptIdRef.current,
     });
 
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
       if (isProjectorMediaStatus(msg)) {
+        if (msg.mediaId) {
+          mediaStore.dispatch({
+            type: 'SET_PROJECT_STATUS',
+            projectStatus: msg.state === 'attached' ? 'on_screen' : 'error',
+          });
+        }
         guestFeedControllerRef.current?.handleProjectorMediaStatus(msg);
         return;
       }
@@ -2102,6 +2223,12 @@ export default function PresenterOperator({
             >
               {t('presenter.runSheet')}
             </Button>
+            <MediaLauncherButton
+              itemCount={mediaItemCount}
+              isPlaying={mediaIsPlaying}
+              isDrawerOpen={mediaDrawerOpen}
+              onClick={() => setMediaDrawerOpen((prev) => !prev)}
+            />
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
@@ -2764,6 +2891,27 @@ export default function PresenterOperator({
           </section>
         </aside>
       </main>
+
+      <MediaDock
+        store={mediaStore}
+        engine={mediaEngine}
+        onOpenDrawer={() => setMediaDrawerOpen(true)}
+      />
+
+      <MediaDrawer
+        open={mediaDrawerOpen}
+        onClose={() => setMediaDrawerOpen(false)}
+        store={mediaStore}
+        engine={mediaEngine}
+      />
+
+      <MediaStage
+        store={mediaStore}
+        engine={mediaEngine}
+        audioRef={mediaAudioRef}
+        videoRef={mediaVideoRef}
+        onToastError={(msg) => toast.error(msg)}
+      />
 
       <SlideGridDialog
         open={gridOpen}

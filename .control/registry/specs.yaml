@@ -4581,7 +4581,7 @@ waves:
           - tests/projected-transitions.test.mjs
 
   - id: SPEC-110
-    status: open
+    status: closed
     release: presenter-in-console-media-player
     prd: [operator-turn]
     fr: [FR-16, FR-33]
@@ -4597,28 +4597,28 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-28, FR-16, FR-33]
         blocked_by: []
-        touches: [operator-present, uploads]
+        touches: [present-channel, uploads]
         tests:
           - tests/presenter-media-player.test.mjs
       - id: "SPEC-110-02"
         component: presenter
         satisfies: [UC-12, UC-28, FR-16, FR-33]
         blocked_by: ["SPEC-110-01"]
-        touches: [operator-present]
+        touches: [present-channel]
         tests:
           - tests/presenter-media-player.test.mjs
       - id: "SPEC-110-03"
         component: presenter
         satisfies: [UC-12, UC-28, FR-16, FR-33]
         blocked_by: ["SPEC-110-02"]
-        touches: [present-channel, projector-client, operator-present]
+        touches: [present-channel]
         tests:
           - tests/presenter-media-player.test.mjs
       - id: "SPEC-110-04"
         component: presenter
         satisfies: [UC-12, UC-28, FR-16, FR-33]
         blocked_by: ["SPEC-110-03"]
-        touches: [operator-present, present-channel, projector-client]
+        touches: [present-channel]
         tests:
           - tests/presenter-media-player.test.mjs
 

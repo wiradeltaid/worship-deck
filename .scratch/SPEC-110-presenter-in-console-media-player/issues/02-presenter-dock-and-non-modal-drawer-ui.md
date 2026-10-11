@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-28, FR-16, FR-33]
 **Blocked by:** [SPEC-110-01]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Integrate the Two-Tier Media Player interface into `PresenterOperator.tsx`: a header launcher button, a persistent bottom grid dock with instant panic controls, and a non-modal slide-over drawer for playlist preparation.

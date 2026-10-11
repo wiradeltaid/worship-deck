@@ -39,7 +39,16 @@ export type ScriptureOverlay = {
 
 export type ProjectedSource =
   | { kind: 'deck' }
-  | { kind: 'guest'; guestSessionId: string };
+  | { kind: 'guest'; guestSessionId: string }
+  | {
+      kind: 'media';
+      mediaId: string;
+      mediaUrl: string;
+      isPlaying: boolean;
+      mediaTime: number;
+      at: number;
+      revision: number;
+    };
 
 export type ProjectorMediaStatusReason =
   | 'opener-unavailable'
@@ -48,8 +57,9 @@ export type ProjectorMediaStatusReason =
 
 export type ProjectorMediaStatusMessage = {
   type: 'projector-media-status';
-  guestSessionId: string;
-  guestAttemptId: string;
+  guestSessionId?: string;
+  guestAttemptId?: string;
+  mediaId?: string;
   state: 'attached' | 'unavailable';
   reason?: ProjectorMediaStatusReason;
 };
@@ -296,6 +306,38 @@ export function projectionOf(msg: PresentMessage): ProjectedSource | null {
     return { kind: 'deck' };
   }
 
+  if (p.kind === 'media') {
+    const rawMedia = p as Record<string, unknown>;
+    const mediaId = typeof rawMedia.mediaId === 'string' ? rawMedia.mediaId.trim() : '';
+    const mediaUrl = typeof rawMedia.mediaUrl === 'string' ? rawMedia.mediaUrl.trim() : '';
+    const isPlaying = Boolean(rawMedia.isPlaying);
+    const mediaTime =
+      typeof rawMedia.mediaTime === 'number' && Number.isFinite(rawMedia.mediaTime)
+        ? rawMedia.mediaTime
+        : 0;
+    const at =
+      typeof rawMedia.at === 'number' && Number.isFinite(rawMedia.at)
+        ? rawMedia.at
+        : Date.now();
+    const revision =
+      typeof rawMedia.revision === 'number' && Number.isFinite(rawMedia.revision)
+        ? rawMedia.revision
+        : 1;
+
+    if (mediaId.length > 0 && mediaUrl.length > 0) {
+      return {
+        kind: 'media',
+        mediaId,
+        mediaUrl,
+        isPlaying,
+        mediaTime,
+        at,
+        revision,
+      };
+    }
+    return { kind: 'deck' };
+  }
+
   return { kind: 'deck' };
 }
 
@@ -313,18 +355,6 @@ export function isProjectorMediaStatus(
 ): msg is ProjectorMediaStatusMessage {
   if (!msg || typeof msg !== 'object') return false;
   if (msg.type !== 'projector-media-status') return false;
-  if (
-    typeof msg.guestSessionId !== 'string' ||
-    msg.guestSessionId.trim().length === 0
-  ) {
-    return false;
-  }
-  if (
-    typeof msg.guestAttemptId !== 'string' ||
-    msg.guestAttemptId.trim().length === 0
-  ) {
-    return false;
-  }
   if (msg.state !== 'attached' && msg.state !== 'unavailable') {
     return false;
   }
@@ -332,6 +362,14 @@ export function isProjectorMediaStatus(
     msg.reason !== undefined &&
     !CLOSED_PROJECTOR_MEDIA_REASONS.has(msg.reason)
   ) {
+    return false;
+  }
+  const hasGuestId = typeof msg.guestSessionId === 'string' && msg.guestSessionId.trim().length > 0;
+  const hasMediaId = typeof msg.mediaId === 'string' && msg.mediaId.trim().length > 0;
+  if (!hasGuestId && !hasMediaId) {
+    return false;
+  }
+  if (hasGuestId && (typeof msg.guestAttemptId !== 'string' || msg.guestAttemptId.trim().length === 0)) {
     return false;
   }
   return true;
