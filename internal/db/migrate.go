@@ -60,6 +60,9 @@ func migrateColumns(handle *sql.DB) error {
 	if err := ensureSyncAnnouncementSetsAndEntities(handle); err != nil {
 		return err
 	}
+	if err := ensureMediaPlaylistItemsTable(handle); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -1864,10 +1864,10 @@ rtm:
   release: direct-local-media-playback-and-top-dock-ergonomics
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

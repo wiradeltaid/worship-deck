@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** ["SPEC-111-01"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement greenfield SQLite database schema and additive migrations in the Go backend for persistent cloud media playlist management with server-side SHA-256 calculation and strict lowercase hex constraints.
@@ -34,3 +34,7 @@ Implement greenfield SQLite database schema and additive migrations in the Go ba
 - Database migration executes cleanly on fresh and existing SQLite databases.
 - Table constraints strictly reject invalid non-hex or uppercase SHA-256 strings and negative byte sizes.
 - Unit tests verify schema creation, indexing, constraint rejections, and migration idempotency.
+
+## Comments
+
+- 2026-10-11: Implemented `media_playlist_items` schema in `schema.sql`, migration `ensureMediaPlaylistItemsTable` in `migrate_media_playlist.go`, registered in `migrate.go`, and verified all constraint checks and idempotency in `migrate_media_playlist_test.go`.
