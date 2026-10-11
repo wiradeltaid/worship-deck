@@ -26,14 +26,38 @@ export const MediaStage = memo(function MediaStage({
 }: MediaStageProps) {
   const activeItemRef = useRef<PlaylistItem | null>(null);
 
-  // Keep track of active item
+  // Keep track of active item and synchronize src
   useEffect(() => {
     return store.subscribe(() => {
       const state = store.getSnapshot();
       const current = state.items.find((i) => i.id === state.activeId) ?? null;
+      const prev = activeItemRef.current;
       activeItemRef.current = current;
+
+      if (current && (!prev || prev.id !== current.id || prev.url !== current.url)) {
+        if (current.type === 'video') {
+          if (videoRef.current) {
+            videoRef.current.src = current.url;
+            videoRef.current.load();
+          }
+          if (audioRef.current) {
+            audioRef.current.pause();
+          }
+        } else {
+          if (audioRef.current) {
+            audioRef.current.src = current.url;
+            audioRef.current.load();
+          }
+          if (videoRef.current) {
+            videoRef.current.pause();
+          }
+        }
+      } else if (!current) {
+        if (audioRef.current) audioRef.current.pause();
+        if (videoRef.current) videoRef.current.pause();
+      }
     });
-  }, [store]);
+  }, [store, audioRef, videoRef]);
 
   const handleTimeUpdate = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {

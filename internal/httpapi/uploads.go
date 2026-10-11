@@ -17,7 +17,7 @@ import (
 	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
-var uploadRef = regexp.MustCompile(`(?i)^([a-f0-9]{32}|[a-f0-9]{64})\.(jpe?g|png|gif|webp|bin|ttf|otf|woff2?)$`)
+var uploadRef = regexp.MustCompile(`(?i)^([a-f0-9]{32}|[a-f0-9]{64})\.(jpe?g|png|gif|webp|bin|ttf|otf|woff2?|mp3|wav|m4a|ogg|mp4|webm)$`)
 
 func uploadsDir() string {
 	if d := strings.TrimSpace(os.Getenv("UPLOADS_DIR")); d != "" {
@@ -27,7 +27,7 @@ func uploadsDir() string {
 }
 
 func (s *Server) postUpload(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(20 << 20); err != nil {
+	if err := r.ParseMultipartForm(500 << 20); err != nil {
 		writeError(w, http.StatusBadRequest, "No file uploaded")
 		return
 	}
@@ -38,24 +38,24 @@ func (s *Server) postUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	ct := hdr.Header.Get("Content-Type")
-	if ct != "" && !strings.HasPrefix(ct, "image/") {
-		writeError(w, http.StatusBadRequest, "File must be an image")
+	if ct != "" && !strings.HasPrefix(ct, "image/") && !strings.HasPrefix(ct, "audio/") && !strings.HasPrefix(ct, "video/") && ct != "application/octet-stream" {
+		writeError(w, http.StatusBadRequest, "File must be an image, audio, or video file")
 		return
 	}
 	ext := normalizeExt(hdr.Filename)
 	if ext == "" {
-		writeError(w, http.StatusBadRequest, "Unsupported image type (use .jpg, .jpeg, .png, .gif, or .webp)")
+		writeError(w, http.StatusBadRequest, "Unsupported media or image type (use .jpg, .jpeg, .png, .gif, .webp, .mp3, .wav, .m4a, .ogg, .mp4, or .webm)")
 		return
 	}
 	buf, err := io.ReadAll(file)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to upload image")
+		writeError(w, http.StatusInternalServerError, "Failed to upload file")
 		return
 	}
 	name, url, err := writeUpload(ext, buf)
 	if err != nil {
 		log.Printf("Upload error: %v", err)
-		writeError(w, http.StatusInternalServerError, "Failed to upload image")
+		writeError(w, http.StatusInternalServerError, "Failed to upload file")
 		return
 	}
 	_ = name
@@ -65,7 +65,7 @@ func (s *Server) postUpload(w http.ResponseWriter, r *http.Request) {
 func normalizeExt(name string) string {
 	ext := strings.ToLower(filepath.Ext(name))
 	switch ext {
-	case ".jpg", ".jpeg", ".png", ".gif", ".webp":
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp3", ".wav", ".m4a", ".ogg", ".mp4", ".webm":
 		return ext
 	}
 	return ""
@@ -110,6 +110,8 @@ func (s *Server) getUpload(w http.ResponseWriter, r *http.Request) {
 	ct := map[string]string{
 		".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
 		".webp": "image/webp", ".gif": "image/gif",
+		".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+		".ogg": "audio/ogg", ".mp4": "video/mp4", ".webm": "video/webm",
 	}[ext]
 	if ct == "" {
 		ct = "application/octet-stream"

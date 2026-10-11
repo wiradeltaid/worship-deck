@@ -186,3 +186,44 @@ test('SPEC-110-01: media-engine handles fade attenuation, cancellation, and erro
   assert.equal(playResult.success, false, 'play() rejection surfaces failure cleanly');
   assert.ok(playResult.error?.includes('NotAllowedError'), 'Surfaces error reason');
 });
+
+test('SPEC-110-02: Presenter Dock and Non-Modal Drawer UI component contracts', async () => {
+  const fs = await import('node:fs');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const dockPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDock.tsx');
+  const drawerPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  const launcherPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaLauncherButton.tsx');
+
+  assert.ok(fs.existsSync(dockPath), 'MediaDock.tsx must exist');
+  assert.ok(fs.existsSync(drawerPath), 'MediaDrawer.tsx must exist');
+  assert.ok(fs.existsSync(launcherPath), 'MediaLauncherButton.tsx must exist');
+
+  const dockSrc = fs.readFileSync(dockPath, 'utf8');
+  const drawerSrc = fs.readFileSync(drawerPath, 'utf8');
+  const launcherSrc = fs.readFileSync(launcherPath, 'utf8');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8');
+
+  // Launcher contract
+  assert.ok(launcherSrc.includes('data-testid="media-launcher-button"'), 'Launcher has data-testid');
+
+  // MediaDock panic controls
+  assert.ok(dockSrc.includes('data-testid="media-dock"'), 'MediaDock has data-testid="media-dock"');
+  assert.ok(dockSrc.includes('data-testid="media-panic-play-pause"'), 'Panic play-pause button');
+  assert.ok(dockSrc.includes('data-testid="media-panic-fade"'), 'Panic fade button');
+  assert.ok(dockSrc.includes('data-testid="media-panic-mute"'), 'Panic mute button');
+  assert.ok(dockSrc.includes('data-testid="media-panic-take-off-screen"'), 'Panic take off screen button');
+
+  // Focus safety invariant on transport buttons
+  assert.ok(dockSrc.includes('preventDefault'), 'Dock buttons prevent default on mouse down for focus safety');
+
+  // Non-modal drawer contract: no modal backdrop, non-modal layout
+  assert.ok(drawerSrc.includes('data-testid="media-drawer"'), 'MediaDrawer has data-testid');
+  assert.ok(!drawerSrc.includes('aria-modal="true"'), 'MediaDrawer is non-modal and must not declare aria-modal="true"');
+
+  // PresenterOperator integration
+  assert.ok(presenterSrc.includes('MediaLauncherButton'), 'PresenterOperator mounts MediaLauncherButton');
+  assert.ok(presenterSrc.includes('MediaDock'), 'PresenterOperator mounts MediaDock');
+  assert.ok(presenterSrc.includes('MediaDrawer'), 'PresenterOperator mounts MediaDrawer');
+  assert.ok(presenterSrc.includes('MediaStage'), 'PresenterOperator mounts MediaStage');
+});
+

@@ -158,6 +158,16 @@ import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadg
 import SlideGridDialog from './SlideGridDialog';
 import PresenterDisplayControl from './PresenterDisplayControl';
 import {
+  createMediaStore,
+  createMediaEngine,
+  MediaStage,
+  MediaLauncherButton,
+  MediaDock,
+  MediaDrawer,
+  type MediaStore,
+  type MediaEngine,
+} from './media-player';
+import {
   resolveLaunchTarget,
   getDisplayTargetConfig,
   detectAvailableScreens,
@@ -505,6 +515,39 @@ export default function PresenterOperator({
   const [isHydratingPatches, setIsHydratingPatches] = useState(true);
   const [isReconciling, setIsReconciling] = useState(false);
   const [reconcileError, setReconcileError] = useState<string | null>(null);
+
+  // SPEC-110: In-Console Media Player & Audio/Video projection
+  const mediaAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaVideoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStoreRef = useRef<MediaStore | null>(null);
+  if (!mediaStoreRef.current) {
+    mediaStoreRef.current = createMediaStore();
+  }
+  const mediaStore = mediaStoreRef.current;
+
+  const mediaEngineRef = useRef<MediaEngine | null>(null);
+  if (!mediaEngineRef.current) {
+    mediaEngineRef.current = createMediaEngine({
+      getMediaElement: () => {
+        const state = mediaStore.getSnapshot();
+        const active = state.items.find((i) => i.id === state.activeId);
+        return active?.type === 'video' ? mediaVideoRef.current : mediaAudioRef.current;
+      },
+    });
+  }
+  const mediaEngine = mediaEngineRef.current;
+
+  const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
+  const [mediaItemCount, setMediaItemCount] = useState(0);
+  const [mediaIsPlaying, setMediaIsPlaying] = useState(false);
+
+  useEffect(() => {
+    return mediaStore.subscribe(() => {
+      const snap = mediaStore.getSnapshot();
+      setMediaItemCount(snap.items.length);
+      setMediaIsPlaying(snap.isPlaying);
+    });
+  }, [mediaStore]);
 
   const patchRevisionRef = useRef(0);
   const patchesRef = useRef<SlidePatch[]>([]);
@@ -2104,15 +2147,21 @@ export default function PresenterOperator({
             </Button>
           </div>
 
-          {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
-          {guestFeedControllerRef.current && (
-            <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
+          {/* Row 3 (Guest Media & In-Console Media Player Controls) */}
+          <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
+            <MediaLauncherButton
+              itemCount={mediaItemCount}
+              isPlaying={mediaIsPlaying}
+              isDrawerOpen={mediaDrawerOpen}
+              onClick={() => setMediaDrawerOpen((prev) => !prev)}
+            />
+            {guestFeedControllerRef.current && (
               <PresenterGuestFeedControl
                 controller={guestFeedControllerRef.current}
                 isProjectorResponding={liveness.verdict === 'live'}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
         {projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">
@@ -2764,6 +2813,27 @@ export default function PresenterOperator({
           </section>
         </aside>
       </main>
+
+      <MediaDock
+        store={mediaStore}
+        engine={mediaEngine}
+        onOpenDrawer={() => setMediaDrawerOpen(true)}
+      />
+
+      <MediaDrawer
+        open={mediaDrawerOpen}
+        onClose={() => setMediaDrawerOpen(false)}
+        store={mediaStore}
+        engine={mediaEngine}
+      />
+
+      <MediaStage
+        store={mediaStore}
+        engine={mediaEngine}
+        audioRef={mediaAudioRef}
+        videoRef={mediaVideoRef}
+        onToastError={(msg) => toast.error(msg)}
+      />
 
       <SlideGridDialog
         open={gridOpen}
