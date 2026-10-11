@@ -1845,6 +1845,62 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-111-01
+  spec: SPEC-111
+  release: direct-local-media-playback-and-top-dock-ergonomics
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-111-02
+  spec: SPEC-111
+  release: direct-local-media-playback-and-top-dock-ergonomics
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-111-03
+  spec: SPEC-111
+  release: direct-local-media-playback-and-top-dock-ergonomics
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-111-04
+  spec: SPEC-111
+  release: direct-local-media-playback-and-top-dock-ergonomics
+  test:
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
