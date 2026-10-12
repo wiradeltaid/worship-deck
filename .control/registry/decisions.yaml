@@ -2130,6 +2130,25 @@ decisions:
       - .how/presenter/SDD-presenter.md
       - .how/presenter/02-contracts/02-present-channel.md
 
+  - id: DEC-102
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-12)"
+    title: Daily Autopilot mandate for Unified Remote Presenter Console and QR Pairing (SPEC-115)
+    file: .control/decisions/DEC-102-daily-autopilot-mandate-unified-remote-presenter-console-and-qr-pairing.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-19'
+    touches:
+      - .control/memlog/autopilot-DEC-102.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-115-unified-remote-presenter-console-and-qr-pairing/
+
 
 
 

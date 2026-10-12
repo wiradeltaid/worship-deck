@@ -584,9 +584,9 @@ validators_red: []
 validators_skipped:
   review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
     (changed at 4c1e5ac, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at ecfb31b, reviewed at bc6c694),
-    .how/presenter/SDD-presenter.md (changed at 4c1e5ac, reviewed at bc6c694), .how/registry/SDD-registry.md
+    .how/presenter/SDD-presenter.md (changed at 1da2647, reviewed at bc6c694), .how/registry/SDD-registry.md
     (changed at cfcd78a, reviewed at bc6c694), .what/hub/SRS-hub.md (changed at ecfb31b, reviewed at e1558cc),
-    .what/presenter/SRS-presenter.md (changed at cfcd78a, reviewed at bc6c694), .what/registry/SRS-registry.md
+    .what/presenter/SRS-presenter.md (changed at 1da2647, reviewed at bc6c694), .what/registry/SRS-registry.md
     (changed at cfcd78a, reviewed at 840014f)'
 open_questions:
   blocking: 0
@@ -602,6 +602,11 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: none
-  active_ids: []
-  active_mandate: null
+  resolution: one
+  active_ids:
+  - DEC-102
+  active_mandate:
+    id: DEC-102
+    status: accepted
+    expires: '2026-10-19'
+    scope: all
