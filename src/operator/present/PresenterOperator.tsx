@@ -161,11 +161,13 @@ import {
   createMediaStore,
   createMediaEngine,
   MediaStage,
-  MediaLauncherButton,
   MediaControlBar,
   MediaDrawer,
+  localMediaRegistry,
+  mergeUnifiedPlaylistItem,
   type MediaStore,
   type MediaEngine,
+  type PlaylistItem,
 } from './media-player';
 import {
   resolveLaunchTarget,
@@ -540,15 +542,70 @@ export default function PresenterOperator({
   const mediaEngine = mediaEngineRef.current;
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
-  const [mediaItemCount, setMediaItemCount] = useState(0);
-  const [mediaIsPlaying, setMediaIsPlaying] = useState(false);
 
+  // SPEC-114-02: Single-owner mount hydration for persistent media playlist
   useEffect(() => {
-    return mediaStore.subscribe(() => {
-      const snap = mediaStore.getSnapshot();
-      setMediaItemCount(snap.items.length);
-      setMediaIsPlaying(snap.isPlaying);
-    });
+    let cancelled = false;
+    async function hydratePlaylist() {
+      try {
+        await localMediaRegistry.hydrate();
+        const localMap = localMediaRegistry.getMatchingMap();
+
+        const res = await fetch('/api/media/playlist');
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const serverItems = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+
+        const mergedItems: PlaylistItem[] = serverItems.map((raw: any) => {
+          const contentUrl = raw.content_url || raw.url || '';
+          const durationSec = raw.duration_ms ? raw.duration_ms / 1000 : (raw.duration ?? 0);
+          const item: PlaylistItem = {
+            id: raw.id,
+            name: raw.name,
+            url: contentUrl,
+            type: raw.type,
+            size: raw.size_bytes ?? raw.size ?? 0,
+            duration: durationSec,
+            sha256: raw.sha256,
+            source: 'cloud',
+            cloud: { id: raw.id, name: raw.name, url: contentUrl },
+            orderKey: raw.order_key ?? raw.orderKey,
+          };
+          const localRecord = item.sha256 ? localMap.get(item.sha256) : undefined;
+          return mergeUnifiedPlaylistItem(item, localRecord);
+        });
+
+        const localOnlyItems: PlaylistItem[] = Array.from(localMap.values())
+          .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
+          .map((rec) => ({
+            id: `local-${rec.sha256.slice(0, 8)}`,
+            name: rec.name,
+            url: '',
+            type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
+            size: rec.sizeBytes,
+            sha256: rec.sha256,
+            source: 'local',
+            local: {
+              storageKind: rec.storageKind,
+              stale: false,
+              fileHandle: rec.fileHandle,
+              orderKey: rec.orderKey,
+            },
+            orderKey: rec.orderKey,
+          }));
+
+        const allItems = [...mergedItems, ...localOnlyItems];
+        if (!cancelled && allItems.length > 0) {
+          mediaStore.dispatch({ type: 'ADD_ITEMS', items: allItems });
+        }
+      } catch {
+        // Fall back gracefully in offline or restricted environments
+      }
+    }
+    void hydratePlaylist();
+    return () => {
+      cancelled = true;
+    };
   }, [mediaStore]);
 
   const patchRevisionRef = useRef(0);
@@ -2319,12 +2376,6 @@ export default function PresenterOperator({
             >
               {t('presenter.runSheet')}
             </Button>
-            <MediaLauncherButton
-              itemCount={mediaItemCount}
-              isPlaying={mediaIsPlaying}
-              isDrawerOpen={mediaDrawerOpen}
-              onClick={() => setMediaDrawerOpen((prev) => !prev)}
-            />
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}

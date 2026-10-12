@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** [SPEC-114-01]
-**Status:** open
+**Status:** done
 
 ## Summary
 Resolve Bug #3 (dual erasure defect upon deleting local copy) by consuming the existing dual-presence model (`CloudPresence`, `LocalPresence`, `deriveAvailability()`), replacing legacy `source !== 'local'` checks with `availability`, providing an explicit 3-way deletion menu, and adding single-owner backend cloud playlist hydration on mount.
@@ -43,3 +43,11 @@ Resolve Bug #3 (dual erasure defect upon deleting local copy) by consuming the e
 - All new and existing deletion actions localize cleanly when switching between English and Indonesian, with 0 hardcoded strings.
 
 ## Comments
+- Delivered in iteration I-2 of mandate DEC-100.
+- Replaced legacy `source !== 'local'` guard with clean `availability`-derived 3-way deletion matrix in `MediaDrawer.tsx`.
+- Implemented single-owner mount hydration in `PresenterOperator.tsx` querying `GET /api/media/playlist` and merging with `localMediaRegistry`.
+- Correctly parsed backend array payload and mapped `content_url` and `duration_ms`.
+- Added SHA-256 content deduplication in `addPlaylistItems` to prevent duplicate entries across reloads.
+- Added full bilingual localization for 3-way deletion options in `keys.ts`, `catalogue-en.ts`, and `catalogue-id.ts`.
+- Verified with 13 tests in `local-media-player.test.mjs` including runtime SHA-256 dedup tests and 3 defect injection proofs.
+- Peer reviewed and ratified with SETUJU by DeepSeek Pro (`deepseekpro` via CodeBuddy CN).

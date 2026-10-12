@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** [SPEC-114-02]
-**Status:** open
+**Status:** done
 
 ## Summary
 Add Shuffle toggle and 3-state Repeat modes to `MediaControlBar.tsx`, integrate playback auto-advance logic in `MediaStage.tsx` with sanctuary-screen audio-only invariants, and clean up the redundant `<MediaLauncherButton>` from `PresenterOperator.tsx` header row 2.
@@ -48,3 +48,10 @@ Add Shuffle toggle and 3-state Repeat modes to `MediaControlBar.tsx`, integrate 
 - All new Shuffle and Repeat buttons and tooltips render cleanly in English and Indonesian without raw hardcoded text.
 
 ## Comments
+- Delivered in iteration I-3 of mandate DEC-100.
+- Integrated Shuffle toggle and 3-state Repeat modes directly in MediaControlBar.
+- Added pure helper `resolveNextPlaylistItem` strictly enforcing AD-24 sanctuary screen protection (video tracks never auto-advance; advance strictly selects audio only).
+- Unified playback auto-advance and repeat-one replay in `MediaStage.tsx` through `engine` without timers.
+- Cleanly removed redundant `<MediaLauncherButton>` and dead state (`mediaItemCount`, `mediaIsPlaying`, and dead subscription effect) from `PresenterOperator.tsx`.
+- Verified green with 14 tests in `local-media-player.test.mjs`, 6 tests in `presenter-media-player.test.mjs`, and 2 defect injection absence proofs.
+- Peer reviewed and ratified with SETUJU by DeepSeek Pro (`deepseekpro` via CodeBuddy CN).

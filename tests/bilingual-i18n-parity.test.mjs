@@ -732,3 +732,49 @@ test('SPEC-112-04: Real-file defect injection — raw toast in OfflineReadinessB
     );
   }
 });
+
+test('SPEC-114-04: Strict Bilingual i18n parity across all SPEC-114 keys', () => {
+  const spec114Keys = [
+    'media.drawer.deleteFromLocalOnly',
+    'media.drawer.deleteFromCloudOnly',
+    'media.drawer.deleteBoth',
+    'media.controlBar.shuffleLabel',
+    'media.controlBar.shuffleOn',
+    'media.controlBar.shuffleOff',
+    'media.controlBar.repeatLabel',
+    'media.controlBar.repeatOff',
+    'media.controlBar.repeatAll',
+    'media.controlBar.repeatOne',
+  ];
+
+  for (const key of spec114Keys) {
+    const en = resolveString(key, 'en');
+    const id = resolveString(key, 'id');
+    assert.ok(!en.startsWith('[missing:i18n:'), `Missing English translation for ${key}`);
+    assert.ok(!id.startsWith('[missing:i18n:'), `Missing Indonesian translation for ${key}`);
+    assert.notEqual(en, id, `Translations must differ between EN and ID for ${key}`);
+  }
+});
+
+test('SPEC-114-04: Real-file defect injection — missing SPEC-114 key in catalogue-en.ts fails guard', () => {
+  const original = fs.readFileSync(catalogueEnPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "'media.controlBar.shuffleOn': 'Shuffle: On',",
+      ''
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(catalogueEnPath, defective);
+
+    const findings = scanAllKeysBilingualParity();
+    assert.ok(
+      findings.some((f) =>
+        f.includes('catalogue-en.ts missing translation for key: media.controlBar.shuffleOn')
+      ),
+      'Expected missing key in catalogue-en.ts to fail guard'
+    );
+  } finally {
+    fs.writeFileSync(catalogueEnPath, original);
+    assert.equal(fs.readFileSync(catalogueEnPath, 'utf8'), original, 'file must be restored identically');
+  }
+});

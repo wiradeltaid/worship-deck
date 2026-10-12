@@ -2033,10 +2033,10 @@ rtm:
   release: media-player-suite-hardening-and-playlist-sync
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2048,10 +2048,10 @@ rtm:
   test:
   - tests/local-media-player.test.mjs
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2064,10 +2064,10 @@ rtm:
   - tests/presenter-media-player.test.mjs
   - tests/local-media-player.test.mjs
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2080,10 +2080,10 @@ rtm:
   - tests/local-media-player.test.mjs
   - tests/presenter-media-player.test.mjs
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

@@ -7,7 +7,7 @@ import {
 } from 'react';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
-import { getNextPlaylistItem, type PlaylistItem } from './playlist-model';
+import { resolveNextPlaylistItem, type PlaylistItem } from './playlist-model';
 
 export interface MediaStageProps {
   store: MediaStore;
@@ -38,20 +38,46 @@ export const MediaStage = memo(function MediaStage({
         const baseVol = typeof engine.getBaseVolume === 'function' ? engine.getBaseVolume() : state.volume;
         if (current.type === 'video') {
           if (videoRef.current) {
+            const el = videoRef.current;
             videoRef.current.src = current.url;
             videoRef.current.muted = state.isMuted;
             videoRef.current.volume = baseVol;
             videoRef.current.load();
+            if (state.isPlaying) {
+              const startPlay = () => {
+                void el.play().catch(() => {
+                  store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+                });
+              };
+              if (el.readyState >= 2) {
+                startPlay();
+              } else {
+                el.addEventListener('canplay', startPlay, { once: true });
+              }
+            }
           }
           if (audioRef.current) {
             audioRef.current.pause();
           }
         } else {
           if (audioRef.current) {
+            const el = audioRef.current;
             audioRef.current.src = current.url;
             audioRef.current.muted = state.isMuted;
             audioRef.current.volume = baseVol;
             audioRef.current.load();
+            if (state.isPlaying) {
+              const startPlay = () => {
+                void el.play().catch(() => {
+                  store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+                });
+              };
+              if (el.readyState >= 2) {
+                startPlay();
+              } else {
+                el.addEventListener('canplay', startPlay, { once: true });
+              }
+            }
           }
           if (videoRef.current) {
             videoRef.current.pause();
@@ -90,20 +116,26 @@ export const MediaStage = memo(function MediaStage({
 
   const handleEnded = useCallback(() => {
     const state = store.getSnapshot();
-    const currentId = state.activeId;
-    const nextItem = getNextPlaylistItem(currentId, state.items);
+    const nextItem = resolveNextPlaylistItem(state);
 
     // Track finish teardown: Always disable projection to protect sanctuary screen
     store.dispatch({ type: 'SET_PROJECTED', isProjected: false });
     store.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: 'off' });
 
     if (nextItem) {
-      // Auto-advance to next audio track
-      store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
-      // Next tick play
-      setTimeout(() => {
-        void engine.play();
-      }, 50);
+      if (nextItem.id === state.activeId) {
+        // Replay active track (repeat-one or single-audio loop):
+        // Route authoritatively via engine to maintain single-owner state and volume handling
+        engine.seek(0);
+        store.dispatch({ type: 'SET_TIME', currentTime: 0 });
+        void engine.play().then((res) => {
+          store.dispatch({ type: 'SET_PLAYING', isPlaying: res.success });
+        });
+      } else {
+        // Auto-advance to next audio track: declarative dispatch, no timers
+        store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
+        store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
+      }
     } else {
       // Halt playback, keep dock active without abrupt disappearance
       store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
