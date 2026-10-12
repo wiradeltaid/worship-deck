@@ -26,6 +26,7 @@ import {
   Plus,
   MoreVertical,
   RotateCw,
+  ListMusic,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +36,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
@@ -528,37 +536,46 @@ export const MediaDrawer = memo(function MediaDrawer({
           <span>{isImporting ? t('media.drawer.processing') : t('media.drawer.addFromComputer')}</span>
         </Button>
 
-        {/* 4-Way Segmented Filter Control */}
-        <div
-          data-testid="media-drawer-filter-bar"
-          className="flex rounded-md bg-muted/60 p-0.5 text-xs font-medium"
-        >
-          {(
-            [
-              { id: 'all', label: t('media.drawer.filterAll') },
-              { id: 'cloud-only', label: t('media.drawer.filterCloud') },
-              { id: 'local-only', label: t('media.drawer.filterLocal') },
-              { id: 'synced', label: t('media.drawer.filterSynced') },
-            ] as const
-          ).map((mode) => (
-            <Button
-              key={mode.id}
-              type="button"
-              variant={filter === mode.id ? 'secondary' : 'ghost'}
-              size="sm"
-              data-testid={`filter-${mode.id}`}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setFilter(mode.id)}
-              className={cn(
-                'flex-1 h-6 py-0 px-1 text-[11px] font-medium rounded-sm transition-colors text-center cursor-pointer',
-                filter === mode.id
-                  ? 'bg-background text-foreground shadow-xs hover:bg-background'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
+        {/* 4-Way Filter Dropdown */}
+        <div data-testid="media-drawer-filter-bar" className="w-full">
+          <Select
+            value={filter}
+            onValueChange={(val) => {
+              if (val) setFilter(val as MediaDrawerFilter);
+            }}
+          >
+            <SelectTrigger
+              data-testid="filter-select-trigger"
+              className="w-full h-8 text-xs bg-background"
             >
-              {mode.label}
-            </Button>
-          ))}
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(
+                [
+                  { id: 'all', label: t('media.drawer.filterAll') },
+                  { id: 'cloud-only', label: t('media.drawer.filterCloud') },
+                  { id: 'local-only', label: t('media.drawer.filterLocal') },
+                  { id: 'synced', label: t('media.drawer.filterSynced') },
+                ] as const
+              ).map((mode) => (
+                <SelectItem
+                  key={mode.id}
+                  value={mode.id}
+                  data-testid={`filter-${mode.id}`}
+                  className="text-xs cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    {mode.id === 'all' && <ListMusic className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {mode.id === 'cloud-only' && <Cloud className="h-3.5 w-3.5 text-muted-foreground" />}
+                    {mode.id === 'local-only' && <HardDrive className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
+                    {mode.id === 'synced' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                    <span>{mode.label}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -655,7 +672,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                   </Button>
                 </div>
 
-                {/* 2. Middle: Type Icon, Title, Compact Status Icon */}
+                {/* 2. Middle: Type Icon, Title */}
                 <div className="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
                   {item.type === 'video' ? (
                     <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -666,45 +683,10 @@ export const MediaDrawer = memo(function MediaDrawer({
                   <span className="truncate text-xs text-foreground flex-1" title={item.name}>
                     {item.name}
                   </span>
-
-                  {/* Compact Status Icon (14px) */}
-                  {(() => {
-                    const statusTitle = isDownloading
-                      ? t('media.drawer.statusDownloading', { percent: Math.round(downloadProgress) })
-                      : isDetached
-                      ? t('media.drawer.statusDetached')
-                      : availability === 'synced'
-                      ? t('media.drawer.statusSynced')
-                      : availability === 'local-only'
-                      ? t('media.drawer.statusLocalOnly')
-                      : t('media.drawer.statusCloudOnly');
-
-                    return (
-                      <span
-                        className="shrink-0 inline-flex items-center"
-                        data-testid={`status-icon-${item.id}`}
-                        title={statusTitle}
-                      >
-                        {isDownloading ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400">
-                            <Download className="h-3.5 w-3.5 animate-pulse" />
-                          </span>
-                        ) : isDetached ? (
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
-                        ) : availability === 'synced' ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                        ) : availability === 'local-only' ? (
-                          <HardDrive className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                        ) : (
-                          <Cloud className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                      </span>
-                    );
-                  })()}
                 </div>
 
-                {/* 3. Right: Projector Toggle & Actions Dropdown Menu */}
-                <div className="flex items-center gap-1 shrink-0">
+                {/* 3. Right: Projector Toggle, Status Icon (placed before more menu), Actions Menu */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   {canProjectMediaItem(item) && (
                     <Button
                       type="button"
@@ -731,6 +713,41 @@ export const MediaDrawer = memo(function MediaDrawer({
                       )}
                     </Button>
                   )}
+
+                  {/* Compact Status Icon (placed immediately before More Menu) */}
+                  {(() => {
+                    const statusTitle = isDownloading
+                      ? t('media.drawer.statusDownloading', { percent: Math.round(downloadProgress) })
+                      : isDetached
+                      ? t('media.drawer.statusDetached')
+                      : availability === 'synced'
+                      ? t('media.drawer.statusSynced')
+                      : availability === 'local-only'
+                      ? t('media.drawer.statusLocalOnly')
+                      : t('media.drawer.statusCloudOnly');
+
+                    return (
+                      <span
+                        className="shrink-0 inline-flex items-center justify-center w-5 h-6"
+                        data-testid={`status-icon-${item.id}`}
+                        title={statusTitle}
+                      >
+                        {isDownloading ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400">
+                            <Download className="h-3.5 w-3.5 animate-pulse" />
+                          </span>
+                        ) : isDetached ? (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                        ) : availability === 'synced' ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        ) : availability === 'local-only' ? (
+                          <HardDrive className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                        ) : (
+                          <Cloud className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </span>
+                    );
+                  })()}
 
                   {/* Actions Dropdown Menu */}
                   <DropdownMenu>
