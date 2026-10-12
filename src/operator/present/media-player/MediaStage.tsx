@@ -16,6 +16,7 @@ export interface MediaStageProps {
   audioRef: RefObject<HTMLAudioElement | null>;
   videoRef: RefObject<HTMLVideoElement | null>;
   onToastError?: (message: string) => void;
+  mutedOverride?: boolean;
 }
 
 export const MediaStage = memo(function MediaStage({
@@ -24,9 +25,24 @@ export const MediaStage = memo(function MediaStage({
   audioRef,
   videoRef,
   onToastError,
+  mutedOverride = false,
 }: MediaStageProps) {
   const activeItemRef = useRef<PlaylistItem | null>(null);
   const [isRepeatOne, setIsRepeatOne] = useState(() => store.getSnapshot().repeatMode === 'one');
+
+  // Enforce zero-sound mute guarantee on mount and on mode change
+  useEffect(() => {
+    if (mutedOverride) {
+      if (audioRef.current) {
+        audioRef.current.muted = true;
+        audioRef.current.volume = 0;
+      }
+      if (videoRef.current) {
+        videoRef.current.muted = true;
+        videoRef.current.volume = 0;
+      }
+    }
+  }, [mutedOverride, audioRef, videoRef]);
 
   // Keep track of active item and synchronize src
   useEffect(() => {
@@ -48,12 +64,18 @@ export const MediaStage = memo(function MediaStage({
           return;
         }
 
-        const baseVol = typeof engine.getBaseVolume === 'function' ? engine.getBaseVolume() : state.volume;
+        const baseVol = mutedOverride
+          ? 0
+          : typeof engine.getBaseVolume === 'function'
+          ? engine.getBaseVolume()
+          : state.volume;
+        const effectiveMuted = mutedOverride ? true : state.isMuted;
+
         if (current.type === 'video') {
           if (videoRef.current) {
             const el = videoRef.current;
             videoRef.current.src = current.url;
-            videoRef.current.muted = state.isMuted;
+            videoRef.current.muted = effectiveMuted;
             videoRef.current.volume = baseVol;
             videoRef.current.load();
             if (state.isPlaying) {
@@ -76,7 +98,7 @@ export const MediaStage = memo(function MediaStage({
           if (audioRef.current) {
             const el = audioRef.current;
             audioRef.current.src = current.url;
-            audioRef.current.muted = state.isMuted;
+            audioRef.current.muted = effectiveMuted;
             audioRef.current.volume = baseVol;
             audioRef.current.load();
             if (state.isPlaying) {
@@ -107,7 +129,7 @@ export const MediaStage = memo(function MediaStage({
         }
       }
     });
-  }, [store, engine, audioRef, videoRef]);
+  }, [store, engine, audioRef, videoRef, mutedOverride]);
 
   const handleTimeUpdate = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {
@@ -209,6 +231,7 @@ export const MediaStage = memo(function MediaStage({
       <audio
         ref={audioRef}
         loop={isRepeatOne}
+        muted={mutedOverride ? true : undefined}
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
@@ -220,6 +243,7 @@ export const MediaStage = memo(function MediaStage({
       <video
         ref={videoRef}
         loop={isRepeatOne}
+        muted={mutedOverride ? true : undefined}
         playsInline
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}

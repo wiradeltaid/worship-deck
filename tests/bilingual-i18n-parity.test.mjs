@@ -532,6 +532,17 @@ export function scanPresenterConsoleLocalization(
     { src: displayCtrlSrc, file: 'PresenterDisplayControl.tsx', raw: 'Presentation Lock is active. Are you sure you want to close' },
     { src: displayCtrlSrc, file: 'PresenterDisplayControl.tsx', raw: '(1 Screen detected)' },
     { src: gridSrc, file: 'SlideGridDialog.tsx', raw: '<DialogTitle>All slides</DialogTitle>' },
+    // SPEC-115: Mobile Remote QR Pairing raw string guards
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: '<DialogTitle>Mobile Remote Pairing</DialogTitle>' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Generating code…' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: '<span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">\n                  Pairing Code\n                </span>' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Code expires in 60 seconds if unclaimed.' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: '<span className="text-muted-foreground font-medium">Status</span>' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Connected · Remote Active' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Awaiting Connection' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Role Reassigned' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: 'Connection Error' },
+    { src: operatorSrc, file: 'PresenterOperator.tsx', raw: '<span className="text-xs text-muted-foreground font-medium">\n                Mobile URL\n              </span>' },
   ];
 
   for (const { src, file, raw } of forbiddenRaw) {
@@ -778,5 +789,77 @@ test('SPEC-114-04: Real-file defect injection — missing SPEC-114 key in catalo
   } finally {
     fs.writeFileSync(catalogueEnPath, original);
     assert.equal(fs.readFileSync(catalogueEnPath, 'utf8'), original, 'file must be restored identically');
+  }
+});
+
+test('SPEC-115-01: Strict Bilingual i18n parity across all SPEC-115 keys', () => {
+  const spec115Keys = [
+    'presenter.remote.qrTitle',
+    'presenter.remote.qrHint',
+    'presenter.remote.copyLink',
+    'presenter.remote.linkCopied',
+    'presenter.remote.generatingCode',
+    'presenter.remote.pairingCode',
+    'presenter.remote.codeExpiry',
+    'presenter.remote.statusLabel',
+    'presenter.remote.statusConnected',
+    'presenter.remote.statusPairing',
+    'presenter.remote.statusRoleLost',
+    'presenter.remote.statusError',
+    'presenter.remote.statusDisconnected',
+    'presenter.remote.mobileUrl',
+  ];
+
+  for (const key of spec115Keys) {
+    const en = resolveString(key, 'en');
+    const id = resolveString(key, 'id');
+    assert.ok(!en.startsWith('[missing:i18n:'), `Missing English translation for ${key}`);
+    assert.ok(!id.startsWith('[missing:i18n:'), `Missing Indonesian translation for ${key}`);
+    assert.notEqual(en, id, `Translations must differ between EN and ID for ${key}`);
+  }
+});
+
+test('SPEC-115-01: Real-file defect injection — missing SPEC-115 key in catalogue-en.ts fails guard', () => {
+  const original = fs.readFileSync(catalogueEnPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "'presenter.remote.qrTitle': 'Scan to Control Remotely',",
+      ''
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(catalogueEnPath, defective);
+
+    const findings = scanAllKeysBilingualParity();
+    assert.ok(
+      findings.some((f) =>
+        f.includes('catalogue-en.ts missing translation for key: presenter.remote.qrTitle')
+      ),
+      'Expected missing key in catalogue-en.ts to fail guard'
+    );
+  } finally {
+    fs.writeFileSync(catalogueEnPath, original);
+    assert.equal(fs.readFileSync(catalogueEnPath, 'utf8'), original, 'file must be restored identically');
+  }
+});
+
+test('SPEC-115-01: Real-file defect injection — raw string in PresenterOperator QR modal fails guard', () => {
+  const operatorPath = path.join(rootDir, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const original = fs.readFileSync(operatorPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "{t('presenter.remote.generatingCode')}",
+      'Generating code…'
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(operatorPath, defective);
+
+    const findings = scanPresenterConsoleLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('Generating code…')),
+      'Expected raw "Generating code…" to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(operatorPath, original);
+    assert.equal(fs.readFileSync(operatorPath, 'utf8'), original, 'file must be restored identically');
   }
 });

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35, FR-25]
 **Blocked by:** ["SPEC-115-03"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Implement unit, integration, and executable defect injection absence guards covering QR code modal rendering, auto-claim parameter handling, surface isolation (remote audio mute, projector suppression, zero hardware enumeration, zero Cache API/IDB writes), media intent dispatching, and bilingual localization parity across `tests/remote-presenting-client.test.mjs`, `tests/remote-screen.test.mjs`, and `tests/bilingual-i18n-parity.test.mjs`.

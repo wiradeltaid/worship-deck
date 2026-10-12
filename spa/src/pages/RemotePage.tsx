@@ -1,17 +1,48 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useLocation, useParams } from 'react-router-dom';
 import RemoteOperator from '@/operator/present/RemoteOperator';
 
 export default function RemotePage() {
   const { id } = useParams();
+  const location = useLocation();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const searchParams = new URLSearchParams(location.search);
+  const queryService = searchParams.get('service');
+  const code = searchParams.get('code');
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const res = await fetch(`/api/services/${id}`, { credentials: 'same-origin' });
+        let effectiveId = id || queryService;
+
+        // Auto-resolve active service if neither path parameter nor service query param is present
+        if (!effectiveId) {
+          const listRes = await fetch('/api/services', { credentials: 'same-origin' });
+          if (!active) return;
+          if (listRes.ok) {
+            const listJson = (await listRes.json()) as { services?: Array<{ id: number; date?: string }> };
+            if (Array.isArray(listJson.services) && listJson.services.length > 0) {
+              const now = new Date();
+              const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+              const todaySvc = listJson.services.find(
+                (s) => typeof s.date === 'string' && s.date.includes(todayIso)
+              );
+              effectiveId = String(todaySvc ? todaySvc.id : listJson.services[0].id);
+            }
+          }
+        }
+
+        if (!effectiveId) {
+          if (!active) return;
+          setData('missing');
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(`/api/services/${effectiveId}`, { credentials: 'same-origin' });
         if (!active) return;
         if (!res.ok) {
           setData('missing');
@@ -31,7 +62,7 @@ export default function RemotePage() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, queryService]);
 
   if (data === 'missing') return <Navigate to="/" replace />;
   if (loading || !data) {
@@ -49,6 +80,7 @@ export default function RemotePage() {
       slides={data.plan || []}
       planIdentity={typeof data.plan_identity === 'string' ? data.plan_identity : ''}
       transition={data.transition || 'fade'}
+      autoClaimCode={code || undefined}
     />
   );
 }

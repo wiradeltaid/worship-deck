@@ -367,3 +367,197 @@ test('AC-9: tests/remote-presenting-client.test.mjs is registered in package.jso
     'tests/remote-presenting-client.test.mjs must be listed in package.json scripts.test'
   );
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-115-01: Zero-Friction Remote Pairing, QR Modal, URL Hygiene, & /remote Route
+// -----------------------------------------------------------------------------
+test('SPEC-115-01: QR Code generator produces valid matrix with ISO-compliant dimensions', async () => {
+  const { generateQrCode } = await import(srcUrl('src', 'lib', 'qrcode.ts'));
+  const url = 'http://localhost:3000/remote?service=1&code=123456';
+  const qr = generateQrCode(url);
+
+  assert.ok(qr.version >= 1 && qr.version <= 10, 'QR version must be within supported range');
+  assert.equal(qr.size, 17 + 4 * qr.version, 'QR size must follow formula 17 + 4 * version');
+  assert.equal(qr.modules.length, qr.size, 'Matrix height must match size');
+  assert.equal(qr.modules[0].length, qr.size, 'Matrix width must match size');
+
+  // Verify finder pattern corners (top-left 7x7 must have center dot at [3,3])
+  assert.equal(qr.modules[0][0], true, 'Top-left corner must be dark');
+  assert.equal(qr.modules[3][3], true, 'Top-left finder center must be dark');
+  assert.equal(qr.modules[0][qr.size - 1], true, 'Top-right corner must be dark');
+  assert.equal(qr.modules[qr.size - 1][0], true, 'Bottom-left corner must be dark');
+});
+
+test('SPEC-115-01: PresenterOperator renders scannable QR modal with PIN, auto-claim URL, and copy button', () => {
+  const source = readRaw('src/operator/present/PresenterOperator.tsx');
+  assert.ok(source.includes('data-testid="remote-qr-code"'), 'Must render remote-qr-code container');
+  assert.ok(source.includes('data-testid="remote-pairing-pin"'), 'Must render remote-pairing-pin display');
+  assert.ok(source.includes('data-testid="remote-pairing-url"'), 'Must render remote-pairing-url input');
+  assert.ok(source.includes('data-testid="remote-copy-link-button"'), 'Must render remote-copy-link-button');
+
+  assert.ok(
+    source.includes('/remote?service=${serviceId}&code=${remoteCode}'),
+    'Must encode direct pairing URL with auto-claim query parameters'
+  );
+  assert.ok(
+    source.includes("t('presenter.remote.qrTitle')"),
+    'Must localize dialog title with presenter.remote.qrTitle'
+  );
+  assert.ok(
+    source.includes("t('presenter.remote.qrHint')"),
+    'Must localize dialog hint with presenter.remote.qrHint'
+  );
+  assert.ok(
+    source.includes("t('presenter.remote.linkCopied')"),
+    'Must display copy confirmation toast with presenter.remote.linkCopied'
+  );
+});
+
+test('SPEC-115-01: App.tsx registers top-level /remote route with PresentGate and RemotePage', () => {
+  const appSource = readRaw('spa/src/App.tsx');
+  assert.ok(
+    appSource.includes('<Route path="/remote" element={<RemotePage />} />'),
+    'App.tsx must register universal /remote route'
+  );
+  assert.ok(
+    appSource.includes('<Route path="/services/:id/remote" element={<RemotePage />} />'),
+    'App.tsx must retain existing service-scoped remote route'
+  );
+});
+
+test('SPEC-115-01: RemotePage and RemoteOperator support autoClaimCode and enforce URL token hygiene via replaceState', () => {
+  const pageSource = readRaw('spa/src/pages/RemotePage.tsx');
+  assert.ok(pageSource.includes('searchParams.get(\'service\')'), 'RemotePage must read service query param');
+  assert.ok(pageSource.includes('searchParams.get(\'code\')'), 'RemotePage must read code query param');
+  assert.ok(pageSource.includes('autoClaimCode={code || undefined}'), 'RemotePage must forward autoClaimCode');
+  assert.ok(pageSource.includes('/api/services'), 'RemotePage must auto-resolve active service if unprovided');
+
+  const operatorSource = readRaw('src/operator/present/RemoteOperator.tsx');
+  assert.ok(operatorSource.includes('autoClaimCode?: string'), 'RemoteOperator must declare autoClaimCode prop');
+  assert.ok(operatorSource.includes('session.claim(trimmedCode)'), 'RemoteOperator must auto-invoke claim on mount');
+  assert.ok(
+    operatorSource.includes("window.history.replaceState(window.history.state, '', cleanUrl)"),
+    'RemoteOperator must strip code query parameter via replaceState on successful claim while preserving history state'
+  );
+});
+
+export function scanSpec11501PairingHygiene(source) {
+  const defects = [];
+  if (!source.includes('replaceState')) {
+    defects.push('missing-replace-state-token-hygiene');
+  }
+  if (!source.includes('data-testid="remote-qr-code"')) {
+    defects.push('missing-qr-code-testid');
+  }
+  return defects;
+}
+
+test('SPEC-115-01 defect injection: missing token hygiene or testid fails scan guard', () => {
+  const validSource = readRaw('src/operator/present/PresenterOperator.tsx') +
+    readRaw('src/operator/present/RemoteOperator.tsx');
+  assert.deepEqual(scanSpec11501PairingHygiene(validSource), []);
+
+  const mutatedSource = '<div>No token hygiene or QR testid here</div>';
+  assert.deepEqual(scanSpec11501PairingHygiene(mutatedSource), [
+    'missing-replace-state-token-hygiene',
+    'missing-qr-code-testid',
+  ]);
+});
+
+// -----------------------------------------------------------------------------
+// SPEC-115-03: Full-Surface Remote Intent Telemetry & Bidirectional Media Control
+// -----------------------------------------------------------------------------
+test('SPEC-115-03: applyRemoteIntent dispatches all 9 media transport intents with planIdentity validation', () => {
+  const calls = [];
+  const handlers = {
+    setIndexAndSync: (idx) => calls.push({ fn: 'setIndexAndSync', arg: idx }),
+    setBlankAndSync: (b) => calls.push({ fn: 'setBlankAndSync', arg: b }),
+    setTransitionAndSync: (tr) => calls.push({ fn: 'setTransitionAndSync', arg: tr }),
+    setBackgroundAndSync: (bg) => calls.push({ fn: 'setBackgroundAndSync', arg: bg }),
+    broadcast: (msg) => calls.push({ fn: 'broadcast', arg: msg }),
+    handleMediaPlay: () => calls.push({ fn: 'handleMediaPlay' }),
+    handleMediaPause: () => calls.push({ fn: 'handleMediaPause' }),
+    handleMediaStop: () => calls.push({ fn: 'handleMediaStop' }),
+    handleMediaFade: () => calls.push({ fn: 'handleMediaFade' }),
+    handleMediaSeek: (t) => calls.push({ fn: 'handleMediaSeek', arg: t }),
+    handleMediaToggleProject: () => calls.push({ fn: 'handleMediaToggleProject' }),
+    handleMediaSelectItem: (id) => calls.push({ fn: 'handleMediaSelectItem', arg: id }),
+    handleMediaToggleShuffle: () => calls.push({ fn: 'handleMediaToggleShuffle' }),
+    handleMediaCycleRepeat: () => calls.push({ fn: 'handleMediaCycleRepeat' }),
+  };
+
+  const planId = 'plan-media-test';
+
+  // 1. Media play/pause/stop/fade
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-pause', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-stop', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-fade', planIdentity: planId }, planId, handlers), true);
+
+  // 2. Media seek and select item with payload validation
+  assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: 42.5, planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: -5, planIdentity: planId }, planId, handlers), false);
+  assert.equal(applyRemoteIntent({ type: 'media-select-item', id: 'med-999', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-select-item', id: '   ', planIdentity: planId }, planId, handlers), false);
+
+  // 3. Media toggles (project, shuffle, repeat)
+  assert.equal(applyRemoteIntent({ type: 'media-toggle-project', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-toggle-shuffle', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-cycle-repeat', planIdentity: planId }, planId, handlers), true);
+
+  // 4. Fail-closed on planIdentity mismatch
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: 'stale-plan' }, planId, handlers), false);
+
+  assert.deepEqual(calls, [
+    { fn: 'handleMediaPlay' },
+    { fn: 'handleMediaPause' },
+    { fn: 'handleMediaStop' },
+    { fn: 'handleMediaFade' },
+    { fn: 'handleMediaSeek', arg: 42.5 },
+    { fn: 'handleMediaSelectItem', arg: 'med-999' },
+    { fn: 'handleMediaToggleProject' },
+    { fn: 'handleMediaToggleShuffle' },
+    { fn: 'handleMediaCycleRepeat' },
+  ]);
+});
+
+test('SPEC-115-03: PresenterOperator binds media remote intent dispatching on MediaControlBar', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx');
+  assert.ok(
+    operatorSource.includes("onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}"),
+    'PresenterOperator must pass onRemoteMediaIntent to MediaControlBar when in remote mode'
+  );
+  assert.ok(
+    operatorSource.includes("handleMediaPlay: () => {"),
+    'PresenterOperator must implement handleMediaPlay in remote session'
+  );
+  assert.ok(
+    operatorSource.includes("handleMediaSeek: (timeSeconds) => {"),
+    'PresenterOperator must implement handleMediaSeek in remote session'
+  );
+  assert.ok(
+    operatorSource.includes("handleMediaToggleProject: () => {"),
+    'PresenterOperator must implement handleMediaToggleProject in remote session'
+  );
+  assert.ok(
+    operatorSource.includes("void remoteSessionRef.current?.broadcastState({"),
+    'PresenterOperator must mirror media state updates to remote session'
+  );
+});
+
+test('SPEC-115-03 defect injection: unhandled media intent or omitted media intent handler fails guard', () => {
+  const handlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: () => {},
+  };
+
+  // When no media handlers are registered, media intents return false (fail-closed)
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: 'p' }, 'p', handlers), false);
+  // Mismatched plan identity must still return false
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: 'wrong' }, 'p', handlers), false);
+  // Negative seek must return false
+  assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: -10, planIdentity: 'p' }, 'p', handlers), false);
+});

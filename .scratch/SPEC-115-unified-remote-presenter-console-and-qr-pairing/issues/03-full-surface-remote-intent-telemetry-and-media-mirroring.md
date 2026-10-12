@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** ["SPEC-115-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Formalize the media remote intent schema and authority boundary, expand `PresenterRemoteIntent` and backend relay to support full media transport controls (Play/Pause, Stop, Fade, Seek, Project Video, Shuffle, Repeat), and mirror active media playback state back to remote clients in real time.
