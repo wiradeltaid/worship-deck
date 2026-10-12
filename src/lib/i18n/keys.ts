@@ -870,6 +870,8 @@ export const I18N_KEYS = [
   'media.controlBar.repeatOff',
   'media.controlBar.repeatAll',
   'media.controlBar.repeatOne',
+  'media.controlBar.prevTitle',
+  'media.controlBar.nextTitle',
   'media.drawer.statusCloudOnly',
   'media.drawer.statusLocalOnly',
   'media.drawer.statusSynced',

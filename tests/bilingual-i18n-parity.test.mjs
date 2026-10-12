@@ -745,6 +745,8 @@ test('SPEC-114-04: Strict Bilingual i18n parity across all SPEC-114 keys', () =>
     'media.controlBar.repeatOff',
     'media.controlBar.repeatAll',
     'media.controlBar.repeatOne',
+    'media.controlBar.prevTitle',
+    'media.controlBar.nextTitle',
   ];
 
   for (const key of spec114Keys) {

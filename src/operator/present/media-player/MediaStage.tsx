@@ -1,5 +1,6 @@
 import {
   memo,
+  useState,
   useEffect,
   useRef,
   useCallback,
@@ -25,11 +26,17 @@ export const MediaStage = memo(function MediaStage({
   onToastError,
 }: MediaStageProps) {
   const activeItemRef = useRef<PlaylistItem | null>(null);
+  const [isRepeatOne, setIsRepeatOne] = useState(() => store.getSnapshot().repeatMode === 'one');
 
   // Keep track of active item and synchronize src
   useEffect(() => {
     return store.subscribe(() => {
       const state = store.getSnapshot();
+      const repeatOne = state.repeatMode === 'one';
+      setIsRepeatOne(repeatOne);
+      if (audioRef.current) audioRef.current.loop = repeatOne;
+      if (videoRef.current) videoRef.current.loop = repeatOne;
+
       const current = state.items.find((i) => i.id === state.activeId) ?? null;
       const prev = activeItemRef.current;
       activeItemRef.current = current;
@@ -130,10 +137,6 @@ export const MediaStage = memo(function MediaStage({
     const state = store.getSnapshot();
     const nextItem = resolveNextPlaylistItem(state);
 
-    // Track finish teardown: Always disable projection to protect sanctuary screen
-    store.dispatch({ type: 'SET_PROJECTED', isProjected: false });
-    store.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: 'off' });
-
     if (nextItem) {
       if (nextItem.id === state.activeId) {
         // Replay active track (repeat-one or single-audio loop):
@@ -144,11 +147,25 @@ export const MediaStage = memo(function MediaStage({
           store.dispatch({ type: 'SET_PLAYING', isPlaying: res.success });
         });
       } else {
-        // Auto-advance to next audio track: declarative dispatch, no timers
-        store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
+        // Track finish teardown: Always disable projection before transitioning to a different track
+        store.dispatch({ type: 'SET_PROJECTED', isProjected: false });
+        store.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: 'off' });
+
+        // Auto-advance to next audio track
         store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
+        store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
+        setTimeout(() => {
+          void engine.play().then((res) => {
+            if (!res.success) {
+              store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+            }
+          });
+        }, 50);
       }
     } else {
+      // Track finish teardown: Always disable projection to protect sanctuary screen
+      store.dispatch({ type: 'SET_PROJECTED', isProjected: false });
+      store.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: 'off' });
       // Halt playback, keep dock active without abrupt disappearance
       store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
     }
@@ -194,6 +211,7 @@ export const MediaStage = memo(function MediaStage({
     >
       <audio
         ref={audioRef}
+        loop={isRepeatOne}
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
@@ -204,6 +222,7 @@ export const MediaStage = memo(function MediaStage({
       />
       <video
         ref={videoRef}
+        loop={isRepeatOne}
         playsInline
         preload="metadata"
         onTimeUpdate={handleTimeUpdate}
