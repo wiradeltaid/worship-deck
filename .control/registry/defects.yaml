@@ -585,3 +585,18 @@ defects:
       Fixed by adding columns and backfill to service_registry_snapshots, reading them in LoadSnapshot,
       applying structured fields and resolving songSets into snap.SongInputs in previewService, and
       passing serviceId from EditForm.
+
+  - id: BUG-39
+    status: fixed
+    fixed_in: fastpath
+    title: "MediaStage triggers MEDIA_ERR_4 Empty src attribute upon deleting active local media, and MediaDrawer blocks re-adding from computer"
+    component: presenter
+    violates: [UC-12, FR-16]
+    root_cause: code
+    source: "Manual test feedback on SPEC-114: user added media from computer, played it, deleted from computer, and deleted from cloud; encountered MEDIA_ERR_4 Empty src attribute and could not re-add file"
+    summary: >
+      Diagnosed via wdi-systematic-debugging:
+      1) In MediaStage.tsx, deleting an active item caused the media element to invoke .load() on empty src="", triggering Chromium's MEDIA_ERR_4: MEDIA_ELEMENT_ERROR: Empty src attribute. Fixed by checking current.url and avoiding .load() on empty src, properly unsetting src via removeAttribute, and ignoring synthetic unload errors in handleError.
+      2) In MediaDrawer.tsx, handleDeleteCloudOnly and handleDeleteBoth sent item.id ("local-xxxx") instead of item.cloud?.id to /api/media/playlist/:id, causing cloud deletion to fail with 404 and leaving zombie cloud records on reload.
+      3) In MediaDrawer.tsx, fileInputRef value was not cleared on click/change, preventing re-selecting the same file via fallback input; showOpenFilePicker used wildcard accept keys ('audio/*', 'video/*') which trigger TypeError in Chromium File System Access API; and re-importing an existing cloud item did not upgrade it with the newly provided local file. Fixed by normalizing accept MIME types, clearing input value, and upgrading existing items to synced with valid blob URLs upon re-import.
+

@@ -577,22 +577,28 @@ export default function PresenterOperator({
 
         const localOnlyItems: PlaylistItem[] = Array.from(localMap.values())
           .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
-          .map((rec) => ({
-            id: `local-${rec.sha256.slice(0, 8)}`,
-            name: rec.name,
-            url: '',
-            type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
-            size: rec.sizeBytes,
-            sha256: rec.sha256,
-            source: 'local',
-            local: {
-              storageKind: rec.storageKind,
-              stale: false,
-              fileHandle: rec.fileHandle,
+          .map((rec) => {
+            let localUrl = '';
+            if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
+              localUrl = URL.createObjectURL(rec.fileHandle);
+            }
+            return {
+              id: `local-${rec.sha256.slice(0, 8)}`,
+              name: rec.name,
+              url: localUrl,
+              type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
+              size: rec.sizeBytes,
+              sha256: rec.sha256,
+              source: 'local' as const,
+              local: {
+                storageKind: rec.storageKind,
+                stale: false,
+                fileHandle: rec.fileHandle,
+                orderKey: rec.orderKey,
+              },
               orderKey: rec.orderKey,
-            },
-            orderKey: rec.orderKey,
-          }));
+            };
+          });
 
         const allItems = [...mergedItems, ...localOnlyItems];
         if (!cancelled && allItems.length > 0) {
