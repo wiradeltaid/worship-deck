@@ -204,14 +204,14 @@ export const MediaControlBar = memo(function MediaControlBar({
   }, [state.repeatMode, store]);
 
   const handleToggleProject = useCallback(() => {
-    if (!isCued || !activeItem || !canProjectMediaItem(activeItem)) return;
+    if (!isCued) return;
     const nextProjected = !state.isProjected;
     store.dispatch({ type: 'SET_PROJECTED', isProjected: nextProjected });
     store.dispatch({
       type: 'SET_PROJECT_STATUS',
-      projectStatus: nextProjected ? 'on_screen' : 'off',
+      projectStatus: nextProjected ? (isVideo ? 'on_screen' : 'sending') : 'off',
     });
-  }, [isCued, activeItem, state.isProjected, store]);
+  }, [isCued, isVideo, state.isProjected, store]);
 
   const handleSeekChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -528,28 +528,31 @@ export const MediaControlBar = memo(function MediaControlBar({
           size="sm"
           variant={state.isProjected ? 'default' : 'outline'}
           data-testid="media-control-bar-project"
-          disabled={!isCued || !isVideo}
+          disabled={!isCued}
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleToggleProject}
           className={cn(
             'h-8 px-2.5 gap-1.5 text-xs font-semibold',
             state.isProjected
-              ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-              : 'text-muted-foreground hover:text-foreground',
-            !isVideo && 'opacity-40'
+              ? isVideo
+                ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                : 'bg-primary/20 text-primary border-primary/40 hover:bg-primary/30'
+              : 'text-muted-foreground hover:text-foreground'
           )}
           title={
-            !isVideo
+            state.isProjected
+              ? isVideo
+                ? t('media.topBar.takeOffTitle')
+                : t('media.controlBar.projectedAudioFallback')
+              : !isVideo
               ? t('media.controlBar.videoOnlyTooltip')
-              : state.isProjected
-              ? t('media.topBar.takeOffTitle')
               : t('media.topBar.projectVideoTitle')
           }
         >
           {state.isProjected ? (
             <>
               <Monitor className="h-3.5 w-3.5" />
-              <span>{t('media.topBar.takeOffLabel')}</span>
+              <span>{isVideo ? t('media.topBar.takeOffLabel') : t('media.controlBar.projectArmedLabel')}</span>
             </>
           ) : (
             <>

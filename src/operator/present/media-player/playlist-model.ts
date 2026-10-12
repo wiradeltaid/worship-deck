@@ -346,12 +346,15 @@ export function getPrevPlaylistItem(currentId: string | null, items: PlaylistIte
 export function selectPlaylistItem(state: PlaylistState, id: string): PlaylistState {
   if (state.activeId === id) return state;
 
+  const target = state.items.find((i) => i.id === id);
+  const isVideo = target?.type === 'video';
+
   return {
     ...state,
     activeId: id,
     currentTime: 0,
-    isProjected: false,
-    projectStatus: 'off',
+    isProjected: state.isProjected,
+    projectStatus: state.isProjected ? (isVideo ? 'on_screen' : 'sending') : 'off',
   };
 }
 
