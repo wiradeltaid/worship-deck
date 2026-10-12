@@ -2095,6 +2095,25 @@ decisions:
       - .scratch/SPEC-112-mandatory-i18n-reconciliation-and-enforcement-guards/
       - .scratch/SPEC-113-unified-media-control-bar-and-single-list-library/
 
+  - id: DEC-100
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-12)"
+    title: Daily Autopilot mandate for Media Player Suite Hardening and Playlist Sync (SPEC-114)
+    file: .control/decisions/DEC-100-daily-autopilot-mandate-media-player-suite-hardening-and-playlist-sync.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-19'
+    touches:
+      - .control/memlog/autopilot-DEC-100.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-114-media-player-suite-hardening-and-playlist-sync/
+
 
 
 
