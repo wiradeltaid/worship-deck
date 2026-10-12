@@ -151,6 +151,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/present/{id}/remote/claim", s.postRemoteClaim)
 	mux.HandleFunc("GET /api/present/{id}/remote/stream", s.getRemoteStream)
 	mux.HandleFunc("POST /api/present/{id}/remote/intent", s.postRemoteIntent)
+	mux.HandleFunc("POST /api/present/{id}/remote/state", s.postRemoteState)
 	mux.HandleFunc("DELETE /api/present/{id}/remote/pair", s.deleteRemotePair)
 	mux.HandleFunc("POST /api/sync/push", s.syncPush)
 	mux.HandleFunc("GET /api/sync/pull", s.syncPull)

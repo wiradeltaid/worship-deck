@@ -39,6 +39,7 @@ import {
 } from './playlist-model';
 import { routePlaybackSource } from './playback-router';
 import { useT } from '@/lib/i18n/operator';
+import type { PresenterRemoteIntent } from '@/lib/presenter-remote-client';
 
 export interface MediaControlBarProps {
   store: MediaStore;
@@ -46,6 +47,8 @@ export interface MediaControlBarProps {
   onOpenDrawer?: () => void;
   className?: string;
   isRemote?: boolean;
+  onRemoteMediaIntent?: (intent: PresenterRemoteIntent) => void;
+  planIdentity?: string;
 }
 
 function formatTime(seconds: number): string {
@@ -61,6 +64,8 @@ export const MediaControlBar = memo(function MediaControlBar({
   onOpenDrawer,
   className,
   isRemote = false,
+  onRemoteMediaIntent,
+  planIdentity = '',
 }: MediaControlBarProps) {
   const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
@@ -82,6 +87,13 @@ export const MediaControlBar = memo(function MediaControlBar({
 
   const handlePlayPause = useCallback(async () => {
     if (!isCued) return;
+    if (onRemoteMediaIntent) {
+      onRemoteMediaIntent({
+        type: state.isPlaying ? 'media-pause' : 'media-play',
+        planIdentity,
+      });
+      return;
+    }
     if (state.isPlaying) {
       await engine.pause();
       store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
@@ -91,10 +103,21 @@ export const MediaControlBar = memo(function MediaControlBar({
         store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
       }
     }
-  }, [isCued, state.isPlaying, engine, store]);
+  }, [isCued, state.isPlaying, onRemoteMediaIntent, planIdentity, engine, store]);
 
   const handlePrevTrack = useCallback(() => {
     if (!isCued) return;
+    if (onRemoteMediaIntent) {
+      const prev = getPrevPlaylistItem(state.activeId, state.items);
+      if (prev) {
+        onRemoteMediaIntent({
+          type: 'media-select-item',
+          id: prev.id,
+          planIdentity,
+        });
+      }
+      return;
+    }
     if (state.currentTime > 3) {
       engine.seek(0);
       store.dispatch({ type: 'SET_TIME', currentTime: 0 });
@@ -111,10 +134,21 @@ export const MediaControlBar = memo(function MediaControlBar({
         }, 50);
       }
     }
-  }, [isCued, state.currentTime, state.activeId, state.items, state.isPlaying, engine, store]);
+  }, [isCued, state.currentTime, state.activeId, state.items, state.isPlaying, onRemoteMediaIntent, planIdentity, engine, store]);
 
   const handleNextTrack = useCallback(() => {
     if (!isCued) return;
+    if (onRemoteMediaIntent) {
+      const next = resolveNextPlaylistItem(state);
+      if (next) {
+        onRemoteMediaIntent({
+          type: 'media-select-item',
+          id: next.id,
+          planIdentity,
+        });
+      }
+      return;
+    }
     const next = resolveNextPlaylistItem(state);
     if (next) {
       if (next.id === state.activeId) {
@@ -152,18 +186,32 @@ export const MediaControlBar = memo(function MediaControlBar({
         }
       }
     }
-  }, [isCued, state, engine, store]);
+  }, [isCued, state, onRemoteMediaIntent, planIdentity, engine, store]);
 
   const handleStop = useCallback(() => {
     if (!isCued) return;
+    if (onRemoteMediaIntent) {
+      onRemoteMediaIntent({
+        type: 'media-stop',
+        planIdentity,
+      });
+      return;
+    }
     engine.pause();
     engine.seek(0);
     store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
     store.dispatch({ type: 'SET_TIME', currentTime: 0 });
-  }, [isCued, engine, store]);
+  }, [isCued, onRemoteMediaIntent, planIdentity, engine, store]);
 
   const handleFadeOut = useCallback(async () => {
     if (!isCued || !state.isPlaying) return;
+    if (onRemoteMediaIntent) {
+      onRemoteMediaIntent({
+        type: 'media-fade',
+        planIdentity,
+      });
+      return;
+    }
     const originalVolume = state.volume;
     store.dispatch({ type: 'SET_FADING', isFading: true });
     try {
@@ -176,7 +224,7 @@ export const MediaControlBar = memo(function MediaControlBar({
       store.dispatch({ type: 'SET_FADING', isFading: false });
       store.dispatch({ type: 'SET_VOLUME', volume: originalVolume });
     }
-  }, [isCued, state.isPlaying, state.volume, engine, store]);
+  }, [isCued, state.isPlaying, state.volume, onRemoteMediaIntent, planIdentity, engine, store]);
 
   const handleToggleMute = useCallback(() => {
     if (!isCued || isRemote) return;
@@ -196,25 +244,46 @@ export const MediaControlBar = memo(function MediaControlBar({
   );
 
   const handleToggleShuffle = useCallback(() => {
+    if (onRemoteMediaIntent) {
+      onRemoteMediaIntent({
+        type: 'media-toggle-shuffle',
+        planIdentity,
+      });
+      return;
+    }
     const nextShuffle = !state.shuffle;
     store.dispatch({ type: 'SET_SHUFFLE', shuffle: nextShuffle });
-  }, [state.shuffle, store]);
+  }, [state.shuffle, onRemoteMediaIntent, planIdentity, store]);
 
   const handleCycleRepeat = useCallback(() => {
+    if (onRemoteMediaIntent) {
+      onRemoteMediaIntent({
+        type: 'media-cycle-repeat',
+        planIdentity,
+      });
+      return;
+    }
     const nextRepeat: RepeatMode =
       state.repeatMode === 'off' ? 'all' : state.repeatMode === 'all' ? 'one' : 'off';
     store.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: nextRepeat });
-  }, [state.repeatMode, store]);
+  }, [state.repeatMode, onRemoteMediaIntent, planIdentity, store]);
 
   const handleToggleProject = useCallback(() => {
     if (!isCued) return;
+    if (onRemoteMediaIntent) {
+      onRemoteMediaIntent({
+        type: 'media-toggle-project',
+        planIdentity,
+      });
+      return;
+    }
     const nextProjected = !state.isProjected;
     store.dispatch({ type: 'SET_PROJECTED', isProjected: nextProjected });
     store.dispatch({
       type: 'SET_PROJECT_STATUS',
       projectStatus: nextProjected ? (isVideo ? 'on_screen' : 'sending') : 'off',
     });
-  }, [isCued, isVideo, state.isProjected, store]);
+  }, [isCued, isVideo, state.isProjected, onRemoteMediaIntent, planIdentity, store]);
 
   const handleSeekChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,11 +297,20 @@ export const MediaControlBar = memo(function MediaControlBar({
   const commitSeek = useCallback(
     (val: number) => {
       isSeekingRef.current = false;
+      if (onRemoteMediaIntent) {
+        onRemoteMediaIntent({
+          type: 'media-seek',
+          timeSeconds: val,
+          planIdentity,
+        });
+        setSeekingTime(null);
+        return;
+      }
       engine.seek(val);
       store.dispatch({ type: 'SET_TIME', currentTime: val });
       setSeekingTime(null);
     },
-    [engine, store]
+    [onRemoteMediaIntent, planIdentity, engine, store]
   );
 
   const handleSeekPointerUp = useCallback(

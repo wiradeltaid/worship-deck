@@ -155,6 +155,7 @@ import {
   PresenterRemoteSession,
   type PresenterRemoteConnectionState,
   type PresenterRemoteIntent,
+  type RemoteControlSessionState,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
@@ -171,6 +172,7 @@ import {
   type MediaStore,
   type MediaEngine,
   type PlaylistItem,
+  type RepeatMode,
 } from './media-player';
 import {
   resolveLaunchTarget,
@@ -501,6 +503,7 @@ export interface PresenterOperatorProps {
     transition: SlideTransition;
     background: string | null;
   };
+  controlledMediaState?: RemoteControlSessionState['media'];
 }
 
 export default function PresenterOperator({
@@ -515,6 +518,7 @@ export default function PresenterOperator({
   mode = 'host',
   onSendIntent,
   controlledState,
+  controlledMediaState,
 }: PresenterOperatorProps) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
@@ -678,6 +682,39 @@ export default function PresenterOperator({
       }
     }
   }, [mode, controlledState, activeSlides.length]);
+
+  // SPEC-115-03: Synchronize mirrored media state from host SSE events
+  useEffect(() => {
+    if (mode === 'remote' && controlledMediaState) {
+      if (controlledMediaState.activeId !== undefined) {
+        if (controlledMediaState.activeId && controlledMediaState.activeId !== mediaStore.getSnapshot().activeId) {
+          mediaStore.dispatch({ type: 'SELECT_ITEM', id: controlledMediaState.activeId });
+        }
+      }
+      if (typeof controlledMediaState.isPlaying === 'boolean') {
+        mediaStore.dispatch({ type: 'SET_PLAYING', isPlaying: controlledMediaState.isPlaying });
+      }
+      if (typeof controlledMediaState.isProjected === 'boolean') {
+        mediaStore.dispatch({ type: 'SET_PROJECTED', isProjected: controlledMediaState.isProjected });
+        mediaStore.dispatch({
+          type: 'SET_PROJECT_STATUS',
+          projectStatus: controlledMediaState.isProjected ? 'on_screen' : 'off',
+        });
+      }
+      if (typeof controlledMediaState.currentTime === 'number') {
+        mediaStore.dispatch({ type: 'SET_TIME', currentTime: controlledMediaState.currentTime });
+      }
+      if (typeof controlledMediaState.duration === 'number') {
+        mediaStore.dispatch({ type: 'SET_DURATION', duration: controlledMediaState.duration });
+      }
+      if (typeof controlledMediaState.shuffle === 'boolean') {
+        mediaStore.dispatch({ type: 'SET_SHUFFLE', shuffle: controlledMediaState.shuffle });
+      }
+      if (controlledMediaState.repeatMode) {
+        mediaStore.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: controlledMediaState.repeatMode });
+      }
+    }
+  }, [mode, controlledMediaState, mediaStore]);
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
@@ -1652,6 +1689,46 @@ export default function PresenterOperator({
         setBackgroundAndSync,
         setScriptureAndSync,
         broadcast,
+        handleMediaPlay: () => {
+          void mediaEngine.play().then((res) => {
+            mediaStore.dispatch({ type: 'SET_PLAYING', isPlaying: res.success });
+          });
+        },
+        handleMediaPause: () => {
+          mediaEngine.pause();
+          mediaStore.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+        },
+        handleMediaStop: () => {
+          mediaEngine.pause();
+          mediaEngine.seek(0);
+          mediaStore.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+          mediaStore.dispatch({ type: 'SET_TIME', currentTime: 0 });
+        },
+        handleMediaFade: () => {
+          void mediaEngine.fade();
+        },
+        handleMediaSeek: (timeSeconds) => {
+          mediaEngine.seek(timeSeconds);
+          mediaStore.dispatch({ type: 'SET_TIME', currentTime: timeSeconds });
+        },
+        handleMediaToggleProject: () => {
+          const snap = mediaStore.getSnapshot();
+          const next = !snap.isProjected;
+          mediaStore.dispatch({ type: 'SET_PROJECTED', isProjected: next });
+          mediaStore.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: next ? 'on_screen' : 'off' });
+        },
+        handleMediaSelectItem: (id) => {
+          mediaStore.dispatch({ type: 'SELECT_ITEM', id });
+        },
+        handleMediaToggleShuffle: () => {
+          const snap = mediaStore.getSnapshot();
+          mediaStore.dispatch({ type: 'SET_SHUFFLE', shuffle: !snap.shuffle });
+        },
+        handleMediaCycleRepeat: () => {
+          const snap = mediaStore.getSnapshot();
+          const next: RepeatMode = snap.repeatMode === 'off' ? 'all' : snap.repeatMode === 'all' ? 'one' : 'off';
+          mediaStore.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: next });
+        },
       },
       onCode: (code) => {
         setRemoteCode(code);
@@ -1675,7 +1752,52 @@ export default function PresenterOperator({
     setBackgroundAndSync,
     setScriptureAndSync,
     broadcast,
+    mediaEngine,
+    mediaStore,
   ]);
+
+  // Host-to-remote media playback state mirroring over SSE
+  useEffect(() => {
+    if (mode === 'remote') return;
+    return mediaStore.subscribe(() => {
+      const snap = mediaStore.getSnapshot();
+      void remoteSessionRef.current?.broadcastState({
+        media: {
+          activeId: snap.activeId,
+          isPlaying: snap.isPlaying,
+          isProjected: snap.isProjected,
+          currentTime: snap.currentTime,
+          duration: snap.duration,
+          shuffle: snap.shuffle,
+          repeatMode: snap.repeatMode,
+        },
+      });
+    });
+  }, [mode, mediaStore]);
+
+  // Immediate full presentation & media snapshot broadcast when remote client connects
+  useEffect(() => {
+    if (mode === 'remote') return;
+    if (remoteState === 'connected') {
+      const snap = mediaStore.getSnapshot();
+      void remoteSessionRef.current?.broadcastState({
+        index: indexRef.current,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+        background: backgroundRef.current,
+        planIdentity: planIdentityRef.current,
+        media: {
+          activeId: snap.activeId,
+          isPlaying: snap.isPlaying,
+          isProjected: snap.isProjected,
+          currentTime: snap.currentTime,
+          duration: snap.duration,
+          shuffle: snap.shuffle,
+          repeatMode: snap.repeatMode,
+        },
+      });
+    }
+  }, [mode, remoteState, mediaStore]);
 
   useEffect(() => {
     if (mode === 'remote') return;
@@ -2548,6 +2670,8 @@ export default function PresenterOperator({
           engine={mediaEngine}
           onOpenDrawer={mode === 'remote' ? undefined : () => setMediaDrawerOpen(true)}
           isRemote={mode === 'remote'}
+          onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
+          planIdentity={planIdentity}
         />
       </div>
 

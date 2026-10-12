@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"math/big"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -35,15 +37,23 @@ const (
 	StreamFreshnessWindow = 15 * time.Second
 )
 
-// Allowed intent types on PresentMessage (src/lib/present-channel.ts).
-// Six intents exist: sync, blank, transition, background, scripture, clear-scripture.
+// Allowed intent types on PresentMessage (src/lib/present-channel.ts) and media transport controls.
 var allowedIntentTypes = map[string]bool{
-	"sync":            true,
-	"blank":           true,
-	"transition":      true,
-	"background":      true,
-	"scripture":       true,
-	"clear-scripture": true,
+	"sync":                 true,
+	"blank":                true,
+	"transition":           true,
+	"background":           true,
+	"scripture":            true,
+	"clear-scripture":      true,
+	"media-play":           true,
+	"media-pause":          true,
+	"media-stop":           true,
+	"media-fade":           true,
+	"media-seek":           true,
+	"media-toggle-project": true,
+	"media-select-item":    true,
+	"media-toggle-shuffle": true,
+	"media-cycle-repeat":   true,
 }
 
 type clientChan chan []byte
@@ -455,6 +465,27 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	planId, ok := body["planIdentity"].(string)
+	if !ok || strings.TrimSpace(planId) == "" {
+		writeError(w, http.StatusBadRequest, "Missing or invalid planIdentity")
+		return
+	}
+
+	if intentType == "media-seek" {
+		t, ok := body["timeSeconds"].(float64)
+		if !ok || math.IsNaN(t) || math.IsInf(t, 0) || t < 0 {
+			writeError(w, http.StatusBadRequest, "Invalid seek timeSeconds")
+			return
+		}
+	}
+	if intentType == "media-select-item" {
+		id, ok := body["id"].(string)
+		if !ok || strings.TrimSpace(id) == "" {
+			writeError(w, http.StatusBadRequest, "Invalid item id")
+			return
+		}
+	}
+
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 	state.mu.Lock()
 	defer state.mu.Unlock()
@@ -472,8 +503,10 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update last known state if appropriate (e.g. sync/blank/transition/etc.)
-	state.lastState = intentBytes
+	// Update last known presentation state only for full deck sync intents, never for transient media intents
+	if intentType == "sync" {
+		state.lastState = intentBytes
+	}
 
 	// Forward to presenter stream(s)
 	for ch := range state.presenterChans {
@@ -488,6 +521,55 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 	for ch := range state.remoteChans {
 		select {
 		case ch <- intentBytes:
+		default:
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// 4b. POST /api/present/{id}/remote/state
+// Presenter broadcasts live deck or media state to paired remote client(s).
+func (s *Server) postRemoteState(w http.ResponseWriter, r *http.Request) {
+	serviceID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || serviceID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid Service ID")
+		return
+	}
+
+	sess := sessionFrom(r)
+	if sess == nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	body, err, status, msg := readJSONObject(r, 256<<10)
+	if err != nil {
+		writeError(w, status, msg)
+		return
+	}
+
+	state := globalRemoteHub.getOrCreateSession(serviceID)
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	// Only active presenter can broadcast state updates
+	if state.presenterUID != sess.UID {
+		writeError(w, http.StatusConflict, "Caller is not the active presenter")
+		return
+	}
+
+	stateBytes, err := json.Marshal(body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid state payload")
+		return
+	}
+
+	state.lastState = stateBytes
+
+	for ch := range state.remoteChans {
+		select {
+		case ch <- stateBytes:
 		default:
 		}
 	}

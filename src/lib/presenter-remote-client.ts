@@ -27,7 +27,16 @@ export type PresenterRemoteIntent =
       mode?: 'per-verse' | 'inline';
       planIdentity: string;
     }
-  | { type: 'clear-scripture'; planIdentity: string };
+  | { type: 'clear-scripture'; planIdentity: string }
+  | { type: 'media-play'; planIdentity: string }
+  | { type: 'media-pause'; planIdentity: string }
+  | { type: 'media-stop'; planIdentity: string }
+  | { type: 'media-fade'; planIdentity: string }
+  | { type: 'media-seek'; timeSeconds: number; planIdentity: string }
+  | { type: 'media-toggle-project'; planIdentity: string }
+  | { type: 'media-select-item'; id: string; planIdentity: string }
+  | { type: 'media-toggle-shuffle'; planIdentity: string }
+  | { type: 'media-cycle-repeat'; planIdentity: string };
 
 export interface PresenterActionHandlers {
   setIndexAndSync: (index: number) => Promise<boolean | void> | boolean | void;
@@ -42,6 +51,15 @@ export interface PresenterActionHandlers {
     is_whole_chapter?: boolean;
   }) => void;
   broadcast: (msg: PresentMessage) => void;
+  handleMediaPlay?: () => void;
+  handleMediaPause?: () => void;
+  handleMediaStop?: () => void;
+  handleMediaFade?: () => void;
+  handleMediaSeek?: (timeSeconds: number) => void;
+  handleMediaToggleProject?: () => void;
+  handleMediaSelectItem?: (id: string) => void;
+  handleMediaToggleShuffle?: () => void;
+  handleMediaCycleRepeat?: () => void;
 }
 
 /**
@@ -163,6 +181,78 @@ export function applyRemoteIntent(
         planIdentity: currentPlanIdentity,
       });
       return true;
+    }
+    case 'media-play': {
+      if (typeof handlers.handleMediaPlay === 'function') {
+        handlers.handleMediaPlay();
+        return true;
+      }
+      return false;
+    }
+    case 'media-pause': {
+      if (typeof handlers.handleMediaPause === 'function') {
+        handlers.handleMediaPause();
+        return true;
+      }
+      return false;
+    }
+    case 'media-stop': {
+      if (typeof handlers.handleMediaStop === 'function') {
+        handlers.handleMediaStop();
+        return true;
+      }
+      return false;
+    }
+    case 'media-fade': {
+      if (typeof handlers.handleMediaFade === 'function') {
+        handlers.handleMediaFade();
+        return true;
+      }
+      return false;
+    }
+    case 'media-seek': {
+      if (
+        typeof intent.timeSeconds === 'number' &&
+        Number.isFinite(intent.timeSeconds) &&
+        intent.timeSeconds >= 0 &&
+        typeof handlers.handleMediaSeek === 'function'
+      ) {
+        handlers.handleMediaSeek(intent.timeSeconds);
+        return true;
+      }
+      return false;
+    }
+    case 'media-toggle-project': {
+      if (typeof handlers.handleMediaToggleProject === 'function') {
+        handlers.handleMediaToggleProject();
+        return true;
+      }
+      return false;
+    }
+    case 'media-select-item': {
+      if (
+        typeof intent.id === 'string' &&
+        intent.id.trim() &&
+        typeof handlers.handleMediaSelectItem === 'function'
+      ) {
+        handlers.handleMediaSelectItem(intent.id.trim());
+        return true;
+      }
+      return false;
+    }
+    case 'media-toggle-shuffle': {
+      if (typeof handlers.handleMediaToggleShuffle === 'function') {
+        handlers.handleMediaToggleShuffle();
+        return true;
+      }
+      return false;
+    }
+    case 'media-cycle-repeat': {
+      if (typeof handlers.handleMediaCycleRepeat === 'function') {
+        handlers.handleMediaCycleRepeat();
+        return true;
+      }
+      return false;
     }
     default:
       return false;
@@ -335,6 +425,24 @@ export class PresenterRemoteSession {
       }
     });
   }
+
+  /**
+   * Broadcasts live presentation and media state updates to paired remote client(s).
+   */
+  public async broadcastState(state: Partial<RemoteControlSessionState>): Promise<void> {
+    return this.enqueue(async () => {
+      try {
+        await fetch(`/api/present/${this.serviceId}/remote/state`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(state),
+        });
+      } catch {
+        // Ignore network error on broadcast
+      }
+    });
+  }
 }
 
 export type RemoteControlSessionState = {
@@ -343,6 +451,15 @@ export type RemoteControlSessionState = {
   transition?: SlideTransition;
   background?: string | null;
   planIdentity?: string;
+  media?: {
+    activeId?: string | null;
+    isPlaying?: boolean;
+    isProjected?: boolean;
+    currentTime?: number;
+    duration?: number;
+    shuffle?: boolean;
+    repeatMode?: 'off' | 'all' | 'one';
+  };
 };
 
 export type RemoteControlConnectionState =

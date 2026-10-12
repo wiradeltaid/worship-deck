@@ -329,6 +329,15 @@ test('4. POST /api/present/{id}/remote/intent accepts the 6 existing intents and
     { type: 'background', background: 'https://example.com/bg.jpg', planIdentity: 'plan1' },
     { type: 'scripture', reference: 'John 3:16', text: 'For God so loved...', planIdentity: 'plan1' },
     { type: 'clear-scripture', planIdentity: 'plan1' },
+    { type: 'media-play', planIdentity: 'plan1' },
+    { type: 'media-pause', planIdentity: 'plan1' },
+    { type: 'media-stop', planIdentity: 'plan1' },
+    { type: 'media-fade', planIdentity: 'plan1' },
+    { type: 'media-seek', timeSeconds: 15.5, planIdentity: 'plan1' },
+    { type: 'media-toggle-project', planIdentity: 'plan1' },
+    { type: 'media-select-item', id: 'item-1', planIdentity: 'plan1' },
+    { type: 'media-toggle-shuffle', planIdentity: 'plan1' },
+    { type: 'media-cycle-repeat', planIdentity: 'plan1' },
   ];
 
   for (const intent of validIntents) {
@@ -339,6 +348,22 @@ test('4. POST /api/present/{id}/remote/intent accepts the 6 existing intents and
     });
     assert.equal(res.status, 200, `Intent type ${intent.type} should be accepted`);
   }
+
+  // Invalid payload validation: negative seek time -> 400
+  const invalidSeek = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-seek', timeSeconds: -5, planIdentity: 'plan1' },
+  });
+  assert.equal(invalidSeek.status, 400);
+
+  // Invalid payload validation: empty item id -> 400
+  const invalidSelectItem = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-select-item', id: '', planIdentity: 'plan1' },
+  });
+  assert.equal(invalidSelectItem.status, 400);
 
   // Unknown intent type -> 400
   const invalidIntent = await apiRequest(`/api/present/${serviceId}/remote/intent`, {

@@ -464,3 +464,100 @@ test('SPEC-115-01 defect injection: missing token hygiene or testid fails scan g
   ]);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-115-03: Full-Surface Remote Intent Telemetry & Bidirectional Media Control
+// -----------------------------------------------------------------------------
+test('SPEC-115-03: applyRemoteIntent dispatches all 9 media transport intents with planIdentity validation', () => {
+  const calls = [];
+  const handlers = {
+    setIndexAndSync: (idx) => calls.push({ fn: 'setIndexAndSync', arg: idx }),
+    setBlankAndSync: (b) => calls.push({ fn: 'setBlankAndSync', arg: b }),
+    setTransitionAndSync: (tr) => calls.push({ fn: 'setTransitionAndSync', arg: tr }),
+    setBackgroundAndSync: (bg) => calls.push({ fn: 'setBackgroundAndSync', arg: bg }),
+    broadcast: (msg) => calls.push({ fn: 'broadcast', arg: msg }),
+    handleMediaPlay: () => calls.push({ fn: 'handleMediaPlay' }),
+    handleMediaPause: () => calls.push({ fn: 'handleMediaPause' }),
+    handleMediaStop: () => calls.push({ fn: 'handleMediaStop' }),
+    handleMediaFade: () => calls.push({ fn: 'handleMediaFade' }),
+    handleMediaSeek: (t) => calls.push({ fn: 'handleMediaSeek', arg: t }),
+    handleMediaToggleProject: () => calls.push({ fn: 'handleMediaToggleProject' }),
+    handleMediaSelectItem: (id) => calls.push({ fn: 'handleMediaSelectItem', arg: id }),
+    handleMediaToggleShuffle: () => calls.push({ fn: 'handleMediaToggleShuffle' }),
+    handleMediaCycleRepeat: () => calls.push({ fn: 'handleMediaCycleRepeat' }),
+  };
+
+  const planId = 'plan-media-test';
+
+  // 1. Media play/pause/stop/fade
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-pause', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-stop', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-fade', planIdentity: planId }, planId, handlers), true);
+
+  // 2. Media seek and select item with payload validation
+  assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: 42.5, planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: -5, planIdentity: planId }, planId, handlers), false);
+  assert.equal(applyRemoteIntent({ type: 'media-select-item', id: 'med-999', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-select-item', id: '   ', planIdentity: planId }, planId, handlers), false);
+
+  // 3. Media toggles (project, shuffle, repeat)
+  assert.equal(applyRemoteIntent({ type: 'media-toggle-project', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-toggle-shuffle', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'media-cycle-repeat', planIdentity: planId }, planId, handlers), true);
+
+  // 4. Fail-closed on planIdentity mismatch
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: 'stale-plan' }, planId, handlers), false);
+
+  assert.deepEqual(calls, [
+    { fn: 'handleMediaPlay' },
+    { fn: 'handleMediaPause' },
+    { fn: 'handleMediaStop' },
+    { fn: 'handleMediaFade' },
+    { fn: 'handleMediaSeek', arg: 42.5 },
+    { fn: 'handleMediaSelectItem', arg: 'med-999' },
+    { fn: 'handleMediaToggleProject' },
+    { fn: 'handleMediaToggleShuffle' },
+    { fn: 'handleMediaCycleRepeat' },
+  ]);
+});
+
+test('SPEC-115-03: PresenterOperator binds media remote intent dispatching on MediaControlBar', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx');
+  assert.ok(
+    operatorSource.includes("onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}"),
+    'PresenterOperator must pass onRemoteMediaIntent to MediaControlBar when in remote mode'
+  );
+  assert.ok(
+    operatorSource.includes("handleMediaPlay: () => {"),
+    'PresenterOperator must implement handleMediaPlay in remote session'
+  );
+  assert.ok(
+    operatorSource.includes("handleMediaSeek: (timeSeconds) => {"),
+    'PresenterOperator must implement handleMediaSeek in remote session'
+  );
+  assert.ok(
+    operatorSource.includes("handleMediaToggleProject: () => {"),
+    'PresenterOperator must implement handleMediaToggleProject in remote session'
+  );
+  assert.ok(
+    operatorSource.includes("void remoteSessionRef.current?.broadcastState({"),
+    'PresenterOperator must mirror media state updates to remote session'
+  );
+});
+
+test('SPEC-115-03 defect injection: unhandled media intent or omitted media intent handler fails guard', () => {
+  const handlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: () => {},
+  };
+
+  // When no media handlers are registered, media intents return false (fail-closed)
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: 'p' }, 'p', handlers), false);
+  // Mismatched plan identity must still return false
+  assert.equal(applyRemoteIntent({ type: 'media-play', planIdentity: 'wrong' }, 'p', handlers), false);
+  // Negative seek must return false
+  assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: -10, planIdentity: 'p' }, 'p', handlers), false);
+});

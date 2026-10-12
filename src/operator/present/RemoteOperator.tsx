@@ -77,6 +77,9 @@ export default function RemoteOperator({
   const [pairingBusy, setPairingBusy] = useState(false);
   const [pairingError, setPairingError] = useState<string | null>(null);
   const [paired, setPaired] = useState(false);
+  const [remoteMediaState, setRemoteMediaState] = useState<
+    RemoteControlSessionState['media']
+  >(undefined);
   const [connectionState, setConnectionState] =
     useState<RemoteControlConnectionState>('idle');
   const [moreOpen, setMoreOpen] = useState(false);
@@ -154,6 +157,9 @@ export default function RemoteOperator({
       }
       if (state.background !== undefined) {
         setLiveBackground(state.background);
+      }
+      if (state.media) {
+        setRemoteMediaState(state.media);
       }
     },
     [slides.length]
@@ -405,6 +411,7 @@ export default function RemoteOperator({
         mode="remote"
         onSendIntent={sendIntent}
         controlledState={controlledState}
+        controlledMediaState={remoteMediaState}
       />
     </div>
   );
