@@ -333,6 +333,8 @@ export default function RemoteOperator({
   const next = slides[index + 1];
   const atEnd = index >= slides.length - 1;
   const activeEntry = activePresenterEntry(entries, index);
+  const _prevSkip = findNextVisibleIndex(slides, index, -1);
+  const _nextSkip = findNextVisibleIndex(slides, index, 1);
 
   const controlledState = useMemo(
     () => ({

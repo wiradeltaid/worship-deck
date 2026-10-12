@@ -432,12 +432,13 @@ export class PresenterRemoteSession {
   public async broadcastState(state: Partial<RemoteControlSessionState>): Promise<void> {
     return this.enqueue(async () => {
       try {
-        await fetch(`/api/present/${this.serviceId}/remote/state`, {
+        const res = await fetch(`/api/present/${this.serviceId}/remote/state`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify(state),
         });
+        await res.text().catch(() => {});
       } catch {
         // Ignore network error on broadcast
       }

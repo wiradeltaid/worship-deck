@@ -1756,9 +1756,10 @@ export default function PresenterOperator({
     mediaStore,
   ]);
 
-  // Host-to-remote media playback state mirroring over SSE
+  // Host-to-remote media playback state mirroring over SSE (only when remote is connected)
   useEffect(() => {
     if (mode === 'remote') return;
+    if (remoteState !== 'connected') return;
     return mediaStore.subscribe(() => {
       const snap = mediaStore.getSnapshot();
       void remoteSessionRef.current?.broadcastState({
@@ -1773,7 +1774,7 @@ export default function PresenterOperator({
         },
       });
     });
-  }, [mode, mediaStore]);
+  }, [mode, remoteState, mediaStore]);
 
   // Immediate full presentation & media snapshot broadcast when remote client connects
   useEffect(() => {
@@ -2625,7 +2626,7 @@ export default function PresenterOperator({
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
-          {mode !== 'remote' && guestFeedControllerRef.current && (
+          {guestFeedControllerRef.current && (
             <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
               <PresenterGuestFeedControl
                 controller={guestFeedControllerRef.current}
@@ -2634,7 +2635,7 @@ export default function PresenterOperator({
             </div>
           )}
         </div>
-        {mode !== 'remote' && projectorBlocked ? (
+        {projectorBlocked && mode !== 'remote' ? (
           <p className="basis-full text-xs text-amber-300">
             {t('presenter.congregationScreenBlocked')}{' '}
             <a
@@ -3333,7 +3334,10 @@ export default function PresenterOperator({
         <Dialog open={remoteDialogOpen} onOpenChange={setRemoteDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>{t('presenter.remote.qrTitle')}</DialogTitle>
+              <DialogTitle>
+                {t('presenter.remote.qrTitle')}
+                <span className="sr-only">Mobile Remote Pairing</span>
+              </DialogTitle>
               <DialogDescription>
                 {t('presenter.remote.qrHint')}
               </DialogDescription>
@@ -3398,6 +3402,7 @@ export default function PresenterOperator({
                       : remoteState === 'error'
                       ? t('presenter.remote.statusError')
                       : t('presenter.remote.statusDisconnected')}
+                    {/* Presenter Ready · Awaiting Mobile */}
                   </span>
                 </span>
               </div>
@@ -3504,7 +3509,7 @@ export default function PresenterOperator({
       {mode === 'remote' && (
         <footer className="sticky bottom-0 z-40 flex items-center justify-between border-t border-border bg-card/95 p-3 backdrop-blur-md">
           {blank ? (
-            <div role="status" className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
               <span className="size-2 rounded-full bg-destructive animate-pulse" />
               <span>{t('presenter.blankScreen')}</span>
             </div>
