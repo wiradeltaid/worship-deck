@@ -122,26 +122,65 @@ export const MediaDrawer = memo(function MediaDrawer({
     [state.activeId, state.isPlaying, store, engine]
   );
 
-  const handleDeleteCloudItem = useCallback(
-    async (id: string) => {
+  const handleDeleteCloudOnly = useCallback(
+    async (item: PlaylistItem) => {
       try {
-        await fetch(`/api/media/playlist/${encodeURIComponent(id)}`, {
+        await fetch(`/api/media/playlist/${encodeURIComponent(item.id)}`, {
           method: 'DELETE',
         });
       } catch {
         // Fall back gracefully
       }
-      store.dispatch({ type: 'REMOVE_ITEM', id });
+      const isSynced = Boolean(item.cloud) && Boolean(item.local && !item.local.stale);
+      if (isSynced) {
+        store.dispatch({
+          type: 'UPDATE_ITEM',
+          id: item.id,
+          patch: { cloud: undefined, source: 'local' },
+        });
+      } else {
+        store.dispatch({ type: 'REMOVE_ITEM', id: item.id });
+      }
     },
     [store]
   );
 
-  const handleDeleteLocalItem = useCallback(
-    async (sha256: string) => {
-      await localMediaRegistry.removeRecord(sha256);
-      refreshLocalRecords();
+  const handleDeleteLocalOnly = useCallback(
+    async (item: PlaylistItem, sha256?: string) => {
+      if (sha256) {
+        await localMediaRegistry.removeRecord(sha256);
+        refreshLocalRecords();
+      }
+      const isSynced = Boolean(item.cloud) && Boolean(item.local && !item.local.stale);
+      if (isSynced) {
+        store.dispatch({
+          type: 'UPDATE_ITEM',
+          id: item.id,
+          patch: { local: undefined, source: 'cloud' },
+        });
+      } else {
+        store.dispatch({ type: 'REMOVE_ITEM', id: item.id });
+      }
     },
-    [refreshLocalRecords]
+    [refreshLocalRecords, store]
+  );
+
+  const handleDeleteBoth = useCallback(
+    async (item: PlaylistItem, sha256?: string) => {
+      try {
+        await fetch(`/api/media/playlist/${encodeURIComponent(item.id)}?purge=true`, {
+          method: 'DELETE',
+        });
+      } catch {
+        // Fall back gracefully
+      }
+      if (sha256) {
+        await localMediaRegistry.removeRecord(sha256);
+        refreshLocalRecords();
+      }
+      store.dispatch({ type: 'REMOVE_ITEM', id: item.id });
+    },
+    [refreshLocalRecords, store]
   );
 
   const handleMoveUp = useCallback(
@@ -493,7 +532,7 @@ export const MediaDrawer = memo(function MediaDrawer({
             const isActive = state.activeId === item.id;
             const isPlayingThis = isActive && state.isPlaying;
             const isProjectedThis = isActive && state.isProjected;
-            const cannotDelete = isActive && state.isPlaying;
+            const cannotDelete = isActive && (state.isPlaying || state.isProjected);
 
             const itemSha = (item.sha256 || '').toLowerCase();
             const isDownloading = Boolean(itemSha && itemSha in downloadProgressMap);
@@ -675,26 +714,58 @@ export const MediaDrawer = memo(function MediaDrawer({
 
                       <DropdownMenuSeparator />
 
-                      {/* Deletion triggers */}
-                      {item.source !== 'local' && (
+                      {/* Explicit Deletion triggers based on availability */}
+                      {availability === 'local-only' && (
                         <DropdownMenuItem
                           disabled={cannotDelete}
-                          onClick={() => handleDeleteCloudItem(item.id)}
+                          onClick={() => void handleDeleteLocalOnly(item, itemSha)}
+                          className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
+                        >
+                          <HardDrive className="h-3.5 w-3.5" />
+                          <span>{t('media.drawer.deleteFromLocal')}</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      {availability === 'cloud-only' && (
+                        <DropdownMenuItem
+                          disabled={cannotDelete}
+                          onClick={() => void handleDeleteCloudOnly(item)}
                           className="cursor-pointer text-destructive focus:text-destructive gap-2"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span>{t('media.drawer.deleteFromCloud')}</span>
                         </DropdownMenuItem>
                       )}
-                      {localRecord && itemSha && (
-                        <DropdownMenuItem
-                          disabled={cannotDelete}
-                          onClick={() => void handleDeleteLocalItem(itemSha)}
-                          className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
-                        >
-                          <HardDrive className="h-3.5 w-3.5" />
-                          <span>{t('media.drawer.deleteFromLocal')}</span>
-                        </DropdownMenuItem>
+
+                      {availability === 'synced' && (
+                        <>
+                          <DropdownMenuItem
+                            disabled={cannotDelete}
+                            onClick={() => void handleDeleteLocalOnly(item, itemSha)}
+                            className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
+                          >
+                            <HardDrive className="h-3.5 w-3.5" />
+                            <span>{t('media.drawer.deleteFromLocalOnly')}</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            disabled={cannotDelete}
+                            onClick={() => void handleDeleteCloudOnly(item)}
+                            className="cursor-pointer text-destructive focus:text-destructive gap-2"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>{t('media.drawer.deleteFromCloudOnly')}</span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem
+                            disabled={cannotDelete}
+                            onClick={() => void handleDeleteBoth(item, itemSha)}
+                            className="cursor-pointer text-destructive focus:text-destructive gap-2 font-medium"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>{t('media.drawer.deleteBoth')}</span>
+                          </DropdownMenuItem>
+                        </>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

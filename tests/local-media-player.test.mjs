@@ -1096,6 +1096,146 @@ test('SPEC-114-01: Media Playback State Sync, Drawer Play/Pause Toggle, and Hand
   }
 });
 
+test('SPEC-114-02: Unified 3-Way Deletion Matrix and Single-Owner Playlist Mount Hydration', async () => {
+  const fs = await import('node:fs');
+
+  const drawerSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  const presenterSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
+  assert.ok(fs.existsSync(presenterSourcePath), 'PresenterOperator.tsx must exist');
+
+  const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
+  const presenterCode = fs.readFileSync(presenterSourcePath, 'utf8');
+
+  function assertDeletionMatrixContract(drawer, presenter) {
+    // 1. Absence of legacy source check
+    assert.ok(
+      !drawer.includes("item.source !== 'local'"),
+      'MediaDrawer must not retain legacy item.source !== "local" check'
+    );
+
+    // 2. 3-Way Deletion Matrix in MediaDrawer
+    assert.ok(
+      drawer.includes("availability === 'local-only'") &&
+      drawer.includes("t('media.drawer.deleteFromLocal')"),
+      'MediaDrawer must show deleteFromLocal for local-only items'
+    );
+    assert.ok(
+      drawer.includes("availability === 'cloud-only'") &&
+      drawer.includes("t('media.drawer.deleteFromCloud')"),
+      'MediaDrawer must show deleteFromCloud for cloud-only items'
+    );
+    assert.ok(
+      drawer.includes("availability === 'synced'") &&
+      drawer.includes("t('media.drawer.deleteFromLocalOnly')") &&
+      drawer.includes("t('media.drawer.deleteFromCloudOnly')") &&
+      drawer.includes("t('media.drawer.deleteBoth')"),
+      'MediaDrawer must show 3 distinct actions for synced items'
+    );
+    assert.ok(
+      drawer.includes('purge=true'),
+      'MediaDrawer deleteBoth must pass purge=true to purge physical upload'
+    );
+    assert.ok(
+      drawer.includes('cannotDelete') &&
+      drawer.includes('state.isPlaying || state.isProjected'),
+      'MediaDrawer must protect active playing/projected items from deletion'
+    );
+
+    // 3. Single-owner mount hydration in PresenterOperator
+    assert.ok(
+      presenter.includes('localMediaRegistry.hydrate()') &&
+      presenter.includes("fetch('/api/media/playlist')") &&
+      presenter.includes('Array.isArray(data)') &&
+      presenter.includes('raw.content_url || raw.url') &&
+      presenter.includes('mergeUnifiedPlaylistItem') &&
+      presenter.includes("mediaStore.dispatch({ type: 'ADD_ITEMS'"),
+      'PresenterOperator must perform single-owner mount hydration combining server playlist and localMediaRegistry'
+    );
+  }
+
+  // 1. Pristine code satisfies contract
+  assertDeletionMatrixContract(drawerCode, presenterCode);
+
+  // 1b. Runtime content-hash deduplication in addPlaylistItems
+  const { addPlaylistItems, createInitialPlaylistState } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playlist-model.ts')
+  );
+  const initState = createInitialPlaylistState();
+  const stateWith1 = addPlaylistItems(initState, [{
+    id: 'server-1',
+    name: 'Song 1',
+    url: '/api/uploads/song.mp3',
+    type: 'audio',
+    sha256: 'f'.repeat(64),
+  }]);
+  const stateWithDup = addPlaylistItems(stateWith1, [{
+    id: 'local-12345678',
+    name: 'Local Copy Song 1',
+    url: 'blob:abc',
+    type: 'audio',
+    sha256: 'f'.repeat(64),
+  }]);
+  assert.equal(stateWithDup.items.length, 1, 'addPlaylistItems must deduplicate items by SHA-256');
+
+  // 2. Defect injection proof 1: re-injecting legacy check trips assertion
+  try {
+    const defectiveDrawer = drawerCode.replace(
+      "availability === 'cloud-only'",
+      "item.source !== 'local'"
+    );
+    assert.notEqual(defectiveDrawer, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerSourcePath, defectiveDrawer);
+    const readDefective = fs.readFileSync(drawerSourcePath, 'utf8');
+    assert.throws(
+      () => assertDeletionMatrixContract(readDefective, presenterCode),
+      /MediaDrawer must not retain legacy item\.source !== "local" check/,
+      'Defect injection proof: legacy check re-injection throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerSourcePath, drawerCode);
+    assert.equal(fs.readFileSync(drawerSourcePath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
+
+  // 3. Defect injection proof 2: omitting deleteFromLocalOnly trips assertion
+  try {
+    const defectiveDrawer = drawerCode.replaceAll(
+      "t('media.drawer.deleteFromLocalOnly')",
+      "t('media.drawer.deleteFromLocal')"
+    );
+    assert.notEqual(defectiveDrawer, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerSourcePath, defectiveDrawer);
+    const readDefective = fs.readFileSync(drawerSourcePath, 'utf8');
+    assert.throws(
+      () => assertDeletionMatrixContract(readDefective, presenterCode),
+      /MediaDrawer must show 3 distinct actions for synced items/,
+      'Defect injection proof: missing deleteFromLocalOnly throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerSourcePath, drawerCode);
+    assert.equal(fs.readFileSync(drawerSourcePath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
+
+  // 4. Defect injection proof 3: removing mount hydration trips assertion
+  try {
+    const defectivePresenter = presenterCode.replace(
+      "fetch('/api/media/playlist')",
+      "fetch('/api/media/disabled-endpoint')"
+    );
+    assert.notEqual(defectivePresenter, presenterCode, 'Mutation must succeed');
+    fs.writeFileSync(presenterSourcePath, defectivePresenter);
+    const readDefective = fs.readFileSync(presenterSourcePath, 'utf8');
+    assert.throws(
+      () => assertDeletionMatrixContract(drawerCode, readDefective),
+      /PresenterOperator must perform single-owner mount hydration/,
+      'Defect injection proof: missing mount hydration throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(presenterSourcePath, presenterCode);
+    assert.equal(fs.readFileSync(presenterSourcePath, 'utf8'), presenterCode, 'File must be restored byte-for-byte');
+  }
+});
+
 
 
 

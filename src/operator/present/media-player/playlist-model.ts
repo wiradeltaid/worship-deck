@@ -150,7 +150,18 @@ export function addPlaylistItems(state: PlaylistState, newItems: PlaylistItem[])
   if (newItems.length === 0) return state;
 
   const existingIds = new Set(state.items.map((i) => i.id));
-  const filtered = newItems.filter((i) => !existingIds.has(i.id));
+  const existingShas = new Set(
+    state.items
+      .map((i) => i.sha256?.toLowerCase())
+      .filter((s): s is string => Boolean(s))
+  );
+
+  const filtered = newItems.filter((i) => {
+    if (existingIds.has(i.id)) return false;
+    const sha = i.sha256?.toLowerCase();
+    if (sha && existingShas.has(sha)) return false;
+    return true;
+  });
   if (filtered.length === 0) return state;
 
   const updatedItems = [...state.items, ...filtered];
