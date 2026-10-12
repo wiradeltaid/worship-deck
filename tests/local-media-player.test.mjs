@@ -1361,6 +1361,111 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
   }
 });
 
+test('BUG-39: MediaStage Empty src attribute guard, MediaDrawer Re-import, and Cloud Deletion ID Fix', async () => {
+  const fs = await import('node:fs');
+
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const drawerPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+
+  const stageCode = fs.readFileSync(stagePath, 'utf8');
+  const drawerCode = fs.readFileSync(drawerPath, 'utf8');
+
+  function assertBug39Contract(stage, drawer) {
+    // 1. MediaStage empty URL guard
+    assert.ok(
+      stage.includes('if (!current.url)') &&
+      stage.includes("audioRef.current.pause()") &&
+      stage.includes("return;"),
+      'MediaStage must guard against missing or empty current.url before calling load()'
+    );
+
+    // 2. MediaStage empty src attribute error suppression in handleError
+    assert.ok(
+      stage.includes('!el.currentSrc && !el.getAttribute') ||
+      stage.includes('!el.getAttribute'),
+      'MediaStage handleError must ignore synthetic errors on empty/unloaded src'
+    );
+
+    // 3. MediaDrawer showOpenFilePicker accept dictionary must NOT use wildcards
+    assert.ok(
+      !drawer.includes("'audio/*'") && !drawer.includes("'video/*'"),
+      'MediaDrawer showOpenFilePicker must not use wildcard MIME types (audio/*, video/*)'
+    );
+    assert.ok(
+      drawer.includes("'audio/mpeg'") && drawer.includes("'video/mp4'"),
+      'MediaDrawer showOpenFilePicker must declare explicit valid MIME types'
+    );
+
+    // 4. MediaDrawer file input value reset
+    assert.ok(
+      drawer.includes("(e.currentTarget as HTMLInputElement).value = '';") &&
+      drawer.includes("e.target.value = '';"),
+      'MediaDrawer file input must reset value to allow re-selecting the same file'
+    );
+
+    // 5. Cloud ID resolution in handleDeleteCloudOnly and handleDeleteBoth
+    assert.ok(
+      drawer.includes('const cloudId = item.cloud?.id || item.id;') &&
+      drawer.includes('/api/media/playlist/${encodeURIComponent(cloudId)}'),
+      'MediaDrawer must delete by cloudId (item.cloud?.id || item.id) to prevent 404 on local items'
+    );
+  }
+
+  // 1. Pristine code satisfies contract
+  assertBug39Contract(stageCode, drawerCode);
+
+  // 2. Defect injection proof 1: removing empty current.url guard trips assertion
+  try {
+    const defectiveStage = stageCode.replace('if (!current.url) {', 'if (false && !current.url) {');
+    assert.notEqual(defectiveStage, stageCode, 'Mutation must succeed');
+    fs.writeFileSync(stagePath, defectiveStage);
+    const readDefective = fs.readFileSync(stagePath, 'utf8');
+    assert.throws(
+      () => assertBug39Contract(readDefective, drawerCode),
+      /MediaStage must guard against missing or empty current\.url/,
+      'Defect injection proof: missing current.url guard throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(stagePath, stageCode);
+    assert.equal(fs.readFileSync(stagePath, 'utf8'), stageCode, 'File must be restored byte-for-byte');
+  }
+
+  // 3. Defect injection proof 2: re-injecting wildcard accept types trips assertion
+  try {
+    const defectiveDrawer = drawerCode.replace("'audio/mpeg': ['.mp3'],", "'audio/*': ['.mp3'],");
+    assert.notEqual(defectiveDrawer, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerPath, defectiveDrawer);
+    const readDefective = fs.readFileSync(drawerPath, 'utf8');
+    assert.throws(
+      () => assertBug39Contract(stageCode, readDefective),
+      /MediaDrawer showOpenFilePicker must not use wildcard MIME types/,
+      'Defect injection proof: wildcard MIME types throw assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerPath, drawerCode);
+    assert.equal(fs.readFileSync(drawerPath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
+
+  // 4. Defect injection proof 3: removing cloudId resolution trips assertion
+  try {
+    const defectiveDrawer = drawerCode.replaceAll(
+      'const cloudId = item.cloud?.id || item.id;',
+      'const cloudId = item.id;'
+    );
+    assert.notEqual(defectiveDrawer, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerPath, defectiveDrawer);
+    const readDefective = fs.readFileSync(drawerPath, 'utf8');
+    assert.throws(
+      () => assertBug39Contract(stageCode, readDefective),
+      /MediaDrawer must delete by cloudId/,
+      'Defect injection proof: missing cloudId resolution throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerPath, drawerCode);
+    assert.equal(fs.readFileSync(drawerPath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
+});
+
 
 
 

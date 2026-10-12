@@ -35,6 +35,12 @@ export const MediaStage = memo(function MediaStage({
       activeItemRef.current = current;
 
       if (current && (!prev || prev.id !== current.id || prev.url !== current.url)) {
+        if (!current.url) {
+          if (audioRef.current) audioRef.current.pause();
+          if (videoRef.current) videoRef.current.pause();
+          return;
+        }
+
         const baseVol = typeof engine.getBaseVolume === 'function' ? engine.getBaseVolume() : state.volume;
         if (current.type === 'video') {
           if (videoRef.current) {
@@ -84,8 +90,14 @@ export const MediaStage = memo(function MediaStage({
           }
         }
       } else if (!current) {
-        if (audioRef.current) audioRef.current.pause();
-        if (videoRef.current) videoRef.current.pause();
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.removeAttribute('src');
+        }
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute('src');
+        }
       }
     });
   }, [store, engine, audioRef, videoRef]);
@@ -145,6 +157,11 @@ export const MediaStage = memo(function MediaStage({
   const handleError = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {
       const el = e.currentTarget;
+      // Ignore unload errors when element has no src attribute or empty src
+      if (!el.currentSrc && !el.getAttribute('src')) {
+        return;
+      }
+
       const mediaErr = el.error;
       const errorMsg = mediaErr ? `MEDIA_ERR_${mediaErr.code}: ${mediaErr.message || 'Decode error'}` : 'Gagal memutar media';
 

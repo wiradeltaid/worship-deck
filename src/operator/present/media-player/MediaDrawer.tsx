@@ -124,19 +124,28 @@ export const MediaDrawer = memo(function MediaDrawer({
 
   const handleDeleteCloudOnly = useCallback(
     async (item: PlaylistItem) => {
+      const cloudId = item.cloud?.id || item.id;
       try {
-        await fetch(`/api/media/playlist/${encodeURIComponent(item.id)}`, {
+        await fetch(`/api/media/playlist/${encodeURIComponent(cloudId)}`, {
           method: 'DELETE',
         });
       } catch {
         // Fall back gracefully
       }
-      const isSynced = Boolean(item.cloud) && Boolean(item.local && !item.local.stale);
-      if (isSynced) {
+      const hasLocal = Boolean(
+        item.local ||
+        (item.sha256 && localMediaRegistry.hasRecord(item.sha256))
+      );
+      if (hasLocal) {
+        const localRec = item.sha256 ? localMediaRegistry.getRecord(item.sha256) : null;
+        let localUrl = item.url;
+        if (localRec?.fileHandle && typeof URL !== 'undefined' && localRec.fileHandle instanceof Blob) {
+          localUrl = URL.createObjectURL(localRec.fileHandle);
+        }
         store.dispatch({
           type: 'UPDATE_ITEM',
           id: item.id,
-          patch: { cloud: undefined, source: 'local' },
+          patch: { cloud: undefined, source: 'local', url: localUrl },
         });
       } else {
         store.dispatch({ type: 'REMOVE_ITEM', id: item.id });
@@ -151,12 +160,16 @@ export const MediaDrawer = memo(function MediaDrawer({
         await localMediaRegistry.removeRecord(sha256);
         refreshLocalRecords();
       }
-      const isSynced = Boolean(item.cloud) && Boolean(item.local && !item.local.stale);
-      if (isSynced) {
+      const hasCloud = Boolean(item.cloud?.id || (item.source === 'cloud' && item.url));
+      if (hasCloud) {
         store.dispatch({
           type: 'UPDATE_ITEM',
           id: item.id,
-          patch: { local: undefined, source: 'cloud' },
+          patch: {
+            local: undefined,
+            source: 'cloud',
+            url: item.cloud?.url || (item.url.startsWith('blob:') ? '' : item.url),
+          },
         });
       } else {
         store.dispatch({ type: 'REMOVE_ITEM', id: item.id });
@@ -167,8 +180,9 @@ export const MediaDrawer = memo(function MediaDrawer({
 
   const handleDeleteBoth = useCallback(
     async (item: PlaylistItem, sha256?: string) => {
+      const cloudId = item.cloud?.id || item.id;
       try {
-        await fetch(`/api/media/playlist/${encodeURIComponent(item.id)}?purge=true`, {
+        await fetch(`/api/media/playlist/${encodeURIComponent(cloudId)}?purge=true`, {
           method: 'DELETE',
         });
       } catch {
@@ -247,11 +261,30 @@ export const MediaDrawer = memo(function MediaDrawer({
 
           await localMediaRegistry.saveRecord(record);
 
-          // Also add to playlist if not already present
+          // Also add to playlist if not already present, or upgrade existing cloud item to synced
           const alreadyInPlaylist = state.items.some(
             (it) => it.sha256 === sha256 || it.id === `local-${sha256.slice(0, 8)}`
           );
-          if (!alreadyInPlaylist) {
+          if (alreadyInPlaylist) {
+            const existing = state.items.find(
+              (it) => it.sha256 === sha256 || it.id === `local-${sha256.slice(0, 8)}`
+            );
+            if (existing) {
+              store.dispatch({
+                type: 'UPDATE_ITEM',
+                id: existing.id,
+                patch: {
+                  url: URL.createObjectURL(file),
+                  source: 'local',
+                  local: {
+                    storageKind: 'in-memory',
+                    stale: false,
+                    fileHandle: file,
+                  },
+                },
+              });
+            }
+          } else {
             const type: 'audio' | 'video' =
               file.type.startsWith('video') ||
               file.name.endsWith('.mp4') ||
@@ -267,6 +300,11 @@ export const MediaDrawer = memo(function MediaDrawer({
               size: file.size,
               sha256,
               source: 'local',
+              local: {
+                storageKind: 'in-memory',
+                stale: false,
+                fileHandle: file,
+              },
             });
           }
         }
@@ -290,8 +328,15 @@ export const MediaDrawer = memo(function MediaDrawer({
             {
               description: t('media.drawer.fileFilterDesc'),
               accept: {
-                'audio/*': ['.mp3', '.wav', '.m4a', '.ogg'],
-                'video/*': ['.mp4', '.webm'],
+                'audio/mpeg': ['.mp3'],
+                'audio/wav': ['.wav'],
+                'audio/mp4': ['.m4a'],
+                'audio/ogg': ['.ogg'],
+                'audio/aac': ['.aac'],
+                'audio/flac': ['.flac'],
+                'video/mp4': ['.mp4'],
+                'video/webm': ['.webm'],
+                'video/quicktime': ['.mov'],
               },
             },
           ],
@@ -432,10 +477,14 @@ export const MediaDrawer = memo(function MediaDrawer({
         multiple
         accept="audio/*,video/*"
         className="hidden"
+        onClick={(e) => {
+          (e.currentTarget as HTMLInputElement).value = '';
+        }}
         onChange={(e) => {
-          if (e.target.files) {
+          if (e.target.files && e.target.files.length > 0) {
             void handleImportLocalFiles(e.target.files);
           }
+          e.target.value = '';
         }}
       />
 
