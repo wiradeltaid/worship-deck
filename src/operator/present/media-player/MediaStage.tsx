@@ -7,7 +7,7 @@ import {
 } from 'react';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
-import { getNextPlaylistItem, type PlaylistItem } from './playlist-model';
+import { resolveNextPlaylistItem, type PlaylistItem } from './playlist-model';
 
 export interface MediaStageProps {
   store: MediaStore;
@@ -116,20 +116,26 @@ export const MediaStage = memo(function MediaStage({
 
   const handleEnded = useCallback(() => {
     const state = store.getSnapshot();
-    const currentId = state.activeId;
-    const nextItem = getNextPlaylistItem(currentId, state.items);
+    const nextItem = resolveNextPlaylistItem(state);
 
     // Track finish teardown: Always disable projection to protect sanctuary screen
     store.dispatch({ type: 'SET_PROJECTED', isProjected: false });
     store.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: 'off' });
 
     if (nextItem) {
-      // Auto-advance to next audio track
-      store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
-      // Next tick play
-      setTimeout(() => {
-        void engine.play();
-      }, 50);
+      if (nextItem.id === state.activeId) {
+        // Replay active track (repeat-one or single-audio loop):
+        // Route authoritatively via engine to maintain single-owner state and volume handling
+        engine.seek(0);
+        store.dispatch({ type: 'SET_TIME', currentTime: 0 });
+        void engine.play().then((res) => {
+          store.dispatch({ type: 'SET_PLAYING', isPlaying: res.success });
+        });
+      } else {
+        // Auto-advance to next audio track: declarative dispatch, no timers
+        store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
+        store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
+      }
     } else {
       // Halt playback, keep dock active without abrupt disappearance
       store.dispatch({ type: 'SET_PLAYING', isPlaying: false });

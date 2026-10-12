@@ -19,12 +19,15 @@ import {
   ListMusic,
   HardDrive,
   Cloud,
+  Shuffle,
+  Repeat,
+  Repeat1,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
-import { canProjectMediaItem, type PlaylistState, type PlaylistItem } from './playlist-model';
+import { canProjectMediaItem, type PlaylistState, type PlaylistItem, type RepeatMode } from './playlist-model';
 import { routePlaybackSource } from './playback-router';
 import { useT } from '@/lib/i18n/operator';
 
@@ -118,6 +121,17 @@ export const MediaControlBar = memo(function MediaControlBar({
     },
     [engine, store]
   );
+
+  const handleToggleShuffle = useCallback(() => {
+    const nextShuffle = !state.shuffle;
+    store.dispatch({ type: 'SET_SHUFFLE', shuffle: nextShuffle });
+  }, [state.shuffle, store]);
+
+  const handleCycleRepeat = useCallback(() => {
+    const nextRepeat: RepeatMode =
+      state.repeatMode === 'off' ? 'all' : state.repeatMode === 'all' ? 'one' : 'off';
+    store.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: nextRepeat });
+  }, [state.repeatMode, store]);
 
   const handleToggleProject = useCallback(() => {
     if (!isCued || !activeItem || !canProjectMediaItem(activeItem)) return;
@@ -284,6 +298,56 @@ export const MediaControlBar = memo(function MediaControlBar({
             className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
           />
         </div>
+
+        {/* Shuffle Mode Toggle */}
+        <Button
+          type="button"
+          size="sm"
+          variant={state.shuffle ? 'default' : 'outline'}
+          data-testid="media-control-bar-shuffle"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleToggleShuffle}
+          className={cn(
+            'h-8 w-8 p-0',
+            state.shuffle
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          title={state.shuffle ? t('media.controlBar.shuffleOn') : t('media.controlBar.shuffleOff')}
+          aria-label={t('media.controlBar.shuffleLabel')}
+        >
+          <Shuffle className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* 3-State Repeat Mode Cycle (Off -> All -> One -> Off) */}
+        <Button
+          type="button"
+          size="sm"
+          variant={state.repeatMode !== 'off' ? 'default' : 'outline'}
+          data-testid="media-control-bar-repeat"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleCycleRepeat}
+          className={cn(
+            'h-8 w-8 p-0',
+            state.repeatMode !== 'off'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          title={
+            state.repeatMode === 'one'
+              ? t('media.controlBar.repeatOne')
+              : state.repeatMode === 'all'
+                ? t('media.controlBar.repeatAll')
+                : t('media.controlBar.repeatOff')
+          }
+          aria-label={t('media.controlBar.repeatLabel')}
+        >
+          {state.repeatMode === 'one' ? (
+            <Repeat1 className="h-3.5 w-3.5" />
+          ) : (
+            <Repeat className="h-3.5 w-3.5" />
+          )}
+        </Button>
       </div>
 
       {/* 2. Center: Media Type Icon, Track Name, Source Badge, Current/Total Time, Seekbar */}

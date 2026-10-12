@@ -41,6 +41,8 @@ export interface UnifiedPlaylistItem extends PlaylistItem {
   availability?: MediaAvailability;
 }
 
+export type RepeatMode = 'off' | 'all' | 'one';
+
 export interface PlaylistState {
   items: PlaylistItem[];
   activeId: string | null;
@@ -52,6 +54,8 @@ export interface PlaylistState {
   duration: number;
   isProjected: boolean;
   projectStatus: ProjectStatus;
+  shuffle: boolean;
+  repeatMode: RepeatMode;
 }
 
 /**
@@ -143,6 +147,8 @@ export function createInitialPlaylistState(): PlaylistState {
     duration: 0,
     isProjected: false,
     projectStatus: 'off',
+    shuffle: false,
+    repeatMode: 'off',
   };
 }
 
@@ -250,6 +256,59 @@ export function getNextPlaylistItem(currentId: string | null, items: PlaylistIte
   }
 
   return next;
+}
+
+export function resolveNextPlaylistItem(
+  state: PlaylistState,
+  rng: () => number = Math.random
+): PlaylistItem | null {
+  const current = state.items.find((i) => i.id === state.activeId);
+  if (!current || current.type === 'video') {
+    // Current video track never auto-advances (AD-24 sanctuary protection)
+    return null;
+  }
+
+  // 1. Repeat-One strictly overrides shuffle and sequential advance
+  if (state.repeatMode === 'one') {
+    return current;
+  }
+
+  // Filter only audio items for sanctuary screen protection
+  const audioItems = state.items.filter((i) => i.type === 'audio');
+  if (audioItems.length === 0) return null;
+
+  // 2. Shuffle mode
+  if (state.shuffle) {
+    const candidates = audioItems.filter((i) => i.id !== state.activeId);
+    if (candidates.length > 0) {
+      const pickedIndex = Math.floor(rng() * candidates.length);
+      return candidates[pickedIndex] ?? null;
+    }
+    // No distinct other audio track available. Loop back to current track only if repeatMode === 'all'
+    if (state.repeatMode === 'all') {
+      return audioItems[0] ?? null;
+    }
+    return null;
+  }
+
+  // 3. Sequential advance
+  const currentIndex = state.items.findIndex((i) => i.id === state.activeId);
+  if (currentIndex === -1) return null;
+
+  const nextIndex = currentIndex + 1;
+  if (nextIndex < state.items.length) {
+    const next = state.items[nextIndex];
+    // Invariant: Auto-advance strictly halts if next track is video
+    return next && next.type === 'audio' ? next : null;
+  }
+
+  // Reached end of playlist
+  if (state.repeatMode === 'all') {
+    const first = state.items[0];
+    return first && first.type === 'audio' ? first : null;
+  }
+
+  return null;
 }
 
 export function getPrevPlaylistItem(currentId: string | null, items: PlaylistItem[]): PlaylistItem | null {

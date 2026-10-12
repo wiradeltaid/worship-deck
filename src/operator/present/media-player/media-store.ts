@@ -3,6 +3,7 @@ import type {
   PlaylistItem,
   ProjectStatus,
   MediaStatus,
+  RepeatMode,
 } from './playlist-model';
 import {
   createInitialPlaylistState,
@@ -25,6 +26,8 @@ export type MediaAction =
   | { type: 'SET_FADING'; isFading: boolean }
   | { type: 'SET_PROJECTED'; isProjected: boolean }
   | { type: 'SET_PROJECT_STATUS'; projectStatus: ProjectStatus }
+  | { type: 'SET_SHUFFLE'; shuffle: boolean }
+  | { type: 'SET_REPEAT_MODE'; repeatMode: RepeatMode }
   | { type: 'UPDATE_ITEM_STATUS'; id: string; status: MediaStatus; errorMessage?: string }
   | { type: 'UPDATE_ITEM'; id: string; patch: Partial<PlaylistItem> }
   | { type: 'RESET' };
@@ -98,6 +101,14 @@ export function createMediaStore(initialState?: Partial<PlaylistState>): MediaSt
       case 'SET_PROJECT_STATUS':
         if (current.projectStatus === action.projectStatus) return current;
         return { ...current, projectStatus: action.projectStatus };
+
+      case 'SET_SHUFFLE':
+        if (current.shuffle === action.shuffle) return current;
+        return { ...current, shuffle: action.shuffle };
+
+      case 'SET_REPEAT_MODE':
+        if (current.repeatMode === action.repeatMode) return current;
+        return { ...current, repeatMode: action.repeatMode };
 
       case 'UPDATE_ITEM_STATUS': {
         const itemIndex = current.items.findIndex((i) => i.id === action.id);

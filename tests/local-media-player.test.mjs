@@ -1236,6 +1236,131 @@ test('SPEC-114-02: Unified 3-Way Deletion Matrix and Single-Owner Playlist Mount
   }
 });
 
+test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launcher Cleanup', async () => {
+  const fs = await import('node:fs');
+  const { resolveNextPlaylistItem } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playlist-model.ts')
+  );
+
+  // 1. Pure domain logic for resolveNextPlaylistItem
+  const sampleItems = [
+    { id: 'track-1', name: 'Song 1', url: '/1.mp3', type: 'audio' },
+    { id: 'track-2', name: 'Song 2', url: '/2.mp3', type: 'audio' },
+    { id: 'track-3', name: 'Video 3', url: '/3.mp4', type: 'video' },
+    { id: 'track-4', name: 'Song 4', url: '/4.mp3', type: 'audio' },
+  ];
+
+  // Invariant 1: Active video track NEVER auto-advances
+  const videoState = {
+    items: sampleItems,
+    activeId: 'track-3',
+    isPlaying: true,
+    shuffle: false,
+    repeatMode: 'off',
+  };
+  assert.equal(resolveNextPlaylistItem(videoState), null, 'Video track must never auto-advance');
+
+  // Invariant 2: Repeat-One repeats active track regardless of shuffle
+  const repeatOneState = {
+    items: sampleItems,
+    activeId: 'track-1',
+    isPlaying: true,
+    shuffle: true,
+    repeatMode: 'one',
+  };
+  assert.equal(resolveNextPlaylistItem(repeatOneState)?.id, 'track-1', 'Repeat-One must return current track');
+
+  // Invariant 3: Sequential advance halts before video track
+  const beforeVideoState = {
+    items: sampleItems,
+    activeId: 'track-2',
+    isPlaying: true,
+    shuffle: false,
+    repeatMode: 'off',
+  };
+  assert.equal(resolveNextPlaylistItem(beforeVideoState), null, 'Sequential advance must halt when next track is video');
+
+  // Invariant 4: Sequential advance with Repeat-All loops to start if audio
+  const endState = {
+    items: sampleItems,
+    activeId: 'track-4',
+    isPlaying: true,
+    shuffle: false,
+    repeatMode: 'all',
+  };
+  assert.equal(resolveNextPlaylistItem(endState)?.id, 'track-1', 'Repeat-All must loop to start of playlist');
+
+  // Invariant 5: Shuffle selects deterministic candidate when rng provided
+  const shuffleState = {
+    items: sampleItems,
+    activeId: 'track-1',
+    isPlaying: true,
+    shuffle: true,
+    repeatMode: 'off',
+  };
+  // audio candidates: track-2, track-4
+  const chosen = resolveNextPlaylistItem(shuffleState, () => 0.6);
+  assert.equal(chosen?.id, 'track-4', 'Deterministic rng selects candidate');
+
+  // 2. Structural Inspection of MediaControlBar and PresenterOperator
+  const barSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const presenterSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const barCode = fs.readFileSync(barSourcePath, 'utf8');
+  const presenterCode = fs.readFileSync(presenterSourcePath, 'utf8');
+
+  function assertShuffleRepeatContract(bar, presenter) {
+    // Shuffle & Repeat buttons in MediaControlBar
+    assert.ok(bar.includes('data-testid="media-control-bar-shuffle"'), 'Must have shuffle button');
+    assert.ok(bar.includes('data-testid="media-control-bar-repeat"'), 'Must have repeat button');
+    assert.ok(bar.includes('Shuffle') && bar.includes('Repeat') && bar.includes('Repeat1'), 'Must render icons');
+    assert.ok(bar.includes("t('media.controlBar.shuffleOn')"), 'Must use localized shuffle tooltip');
+    assert.ok(bar.includes("t('media.controlBar.repeatOne')"), 'Must use localized repeat tooltip');
+
+    // Redundant MediaLauncherButton removed from PresenterOperator header row 2
+    assert.ok(
+      !presenter.includes('<MediaLauncherButton'),
+      'PresenterOperator header row 2 must not render redundant MediaLauncherButton'
+    );
+  }
+
+  assertShuffleRepeatContract(barCode, presenterCode);
+
+  // 3. Defect injection proof 1: re-injecting MediaLauncherButton fails assertion
+  try {
+    const defectivePresenter = presenterCode.replace(
+      'data-testid="presenter-header-row-3"',
+      '<MediaLauncherButton />\n          <div data-testid="presenter-header-row-3"'
+    );
+    assert.notEqual(defectivePresenter, presenterCode, 'Mutation must succeed');
+    fs.writeFileSync(presenterSourcePath, defectivePresenter);
+    const readDefective = fs.readFileSync(presenterSourcePath, 'utf8');
+    assert.throws(
+      () => assertShuffleRepeatContract(barCode, readDefective),
+      /PresenterOperator header row 2 must not render redundant MediaLauncherButton/,
+      'Defect injection proof: re-injecting MediaLauncherButton throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(presenterSourcePath, presenterCode);
+    assert.equal(fs.readFileSync(presenterSourcePath, 'utf8'), presenterCode, 'File must be restored byte-for-byte');
+  }
+
+  // 4. Defect injection proof 2: removing shuffle button fails assertion
+  try {
+    const defectiveBar = barCode.replace('data-testid="media-control-bar-shuffle"', 'data-testid="legacy-shuffle"');
+    assert.notEqual(defectiveBar, barCode, 'Mutation must succeed');
+    fs.writeFileSync(barSourcePath, defectiveBar);
+    const readDefective = fs.readFileSync(barSourcePath, 'utf8');
+    assert.throws(
+      () => assertShuffleRepeatContract(readDefective, presenterCode),
+      /Must have shuffle button/,
+      'Defect injection proof: removing shuffle button throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(barSourcePath, barCode);
+    assert.equal(fs.readFileSync(barSourcePath, 'utf8'), barCode, 'File must be restored byte-for-byte');
+  }
+});
+
 
 
 

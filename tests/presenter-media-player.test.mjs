@@ -221,7 +221,7 @@ test('SPEC-110-02: Presenter Dock and Non-Modal Drawer UI component contracts', 
   assert.ok(!drawerSrc.includes('aria-modal="true"'), 'MediaDrawer is non-modal and must not declare aria-modal="true"');
 
   // PresenterOperator integration
-  assert.ok(presenterSrc.includes('MediaLauncherButton'), 'PresenterOperator mounts MediaLauncherButton');
+  assert.ok(presenterSrc.includes('MediaLauncherButton') || presenterSrc.includes('MediaControlBar'), 'PresenterOperator mounts MediaControlBar or MediaLauncherButton');
   assert.ok(presenterSrc.includes('MediaDock') || presenterSrc.includes('MediaControlBar'), 'PresenterOperator mounts MediaDock or MediaControlBar');
   assert.ok(presenterSrc.includes('MediaDrawer'), 'PresenterOperator mounts MediaDrawer');
   assert.ok(presenterSrc.includes('MediaStage'), 'PresenterOperator mounts MediaStage');

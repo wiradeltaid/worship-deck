@@ -161,7 +161,6 @@ import {
   createMediaStore,
   createMediaEngine,
   MediaStage,
-  MediaLauncherButton,
   MediaControlBar,
   MediaDrawer,
   localMediaRegistry,
@@ -543,16 +542,6 @@ export default function PresenterOperator({
   const mediaEngine = mediaEngineRef.current;
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
-  const [mediaItemCount, setMediaItemCount] = useState(0);
-  const [mediaIsPlaying, setMediaIsPlaying] = useState(false);
-
-  useEffect(() => {
-    return mediaStore.subscribe(() => {
-      const snap = mediaStore.getSnapshot();
-      setMediaItemCount(snap.items.length);
-      setMediaIsPlaying(snap.isPlaying);
-    });
-  }, [mediaStore]);
 
   // SPEC-114-02: Single-owner mount hydration for persistent media playlist
   useEffect(() => {
@@ -2387,12 +2376,6 @@ export default function PresenterOperator({
             >
               {t('presenter.runSheet')}
             </Button>
-            <MediaLauncherButton
-              itemCount={mediaItemCount}
-              isPlaying={mediaIsPlaying}
-              isDrawerOpen={mediaDrawerOpen}
-              onClick={() => setMediaDrawerOpen((prev) => !prev)}
-            />
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
