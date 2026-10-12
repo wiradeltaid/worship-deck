@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**100 decisions** — accepted: 1 · applied: 98 · superseded: 1.
+**101 decisions** — accepted: 1 · applied: 99 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -108,3 +108,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-098` | Storage Ladder, WebView2 File System Access, and Service Worker Stream Resolution for Local Media Playback | `applied` | decision | `src/operator/present/media-player/storage-ladder.ts`, `tests/local-media-player.test.mjs`, `.scratch/SPEC-111-direct-local-media-playback-and-top-dock-ergonomics/` | `.control/decisions/DEC-098-storage-ladder-webview2-file-system-access-and-service-worker-stream-resolution.md` |
 | `DEC-099` | Daily Autopilot mandate for Mandatory Bilingual i18n Reconciliation (SPEC-112) and Unified Media Control Bar… | `applied` | mandate | `.control/memlog/autopilot-DEC-099.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-112-mandatory-i18n-reconciliation-and-enforcement-guards/`, `.scratch/SPEC-113-unified-media-control-bar-and-single-list-library/` | `.control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reconciliation-and-unified-media-control-bar.md` |
 | `DEC-100` | Daily Autopilot mandate for Media Player Suite Hardening and Playlist Sync (SPEC-114) | `applied` | mandate | `.control/memlog/autopilot-DEC-100.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-114-media-player-suite-hardening-and-playlist-sync/` | `.control/decisions/DEC-100-daily-autopilot-mandate-media-player-suite-hardening-and-playlist-sync.md` |
+| `DEC-101` | Persistent Video Projection with Slide Fallback, Browser-Local Playback Preferences, and List Removal Semanti… | `applied` | decision | `src/operator/present/media-player/MediaStage.tsx`, `src/operator/present/media-player/MediaControlBar.tsx`, `src/operator/present/media-player/MediaDrawer.tsx`, `src/operator/present/media-player/playlist-model.ts`, `src/operator/present/PresenterOperator.tsx`, `tests/local-media-player.test.mjs`, `.how/presenter/SDD-presenter.md`, `.how/presenter/02-contracts/02-present-channel.md` | `.control/decisions/DEC-101-persistent-video-projection-and-slide-fallback.md` |

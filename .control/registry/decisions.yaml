@@ -2114,6 +2114,22 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-114-media-player-suite-hardening-and-playlist-sync/
 
+  - id: DEC-101
+    type: decision
+    status: applied
+    accepted_by: "kodesh87 (2026-10-12)"
+    title: Persistent Video Projection with Slide Fallback, Browser-Local Playback Preferences, and List Removal Semantics
+    file: .control/decisions/DEC-101-persistent-video-projection-and-slide-fallback.md
+    touches:
+      - src/operator/present/media-player/MediaStage.tsx
+      - src/operator/present/media-player/MediaControlBar.tsx
+      - src/operator/present/media-player/MediaDrawer.tsx
+      - src/operator/present/media-player/playlist-model.ts
+      - src/operator/present/PresenterOperator.tsx
+      - tests/local-media-player.test.mjs
+      - .how/presenter/SDD-presenter.md
+      - .how/presenter/02-contracts/02-present-channel.md
+
 
 
 

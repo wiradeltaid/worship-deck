@@ -41,6 +41,8 @@ A remote control device (UC-29, DEC-006) is an **input to this component, never 
 
 A live background switch (UC-27, DEC-004) changes what the projector shows for the current Verse/Reff slide only; it never rewrites the Service payload or the Registry, and it does not survive past this session the way a Sync Artifact does — the next generate still resolves the background through the normal order (weekly choice → global default → blank).
 
+Media playback projection (DEC-101): When video projection is armed, it remains persistently active across playlist transitions; playing audio while video projection is armed automatically falls back to displaying the slide deck to the room screen and returns to video projection when video plays, without disarming unless explicitly triggered off by the operator.
+
 ## Non-Goals · [G3]
 
 - Edit weekly payload — Hub.

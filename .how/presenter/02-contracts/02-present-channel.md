@@ -22,7 +22,8 @@ UC-12, UC-13, UC-27, AD-10, AD-29. Session display: showing / blanked / overlay 
 | Operation | Purpose | Realizes |
 | --- | --- | --- |
 | index / blank / overlay | Controls → projector | UC-12 · UC-13 |
-| projection / guestAttemptId on sync | Controls → projector: ProjectedSource (`deck` / `guest`) and diagnostic correlation attempt ID | AD-10 · DEC-088 |
+| projection / guestAttemptId on sync | Controls → projector: ProjectedSource (`deck` / `guest` / `media`). **Extended by DEC-088, DEC-096, DEC-097, DEC-101:** carries `{ kind: 'media'; mediaId; mediaUrl; source; isPlaying; mediaTime; at; revision }`. When video projection is armed, it remains persistent across track transitions; playing audio automatically falls back to `{ kind: 'deck' }` on the wire, returning to `{ kind: 'media' }` when video cues | AD-10 · DEC-088 · DEC-101 |
+| media-clock | Controls → projector: periodic monotonic playhead alignment (`mediaId`, `mediaTime`, `at`, `isPlaying`, `revision`, `planIdentity`) | AD-10 · DEC-096 · DEC-101 |
 | transition | Live-session override of app-wide style (AD-23); PPTX does not follow | UC-12 |
 | background | Live-session override of the current Verse/Reff background (AD-34), same shape as `transition`: a value the sender intends, not a toggle; resends on `sync` so a reload does not lose it. Neither the Service payload nor the Registry follow. **Shipped** — `PresentMessage` carries a `background` variant and `sync` resends it (`src/lib/present-channel.ts`). This row read `[MISSING]` until 2026-08-22 | UC-27 |
 | clear-scripture | Dismiss overlay | UC-13 |
