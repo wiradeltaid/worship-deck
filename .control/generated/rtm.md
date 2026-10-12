@@ -2089,6 +2089,52 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-115-02
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-screen.test.mjs
+  - tests/presenter-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-115-03
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/presenter-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-115-04
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/remote-screen.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -9060,6 +9106,67 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-115-01
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-115-02
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-screen.test.mjs
+  - tests/presenter-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-115-03
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/presenter-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-115-04
+  spec: SPEC-115
+  release: unified-remote-presenter-console-and-qr-pairing
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/remote-screen.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35

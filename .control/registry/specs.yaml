@@ -4832,6 +4832,53 @@ waves:
           - tests/presenter-media-player.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
 
+  - id: SPEC-115
+    status: open
+    release: unified-remote-presenter-console-and-qr-pairing
+    prd: [operator-turn]
+    fr: [FR-16, FR-35, FR-25]
+    size: M
+    depends_on: [SPEC-114]
+    spec_folder: .scratch/SPEC-115-unified-remote-presenter-console-and-qr-pairing/
+    spec_reviewed:
+      date: '2026-10-12'
+      sha: '6ddf809f'
+      lenses: [structure, prose, edge-case-hunter, contract-surface, security-authentication, state-authority, traceability]
+    tickets:
+      - id: "SPEC-115-01"
+        component: presenter
+        satisfies: [UC-29, FR-35, FR-25]
+        blocked_by: []
+        touches: [remote]
+        tests:
+          - tests/remote-presenting-client.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+      - id: "SPEC-115-02"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: ["SPEC-115-01"]
+        touches: [present-channel, remote]
+        tests:
+          - tests/remote-screen.test.mjs
+          - tests/presenter-media-player.test.mjs
+      - id: "SPEC-115-03"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: ["SPEC-115-02"]
+        touches: [remote, present-channel]
+        tests:
+          - tests/remote-presenting-client.test.mjs
+          - tests/presenter-media-player.test.mjs
+      - id: "SPEC-115-04"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35, FR-25]
+        blocked_by: ["SPEC-115-03"]
+        touches: [remote, present-channel]
+        tests:
+          - tests/remote-presenting-client.test.mjs
+          - tests/remote-screen.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+
 
 
 
