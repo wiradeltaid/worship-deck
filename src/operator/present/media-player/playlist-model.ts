@@ -43,6 +43,38 @@ export interface UnifiedPlaylistItem extends PlaylistItem {
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
+export const MEDIA_SHUFFLE_STORAGE_KEY = 'worshipdeck:media:shuffle';
+export const MEDIA_REPEAT_STORAGE_KEY = 'worshipdeck:media:repeatMode';
+
+export function loadSavedMediaPreferences(): { shuffle: boolean; repeatMode: RepeatMode } {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return { shuffle: false, repeatMode: 'off' };
+  }
+  try {
+    const rawShuffle = window.localStorage.getItem(MEDIA_SHUFFLE_STORAGE_KEY);
+    const rawRepeat = window.localStorage.getItem(MEDIA_REPEAT_STORAGE_KEY);
+    const shuffle = rawShuffle === 'true';
+    const repeatMode: RepeatMode =
+      rawRepeat === 'one' || rawRepeat === 'all' || rawRepeat === 'off' ? rawRepeat : 'off';
+    return { shuffle, repeatMode };
+  } catch {
+    return { shuffle: false, repeatMode: 'off' };
+  }
+}
+
+export function saveMediaPreference(key: 'shuffle' | 'repeatMode', value: boolean | RepeatMode): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    if (key === 'shuffle') {
+      window.localStorage.setItem(MEDIA_SHUFFLE_STORAGE_KEY, String(value));
+    } else {
+      window.localStorage.setItem(MEDIA_REPEAT_STORAGE_KEY, String(value));
+    }
+  } catch {
+    // Graceful fallback for restricted/private storage environments
+  }
+}
+
 export interface PlaylistState {
   items: PlaylistItem[];
   activeId: string | null;
@@ -136,6 +168,7 @@ export function mergeUnifiedPlaylistItem(
 }
 
 export function createInitialPlaylistState(): PlaylistState {
+  const prefs = loadSavedMediaPreferences();
   return {
     items: [],
     activeId: null,
@@ -147,8 +180,8 @@ export function createInitialPlaylistState(): PlaylistState {
     duration: 0,
     isProjected: false,
     projectStatus: 'off',
-    shuffle: false,
-    repeatMode: 'off',
+    shuffle: prefs.shuffle,
+    repeatMode: prefs.repeatMode,
   };
 }
 
@@ -263,51 +296,39 @@ export function resolveNextPlaylistItem(
   rng: () => number = Math.random
 ): PlaylistItem | null {
   const current = state.items.find((i) => i.id === state.activeId);
-  if (!current) return null;
+  if (!current || state.items.length === 0) return null;
 
   // 1. Repeat-One strictly overrides shuffle and sequential advance (loops current audio or video track)
   if (state.repeatMode === 'one') {
     return current;
   }
 
-  // Current video track never auto-advances to a different track (AD-24 sanctuary protection)
-  if (current.type === 'video') {
-    return null;
-  }
-
-  // Filter only audio items for sanctuary screen protection
-  const audioItems = state.items.filter((i) => i.type === 'audio');
-  if (audioItems.length === 0) return null;
-
-  // 2. Shuffle mode
+  // 2. Shuffle mode (across all media items: audio and video)
   if (state.shuffle) {
-    const candidates = audioItems.filter((i) => i.id !== state.activeId);
+    const candidates = state.items.filter((i) => i.id !== state.activeId);
     if (candidates.length > 0) {
       const pickedIndex = Math.floor(rng() * candidates.length);
       return candidates[pickedIndex] ?? null;
     }
-    // No distinct other audio track available. Loop back to current track only if repeatMode === 'all'
+    // Only 1 item in playlist: loop back if repeatMode === 'all'
     if (state.repeatMode === 'all') {
-      return audioItems[0] ?? null;
+      return state.items[0] ?? null;
     }
     return null;
   }
 
-  // 3. Sequential advance
+  // 3. Sequential advance (across all media items: audio and video)
   const currentIndex = state.items.findIndex((i) => i.id === state.activeId);
   if (currentIndex === -1) return null;
 
   const nextIndex = currentIndex + 1;
   if (nextIndex < state.items.length) {
-    const next = state.items[nextIndex];
-    // Invariant: Auto-advance strictly halts if next track is video
-    return next && next.type === 'audio' ? next : null;
+    return state.items[nextIndex] ?? null;
   }
 
-  // Reached end of playlist
+  // Reached end of playlist: loop to start if repeatMode === 'all'
   if (state.repeatMode === 'all') {
-    const first = state.items[0];
-    return first && first.type === 'audio' ? first : null;
+    return state.items[0] ?? null;
   }
 
   return null;

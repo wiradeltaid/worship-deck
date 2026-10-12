@@ -1250,7 +1250,7 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
     { id: 'track-4', name: 'Song 4', url: '/4.mp3', type: 'audio' },
   ];
 
-  // Invariant 1: Active video track NEVER auto-advances
+  // Invariant 1: Active video track advances sequentially to track-4
   const videoState = {
     items: sampleItems,
     activeId: 'track-3',
@@ -1258,7 +1258,7 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
     shuffle: false,
     repeatMode: 'off',
   };
-  assert.equal(resolveNextPlaylistItem(videoState), null, 'Video track must never auto-advance');
+  assert.equal(resolveNextPlaylistItem(videoState)?.id, 'track-4', 'Video track advances to next playlist item');
   assert.equal(resolveNextPlaylistItem({ ...videoState, repeatMode: 'one' })?.id, 'track-3', 'Repeat-One repeats active video track');
 
   // Invariant 2: Repeat-One repeats active track regardless of shuffle
@@ -1271,7 +1271,7 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
   };
   assert.equal(resolveNextPlaylistItem(repeatOneState)?.id, 'track-1', 'Repeat-One must return current track');
 
-  // Invariant 3: Sequential advance halts before video track
+  // Invariant 3: Sequential advance advances across both audio and video
   const beforeVideoState = {
     items: sampleItems,
     activeId: 'track-2',
@@ -1279,9 +1279,9 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
     shuffle: false,
     repeatMode: 'off',
   };
-  assert.equal(resolveNextPlaylistItem(beforeVideoState), null, 'Sequential advance must halt when next track is video');
+  assert.equal(resolveNextPlaylistItem(beforeVideoState)?.id, 'track-3', 'Sequential advance moves to video track');
 
-  // Invariant 4: Sequential advance with Repeat-All loops to start if audio
+  // Invariant 4: Sequential advance with Repeat-All loops to start
   const endState = {
     items: sampleItems,
     activeId: 'track-4',
@@ -1290,8 +1290,9 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
     repeatMode: 'all',
   };
   assert.equal(resolveNextPlaylistItem(endState)?.id, 'track-1', 'Repeat-All must loop to start of playlist');
+  assert.equal(resolveNextPlaylistItem({ ...endState, repeatMode: 'off' }), null, 'Repeat-Off halts at end of playlist');
 
-  // Invariant 5: Shuffle selects deterministic candidate when rng provided
+  // Invariant 5: Shuffle selects from all candidates (audio and video)
   const shuffleState = {
     items: sampleItems,
     activeId: 'track-1',
@@ -1299,9 +1300,29 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
     shuffle: true,
     repeatMode: 'off',
   };
-  // audio candidates: track-2, track-4
-  const chosen = resolveNextPlaylistItem(shuffleState, () => 0.6);
-  assert.equal(chosen?.id, 'track-4', 'Deterministic rng selects candidate');
+  // candidates: track-2, track-3 (video), track-4
+  const chosen = resolveNextPlaylistItem(shuffleState, () => 0.5); // Math.floor(0.5 * 3) = 1 -> track-3 (video)
+  assert.equal(chosen?.id, 'track-3', 'Deterministic rng selects candidate including video');
+
+  // Invariant 6: localStorage persistence for shuffle and repeatMode
+  const {
+    loadSavedMediaPreferences,
+    saveMediaPreference,
+  } = await import(srcUrl('operator', 'present', 'media-player', 'playlist-model.ts'));
+
+  const mockStorage = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => mockStorage.get(k) ?? null,
+      setItem: (k, v) => mockStorage.set(k, String(v)),
+    },
+  };
+
+  saveMediaPreference('shuffle', true);
+  saveMediaPreference('repeatMode', 'all');
+  const loaded = loadSavedMediaPreferences();
+  assert.equal(loaded.shuffle, true, 'Saved shuffle preference must roundtrip from localStorage');
+  assert.equal(loaded.repeatMode, 'all', 'Saved repeatMode preference must roundtrip from localStorage');
 
   // 2. Structural Inspection of MediaControlBar and PresenterOperator
   const barSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');

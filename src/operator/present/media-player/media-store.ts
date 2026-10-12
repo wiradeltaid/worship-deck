@@ -11,6 +11,7 @@ import {
   removePlaylistItem,
   movePlaylistItem,
   selectPlaylistItem,
+  saveMediaPreference,
 } from './playlist-model';
 
 export type MediaAction =
@@ -104,10 +105,12 @@ export function createMediaStore(initialState?: Partial<PlaylistState>): MediaSt
 
       case 'SET_SHUFFLE':
         if (current.shuffle === action.shuffle) return current;
+        saveMediaPreference('shuffle', action.shuffle);
         return { ...current, shuffle: action.shuffle };
 
       case 'SET_REPEAT_MODE':
         if (current.repeatMode === action.repeatMode) return current;
+        saveMediaPreference('repeatMode', action.repeatMode);
         return { ...current, repeatMode: action.repeatMode };
 
       case 'UPDATE_ITEM_STATUS': {
