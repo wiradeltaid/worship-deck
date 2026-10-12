@@ -48,7 +48,9 @@ import {
   Check,
   Sparkles,
   Upload,
+  Copy,
 } from 'lucide-react';
+import QRCodeSvg from '@/components/QRCodeSvg';
 import Link from '@/components/Link';
 import ImageCropDialog from '@/components/media/ImageCropDialog';
 import type { SlidePlanItem } from '@/lib/slide-plan';
@@ -3092,26 +3094,48 @@ export default function PresenterOperator({
       <Dialog open={remoteDialogOpen} onOpenChange={setRemoteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Mobile Remote Pairing</DialogTitle>
+            <DialogTitle>{t('presenter.remote.qrTitle')}</DialogTitle>
             <DialogDescription>
-              Scan or enter this 6-digit code on a mobile device to control presentation slides remotely.
+              {t('presenter.remote.qrHint')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted/40 p-4">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Pairing Code
-              </span>
-              <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em] text-foreground select-all">
-                {remoteCode || '------'}
+              <div
+                data-testid="remote-qr-code"
+                className="w-48 h-48 bg-white p-2 rounded-md shadow-xs flex items-center justify-center"
+              >
+                {remoteCode ? (
+                  <QRCodeSvg
+                    value={
+                      typeof window !== 'undefined'
+                        ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
+                        : `/remote?service=${serviceId}&code=${remoteCode}`
+                    }
+                    size={176}
+                  />
+                ) : (
+                  <div className="text-xs text-zinc-500 font-mono">{t('presenter.remote.generatingCode')}</div>
+                )}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Code expires in 60 seconds if unclaimed.
+              <div className="mt-3 flex flex-col items-center">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {t('presenter.remote.pairingCode')}
+                </span>
+                <div
+                  data-testid="remote-pairing-pin"
+                  className="mt-0.5 font-mono text-3xl font-bold tracking-[0.25em] text-foreground select-all"
+                >
+                  {remoteCode || '------'}
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground text-center">
+                {t('presenter.remote.codeExpiry')}
               </p>
             </div>
 
             <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs">
-              <span className="text-muted-foreground font-medium">Status</span>
+              <span className="text-muted-foreground font-medium">{t('presenter.remote.statusLabel')}</span>
               <span className="flex items-center gap-1.5 font-medium">
                 <span
                   className={cn(
@@ -3127,29 +3151,32 @@ export default function PresenterOperator({
                 />
                 <span className="capitalize">
                   {remoteState === 'connected'
-                    ? 'Presenter Ready · Awaiting Mobile'
+                    ? t('presenter.remote.statusConnected')
                     : remoteState === 'pairing'
-                    ? 'Awaiting Connection'
+                    ? t('presenter.remote.statusPairing')
                     : remoteState === 'role-lost'
-                    ? 'Role Reassigned'
+                    ? t('presenter.remote.statusRoleLost')
                     : remoteState === 'error'
-                    ? 'Connection Error'
-                    : 'Disconnected'}
+                    ? t('presenter.remote.statusError')
+                    : t('presenter.remote.statusDisconnected')}
                 </span>
               </span>
             </div>
 
             <div className="space-y-1">
               <span className="text-xs text-muted-foreground font-medium">
-                Mobile URL
+                {t('presenter.remote.mobileUrl')}
               </span>
               <div className="flex items-center gap-2">
                 <Input
                   readOnly
+                  data-testid="remote-pairing-url"
                   value={
-                    typeof window !== 'undefined'
-                      ? `${window.location.origin}/services/${serviceId}/remote`
-                      : `/services/${serviceId}/remote`
+                    typeof window !== 'undefined' && remoteCode
+                      ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
+                      : typeof window !== 'undefined'
+                      ? `${window.location.origin}/remote?service=${serviceId}`
+                      : `/remote?service=${serviceId}`
                   }
                   className="font-mono text-xs select-all"
                 />
@@ -3157,15 +3184,19 @@ export default function PresenterOperator({
                   type="button"
                   variant="outline"
                   size="sm"
+                  data-testid="remote-copy-link-button"
                   onClick={() => {
                     if (typeof window !== 'undefined') {
-                      void navigator.clipboard?.writeText(
-                        `${window.location.origin}/services/${serviceId}/remote`
-                      );
+                      const url = remoteCode
+                        ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
+                        : `${window.location.origin}/remote?service=${serviceId}`;
+                      void navigator.clipboard?.writeText(url);
+                      toast.success(t('presenter.remote.linkCopied'));
                     }
                   }}
                 >
-                  Copy
+                  <Copy className="w-3.5 h-3.5 mr-1" />
+                  {t('presenter.remote.copyLink')}
                 </Button>
               </div>
             </div>

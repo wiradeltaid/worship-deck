@@ -45,12 +45,14 @@ export default function RemoteOperator({
   slides,
   planIdentity,
   transition: deckTransition,
+  autoClaimCode,
 }: {
   serviceId: number;
   serviceDate: string;
   slides: SlidePlanItem[];
   planIdentity: string;
   transition: SlideTransition;
+  autoClaimCode?: string;
 }) {
   const { t } = useT();
   const [index, setIndex] = useState(0);
@@ -78,9 +80,26 @@ export default function RemoteOperator({
     useState<RemoteControlConnectionState>('idle');
   const [moreOpen, setMoreOpen] = useState(false);
 
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const sessionRef = useRef<RemoteControlSession | null>(null);
   const planIdentityRef = useRef(planIdentity);
   planIdentityRef.current = planIdentity;
+
+  const stripTokenFromUrl = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('code');
+      const cleanUrl =
+        currentUrl.pathname +
+        (currentUrl.searchParams.toString()
+          ? '?' + currentUrl.searchParams.toString()
+          : '') +
+        currentUrl.hash;
+      window.history.replaceState(window.history.state, '', cleanUrl);
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -140,10 +159,12 @@ export default function RemoteOperator({
   );
 
   useEffect(() => {
+    let active = true;
     const session = new RemoteControlSession({
       serviceId,
       onState: handleStateUpdate,
       onConnectionChange: (st) => {
+        if (!active) return;
         setConnectionState(st);
         if (st === 'connected') {
           setPaired(true);
@@ -153,10 +174,32 @@ export default function RemoteOperator({
       },
     });
     sessionRef.current = session;
+
+    if (autoClaimCode && autoClaimCode.trim()) {
+      const trimmedCode = autoClaimCode.trim();
+      setPairingCode(trimmedCode);
+      setPairingBusy(true);
+      setPairingError(null);
+      void session.claim(trimmedCode).then((res) => {
+        if (!active) return;
+        setPairingBusy(false);
+        if (res.ok) {
+          stripTokenFromUrl();
+        } else {
+          if (res.error === 'conflict') {
+            setPairingError(tRef.current('remote.conflict'));
+          } else {
+            setPairingError(tRef.current('remote.invalidCode'));
+          }
+        }
+      });
+    }
+
     return () => {
+      active = false;
       session.stop();
     };
-  }, [serviceId, handleStateUpdate]);
+  }, [serviceId, autoClaimCode, handleStateUpdate, stripTokenFromUrl]);
 
   const connect = async () => {
     if (!pairingCode.trim()) return;
@@ -175,6 +218,8 @@ export default function RemoteOperator({
       } else {
         setPairingError(t('remote.invalidCode'));
       }
+    } else {
+      stripTokenFromUrl();
     }
   };
 

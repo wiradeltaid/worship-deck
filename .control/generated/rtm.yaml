@@ -9112,7 +9112,7 @@ rtm:
   test:
   - tests/remote-presenting-client.test.mjs
   - tests/bilingual-i18n-parity.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

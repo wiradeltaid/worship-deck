@@ -58,6 +58,7 @@ export default function App() {
       <Route element={<SessionProvider><PresentGate /></SessionProvider>}>
         <Route path="/services/:id/present" element={<PresentPage />} />
         <Route path="/services/:id/remote" element={<RemotePage />} />
+        <Route path="/remote" element={<RemotePage />} />
       </Route>
     </Routes>
   );

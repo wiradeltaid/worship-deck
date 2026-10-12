@@ -990,6 +990,21 @@ export const I18N_KEYS = [
   'admin.formLayout.seeding',
   'admin.formLayout.refresh',
   'admin.formLayout.loading',
+  // SPEC-115: Mobile Remote QR Pairing
+  'presenter.remote.qrTitle',
+  'presenter.remote.qrHint',
+  'presenter.remote.copyLink',
+  'presenter.remote.linkCopied',
+  'presenter.remote.generatingCode',
+  'presenter.remote.pairingCode',
+  'presenter.remote.codeExpiry',
+  'presenter.remote.statusLabel',
+  'presenter.remote.statusConnected',
+  'presenter.remote.statusPairing',
+  'presenter.remote.statusRoleLost',
+  'presenter.remote.statusError',
+  'presenter.remote.statusDisconnected',
+  'presenter.remote.mobileUrl',
 ] as const;
 
 export type I18nKey = (typeof I18N_KEYS)[number];

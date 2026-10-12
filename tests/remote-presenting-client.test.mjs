@@ -367,3 +367,100 @@ test('AC-9: tests/remote-presenting-client.test.mjs is registered in package.jso
     'tests/remote-presenting-client.test.mjs must be listed in package.json scripts.test'
   );
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-115-01: Zero-Friction Remote Pairing, QR Modal, URL Hygiene, & /remote Route
+// -----------------------------------------------------------------------------
+test('SPEC-115-01: QR Code generator produces valid matrix with ISO-compliant dimensions', async () => {
+  const { generateQrCode } = await import(srcUrl('src', 'lib', 'qrcode.ts'));
+  const url = 'http://localhost:3000/remote?service=1&code=123456';
+  const qr = generateQrCode(url);
+
+  assert.ok(qr.version >= 1 && qr.version <= 10, 'QR version must be within supported range');
+  assert.equal(qr.size, 17 + 4 * qr.version, 'QR size must follow formula 17 + 4 * version');
+  assert.equal(qr.modules.length, qr.size, 'Matrix height must match size');
+  assert.equal(qr.modules[0].length, qr.size, 'Matrix width must match size');
+
+  // Verify finder pattern corners (top-left 7x7 must have center dot at [3,3])
+  assert.equal(qr.modules[0][0], true, 'Top-left corner must be dark');
+  assert.equal(qr.modules[3][3], true, 'Top-left finder center must be dark');
+  assert.equal(qr.modules[0][qr.size - 1], true, 'Top-right corner must be dark');
+  assert.equal(qr.modules[qr.size - 1][0], true, 'Bottom-left corner must be dark');
+});
+
+test('SPEC-115-01: PresenterOperator renders scannable QR modal with PIN, auto-claim URL, and copy button', () => {
+  const source = readRaw('src/operator/present/PresenterOperator.tsx');
+  assert.ok(source.includes('data-testid="remote-qr-code"'), 'Must render remote-qr-code container');
+  assert.ok(source.includes('data-testid="remote-pairing-pin"'), 'Must render remote-pairing-pin display');
+  assert.ok(source.includes('data-testid="remote-pairing-url"'), 'Must render remote-pairing-url input');
+  assert.ok(source.includes('data-testid="remote-copy-link-button"'), 'Must render remote-copy-link-button');
+
+  assert.ok(
+    source.includes('/remote?service=${serviceId}&code=${remoteCode}'),
+    'Must encode direct pairing URL with auto-claim query parameters'
+  );
+  assert.ok(
+    source.includes("t('presenter.remote.qrTitle')"),
+    'Must localize dialog title with presenter.remote.qrTitle'
+  );
+  assert.ok(
+    source.includes("t('presenter.remote.qrHint')"),
+    'Must localize dialog hint with presenter.remote.qrHint'
+  );
+  assert.ok(
+    source.includes("t('presenter.remote.linkCopied')"),
+    'Must display copy confirmation toast with presenter.remote.linkCopied'
+  );
+});
+
+test('SPEC-115-01: App.tsx registers top-level /remote route with PresentGate and RemotePage', () => {
+  const appSource = readRaw('spa/src/App.tsx');
+  assert.ok(
+    appSource.includes('<Route path="/remote" element={<RemotePage />} />'),
+    'App.tsx must register universal /remote route'
+  );
+  assert.ok(
+    appSource.includes('<Route path="/services/:id/remote" element={<RemotePage />} />'),
+    'App.tsx must retain existing service-scoped remote route'
+  );
+});
+
+test('SPEC-115-01: RemotePage and RemoteOperator support autoClaimCode and enforce URL token hygiene via replaceState', () => {
+  const pageSource = readRaw('spa/src/pages/RemotePage.tsx');
+  assert.ok(pageSource.includes('searchParams.get(\'service\')'), 'RemotePage must read service query param');
+  assert.ok(pageSource.includes('searchParams.get(\'code\')'), 'RemotePage must read code query param');
+  assert.ok(pageSource.includes('autoClaimCode={code || undefined}'), 'RemotePage must forward autoClaimCode');
+  assert.ok(pageSource.includes('/api/services'), 'RemotePage must auto-resolve active service if unprovided');
+
+  const operatorSource = readRaw('src/operator/present/RemoteOperator.tsx');
+  assert.ok(operatorSource.includes('autoClaimCode?: string'), 'RemoteOperator must declare autoClaimCode prop');
+  assert.ok(operatorSource.includes('session.claim(trimmedCode)'), 'RemoteOperator must auto-invoke claim on mount');
+  assert.ok(
+    operatorSource.includes("window.history.replaceState(window.history.state, '', cleanUrl)"),
+    'RemoteOperator must strip code query parameter via replaceState on successful claim while preserving history state'
+  );
+});
+
+export function scanSpec11501PairingHygiene(source) {
+  const defects = [];
+  if (!source.includes('replaceState')) {
+    defects.push('missing-replace-state-token-hygiene');
+  }
+  if (!source.includes('data-testid="remote-qr-code"')) {
+    defects.push('missing-qr-code-testid');
+  }
+  return defects;
+}
+
+test('SPEC-115-01 defect injection: missing token hygiene or testid fails scan guard', () => {
+  const validSource = readRaw('src/operator/present/PresenterOperator.tsx') +
+    readRaw('src/operator/present/RemoteOperator.tsx');
+  assert.deepEqual(scanSpec11501PairingHygiene(validSource), []);
+
+  const mutatedSource = '<div>No token hygiene or QR testid here</div>';
+  assert.deepEqual(scanSpec11501PairingHygiene(mutatedSource), [
+    'missing-replace-state-token-hygiene',
+    'missing-qr-code-testid',
+  ]);
+});
+

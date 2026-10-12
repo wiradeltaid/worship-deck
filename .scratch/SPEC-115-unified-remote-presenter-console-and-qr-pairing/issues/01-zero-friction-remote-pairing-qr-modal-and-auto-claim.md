@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-29, FR-35, FR-25]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Implement scannable QR Code pairing modal on Host Presenter Console, support instant auto-claim URL tokens (`/remote?service=X&code=Y`), enforce single-use token lifecycle with URL hygiene (`history.replaceState`), and establish a universal `/remote` top-level route in the SPA.
