@@ -38,20 +38,46 @@ export const MediaStage = memo(function MediaStage({
         const baseVol = typeof engine.getBaseVolume === 'function' ? engine.getBaseVolume() : state.volume;
         if (current.type === 'video') {
           if (videoRef.current) {
+            const el = videoRef.current;
             videoRef.current.src = current.url;
             videoRef.current.muted = state.isMuted;
             videoRef.current.volume = baseVol;
             videoRef.current.load();
+            if (state.isPlaying) {
+              const startPlay = () => {
+                void el.play().catch(() => {
+                  store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+                });
+              };
+              if (el.readyState >= 2) {
+                startPlay();
+              } else {
+                el.addEventListener('canplay', startPlay, { once: true });
+              }
+            }
           }
           if (audioRef.current) {
             audioRef.current.pause();
           }
         } else {
           if (audioRef.current) {
+            const el = audioRef.current;
             audioRef.current.src = current.url;
             audioRef.current.muted = state.isMuted;
             audioRef.current.volume = baseVol;
             audioRef.current.load();
+            if (state.isPlaying) {
+              const startPlay = () => {
+                void el.play().catch(() => {
+                  store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+                });
+              };
+              if (el.readyState >= 2) {
+                startPlay();
+              } else {
+                el.addEventListener('canplay', startPlay, { once: true });
+              }
+            }
           }
           if (videoRef.current) {
             videoRef.current.pause();

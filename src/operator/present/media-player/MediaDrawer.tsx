@@ -101,18 +101,25 @@ export const MediaDrawer = memo(function MediaDrawer({
     [store]
   );
 
-  const handlePlayItem = useCallback(
+  const handleTogglePlayItem = useCallback(
     async (id: string) => {
-      store.dispatch({ type: 'SELECT_ITEM', id });
-      setTimeout(() => {
+      if (state.activeId === id && state.isPlaying) {
+        engine.pause();
+        store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+      } else if (state.activeId === id) {
+        // Resuming the currently selected item
         void engine.play().then((res) => {
           if (res.success) {
             store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
           }
         });
-      }, 50);
+      } else {
+        // Selecting a different item: set playing and select; MediaStage authoritatively handles loading and playback
+        store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
+        store.dispatch({ type: 'SELECT_ITEM', id });
+      }
     },
-    [store, engine]
+    [state.activeId, state.isPlaying, store, engine]
   );
 
   const handleDeleteCloudItem = useCallback(
@@ -510,7 +517,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                 key={item.id}
                 data-testid={`media-row-${item.id}`}
                 onClick={() => handleSelectItem(item.id)}
-                onDoubleClick={() => void handlePlayItem(item.id)}
+                onDoubleClick={() => void handleTogglePlayItem(item.id)}
                 className={cn(
                   'group flex items-center justify-between gap-2 rounded-md border p-2 text-xs transition-colors cursor-pointer h-10',
                   isActive
@@ -552,7 +559,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                     size="sm"
                     variant={isPlayingThis ? 'default' : 'ghost'}
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => void handlePlayItem(item.id)}
+                    onClick={() => void handleTogglePlayItem(item.id)}
                     className="h-6 w-6 p-0 shrink-0"
                     title={isPlayingThis ? t('media.drawer.pause') : t('media.drawer.play')}
                   >

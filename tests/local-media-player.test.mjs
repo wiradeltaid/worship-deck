@@ -996,6 +996,106 @@ test('SPEC-113-04: Unified Media Drawer UI, 4-Way Segmented Filter, and Dual Act
   }
 });
 
+test('SPEC-114-01: Media Playback State Sync, Drawer Play/Pause Toggle, and Handover Ownership', async () => {
+  const fs = await import('node:fs');
+
+  const drawerSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  const stageSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
+  assert.ok(fs.existsSync(stageSourcePath), 'MediaStage.tsx must exist');
+
+  const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
+  const stageCode = fs.readFileSync(stageSourcePath, 'utf8');
+
+  function assertPlaybackSyncContract(drawer, stage) {
+    // 1. MediaDrawer Play/Pause Toggle Contract
+    assert.ok(drawer.includes('handleTogglePlayItem'), 'MediaDrawer must define handleTogglePlayItem');
+    assert.ok(
+      drawer.includes('state.activeId === id && state.isPlaying') &&
+      drawer.includes('engine.pause()') &&
+      drawer.includes("type: 'SET_PLAYING', isPlaying: false"),
+      'MediaDrawer must pause playback when clicking the currently playing item'
+    );
+    assert.ok(
+      drawer.includes('state.activeId === id') &&
+      drawer.includes('engine.play()'),
+      'MediaDrawer must resume playback when clicking the currently paused item'
+    );
+    assert.ok(
+      drawer.includes("store.dispatch({ type: 'SET_PLAYING', isPlaying: true });") &&
+      drawer.includes("store.dispatch({ type: 'SELECT_ITEM', id });"),
+      'MediaDrawer must cleanly dispatch SET_PLAYING and SELECT_ITEM without timer races'
+    );
+    assert.ok(
+      drawer.includes('handleTogglePlayItem(item.id)'),
+      'MediaDrawer play button and double click must trigger handleTogglePlayItem'
+    );
+
+    // 2. MediaStage Handover Ownership Contract
+    assert.ok(
+      stage.includes('if (state.isPlaying)') &&
+      stage.includes('readyState >= 2') &&
+      stage.includes("addEventListener('canplay'"),
+      'MediaStage must safely await readyState or canplay before triggering .play() to prevent premature rejection'
+    );
+    assert.ok(
+      stage.includes('el.play()'),
+      'MediaStage must trigger el.play() on active media transition when state.isPlaying is true'
+    );
+  }
+
+  // 1. Pristine code satisfies contract
+  assertPlaybackSyncContract(drawerCode, stageCode);
+
+  // 2. Defect injection proof 1: reverting to unconditional play trips assertion
+  try {
+    const defectiveDrawer = drawerCode.replaceAll('handleTogglePlayItem', 'handleUnconditionalPlayItem');
+    assert.notEqual(defectiveDrawer, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerSourcePath, defectiveDrawer);
+    const readDefective = fs.readFileSync(drawerSourcePath, 'utf8');
+    assert.throws(
+      () => assertPlaybackSyncContract(readDefective, stageCode),
+      /MediaDrawer must define handleTogglePlayItem/,
+      'Defect injection proof: missing handleTogglePlayItem throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerSourcePath, drawerCode);
+    assert.equal(fs.readFileSync(drawerSourcePath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
+
+  // 3. Defect injection proof 2: omitting stage play-on-transition trips assertion
+  try {
+    const defectiveStage = stageCode.replaceAll('el.play()', 'el.pause()');
+    assert.notEqual(defectiveStage, stageCode, 'Mutation must succeed');
+    fs.writeFileSync(stageSourcePath, defectiveStage);
+    const readDefective = fs.readFileSync(stageSourcePath, 'utf8');
+    assert.throws(
+      () => assertPlaybackSyncContract(drawerCode, readDefective),
+      /MediaStage must trigger el\.play\(\)/,
+      'Defect injection proof: missing stage playback handover throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(stageSourcePath, stageCode);
+    assert.equal(fs.readFileSync(stageSourcePath, 'utf8'), stageCode, 'File must be restored byte-for-byte');
+  }
+
+  // 4. Defect injection proof 3: omitting readyState/canplay check trips assertion
+  try {
+    const defectiveStage = stageCode.replaceAll('readyState >= 2', 'readyState >= 99');
+    assert.notEqual(defectiveStage, stageCode, 'Mutation must succeed');
+    fs.writeFileSync(stageSourcePath, defectiveStage);
+    const readDefective = fs.readFileSync(stageSourcePath, 'utf8');
+    assert.throws(
+      () => assertPlaybackSyncContract(drawerCode, readDefective),
+      /MediaStage must safely await readyState or canplay/,
+      'Defect injection proof: missing readyState guard throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(stageSourcePath, stageCode);
+    assert.equal(fs.readFileSync(stageSourcePath, 'utf8'), stageCode, 'File must be restored byte-for-byte');
+  }
+});
+
 
 
 

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** []
-**Status:** open
+**Status:** done
 
 ## Summary
 Resolve Bug #1 (MediaDrawer Play/Pause toggle failure) and Bug #2 (video projection desync and 1–3s infinite heartbeat loop) across `MediaDrawer.tsx`, `MediaStage.tsx`, `playlist-model.ts`, and `PresenterOperator.tsx`.
@@ -27,3 +27,9 @@ Resolve Bug #1 (MediaDrawer Play/Pause toggle failure) and Bug #2 (video project
 - PresenterOperator 2-second heartbeat never rewinds projected video position to 0 during active playback.
 
 ## Comments
+- Delivered in iteration I-1 of mandate DEC-100.
+- Refactored `handleTogglePlayItem` in `MediaDrawer.tsx` to pause active playing tracks and resume paused tracks cleanly.
+- Unified playback handover authority in `MediaStage.tsx` with `readyState >= 2` guard and `canplay` listener.
+- Eliminated all setTimeout timer races and double-play defects in `MediaDrawer.tsx`.
+- Verified green with 12 tests in `tests/local-media-player.test.mjs` including 3 executable defect injection absence proofs.
+- Peer reviewed and ratified by DeepSeek Pro (`deepseekpro` via CodeBuddy CN) with verdict SETUJU.
