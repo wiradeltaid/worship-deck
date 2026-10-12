@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** ["SPEC-115-01"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Unify `PresenterOperator.tsx` and `RemoteOperator.tsx` under a single canonical console architecture parameterized by `mode: 'host' | 'remote'`, enforcing strict surface isolation guards for audio, projector broadcast, and local device hardware, while excluding durable editing mutations from the remote console.

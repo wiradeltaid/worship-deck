@@ -2095,7 +2095,7 @@ rtm:
   test:
   - tests/remote-screen.test.mjs
   - tests/presenter-media-player.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status
@@ -9132,7 +9132,7 @@ rtm:
   test:
   - tests/remote-screen.test.mjs
   - tests/presenter-media-player.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

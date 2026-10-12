@@ -43,8 +43,9 @@ import { useT } from '@/lib/i18n/operator';
 export interface MediaControlBarProps {
   store: MediaStore;
   engine: MediaEngine;
-  onOpenDrawer: () => void;
+  onOpenDrawer?: () => void;
   className?: string;
+  isRemote?: boolean;
 }
 
 function formatTime(seconds: number): string {
@@ -59,6 +60,7 @@ export const MediaControlBar = memo(function MediaControlBar({
   engine,
   onOpenDrawer,
   className,
+  isRemote = false,
 }: MediaControlBarProps) {
   const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
@@ -177,19 +179,20 @@ export const MediaControlBar = memo(function MediaControlBar({
   }, [isCued, state.isPlaying, state.volume, engine, store]);
 
   const handleToggleMute = useCallback(() => {
-    if (!isCued) return;
+    if (!isCued || isRemote) return;
     const nextMuted = !state.isMuted;
     engine.setMuted(nextMuted);
     store.dispatch({ type: 'SET_MUTED', isMuted: nextMuted });
-  }, [isCued, state.isMuted, engine, store]);
+  }, [isCued, isRemote, state.isMuted, engine, store]);
 
   const handleVolumeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (isRemote) return;
       const val = parseFloat(e.target.value);
       engine.setVolume(val);
       store.dispatch({ type: 'SET_VOLUME', volume: val });
     },
-    [engine, store]
+    [isRemote, engine, store]
   );
 
   const handleToggleShuffle = useCallback(() => {
@@ -349,14 +352,14 @@ export const MediaControlBar = memo(function MediaControlBar({
           size="sm"
           variant={state.isFading ? 'default' : 'outline'}
           data-testid="media-control-bar-fade"
-          disabled={!isCued || !state.isPlaying || state.isFading}
+          disabled={!isCued || !state.isPlaying || state.isFading || isRemote}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => void handleFadeOut()}
           className={cn(
             'h-8 px-2 gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10',
             state.isFading && 'animate-pulse bg-amber-500/20'
           )}
-          title={t('media.topBar.fadeTitle')}
+          title={isRemote ? 'Audio outputs on host workstation' : t('media.topBar.fadeTitle')}
         >
           <TrendingDown className="h-3.5 w-3.5" />
           <span>{t('media.topBar.fadeLabel')}</span>
@@ -368,18 +371,18 @@ export const MediaControlBar = memo(function MediaControlBar({
           size="sm"
           variant="outline"
           data-testid="media-control-bar-mute"
-          disabled={!isCued}
+          disabled={!isCued || isRemote}
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleToggleMute}
           className={cn(
             'h-8 w-8 p-0',
-            state.isMuted
+            state.isMuted || isRemote
               ? 'bg-destructive/15 text-destructive border-destructive/40'
               : 'text-muted-foreground hover:text-foreground'
           )}
-          title={state.isMuted ? t('media.topBar.unmuteTitle') : t('media.topBar.muteTitle')}
+          title={isRemote ? 'Audio outputs on host workstation' : state.isMuted ? t('media.topBar.unmuteTitle') : t('media.topBar.muteTitle')}
         >
-          {state.isMuted ? (
+          {state.isMuted || isRemote ? (
             <VolumeX className="h-3.5 w-3.5" />
           ) : (
             <Volume2 className="h-3.5 w-3.5" />
@@ -393,12 +396,12 @@ export const MediaControlBar = memo(function MediaControlBar({
             min={0}
             max={1}
             step={0.05}
-            disabled={!isCued}
-            value={state.isMuted ? 0 : state.volume}
+            disabled={!isCued || isRemote}
+            value={state.isMuted || isRemote ? 0 : state.volume}
             onChange={handleVolumeChange}
             onMouseDown={(e) => e.stopPropagation()}
             aria-label={t('media.dock.volumeAriaLabel')}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none disabled:opacity-40"
           />
         </div>
 
@@ -562,20 +565,22 @@ export const MediaControlBar = memo(function MediaControlBar({
           )}
         </Button>
 
-        {/* Drawer Launcher */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="media-control-bar-drawer"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onOpenDrawer}
-          className="h-8 px-2.5 gap-1.5 text-xs text-foreground font-medium"
-          title={t('media.topBar.openDrawerTitle')}
-        >
-          <ListMusic className="h-3.5 w-3.5 text-primary" />
-          <span>{t('media.topBar.drawerCount', { count: state.items.length })}</span>
-        </Button>
+        {/* Drawer Launcher (host only) */}
+        {onOpenDrawer && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="media-control-bar-drawer"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onOpenDrawer}
+            className="h-8 px-2.5 gap-1.5 text-xs text-foreground font-medium"
+            title={t('media.topBar.openDrawerTitle')}
+          >
+            <ListMusic className="h-3.5 w-3.5 text-primary" />
+            <span>{t('media.topBar.drawerCount', { count: state.items.length })}</span>
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -38,6 +38,7 @@ import {
   clampSlideIndex,
 } from '@/operator/present/presenter-model';
 import { findNextVisibleIndex } from '@/lib/slide-visibility';
+import PresenterOperator from './PresenterOperator';
 
 export default function RemoteOperator({
   serviceId,
@@ -327,6 +328,16 @@ export default function RemoteOperator({
   const atEnd = index >= slides.length - 1;
   const activeEntry = activePresenterEntry(entries, index);
 
+  const controlledState = useMemo(
+    () => ({
+      index,
+      blank,
+      transition: liveTransition,
+      background: liveBackground,
+    }),
+    [index, blank, liveTransition, liveBackground]
+  );
+
   if (!paired) {
     return (
       <div className="dark flex min-h-dvh flex-col bg-background text-foreground p-4 justify-center items-center">
@@ -375,264 +386,26 @@ export default function RemoteOperator({
     );
   }
 
-  const slideCountText = t('remote.slideCount')
-    .replace('{current}', slides.length === 0 ? '0' : String(index + 1))
-    .replace('{total}', String(slides.length));
-
   return (
-    <div className="dark flex min-h-dvh flex-col bg-background text-foreground select-none pb-24">
+    <div className="dark min-h-dvh flex flex-col bg-background text-foreground select-none">
       {connectionState === 'reconnecting' ? (
         <div
           role="status"
-          className="bg-amber-500/20 text-amber-200 dark:text-amber-200 border-b border-amber-500/30 px-4 py-1.5 text-center text-xs font-medium"
+          className="bg-amber-500/20 text-amber-200 dark:text-amber-200 border-b border-amber-500/30 px-4 py-1.5 text-center text-xs font-medium sticky top-0 z-50"
         >
           {t('remote.reconnecting')}
         </div>
       ) : null}
-      <header className="flex items-center justify-between border-b border-border px-4 py-2">
-        <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold">{t('remote.title')}</h1>
-          <p className="truncate text-xs text-muted-foreground">
-            {slideCountText}
-            {activeEntry ? ` · ${activeEntry.label}` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
-            <DialogTrigger render={<Button size="sm" variant="outline" />}>
-              {t('remote.more')}
-            </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{t('remote.more')}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                {/* Scripture Lookup Section */}
-                <div className="space-y-2 rounded-lg border border-border p-3">
-                  <h2 className="text-sm font-semibold">
-                    {t('presenter.scripture.title')}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {t('presenter.scripture.hint')}
-                  </p>
-                  {bibleTranslations.length > 0 ? (
-                    <div>
-                      <Label
-                        className="mb-1 block text-xs font-medium text-muted-foreground"
-                        htmlFor="remote-bible-translation"
-                      >
-                        {t('presenter.scripture.translation')}
-                      </Label>
-                      <Select
-                        value={scriptureTranslation}
-                        onValueChange={(val) => {
-                          if (val) setScriptureTranslation(val);
-                        }}
-                      >
-                        <SelectTrigger id="remote-bible-translation" className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {bibleTranslations.map((row) => (
-                            <SelectItem key={row.code} value={row.code}>
-                              {row.name ? `${row.name} (${row.code})` : row.code}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {bibleDefaultMissing ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {t('presenter.scripture.defaultMissing')}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <div className="space-y-2">
-                    <ScriptureRefAutocomplete
-                      value={scriptureRef}
-                      onChange={setScriptureRef}
-                      translation={scriptureTranslation || undefined}
-                      placeholder={t('presenter.scripture.placeholder')}
-                      inputClassName="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          void pushScripture();
-                        }
-                      }}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => void pushScripture()}
-                        disabled={scriptureBusy || !scriptureRef.trim()}
-                      >
-                        {scriptureBusy
-                          ? t('presenter.scripture.lookingUp')
-                          : t('presenter.scripture.push')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          sendIntent({
-                            type: 'clear-scripture',
-                            planIdentity: planIdentityRef.current,
-                          });
-                          setMoreOpen(false);
-                        }}
-                      >
-                        {t('remote.clearScripture')}
-                      </Button>
-                    </div>
-                    {scriptureError && (
-                      <p className="text-xs text-destructive">{scriptureError}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Transition Picker */}
-                <div className="space-y-1">
-                  <Label htmlFor="remote-transition" className="text-xs text-muted-foreground">
-                    {t('remote.transition')}
-                  </Label>
-                  <Select
-                    value={liveTransition}
-                    onValueChange={(val) => {
-                      setTransitionIntent(parseSlideTransition(val));
-                    }}
-                  >
-                    <SelectTrigger id="remote-transition" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SLIDE_TRANSITIONS.map((id) => (
-                        <SelectItem key={id} value={id}>
-                          {SLIDE_TRANSITION_SPECS[id].label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Background Override Picker */}
-                <div className="space-y-1">
-                  <Label htmlFor="remote-background" className="text-xs text-muted-foreground">
-                    {t('remote.background')}
-                  </Label>
-                  <Select
-                    value={liveBackground || 'default'}
-                    onValueChange={(val) => {
-                      setBackgroundIntent(val === 'default' ? null : val);
-                    }}
-                  >
-                    <SelectTrigger id="remote-background" className="w-full">
-                      <SelectValue placeholder={t('remote.deckDefault')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">
-                        <span className="truncate text-xs text-muted-foreground">{t('remote.deckDefault')}</span>
-                      </SelectItem>
-                      {backgroundLibrary.map((bg) => (
-                        <SelectItem key={bg.id} value={bg.url}>
-                          <div className="flex items-center gap-2 py-0.5">
-                            <img
-                              src={bg.url}
-                              alt=""
-                              className="h-6 w-9 shrink-0 rounded border border-border object-cover bg-muted"
-                            />
-                            <span className="truncate text-xs">
-                              Image {bg.id}{bg.isDefault ? ' (Default)' : ''}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </header>
-
-      <main className="flex flex-1 flex-col gap-3 p-3 overflow-y-auto">
-        {/* Current Slide Display */}
-        <section className="space-y-1">
-          <p className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <span>{t('remote.current')}</span>
-            {blank ? (
-              <span
-                role="status"
-                className="rounded border border-amber-400/50 bg-amber-400/15 px-1 py-px text-[9px] font-bold uppercase tracking-wider text-amber-200 dark:text-amber-200"
-              >
-                {t('remote.blankedBadge')}
-              </span>
-            ) : null}
-          </p>
-          <div
-            className={`aspect-video w-full overflow-hidden rounded-lg border bg-black ${
-              blank ? 'border-amber-400/70' : 'border-border'
-            }`}
-          >
-            {current ? <SlideView slide={current} /> : null}
-          </div>
-        </section>
-
-        {/* Next Slide Preview */}
-        <section className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t('remote.nextSlide')}
-          </p>
-          <div className="aspect-video w-full overflow-hidden rounded-lg border border-border bg-black">
-            {next ? (
-              <SlideView slide={next} />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                End of deck
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-
-      {/* Thumb-friendly primary controls pinned at the bottom */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur p-3">
-        <div className="mx-auto flex max-w-lg items-center gap-2">
-          <Button
-            size="lg"
-            variant="outline"
-            className="flex-1 text-base h-14"
-            disabled={findNextVisibleIndex(slides, index, -1) === index}
-            onClick={() => {
-              const prev = findNextVisibleIndex(slides, index, -1);
-              if (prev !== index) setIndexIntent(prev);
-            }}
-          >
-            ← {t('remote.prev')}
-          </Button>
-          <Button
-            size="lg"
-            variant={blank ? 'destructive' : 'outline'}
-            className="h-14 px-5 text-sm font-semibold"
-            aria-pressed={blank}
-            onClick={toggleBlankIntent}
-          >
-            {blank ? t('remote.resume') : t('remote.blank')}
-          </Button>
-          <Button
-            size="lg"
-            className="flex-1 text-base h-14"
-            disabled={findNextVisibleIndex(slides, index, 1) === index}
-            onClick={() => {
-              const next = findNextVisibleIndex(slides, index, 1);
-              if (next !== index) setIndexIntent(next);
-            }}
-          >
-            {t('remote.next')} →
-          </Button>
-        </div>
-      </footer>
+      <PresenterOperator
+        serviceId={serviceId}
+        serviceDate={serviceDate}
+        slides={slides}
+        planIdentity={planIdentity}
+        transition={liveTransition}
+        mode="remote"
+        onSendIntent={sendIntent}
+        controlledState={controlledState}
+      />
     </div>
   );
 }

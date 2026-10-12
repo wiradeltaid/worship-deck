@@ -154,6 +154,7 @@ import { useT } from '@/lib/i18n/operator';
 import {
   PresenterRemoteSession,
   type PresenterRemoteConnectionState,
+  type PresenterRemoteIntent,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
@@ -476,16 +477,7 @@ const FilmstripFrame = memo(function FilmstripFrame({
   );
 });
 
-export default function PresenterOperator({
-  serviceId,
-  serviceDate,
-  slides,
-  rundownText = '',
-  planIdentity,
-  transition: deckTransition,
-  isOffline = false,
-  rawService,
-}: {
+export interface PresenterOperatorProps {
   serviceId: number;
   serviceDate: string;
   slides: SlidePlanItem[];
@@ -501,7 +493,29 @@ export default function PresenterOperator({
   transition: SlideTransition;
   isOffline?: boolean;
   rawService?: any;
-}) {
+  mode?: 'host' | 'remote';
+  onSendIntent?: (intent: PresenterRemoteIntent) => void;
+  controlledState?: {
+    index: number;
+    blank: boolean;
+    transition: SlideTransition;
+    background: string | null;
+  };
+}
+
+export default function PresenterOperator({
+  serviceId,
+  serviceDate,
+  slides,
+  rundownText = '',
+  planIdentity,
+  transition: deckTransition,
+  isOffline = false,
+  rawService,
+  mode = 'host',
+  onSendIntent,
+  controlledState,
+}: PresenterOperatorProps) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
   const activeSlidesRef = useRef(activeSlides);
@@ -539,14 +553,16 @@ export default function PresenterOperator({
         const active = state.items.find((i) => i.id === state.activeId);
         return active?.type === 'video' ? mediaVideoRef.current : mediaAudioRef.current;
       },
+      isMutedOverride: () => mode === 'remote',
     });
   }
   const mediaEngine = mediaEngineRef.current;
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
 
-  // SPEC-114-02: Single-owner mount hydration for persistent media playlist
+  // SPEC-114-02: Single-owner mount hydration for persistent media playlist (host only)
   useEffect(() => {
+    if (mode === 'remote') return;
     let cancelled = false;
     async function hydratePlaylist() {
       try {
@@ -614,7 +630,7 @@ export default function PresenterOperator({
     return () => {
       cancelled = true;
     };
-  }, [mediaStore]);
+  }, [mode, mediaStore]);
 
   const patchRevisionRef = useRef(0);
   const patchesRef = useRef<SlidePatch[]>([]);
@@ -623,10 +639,11 @@ export default function PresenterOperator({
   const localSeqRef = useRef(0);
   const mediaClockRevisionRef = useRef(1);
 
-  // SPEC-105-02: Pre-sync hydration from saved presenter session
+  // SPEC-105-02: Pre-sync hydration from saved presenter session (host only)
   const restoredSession = useMemo(() => {
+    if (mode === 'remote') return null;
     return loadPresenterSession(serviceId, planIdentity, slides.length);
-  }, [serviceId, planIdentity, slides.length]);
+  }, [mode, serviceId, planIdentity, slides.length]);
 
   const [index, setIndex] = useState(() => (restoredSession ? restoredSession.index : 0));
   const [gridOpen, setGridOpen] = useState(false);
@@ -638,6 +655,29 @@ export default function PresenterOperator({
   const [liveBackground, setLiveBackground] = useState<string | null>(
     () => (restoredSession?.liveBackground ?? null)
   );
+
+  // Synchronize from host SSE state when operating in remote mode
+  useEffect(() => {
+    if (mode === 'remote' && controlledState) {
+      if (typeof controlledState.index === 'number') {
+        const clamped = clampSlideIndex(controlledState.index, activeSlides.length);
+        indexRef.current = clamped;
+        setIndex(clamped);
+      }
+      if (typeof controlledState.blank === 'boolean') {
+        blankRef.current = controlledState.blank;
+        setBlank(controlledState.blank);
+      }
+      if (controlledState.transition) {
+        transitionRef.current = controlledState.transition;
+        setLiveTransition(controlledState.transition);
+      }
+      if (controlledState.background !== undefined) {
+        backgroundRef.current = controlledState.background;
+        setLiveBackground(controlledState.background);
+      }
+    }
+  }, [mode, controlledState, activeSlides.length]);
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
@@ -694,12 +734,12 @@ export default function PresenterOperator({
   const guestAttemptIdRef = useRef<string | null>(null);
 
   const captureBrokerRef = useRef<CaptureBroker | null>(null);
-  if (!captureBrokerRef.current) {
+  if (mode !== 'remote' && !captureBrokerRef.current) {
     captureBrokerRef.current = new CaptureBroker();
   }
 
   const guestFeedControllerRef = useRef<PresenterGuestFeedController | null>(null);
-  if (!guestFeedControllerRef.current) {
+  if (mode !== 'remote' && !guestFeedControllerRef.current && captureBrokerRef.current) {
     guestFeedControllerRef.current = new PresenterGuestFeedController({
       broker: captureBrokerRef.current,
       broadcastSync: () => {
@@ -782,10 +822,11 @@ export default function PresenterOperator({
       ? crypto.randomUUID()
       : `sess-${Date.now()}-${Math.random()}`
   );
-  const isAuthoritativeRef = useRef(true);
+  const isAuthoritativeRef = useRef(mode !== 'remote');
+  isAuthoritativeRef.current = mode !== 'remote';
 
   const persistCurrentSession = useCallback(() => {
-    if (!isAuthoritativeRef.current) return;
+    if (mode === 'remote' || !isAuthoritativeRef.current) return;
     savePresenterSession(serviceId, {
       planIdentity: planIdentityRef.current,
       activeSessionId: presenterSessionIdRef.current,
@@ -797,7 +838,7 @@ export default function PresenterOperator({
       liveTransition: transitionRef.current,
       liveBackground: backgroundRef.current,
     });
-  }, [serviceId]);
+  }, [mode, serviceId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1178,6 +1219,19 @@ export default function PresenterOperator({
       setIndex(clamped);
       setScriptureOverlay(null);
       persistCurrentSession();
+
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'sync',
+          index: clamped,
+          blank: blankRef.current,
+          transition: transitionRef.current,
+          background: backgroundRef.current,
+          planIdentity: planIdentityRef.current,
+        });
+        return;
+      }
+
       // Carries the blank state and the live style unchanged rather than
       // dropping either: advancing while blanked must move the deck and leave
       // the projector black, and advancing after a style change must not put
@@ -1194,7 +1248,7 @@ export default function PresenterOperator({
         guestAttemptId: guestAttemptIdRef.current,
       });
     },
-    [broadcast, activeSlides.length, persistCurrentSession]
+    [mode, onSendIntent, broadcast, activeSlides.length, persistCurrentSession]
   );
 
   const manualNavigate = useCallback(
@@ -1223,13 +1277,23 @@ export default function PresenterOperator({
       blankRef.current = next;
       setBlank(next);
       persistCurrentSession();
+
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'blank',
+          blank: next,
+          planIdentity: planIdentityRef.current,
+        });
+        return;
+      }
+
       broadcast({
         type: 'blank',
         blank: next,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast, persistCurrentSession]
+    [mode, onSendIntent, broadcast, persistCurrentSession]
   );
 
   const toggleBlank = useCallback(() => {
@@ -1278,13 +1342,27 @@ export default function PresenterOperator({
       };
       setScriptureOverlay(newOverlay);
       persistCurrentSession();
+
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'scripture',
+          reference: passage.reference,
+          text: initialOverlay.text,
+          verses: passage.verses,
+          mode: passage.mode === 'inline' ? 'inline' : 'per-verse',
+          is_whole_chapter: data.is_whole_chapter,
+          planIdentity: planIdentityRef.current,
+        });
+        return;
+      }
+
       broadcast({
         type: 'scripture',
         ...newOverlay,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast, setScriptureOverlay, persistCurrentSession]
+    [mode, onSendIntent, broadcast, setScriptureOverlay, persistCurrentSession]
   );
 
   const visibilityController = useMemo(() => {
@@ -1369,13 +1447,23 @@ export default function PresenterOperator({
       transitionRef.current = next;
       setLiveTransition(next);
       persistCurrentSession();
+
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'transition',
+          transition: next,
+          planIdentity: planIdentityRef.current,
+        });
+        return;
+      }
+
       broadcast({
         type: 'transition',
         transition: next,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast, persistCurrentSession]
+    [mode, onSendIntent, broadcast, persistCurrentSession]
   );
 
   /**
@@ -1386,16 +1474,27 @@ export default function PresenterOperator({
       backgroundRef.current = next;
       setLiveBackground(next);
       persistCurrentSession();
+
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'background',
+          background: next,
+          planIdentity: planIdentityRef.current,
+        });
+        return;
+      }
+
       broadcast({
         type: 'background',
         background: next,
         planIdentity: planIdentityRef.current,
       });
     },
-    [broadcast, persistCurrentSession]
+    [mode, onSendIntent, broadcast, persistCurrentSession]
   );
 
   useEffect(() => {
+    if (mode === 'remote') return;
     const ch = openPresentChannel(serviceId);
     channelRef.current = ch;
     if (!ch) return;
@@ -1542,6 +1641,7 @@ export default function PresenterOperator({
   // a clean window close reportable in well under a second rather than after
   // a timeout.
   useEffect(() => {
+    if (mode === 'remote') return;
     const session = new PresenterRemoteSession({
       serviceId,
       getPlanIdentity: () => planIdentityRef.current,
@@ -1567,6 +1667,7 @@ export default function PresenterOperator({
       remoteSessionRef.current = null;
     };
   }, [
+    mode,
     serviceId,
     safeNavigate,
     setBlankAndSync,
@@ -1577,6 +1678,7 @@ export default function PresenterOperator({
   ]);
 
   useEffect(() => {
+    if (mode === 'remote') return;
     const poll = setInterval(() => {
       if (projectorRef.current && projectorRef.current.closed) {
         setHasOpenProjector(false);
@@ -1589,7 +1691,7 @@ export default function PresenterOperator({
       }
     }, LIVENESS_POLL_INTERVAL_MS);
     return () => clearInterval(poll);
-  }, [dispatchLiveness]);
+  }, [mode, dispatchLiveness]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1657,6 +1759,10 @@ export default function PresenterOperator({
   }, [index]);
 
   useEffect(() => {
+    if (mode === 'remote') {
+      setIsHydratingPatches(false);
+      return;
+    }
     let cancelled = false;
     setIsHydratingPatches(true);
     getEmergencyPatches(serviceId)
@@ -2292,53 +2398,59 @@ export default function PresenterOperator({
             >
               {t('presenter.allSlides')}
             </Button>
-            <PresenterDisplayControl
-              liveness={liveness.verdict}
-              hasOpenProjector={hasOpenProjector}
-              presentationLock={presentationLock}
-              onOpenOrFocus={openProjector}
-              onFocusProjector={focusProjector}
-              onReopenProjector={openProjector}
-              onRelocate={relocateProjector}
-              onCloseProjector={closeProjector}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setRemoteDialogOpen(true)}
-              className="flex items-center gap-1.5 h-8 text-xs font-medium"
-              title="Mobile remote control pairing"
-            >
-              <span
-                className={cn(
-                  'inline-block h-2 w-2 rounded-full',
-                  remoteState === 'connected'
-                    ? 'bg-emerald-500'
-                    : remoteState === 'pairing'
-                    ? 'bg-amber-400 animate-pulse'
-                    : remoteState === 'error' || remoteState === 'role-lost'
-                    ? 'bg-destructive'
-                    : 'bg-muted-foreground/50'
-                )}
+            {mode !== 'remote' && (
+              <PresenterDisplayControl
+                liveness={liveness.verdict}
+                hasOpenProjector={hasOpenProjector}
+                presentationLock={presentationLock}
+                onOpenOrFocus={openProjector}
+                onFocusProjector={focusProjector}
+                onReopenProjector={openProjector}
+                onRelocate={relocateProjector}
+                onCloseProjector={closeProjector}
               />
-              <span>
-                {t('presenter.remoteCode')}{' '}
-                {remoteCode ? (
-                  <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
-                    {remoteCode}
-                  </span>
-                ) : null}
-              </span>
-            </Button>
+            )}
+            {mode !== 'remote' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRemoteDialogOpen(true)}
+                className="flex items-center gap-1.5 h-8 text-xs font-medium"
+                title="Mobile remote control pairing"
+              >
+                <span
+                  className={cn(
+                    'inline-block h-2 w-2 rounded-full',
+                    remoteState === 'connected'
+                      ? 'bg-emerald-500'
+                      : remoteState === 'pairing'
+                      ? 'bg-amber-400 animate-pulse'
+                      : remoteState === 'error' || remoteState === 'role-lost'
+                      ? 'bg-destructive'
+                      : 'bg-muted-foreground/50'
+                  )}
+                />
+                <span>
+                  {t('presenter.remoteCode')}{' '}
+                  {remoteCode ? (
+                    <span className="font-mono text-xs font-semibold tracking-wider text-muted-foreground ml-0.5">
+                      {remoteCode}
+                    </span>
+                  ) : null}
+                </span>
+              </Button>
+            )}
           </div>
 
           {/* Row 2 (Session Safety & Workflow Controls) */}
           <div data-testid="presenter-header-row-2" className="flex flex-wrap items-center justify-end gap-2">
-            <OfflineReadinessBadge
-              serviceId={serviceId}
-              serviceData={rawService || { id: serviceId, plan: activeSlides }}
-              className="mr-1"
-            />
+            {mode !== 'remote' && (
+              <OfflineReadinessBadge
+                serviceId={serviceId}
+                serviceData={rawService || { id: serviceId, plan: activeSlides }}
+                className="mr-1"
+              />
+            )}
             <Button
               type="button"
               variant="outline"
@@ -2359,35 +2471,39 @@ export default function PresenterOperator({
               )}
               <span>{presentationLock ? t('presenter.unlock') : t('presenter.lock')}</span>
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              data-testid="emergency-edit-button"
-              disabled={isHydratingPatches || activeSlides.length === 0}
-              onClick={handleOpenEmergencyEdit}
-              className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
-            >
-              <Pencil className="size-3.5" />
-              <span>{t('presenter.emergencyEdit')}</span>
-            </Button>
+            {mode !== 'remote' && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="emergency-edit-button"
+                disabled={isHydratingPatches || activeSlides.length === 0}
+                onClick={handleOpenEmergencyEdit}
+                className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 select-none disabled:opacity-50"
+              >
+                <Pencil className="size-3.5" />
+                <span>{t('presenter.emergencyEdit')}</span>
+              </Button>
+            )}
             {/* `nativeButton={false}` because this one really is a link: Base UI
                 otherwise warns that a component acting as a button was handed
                 something that is not a native `<button>`. */}
-            <Button
-              disabled={presentationLock}
-              className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none', 'h-8 text-xs font-medium')}
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={`/services/${serviceId}`} />}
-            >
-              {t('presenter.runSheet')}
-            </Button>
+            {mode !== 'remote' && (
+              <Button
+                disabled={presentationLock}
+                className={cn(presentationLock && 'opacity-60 cursor-not-allowed pointer-events-none', 'h-8 text-xs font-medium')}
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={`/services/${serviceId}`} />}
+              >
+                {t('presenter.runSheet')}
+              </Button>
+            )}
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
-          {guestFeedControllerRef.current && (
+          {mode !== 'remote' && guestFeedControllerRef.current && (
             <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
               <PresenterGuestFeedControl
                 controller={guestFeedControllerRef.current}
@@ -2396,7 +2512,7 @@ export default function PresenterOperator({
             </div>
           )}
         </div>
-        {projectorBlocked ? (
+        {mode !== 'remote' && projectorBlocked ? (
           <p className="basis-full text-xs text-amber-300">
             {t('presenter.congregationScreenBlocked')}{' '}
             <a
@@ -2413,13 +2529,7 @@ export default function PresenterOperator({
             .
           </p>
         ) : null}
-        {/* Independent of `projectorBlocked` above — either, both or neither
-            may show (AC-5). Silent in `never-opened`: a presenter opened
-            without a projector must not warn about one, or the line trains
-            the operator to ignore it before it has ever meant anything.
-            States the recovery, never the cause — the operator is told what
-            to do, never that a heartbeat timed out. */}
-        {liveness.verdict === 'lost' ? (
+        {mode !== 'remote' && liveness.verdict === 'lost' ? (
           <p role="status" className="basis-full text-xs text-amber-300">
             {t('presenter.congregationScreenLost')}
           </p>
@@ -2436,7 +2546,8 @@ export default function PresenterOperator({
         <MediaControlBar
           store={mediaStore}
           engine={mediaEngine}
-          onOpenDrawer={() => setMediaDrawerOpen(true)}
+          onOpenDrawer={mode === 'remote' ? undefined : () => setMediaDrawerOpen(true)}
+          isRemote={mode === 'remote'}
         />
       </div>
 
@@ -3062,12 +3173,14 @@ export default function PresenterOperator({
         </aside>
       </main>
 
-      <MediaDrawer
-        open={mediaDrawerOpen}
-        onClose={() => setMediaDrawerOpen(false)}
-        store={mediaStore}
-        engine={mediaEngine}
-      />
+      {mode !== 'remote' && (
+        <MediaDrawer
+          open={mediaDrawerOpen}
+          onClose={() => setMediaDrawerOpen(false)}
+          store={mediaStore}
+          engine={mediaEngine}
+        />
+      )}
 
       <MediaStage
         store={mediaStore}
@@ -3075,6 +3188,7 @@ export default function PresenterOperator({
         audioRef={mediaAudioRef}
         videoRef={mediaVideoRef}
         onToastError={(msg) => toast.error(msg)}
+        mutedOverride={mode === 'remote'}
       />
 
       <SlideGridDialog
@@ -3091,173 +3205,223 @@ export default function PresenterOperator({
         }}
       />
 
-      <Dialog open={remoteDialogOpen} onOpenChange={setRemoteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('presenter.remote.qrTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('presenter.remote.qrHint')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted/40 p-4">
-              <div
-                data-testid="remote-qr-code"
-                className="w-48 h-48 bg-white p-2 rounded-md shadow-xs flex items-center justify-center"
-              >
-                {remoteCode ? (
-                  <QRCodeSvg
-                    value={
-                      typeof window !== 'undefined'
-                        ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
-                        : `/remote?service=${serviceId}&code=${remoteCode}`
-                    }
-                    size={176}
-                  />
-                ) : (
-                  <div className="text-xs text-zinc-500 font-mono">{t('presenter.remote.generatingCode')}</div>
-                )}
-              </div>
-              <div className="mt-3 flex flex-col items-center">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {t('presenter.remote.pairingCode')}
-                </span>
+      {mode !== 'remote' && (
+        <Dialog open={remoteDialogOpen} onOpenChange={setRemoteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t('presenter.remote.qrTitle')}</DialogTitle>
+              <DialogDescription>
+                {t('presenter.remote.qrHint')}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="flex flex-col items-center justify-center rounded-lg border border-border bg-muted/40 p-4">
                 <div
-                  data-testid="remote-pairing-pin"
-                  className="mt-0.5 font-mono text-3xl font-bold tracking-[0.25em] text-foreground select-all"
+                  data-testid="remote-qr-code"
+                  className="w-48 h-48 bg-white p-2 rounded-md shadow-xs flex items-center justify-center"
                 >
-                  {remoteCode || '------'}
+                  {remoteCode ? (
+                    <QRCodeSvg
+                      value={
+                        typeof window !== 'undefined'
+                          ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
+                          : `/remote?service=${serviceId}&code=${remoteCode}`
+                      }
+                      size={176}
+                    />
+                  ) : (
+                    <div className="text-xs text-zinc-500 font-mono">{t('presenter.remote.generatingCode')}</div>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-col items-center">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {t('presenter.remote.pairingCode')}
+                  </span>
+                  <div
+                    data-testid="remote-pairing-pin"
+                    className="mt-0.5 font-mono text-3xl font-bold tracking-[0.25em] text-foreground select-all"
+                  >
+                    {remoteCode || '------'}
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground text-center">
+                  {t('presenter.remote.codeExpiry')}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs">
+                <span className="text-muted-foreground font-medium">{t('presenter.remote.statusLabel')}</span>
+                <span className="flex items-center gap-1.5 font-medium">
+                  <span
+                    className={cn(
+                      'inline-block h-2 w-2 rounded-full',
+                      remoteState === 'connected'
+                        ? 'bg-emerald-500'
+                        : remoteState === 'pairing'
+                        ? 'bg-amber-400 animate-pulse'
+                        : remoteState === 'error' || remoteState === 'role-lost'
+                        ? 'bg-destructive'
+                        : 'bg-muted-foreground/50'
+                    )}
+                  />
+                  <span className="capitalize">
+                    {remoteState === 'connected'
+                      ? t('presenter.remote.statusConnected')
+                      : remoteState === 'pairing'
+                      ? t('presenter.remote.statusPairing')
+                      : remoteState === 'role-lost'
+                      ? t('presenter.remote.statusRoleLost')
+                      : remoteState === 'error'
+                      ? t('presenter.remote.statusError')
+                      : t('presenter.remote.statusDisconnected')}
+                  </span>
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground font-medium">
+                  {t('presenter.remote.mobileUrl')}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    data-testid="remote-pairing-url"
+                    value={
+                      typeof window !== 'undefined' && remoteCode
+                        ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
+                        : typeof window !== 'undefined'
+                        ? `${window.location.origin}/remote?service=${serviceId}`
+                        : `/remote?service=${serviceId}`
+                    }
+                    className="font-mono text-xs select-all"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="remote-copy-link-button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const url = remoteCode
+                          ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
+                          : `${window.location.origin}/remote?service=${serviceId}`;
+                        void navigator.clipboard?.writeText(url);
+                        toast.success(t('presenter.remote.linkCopied'));
+                      }
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1" />
+                    {t('presenter.remote.copyLink')}
+                  </Button>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground text-center">
-                {t('presenter.remote.codeExpiry')}
-              </p>
             </div>
 
-            <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-xs">
-              <span className="text-muted-foreground font-medium">{t('presenter.remote.statusLabel')}</span>
-              <span className="flex items-center gap-1.5 font-medium">
-                <span
-                  className={cn(
-                    'inline-block h-2 w-2 rounded-full',
-                    remoteState === 'connected'
-                      ? 'bg-emerald-500'
-                      : remoteState === 'pairing'
-                      ? 'bg-amber-400 animate-pulse'
-                      : remoteState === 'error' || remoteState === 'role-lost'
-                      ? 'bg-destructive'
-                      : 'bg-muted-foreground/50'
-                  )}
-                />
-                <span className="capitalize">
-                  {remoteState === 'connected'
-                    ? t('presenter.remote.statusConnected')
-                    : remoteState === 'pairing'
-                    ? t('presenter.remote.statusPairing')
-                    : remoteState === 'role-lost'
-                    ? t('presenter.remote.statusRoleLost')
-                    : remoteState === 'error'
-                    ? t('presenter.remote.statusError')
-                    : t('presenter.remote.statusDisconnected')}
-                </span>
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-xs text-muted-foreground font-medium">
-                {t('presenter.remote.mobileUrl')}
-              </span>
-              <div className="flex items-center gap-2">
-                <Input
-                  readOnly
-                  data-testid="remote-pairing-url"
-                  value={
-                    typeof window !== 'undefined' && remoteCode
-                      ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
-                      : typeof window !== 'undefined'
-                      ? `${window.location.origin}/remote?service=${serviceId}`
-                      : `/remote?service=${serviceId}`
-                  }
-                  className="font-mono text-xs select-all"
-                />
+            <DialogFooter className="flex justify-between sm:justify-between">
+              <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  data-testid="remote-copy-link-button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      const url = remoteCode
-                        ? `${window.location.origin}/remote?service=${serviceId}&code=${remoteCode}`
-                        : `${window.location.origin}/remote?service=${serviceId}`;
-                      void navigator.clipboard?.writeText(url);
-                      toast.success(t('presenter.remote.linkCopied'));
+                  disabled={remoteActionBusy}
+                  onClick={async () => {
+                    setRemoteActionBusy(true);
+                    try {
+                      await remoteSessionRef.current?.start();
+                    } finally {
+                      setRemoteActionBusy(false);
                     }
                   }}
                 >
-                  <Copy className="w-3.5 h-3.5 mr-1" />
-                  {t('presenter.remote.copyLink')}
+                  Regenerate Code
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={remoteActionBusy}
+                  onClick={async () => {
+                    setRemoteActionBusy(true);
+                    try {
+                      await remoteSessionRef.current?.disconnect();
+                      setRemoteCode(null);
+                    } finally {
+                      setRemoteActionBusy(false);
+                    }
+                  }}
+                >
+                  Disconnect
                 </Button>
               </div>
-            </div>
-          </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setRemoteDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={remoteActionBusy}
-                onClick={async () => {
-                  setRemoteActionBusy(true);
-                  try {
-                    await remoteSessionRef.current?.start();
-                  } finally {
-                    setRemoteActionBusy(false);
-                  }
-                }}
-              >
-                Regenerate Code
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={remoteActionBusy}
-                onClick={async () => {
-                  setRemoteActionBusy(true);
-                  try {
-                    await remoteSessionRef.current?.disconnect();
-                    setRemoteCode(null);
-                  } finally {
-                    setRemoteActionBusy(false);
-                  }
-                }}
-              >
-                Disconnect
-              </Button>
+      {mode !== 'remote' && (
+        <EmergencyCanvasDesignerModal
+          open={emergencyOpen}
+          onOpenChange={setEmergencyOpen}
+          slideIndex={editingSlideIndex}
+          slide={activeSlides[editingSlideIndex] || null}
+          onApply={handleApplyEmergencyEdit}
+          onCancel={() => setEmergencyOpen(false)}
+        />
+      )}
+
+      {mode === 'remote' && (
+        <footer className="sticky bottom-0 z-40 flex items-center justify-between border-t border-border bg-card/95 p-3 backdrop-blur-md">
+          {blank ? (
+            <div role="status" className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+              <span className="size-2 rounded-full bg-destructive animate-pulse" />
+              <span>{t('presenter.blankScreen')}</span>
             </div>
+          ) : (
+            <span className="text-xs text-muted-foreground font-mono">
+              Slide {activeSlides.length === 0 ? 0 : index + 1} / {activeSlides.length}
+            </span>
+          )}
+          <div className="flex items-center gap-2">
             <Button
-              type="button"
-              variant="secondary"
+              variant={blank ? 'destructive' : 'outline'}
               size="sm"
-              onClick={() => setRemoteDialogOpen(false)}
+              aria-pressed={blank}
+              onClick={toggleBlank}
             >
-              Close
+              {blank ? t('presenter.resumeScreen') : t('presenter.blankScreen')}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <EmergencyCanvasDesignerModal
-        open={emergencyOpen}
-        onOpenChange={setEmergencyOpen}
-        slideIndex={editingSlideIndex}
-        slide={activeSlides[editingSlideIndex] || null}
-        onApply={handleApplyEmergencyEdit}
-        onCancel={() => setEmergencyOpen(false)}
-      />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const prev = findNextVisibleIndex(activeSlides, index, -1);
+                if (prev !== index) manualNavigate(prev);
+              }}
+              disabled={findNextVisibleIndex(activeSlides, index, -1) === index}
+            >
+              {t('presenter.prev')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                const next = findNextVisibleIndex(activeSlides, index, 1);
+                if (next !== index) manualNavigate(next);
+              }}
+              disabled={findNextVisibleIndex(activeSlides, index, 1) === index}
+            >
+              {t('presenter.next')}
+            </Button>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

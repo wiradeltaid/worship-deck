@@ -491,5 +491,113 @@ test('SPEC-114-04: Header Redundant Launcher Absence Guard and Integration with 
   }
 });
 
+test('SPEC-115-02: Remote Audio Mute Invariant and Projector/Hardware Isolation Guards', async () => {
+  const fs = await import('node:fs');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8');
+  const stageSrc = fs.readFileSync(stagePath, 'utf8');
 
+  function verifyRemoteAudioMuteGuard(stageCode, presenterCode) {
+    const sCode = stageCode.replace(/\r\n/g, '\n');
+    const pCode = presenterCode.replace(/\r\n/g, '\n');
+    // 1. MediaStage must support mutedOverride prop
+    assert.ok(
+      sCode.includes('mutedOverride?: boolean;'),
+      'MediaStageProps must declare mutedOverride prop'
+    );
+    // 2. Base volume and element volume must be 0 when mutedOverride is true
+    assert.ok(
+      sCode.includes('const baseVol = mutedOverride\n          ? 0\n          :'),
+      'MediaStage must force baseVol to 0 when mutedOverride is active'
+    );
+    // 3. PresenterOperator must pass mutedOverride={mode === \'remote\'}
+    assert.ok(
+      pCode.includes("mutedOverride={mode === 'remote'}"),
+      'PresenterOperator must bind MediaStage mutedOverride to mode === "remote"'
+    );
+    // 4. Remote mode must bypass openPresentChannel
+    assert.ok(
+      pCode.includes("if (mode === 'remote') return;\n    const ch = openPresentChannel(serviceId);"),
+      'PresenterOperator must bypass openPresentChannel in remote mode'
+    );
+    // 5. Remote mode must bypass CaptureBroker
+    assert.ok(
+      pCode.includes("if (mode !== 'remote' && !captureBrokerRef.current)"),
+      'PresenterOperator must bypass CaptureBroker in remote mode'
+    );
+    // 6. Declarative mute attribute on media elements
+    assert.ok(
+      sCode.includes('muted={mutedOverride ? true : undefined}'),
+      'MediaStage must declaratively mute audio/video elements when mutedOverride is active'
+    );
+    // 7. Remote mode must bypass playlist storage hydration
+    assert.ok(
+      pCode.includes("if (mode === 'remote') return;\n    let cancelled = false;\n    async function hydratePlaylist()"),
+      'PresenterOperator must bypass persistent media playlist hydration in remote mode'
+    );
+    // 8. MediaDrawer must not mount in remote mode
+    assert.ok(
+      pCode.includes("{mode !== 'remote' && (\n        <MediaDrawer"),
+      'PresenterOperator must not mount MediaDrawer in remote mode'
+    );
+    // 9. MediaEngine must receive isMutedOverride
+    assert.ok(
+      pCode.includes("isMutedOverride: () => mode === 'remote'"),
+      'PresenterOperator must bind MediaEngine isMutedOverride to remote mode'
+    );
+  }
 
+  // 1. Pristine code passes
+  verifyRemoteAudioMuteGuard(stageSrc, presenterSrc);
+
+  // 2. Behavioral test: MediaEngine enforces mute and volume 0 under isMutedOverride
+  const { createMediaEngine } = await import(srcUrl('operator', 'present', 'media-player', 'media-engine.ts'));
+  let mockVol = 0.8;
+  let mockMuted = false;
+  const mockMedia = {
+    get volume() { return mockVol; },
+    set volume(v) { mockVol = v; },
+    get muted() { return mockMuted; },
+    set muted(m) { mockMuted = m; },
+    play: async () => {},
+    pause: () => {},
+  };
+  const remoteEngine = createMediaEngine({
+    getMediaElement: () => mockMedia,
+    isMutedOverride: () => true,
+  });
+
+  // Attempt post-mount unmute and volume adjustment from non-zero starting volume
+  remoteEngine.setMuted(false);
+  assert.equal(mockMedia.muted, true, 'isMutedOverride enforces element stays muted on unmute attempt');
+  assert.equal(mockMedia.volume, 0, 'isMutedOverride forces volume to 0 on unmute attempt');
+
+  remoteEngine.setVolume(0.85);
+  assert.equal(mockMedia.volume, 0, 'isMutedOverride forces volume to 0 on volume change attempt');
+  assert.equal(remoteEngine.getBaseVolume(), 0, 'getBaseVolume returns 0 under active override');
+
+  // Attempt fade under override
+  await remoteEngine.fade({ durationMs: 500 });
+  assert.equal(mockMedia.volume, 0, 'fade under isMutedOverride leaves volume at 0');
+  assert.equal(mockMedia.muted, true, 'fade under isMutedOverride leaves element muted');
+
+  // 3. Defect injection proof: removing mutedOverride binding in PresenterOperator throws
+  try {
+    const defective = presenterSrc.replace(
+      "mutedOverride={mode === 'remote'}",
+      'mutedOverride={false}'
+    );
+    assert.notEqual(defective, presenterSrc, 'Mutation must succeed');
+    fs.writeFileSync(presenterPath, defective);
+    const readDefective = fs.readFileSync(presenterPath, 'utf8');
+    assert.throws(
+      () => verifyRemoteAudioMuteGuard(stageSrc, readDefective),
+      /PresenterOperator must bind MediaStage mutedOverride to mode === "remote"/,
+      'Defect injection proof: unmuted remote MediaStage throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(presenterPath, presenterSrc);
+    assert.equal(fs.readFileSync(presenterPath, 'utf8'), presenterSrc, 'File must be restored byte-for-byte');
+  }
+});

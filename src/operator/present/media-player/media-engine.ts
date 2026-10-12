@@ -1,5 +1,6 @@
 export interface MediaEngineOptions {
   getMediaElement: () => HTMLMediaElement | null | undefined;
+  isMutedOverride?: () => boolean;
 }
 
 export interface FadeOptions {
@@ -41,7 +42,12 @@ export function createMediaEngine(options: MediaEngineOptions): MediaEngine {
     if (restoreVolume) {
       const el = options.getMediaElement();
       if (el) {
-        el.volume = Math.max(0, Math.min(1, baseVolume));
+        if (options.isMutedOverride?.()) {
+          el.volume = 0;
+          el.muted = true;
+        } else {
+          el.volume = Math.max(0, Math.min(1, baseVolume));
+        }
       }
     }
 
@@ -58,6 +64,11 @@ export function createMediaEngine(options: MediaEngineOptions): MediaEngine {
       const el = options.getMediaElement();
       if (!el) {
         return { success: false, error: 'No media element available' };
+      }
+
+      if (options.isMutedOverride?.()) {
+        el.volume = 0;
+        el.muted = true;
       }
 
       try {
@@ -85,6 +96,14 @@ export function createMediaEngine(options: MediaEngineOptions): MediaEngine {
     },
 
     setVolume(volume: number) {
+      if (options.isMutedOverride?.()) {
+        baseVolume = 0;
+        const el = options.getMediaElement();
+        if (el) {
+          el.volume = 0;
+        }
+        return;
+      }
       const clamped = Math.max(0, Math.min(1, volume));
       baseVolume = clamped;
       const el = options.getMediaElement();
@@ -94,6 +113,14 @@ export function createMediaEngine(options: MediaEngineOptions): MediaEngine {
     },
 
     setMuted(muted: boolean) {
+      if (options.isMutedOverride?.()) {
+        const el = options.getMediaElement();
+        if (el) {
+          el.muted = true;
+          el.volume = 0;
+        }
+        return;
+      }
       const el = options.getMediaElement();
       if (el) {
         el.muted = muted;
@@ -101,6 +128,9 @@ export function createMediaEngine(options: MediaEngineOptions): MediaEngine {
     },
 
     getBaseVolume() {
+      if (options.isMutedOverride?.()) {
+        return 0;
+      }
       return baseVolume;
     },
 
@@ -117,6 +147,12 @@ export function createMediaEngine(options: MediaEngineOptions): MediaEngine {
 
       const el = options.getMediaElement();
       if (!el) {
+        return Promise.resolve();
+      }
+
+      if (options.isMutedOverride?.()) {
+        el.volume = 0;
+        el.muted = true;
         return Promise.resolve();
       }
 
