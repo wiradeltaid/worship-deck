@@ -4,6 +4,7 @@ import {
   useEffect,
   useCallback,
   useRef,
+  useMemo,
 } from 'react';
 import {
   X,
@@ -18,21 +19,37 @@ import {
   Video,
   HardDrive,
   Cloud,
-  FolderPlus,
+  CheckCircle2,
+  AlertTriangle,
+  Upload,
+  Download,
   Plus,
+  MoreVertical,
+  RotateCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
-import { canProjectMediaItem, type PlaylistState, type PlaylistItem } from './playlist-model';
-import { MediaUploader } from './MediaUploader';
-import { MediaStatusBadge, type MediaBadgeState } from './MediaStatusBadge';
+import {
+  canProjectMediaItem,
+  deriveAvailability,
+  type PlaylistState,
+  type PlaylistItem,
+  type MediaAvailability,
+} from './playlist-model';
 import { localMediaRegistry, type LocalMediaRecord } from './local-media-registry';
 import { computeBlobSHA256 } from './media-hasher';
 import { useT } from '@/lib/i18n/operator';
 
-// Tabs contract: Pustaka Cloud, Media Laptop
+export type MediaDrawerFilter = 'all' | 'cloud-only' | 'local-only' | 'synced';
 
 export interface MediaDrawerProps {
   open: boolean;
@@ -57,7 +74,7 @@ export const MediaDrawer = memo(function MediaDrawer({
 }: MediaDrawerProps) {
   const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
-  const [activeTab, setActiveTab] = useState<'cloud' | 'local'>('cloud');
+  const [filter, setFilter] = useState<MediaDrawerFilter>('all');
   const [localRecords, setLocalRecords] = useState<LocalMediaRecord[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -98,12 +115,26 @@ export const MediaDrawer = memo(function MediaDrawer({
     [store, engine]
   );
 
-  const handleDeleteItem = useCallback(
-    (e: React.MouseEvent, id: string) => {
-      e.stopPropagation();
+  const handleDeleteCloudItem = useCallback(
+    async (id: string) => {
+      try {
+        await fetch(`/api/media/playlist/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+        });
+      } catch {
+        // Fall back gracefully
+      }
       store.dispatch({ type: 'REMOVE_ITEM', id });
     },
     [store]
+  );
+
+  const handleDeleteLocalItem = useCallback(
+    async (sha256: string) => {
+      await localMediaRegistry.removeRecord(sha256);
+      refreshLocalRecords();
+    },
+    [refreshLocalRecords]
   );
 
   const handleMoveUp = useCallback(
@@ -141,53 +172,68 @@ export const MediaDrawer = memo(function MediaDrawer({
     [state.activeId, state.isProjected, store]
   );
 
-  // Manual Local Import Handler
-  const handleImportLocalFiles = useCallback(async (files: FileList | File[]) => {
-    if (!files || files.length === 0) return;
-    setIsImporting(true);
+  // Manual Local Import from Computer (DEC-098 Storage Ladder)
+  const handleImportLocalFiles = useCallback(
+    async (files: FileList | File[]) => {
+      if (!files || files.length === 0) return;
+      setIsImporting(true);
 
-    try {
-      const itemsToAdd: PlaylistItem[] = [];
+      try {
+        const itemsToAdd: PlaylistItem[] = [];
+        const seenInBatch = new Set<string>();
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const sha256 = await computeBlobSHA256(file);
-        const record: LocalMediaRecord = {
-          sha256,
-          name: file.name,
-          sizeBytes: file.size,
-          mimeType: file.type || (file.name.endsWith('.mp4') ? 'video/mp4' : 'audio/mpeg'),
-          fileHandle: file,
-          storageKind: 'in-memory',
-          lastModified: file.lastModified,
-          verifiedAt: new Date().toISOString(),
-        };
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const sha256 = await computeBlobSHA256(file);
+          if (seenInBatch.has(sha256)) continue;
+          seenInBatch.add(sha256);
 
-        await localMediaRegistry.saveRecord(record);
-
-        // Also add to playlist if not already present
-        const alreadyInPlaylist = state.items.some((it) => it.sha256 === sha256 || it.id === `local-${sha256.slice(0, 8)}`);
-        if (!alreadyInPlaylist) {
-          const type: 'audio' | 'video' = file.type.startsWith('video') || file.name.endsWith('.mp4') || file.name.endsWith('.webm') ? 'video' : 'audio';
-          itemsToAdd.push({
-            id: `local-${sha256.slice(0, 8)}`,
-            name: file.name,
-            url: URL.createObjectURL(file),
-            type,
-            size: file.size,
+          const record: LocalMediaRecord = {
             sha256,
-            source: 'local',
-          });
-        }
-      }
+            name: file.name,
+            sizeBytes: file.size,
+            mimeType: file.type || (file.name.endsWith('.mp4') ? 'video/mp4' : 'audio/mpeg'),
+            fileHandle: file,
+            storageKind: 'in-memory',
+            lastModified: file.lastModified,
+            verifiedAt: new Date().toISOString(),
+          };
 
-      if (itemsToAdd.length > 0) {
-        store.dispatch({ type: 'ADD_ITEMS', items: itemsToAdd });
+          await localMediaRegistry.saveRecord(record);
+
+          // Also add to playlist if not already present
+          const alreadyInPlaylist = state.items.some(
+            (it) => it.sha256 === sha256 || it.id === `local-${sha256.slice(0, 8)}`
+          );
+          if (!alreadyInPlaylist) {
+            const type: 'audio' | 'video' =
+              file.type.startsWith('video') ||
+              file.name.endsWith('.mp4') ||
+              file.name.endsWith('.webm')
+                ? 'video'
+                : 'audio';
+
+            itemsToAdd.push({
+              id: `local-${sha256.slice(0, 8)}`,
+              name: file.name,
+              url: URL.createObjectURL(file),
+              type,
+              size: file.size,
+              sha256,
+              source: 'local',
+            });
+          }
+        }
+
+        if (itemsToAdd.length > 0) {
+          store.dispatch({ type: 'ADD_ITEMS', items: itemsToAdd });
+        }
+      } finally {
+        setIsImporting(false);
       }
-    } finally {
-      setIsImporting(false);
-    }
-  }, [state.items, store]);
+    },
+    [state.items, store]
+  );
 
   const handleOpenLocalPicker = useCallback(async () => {
     if (typeof window !== 'undefined' && typeof (window as any).showOpenFilePicker === 'function') {
@@ -216,20 +262,124 @@ export const MediaDrawer = memo(function MediaDrawer({
     }
     // Fallback: input element
     fileInputRef.current?.click();
-  }, [handleImportLocalFiles]);
+  }, [handleImportLocalFiles, t]);
+
+  // Upload local item to cloud catalog
+  const handleUploadItemToCloud = useCallback(
+    async (item: PlaylistItem) => {
+      const rec = item.sha256 ? localMediaRegistry.getRecord(item.sha256) : null;
+      if (!rec?.fileHandle) return;
+
+      store.dispatch({
+        type: 'UPDATE_ITEM_STATUS',
+        id: item.id,
+        status: 'loading',
+      });
+
+      try {
+        let fileObj: File | Blob = rec.fileHandle;
+        if (typeof rec.fileHandle.getFile === 'function') {
+          fileObj = await rec.fileHandle.getFile();
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileObj, item.name);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          throw new Error(`Upload failed with HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (data.url) {
+          const filename = data.url.replace('/api/uploads/', '');
+          let cloudId = item.id;
+          try {
+            const playlistRes = await fetch('/api/media/playlist', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: item.name,
+                type: item.type,
+                storage_key: filename,
+                size_bytes: item.size || (fileObj as any).size || 0,
+                sha256: item.sha256,
+              }),
+            });
+            if (playlistRes.ok) {
+              const playlistData = await playlistRes.json();
+              cloudId = playlistData.id || cloudId;
+            }
+          } catch {
+            // Handled gracefully if offline or fallback
+          }
+
+          store.dispatch({
+            type: 'UPDATE_ITEM',
+            id: item.id,
+            patch: {
+              url: data.url,
+              status: 'ready',
+              cloud: {
+                id: cloudId,
+                name: item.name,
+                url: data.url,
+                size: item.size,
+              },
+            },
+          });
+        }
+      } catch (err: any) {
+        store.dispatch({
+          type: 'UPDATE_ITEM_STATUS',
+          id: item.id,
+          status: 'error',
+          errorMessage: err?.message || 'Upload failed',
+        });
+      }
+    },
+    [store]
+  );
+
+  // Derived filtered items preserving original array ordering
+  const filteredItems = useMemo(() => {
+    return state.items.filter((item) => {
+      const itemSha = (item.sha256 || '').toLowerCase();
+      const hasLocalRecord = Boolean(itemSha && localMediaRegistry.hasRecord(itemSha));
+      const isDownloading = Boolean(itemSha && itemSha in downloadProgressMap);
+
+      const availability: MediaAvailability = deriveAvailability(
+        {
+          ...item,
+          local: hasLocalRecord ? { storageKind: 'directory-handle', stale: false } : undefined,
+        },
+        downloadProgressMap
+      );
+
+      if (filter === 'all') return true;
+      if (filter === 'cloud-only') return availability === 'cloud-only' && !isDownloading;
+      if (filter === 'local-only') return availability === 'local-only';
+      if (filter === 'synced') return availability === 'synced';
+      return true;
+    });
+  }, [state.items, filter, downloadProgressMap, localRecords]);
 
   if (!open) return null;
 
   return (
     <aside
       data-testid="media-drawer"
-      aria-label="Media Playlist Drawer"
+      aria-label={t('media.drawer.title')}
       className={cn(
         'fixed right-0 top-0 bottom-0 z-40 w-[26rem] max-w-full bg-card border-l border-border shadow-2xl flex flex-col select-none',
         className
       )}
     >
-      {/* Hidden file input for fallback */}
+      {/* Hidden file input for fallback file upload */}
       <input
         ref={fileInputRef}
         type="file"
@@ -249,7 +399,7 @@ export const MediaDrawer = memo(function MediaDrawer({
           <Music className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">{t('media.drawer.title')}</h2>
           <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-            {activeTab === 'cloud' ? state.items.length : localRecords.length}
+            {state.items.length}
           </span>
         </div>
         <Button
@@ -266,290 +416,287 @@ export const MediaDrawer = memo(function MediaDrawer({
         </Button>
       </div>
 
-      {/* Two-Tab Switcher */}
-      <div className="flex border-b border-border bg-muted/30 p-1 gap-1">
+      {/* Actions & Filter Controls */}
+      <div className="p-3 border-b border-border bg-muted/20 space-y-2.5">
+        {/* Primary Action Button: Tambah Media dari Komputer */}
         <Button
           type="button"
+          variant="default"
           size="sm"
-          variant="ghost"
-          data-testid="tab-cloud"
+          data-testid="btn-add-media"
+          disabled={isImporting}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setActiveTab('cloud')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 h-8 py-1.5 px-3 text-xs font-medium rounded-sm transition-colors text-center cursor-pointer',
-            activeTab === 'cloud'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
+          onClick={() => void handleOpenLocalPicker()}
+          className="w-full h-8 gap-1.5 text-xs font-semibold cursor-pointer"
         >
-          <Cloud className="h-3.5 w-3.5" />
-          <span>{t('media.drawer.tabCloud')}</span>
+          <Plus className="h-3.5 w-3.5" />
+          <span>{isImporting ? t('media.drawer.processing') : t('media.drawer.addFromComputer')}</span>
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          data-testid="tab-local"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setActiveTab('local')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 h-8 py-1.5 px-3 text-xs font-medium rounded-sm transition-colors text-center cursor-pointer',
-            activeTab === 'local'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
+
+        {/* 4-Way Segmented Filter Control */}
+        <div
+          data-testid="media-drawer-filter-bar"
+          className="flex rounded-md bg-muted/60 p-0.5 text-xs font-medium"
         >
-          <HardDrive className="h-3.5 w-3.5" />
-          <span>{t('media.drawer.tabLocal')}</span>
-        </Button>
+          {(
+            [
+              { id: 'all', label: t('media.drawer.filterAll') },
+              { id: 'cloud-only', label: t('media.drawer.filterCloud') },
+              { id: 'local-only', label: t('media.drawer.filterLocal') },
+              { id: 'synced', label: t('media.drawer.filterSynced') },
+            ] as const
+          ).map((mode) => (
+            <Button
+              key={mode.id}
+              type="button"
+              variant={filter === mode.id ? 'secondary' : 'ghost'}
+              size="sm"
+              data-testid={`filter-${mode.id}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setFilter(mode.id)}
+              className={cn(
+                'flex-1 h-6 py-0 px-1 text-[11px] font-medium rounded-sm transition-colors text-center cursor-pointer',
+                filter === mode.id
+                  ? 'bg-background text-foreground shadow-xs hover:bg-background'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {mode.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      {/* Cloud Tab View */}
-      {activeTab === 'cloud' && (
-        <>
-          <div className="border-b border-border/60 p-3 bg-muted/20">
-            <MediaUploader store={store} />
+      {/* Single Unified Playlist List */}
+      <div
+        data-testid="unified-media-list"
+        className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0"
+      >
+        {filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-muted-foreground p-4">
+            <Music className="h-8 w-8 mb-2 opacity-30" />
+            <p className="font-medium">{t('media.drawer.emptyTitle')}</p>
+            <p className="text-[11px] mt-1 text-muted-foreground/80">
+              {t('media.drawer.emptyDesc')}
+            </p>
           </div>
+        ) : (
+          filteredItems.map((item) => {
+            const itemIndex = state.items.findIndex((i) => i.id === item.id);
+            const isActive = state.activeId === item.id;
+            const isPlayingThis = isActive && state.isPlaying;
+            const isProjectedThis = isActive && state.isProjected;
+            const cannotDelete = isActive && state.isPlaying;
 
-          <div
-            data-testid="media-playlist-list"
-            className="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-0"
-          >
-            {state.items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-muted-foreground p-4">
-                <Music className="h-8 w-8 mb-2 opacity-30" />
-                <p className="font-medium">{t('media.drawer.emptyCloudTitle')}</p>
-                <p className="text-[11px] mt-1 text-muted-foreground/80">
-                  {t('media.drawer.emptyCloudDesc')}
-                </p>
-              </div>
-            ) : (
-              state.items.map((item, index) => {
-                const isActive = state.activeId === item.id;
-                const isPlayingThis = isActive && state.isPlaying;
-                const isProjectedThis = isActive && state.isProjected;
-                const cannotDelete = isActive && state.isPlaying;
+            const itemSha = (item.sha256 || '').toLowerCase();
+            const isDownloading = Boolean(itemSha && itemSha in downloadProgressMap);
+            const downloadProgress = downloadProgressMap[itemSha] || 0;
+            const localRecord = itemSha ? localMediaRegistry.getRecord(itemSha) : null;
+            const isDetached = localRecord
+              ? localMediaRegistry.checkStaleness(localRecord, localRecord.sizeBytes, localRecord.lastModified) ===
+                'detached'
+              : false;
 
-                const itemSha = (item.sha256 || '').toLowerCase();
-                const isDownloading = itemSha in downloadProgressMap;
-                const downloadProgress = downloadProgressMap[itemSha] || 0;
-                const hasLocal = itemSha && localMediaRegistry.hasRecord(itemSha);
+            const availability = deriveAvailability(
+              {
+                ...item,
+                local: localRecord ? { storageKind: 'directory-handle', stale: isDetached } : undefined,
+              },
+              downloadProgressMap
+            );
 
-                let badgeState: MediaBadgeState = 'streaming-only';
-                if (isDownloading) {
-                  badgeState = 'downloading';
-                } else if (hasLocal) {
-                  const rec = localMediaRegistry.getRecord(itemSha)!;
-                  const staleness = localMediaRegistry.checkStaleness(rec, rec.sizeBytes, rec.lastModified);
-                  badgeState = staleness === 'valid' ? 'local' : 'detached';
-                }
+            return (
+              <div
+                key={item.id}
+                data-testid={`media-row-${item.id}`}
+                onClick={() => handleSelectItem(item.id)}
+                onDoubleClick={() => void handlePlayItem(item.id)}
+                className={cn(
+                  'group flex items-center justify-between gap-2 rounded-md border p-2 text-xs transition-colors cursor-pointer h-10',
+                  isActive
+                    ? 'border-primary/50 bg-primary/10 text-foreground font-medium'
+                    : 'border-border/60 bg-card hover:bg-muted/40 text-foreground/90'
+                )}
+              >
+                {/* 1. Left: Reorder arrows & Play Trigger */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex flex-col">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={itemIndex <= 0}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => handleMoveUp(e, itemIndex)}
+                      className="h-3.5 w-3.5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
+                      title={t('media.drawer.moveUp')}
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={itemIndex >= state.items.length - 1}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => handleMoveDown(e, itemIndex)}
+                      className="h-3.5 w-3.5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
+                      title={t('media.drawer.moveDown')}
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </div>
 
-                return (
-                  <div
-                    key={item.id}
-                    data-testid={`media-item-${item.id}`}
-                    onClick={() => handleSelectItem(item.id)}
-                    onDoubleClick={() => void handlePlayItem(item.id)}
-                    className={cn(
-                      'group flex flex-col gap-1.5 rounded-md border p-2 text-xs transition-colors cursor-pointer',
-                      isActive
-                        ? 'border-primary/50 bg-primary/10 text-foreground font-medium'
-                        : 'border-border/60 bg-card hover:bg-muted/40 text-foreground/90'
-                    )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={isPlayingThis ? 'default' : 'ghost'}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => void handlePlayItem(item.id)}
+                    className="h-6 w-6 p-0 shrink-0"
+                    title={isPlayingThis ? t('media.drawer.pause') : t('media.drawer.play')}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      {/* Left: Reorder & Play */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <div className="flex flex-col">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            disabled={index === 0}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={(e) => handleMoveUp(e, index)}
-                            className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
-                            title={t('media.drawer.moveUp')}
-                          >
-                            <ChevronUp className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            disabled={index === state.items.length - 1}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={(e) => handleMoveDown(e, index)}
-                            className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20"
-                            title={t('media.drawer.moveDown')}
-                          >
-                            <ChevronDown className="h-3 w-3" />
-                          </Button>
-                        </div>
+                    {isPlayingThis ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
+                  </Button>
+                </div>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={isPlayingThis ? 'default' : 'ghost'}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => void handlePlayItem(item.id)}
-                          className="h-7 w-7 p-0 shrink-0"
-                          title={isPlayingThis ? t('media.drawer.pause') : t('media.drawer.play')}
-                        >
-                          {isPlayingThis ? (
-                            <Pause className="h-3.5 w-3.5" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5 ml-0.5" />
-                          )}
-                        </Button>
-                      </div>
+                {/* 2. Middle: Type Icon, Title, Compact Status Icon */}
+                <div className="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
+                  {item.type === 'video' ? (
+                    <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  ) : (
+                    <Music className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  )}
 
-                      {/* Middle: Details */}
-                      <div className="flex flex-1 flex-col min-w-0 pr-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {item.type === 'video' ? (
-                            <span className="rounded bg-blue-500/20 px-1 py-0.2 text-[9px] font-semibold text-blue-600 dark:text-blue-400 shrink-0">
-                              VIDEO
-                            </span>
-                          ) : (
-                            <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
-                              AUDIO
-                            </span>
-                          )}
-                          <span className="truncate text-xs" title={item.name}>
-                            {item.name}
+                  <span className="truncate text-xs text-foreground flex-1" title={item.name}>
+                    {item.name}
+                  </span>
+
+                  {/* Compact Status Icon (14px) */}
+                  {(() => {
+                    const statusTitle = isDownloading
+                      ? t('media.drawer.statusDownloading', { percent: Math.round(downloadProgress) })
+                      : isDetached
+                      ? t('media.drawer.statusDetached')
+                      : availability === 'synced'
+                      ? t('media.drawer.statusSynced')
+                      : availability === 'local-only'
+                      ? t('media.drawer.statusLocalOnly')
+                      : t('media.drawer.statusCloudOnly');
+
+                    return (
+                      <span
+                        className="shrink-0 inline-flex items-center"
+                        data-testid={`status-icon-${item.id}`}
+                        title={statusTitle}
+                      >
+                        {isDownloading ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400">
+                            <Download className="h-3.5 w-3.5 animate-pulse" />
                           </span>
-                        </div>
-                      </div>
-
-                      {/* Right: Projector & Delete */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        {canProjectMediaItem(item) && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={isProjectedThis ? 'default' : 'outline'}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={(e) => handleToggleProject(e, item)}
-                            className={cn(
-                              'h-7 px-2 text-[11px] gap-1',
-                              isProjectedThis
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground'
-                            )}
-                            title={isProjectedThis ? t('media.drawer.projectLive') : t('media.drawer.projectSend')}
-                          >
-                            {isProjectedThis ? (
-                              <>
-                                <Monitor className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                                <span>{t('media.drawer.liveLabel')}</span>
-                              </>
-                            ) : (
-                              <>
-                                <MonitorOff className="h-3 w-3" />
-                                <span>{t('media.drawer.sendLabel')}</span>
-                              </>
-                            )}
-                          </Button>
+                        ) : isDetached ? (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                        ) : availability === 'synced' ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        ) : availability === 'local-only' ? (
+                          <HardDrive className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                        ) : (
+                          <Cloud className="h-3.5 w-3.5 text-muted-foreground" />
                         )}
+                      </span>
+                    );
+                  })()}
+                </div>
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
+                {/* 3. Right: Projector Toggle & Actions Dropdown Menu */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {canProjectMediaItem(item) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={isProjectedThis ? 'default' : 'outline'}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => handleToggleProject(e, item)}
+                      className={cn(
+                        'h-6 px-1.5 text-[10px] gap-1',
+                        isProjectedThis ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+                      )}
+                      title={isProjectedThis ? t('media.drawer.projectLive') : t('media.drawer.projectSend')}
+                    >
+                      {isProjectedThis ? (
+                        <>
+                          <Monitor className="h-2.5 w-2.5" />
+                          <span>{t('media.drawer.liveLabel')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <MonitorOff className="h-2.5 w-2.5" />
+                          <span>{t('media.drawer.sendLabel')}</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Actions Dropdown Menu */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label="Actions"
+                      className="h-6 w-6 inline-flex items-center justify-center rounded p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 text-xs">
+                      {/* Cloud Download / Upload Workflows */}
+                      {availability === 'cloud-only' && onDownloadItem && (
+                        <DropdownMenuItem
+                          onClick={() => onDownloadItem(item)}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Download className="h-3.5 w-3.5 text-primary" />
+                          <span>{t('media.drawer.downloadToLocal')}</span>
+                        </DropdownMenuItem>
+                      )}
+                      {availability === 'local-only' && (
+                        <DropdownMenuItem
+                          onClick={() => void handleUploadItemToCloud(item)}
+                          className="cursor-pointer gap-2"
+                        >
+                          <Upload className="h-3.5 w-3.5 text-primary" />
+                          <span>{t('media.drawer.uploadToCloud')}</span>
+                        </DropdownMenuItem>
+                      )}
+
+                      <DropdownMenuSeparator />
+
+                      {/* Deletion triggers */}
+                      {item.source !== 'local' && (
+                        <DropdownMenuItem
                           disabled={cannotDelete}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={(e) => handleDeleteItem(e, item.id)}
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive disabled:opacity-30"
-                          title={cannotDelete ? t('media.drawer.cannotDeleteActive') : t('media.drawer.deleteItem')}
+                          onClick={() => handleDeleteCloudItem(item.id)}
+                          className="cursor-pointer text-destructive focus:text-destructive gap-2"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Bottom row: Accessible 4-state Badge */}
-                    <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[10px]">
-                      <MediaStatusBadge
-                        state={badgeState}
-                        progress={downloadProgress}
-                        onDownload={onDownloadItem ? () => onDownloadItem(item) : undefined}
-                        onCancel={onCancelDownload && itemSha ? () => onCancelDownload(itemSha) : undefined}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Local Tab View */}
-      {activeTab === 'local' && (
-        <div className="flex-1 flex flex-col p-3 gap-3 min-h-0">
-          <div className="flex items-center justify-between gap-2 bg-muted/20 p-2.5 rounded-md border border-border/60">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{t('media.drawer.localStoredHeader')}</p>
-              <p className="text-[11px] text-muted-foreground">{t('media.drawer.localStoredDesc')}</p>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              data-testid="btn-add-local-media"
-              disabled={isImporting}
-              onClick={() => void handleOpenLocalPicker()}
-              className="h-7 px-2.5 text-xs gap-1"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>{isImporting ? t('media.drawer.processing') : t('media.drawer.addLocal')}</span>
-            </Button>
-          </div>
-
-          <div
-            data-testid="local-media-list"
-            className="flex-1 overflow-y-auto space-y-1.5 min-h-0"
-          >
-            {localRecords.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-center text-xs text-muted-foreground p-4">
-                <HardDrive className="h-8 w-8 mb-2 opacity-30" />
-                <p className="font-medium">{t('media.drawer.emptyLocalTitle')}</p>
-                <p className="text-[11px] mt-1 text-muted-foreground/80">
-                  {t('media.drawer.emptyLocalDesc')}
-                </p>
-              </div>
-            ) : (
-              localRecords.map((record) => (
-                <div
-                  key={record.sha256}
-                  data-testid={`local-record-${record.sha256.slice(0, 8)}`}
-                  className="flex items-center justify-between p-2 rounded-md border border-border/60 bg-card text-xs gap-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {record.mimeType.startsWith('video') ? (
-                      <Video className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                    ) : (
-                      <Music className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    )}
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-foreground truncate" title={record.name}>
-                        {record.name}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {(record.sizeBytes / (1024 * 1024)).toFixed(1)} MB • {record.storageKind}
-                      </span>
-                    </div>
-                  </div>
-
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400 shrink-0">
-                    {t('media.drawer.availableBadge')}
-                  </span>
+                          <span>{t('media.drawer.deleteFromCloud')}</span>
+                        </DropdownMenuItem>
+                      )}
+                      {localRecord && itemSha && (
+                        <DropdownMenuItem
+                          disabled={cannotDelete}
+                          onClick={() => void handleDeleteLocalItem(itemSha)}
+                          className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
+                        >
+                          <HardDrive className="h-3.5 w-3.5" />
+                          <span>{t('media.drawer.deleteFromLocal')}</span>
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </aside>
   );
 });

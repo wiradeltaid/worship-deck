@@ -2077,7 +2077,7 @@ decisions:
 
   - id: DEC-099
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-11)"
     title: Daily Autopilot mandate for Mandatory Bilingual i18n Reconciliation (SPEC-112) and Unified Media Control Bar (SPEC-113)
     file: .control/decisions/DEC-099-daily-autopilot-mandate-bilingual-i18n-reconciliation-and-unified-media-control-bar.md

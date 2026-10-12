@@ -5,6 +5,7 @@ export * from './MediaStage';
 export * from './MediaLauncherButton';
 export * from './MediaDock';
 export * from './MediaTopBar';
+export * from './MediaControlBar';
 export * from './MediaDrawer';
 export * from './MediaUploader';
 export * from './MediaStatusBadge';

@@ -79,13 +79,15 @@ export const MediaDock = memo(function MediaDock({
       engine.cancelFade();
       store.dispatch({ type: 'SET_FADING', isFading: false });
     } else {
+      const originalVolume = state.volume;
       store.dispatch({ type: 'SET_FADING', isFading: true });
       void engine.fade({ durationMs: 3000 }).finally(() => {
         store.dispatch({ type: 'SET_FADING', isFading: false });
         store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+        store.dispatch({ type: 'SET_VOLUME', volume: originalVolume });
       });
     }
-  }, [engine, store]);
+  }, [engine, store, state.volume]);
 
   const handleMute = useCallback(() => {
     const nextMuted = !state.isMuted;

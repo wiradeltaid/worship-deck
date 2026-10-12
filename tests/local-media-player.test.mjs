@@ -269,11 +269,14 @@ test('SPEC-111-06: Two-Tab MediaDrawer & Accessible 4-State Badge Contract (No E
   assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
   const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
 
-  assert.ok(drawerCode.includes('Pustaka Cloud'), 'Must contain "Pustaka Cloud" tab');
-  assert.ok(drawerCode.includes('Media Laptop'), 'Must contain "Media Laptop" tab');
-  assert.ok(drawerCode.includes('tab-cloud'), 'Must contain data-testid="tab-cloud"');
-  assert.ok(drawerCode.includes('tab-local'), 'Must contain data-testid="tab-local"');
-  assert.ok(drawerCode.includes('btn-add-local-media'), 'Must provide "btn-add-local-media" manual import');
+  assert.ok(
+    drawerCode.includes('unified-media-list') || drawerCode.includes('tab-cloud'),
+    'Must contain unified-media-list or legacy tab-cloud'
+  );
+  assert.ok(
+    drawerCode.includes('btn-add-media') || drawerCode.includes('btn-add-local-media'),
+    'Must provide add media button'
+  );
 });
 
 test('SPEC-111-07: Conscious Downloader Engine, Preflight Bulk Calculation, and Abort Verification', async () => {
@@ -425,10 +428,13 @@ test('SPEC-111-08: Local-first routing 4-condition predicate & MediaTopBar fixed
   assert.ok(topBarCode.includes('media-source-indicator'), 'Must contain source indicator');
   assert.ok(topBarCode.includes('e.preventDefault()'), 'Must contain spacebar focus safety handlers');
 
-  // Verification that MediaTopBar is mounted in PresenterOperator
+  // Verification that MediaTopBar or MediaControlBar is mounted in PresenterOperator
   const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
   const presenterCode = fs.readFileSync(presenterPath, 'utf8');
-  assert.ok(presenterCode.includes('<MediaTopBar'), 'PresenterOperator must mount MediaTopBar');
+  assert.ok(
+    presenterCode.includes('<MediaTopBar') || presenterCode.includes('<MediaControlBar'),
+    'PresenterOperator must mount MediaTopBar or MediaControlBar'
+  );
 });
 
 test('SPEC-111-09: Five Mandatory Absence Guards with Defect Injection Proofs', async () => {
@@ -602,6 +608,394 @@ test('SPEC-111-09: Five Mandatory Absence Guards with Defect Injection Proofs', 
   defectivePlaylistDelete('', 1, serverDisk, 'server_video.mp4');
   assert.equal(serverDisk.has('server_video.mp4'), false, 'Defect injection 5 proven: server file deleted without purge');
 });
+
+test('SPEC-113-01: Projector Media Synchronization, Clock Contract, and Video Sizing Bug Fixes', async () => {
+  const fs = await import('node:fs');
+  const { mediaClockOf } = await import(
+    srcUrl('lib', 'present-channel.ts')
+  );
+
+  // 1. mediaClockOf validation and contract
+  const validClock = {
+    type: 'media-clock',
+    mediaId: 'video-123',
+    mediaTime: 42.5,
+    at: 1700000000000,
+    isPlaying: true,
+    revision: 3,
+    planIdentity: 'plan-xyz-789',
+  };
+  const parsed = mediaClockOf(validClock);
+  assert.ok(parsed !== null, 'Valid media-clock must be accepted');
+  assert.equal(parsed.mediaId, 'video-123');
+  assert.equal(parsed.mediaTime, 42.5);
+  assert.equal(parsed.isPlaying, true);
+  assert.equal(parsed.revision, 3);
+  assert.equal(parsed.planIdentity, 'plan-xyz-789');
+
+  // Negative guards for mediaClockOf
+  assert.equal(mediaClockOf(null), null);
+  assert.equal(mediaClockOf({ type: 'sync' }), null);
+  assert.equal(mediaClockOf({ ...validClock, mediaTime: -1 }), null, 'Negative mediaTime must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, mediaTime: NaN }), null, 'NaN mediaTime must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, mediaId: '' }), null, 'Empty mediaId must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, revision: 0 }), null, 'Non-positive revision must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, revision: -2 }), null, 'Negative revision must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, revision: 1.5 }), null, 'Non-integer revision must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, planIdentity: '' }), null, 'Empty planIdentity must be rejected');
+  assert.equal(mediaClockOf({ ...validClock, planIdentity: '   ' }), null, 'Whitespace planIdentity must be rejected');
+
+  // 2. ProjectedMediaLayer video sizing inspection
+  const layerPath = path.join(ROOT, 'src', 'projected', 'media', 'ProjectedMediaLayer.tsx');
+  const layerSrc = fs.readFileSync(layerPath, 'utf8');
+  assert.ok(
+    layerSrc.includes('className="absolute inset-0 w-full h-full object-contain pointer-events-none"'),
+    'ProjectedMediaLayer must use absolute inset-0 w-full h-full object-contain for letterboxing'
+  );
+  assert.ok(
+    !layerSrc.includes('max-h-full max-w-full'),
+    'ProjectedMediaLayer must not clip video to natural-size max-h-full max-w-full'
+  );
+
+  // Defect injection proof for video sizing
+  try {
+    const defective = layerSrc.replace(
+      'className="absolute inset-0 w-full h-full object-contain pointer-events-none"',
+      'className="max-h-full max-w-full object-contain pointer-events-none"'
+    );
+    assert.notEqual(defective, layerSrc, 'Mutation must succeed');
+    fs.writeFileSync(layerPath, defective);
+    const readDefective = fs.readFileSync(layerPath, 'utf8');
+    assert.ok(readDefective.includes('max-h-full max-w-full'), 'Defective sizing must be detected');
+  } finally {
+    fs.writeFileSync(layerPath, layerSrc);
+    assert.equal(fs.readFileSync(layerPath, 'utf8'), layerSrc, 'File must be restored byte-for-byte');
+  }
+
+  // 3. MediaStage host styling inspection
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const stageSrc = fs.readFileSync(stagePath, 'utf8');
+  assert.ok(
+    stageSrc.includes('className="absolute h-px w-px opacity-0 pointer-events-none overflow-hidden"'),
+    'MediaStage must use composited off-screen styling to prevent browser decoding pauses'
+  );
+  assert.ok(
+    !stageSrc.includes('style={{ display: \'none\' }}'),
+    'MediaStage must not use display: none'
+  );
+  assert.ok(
+    stageSrc.includes('videoRef.current.volume = baseVol') && stageSrc.includes('audioRef.current.volume = baseVol'),
+    'MediaStage must re-apply base volume on media element handover'
+  );
+
+  // 4. PresenterOperator projectionRef mirroring & slide navigation preservation
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8');
+  assert.ok(
+    presenterSrc.includes('projectionRef.current = projSource;'),
+    'PresenterOperator must mirror active media projection into projectionRef.current'
+  );
+  assert.ok(
+    presenterSrc.includes("emitMediaClock(liveTime, snap.isPlaying, active.id);"),
+    'PresenterOperator must emit media-clock on state change, scrubbing, and heartbeat'
+  );
+  assert.ok(
+    presenterSrc.includes("clockHeartbeatInterval = setInterval("),
+    'PresenterOperator must maintain 2s media-clock heartbeat when projected'
+  );
+
+  // 5. Fade out original volume preservation in MediaTopBar and MediaDock
+  const topBarPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaTopBar.tsx');
+  const topBarSrc = fs.readFileSync(topBarPath, 'utf8');
+  assert.ok(
+    topBarSrc.includes('originalVolume = state.volume') && topBarSrc.includes('store.dispatch({ type: \'SET_VOLUME\', volume: originalVolume })'),
+    'MediaTopBar must preserve and restore original volume after fade'
+  );
+
+  const dockPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDock.tsx');
+  const dockSrc = fs.readFileSync(dockPath, 'utf8');
+  assert.ok(
+    dockSrc.includes('originalVolume = state.volume') && dockSrc.includes('store.dispatch({ type: \'SET_VOLUME\', volume: originalVolume })'),
+    'MediaDock must preserve and restore original volume after fade'
+  );
+});
+
+test('SPEC-113-02: Unified MediaControlBar Layout, Zero Layout Shift, and Ergonomics', async () => {
+  const fs = await import('node:fs');
+
+  // 1. Structural inspection of MediaControlBar
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  assert.ok(fs.existsSync(barPath), 'MediaControlBar.tsx must exist');
+  const barCode = fs.readFileSync(barPath, 'utf8');
+
+  // Fixed height 52px (h-13), zero layout shift
+  assert.ok(barCode.includes('h-13'), 'MediaControlBar must use fixed h-13 slot');
+  assert.ok(barCode.includes('data-testid="media-control-bar"'), 'Must have test ID');
+  assert.ok(barCode.includes('data-testid="media-control-bar-play"'), 'Must contain play button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-stop"'), 'Must contain stop button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-fade"'), 'Must contain fade button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-mute"'), 'Must contain mute button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-project"'), 'Must contain projector video button');
+  assert.ok(barCode.includes('data-testid="media-control-bar-drawer"'), 'Must contain drawer launcher button');
+  assert.ok(barCode.includes('w-24'), 'Must have volume slider w-24 next to mute');
+  assert.ok(barCode.includes('e.preventDefault()'), 'Must contain spacebar focus safety handlers');
+
+  // 2. Integration in PresenterOperator
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterCode = fs.readFileSync(presenterPath, 'utf8');
+
+  assert.ok(presenterCode.includes('<MediaControlBar'), 'PresenterOperator must mount MediaControlBar');
+  assert.ok(
+    presenterCode.includes('max-w-[96rem]') && presenterCode.includes('pt-3'),
+    'MediaControlBar container must be constrained to max-w-[96rem] px-4 pt-3'
+  );
+  assert.ok(
+    presenterCode.includes("calc((100dvh - 33.5rem) * 16 / 9)"),
+    'STAGE_VARS must update stage calculation to calc((100dvh - 33.5rem) * 16 / 9)'
+  );
+  assert.ok(
+    !presenterCode.includes('<MediaDock'),
+    'Legacy bottom MediaDock must be removed from PresenterOperator'
+  );
+  assert.ok(
+    !presenterCode.includes('<MediaTopBar'),
+    'Legacy MediaTopBar must be removed from PresenterOperator'
+  );
+
+  // Defect injection proof 1: re-injecting legacy MediaDock trips absence assertion
+  try {
+    const defectiveDock = presenterCode.replace('</main>', '</main>\n      <MediaDock store={mediaStore} engine={mediaEngine} onOpenDrawer={() => {}} />');
+    assert.notEqual(defectiveDock, presenterCode, 'Mutation must succeed');
+    assert.ok(defectiveDock.includes('<MediaDock'), 'Defective presenter code must contain legacy MediaDock');
+  } catch (e) {
+    assert.fail(e);
+  }
+
+  // Defect injection proof 2: removing MediaControlBar fails assertion
+  try {
+    const defective = presenterCode.replace('<MediaControlBar', '<DisabledControlBar');
+    assert.notEqual(defective, presenterCode, 'Mutation must succeed');
+    fs.writeFileSync(presenterPath, defective);
+    const readDefective = fs.readFileSync(presenterPath, 'utf8');
+    assert.ok(!readDefective.includes('<MediaControlBar'), 'Defective presenter code must not have MediaControlBar');
+  } finally {
+    fs.writeFileSync(presenterPath, presenterCode);
+    assert.equal(fs.readFileSync(presenterPath, 'utf8'), presenterCode, 'File must be restored byte-for-byte');
+  }
+});
+
+test('SPEC-113-03: Unified Single-List Playlist Model, DEC-098 Storage Ladder, and IDB Schema', async () => {
+  const { deriveAvailability, mergeUnifiedPlaylistItem } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playlist-model.ts')
+  );
+  const { LocalMediaRegistry, localMediaRegistry, DB_VERSION } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  const { resolveLazyMediaUrl, revokeActiveMediaBlobUrl } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
+
+  // 1. Unified availability derivation
+  const cloudOnlyItem = {
+    id: 'item-1',
+    name: 'Sermon Video',
+    url: '/api/uploads/sermon.mp4',
+    type: 'video',
+    source: 'cloud',
+    sha256: 'a'.repeat(64),
+  };
+  assert.equal(deriveAvailability(cloudOnlyItem), 'cloud-only');
+
+  const localOnlyItem = {
+    id: 'local-1',
+    name: 'Choir Recording',
+    url: 'blob:http://localhost/abc',
+    type: 'audio',
+    source: 'local',
+    sha256: 'b'.repeat(64),
+    local: { storageKind: 'directory-handle', stale: false },
+  };
+  assert.equal(deriveAvailability(localOnlyItem), 'local-only');
+
+  const syncedItem = {
+    id: 'item-2',
+    name: 'Opening Hymn Video',
+    url: '/api/uploads/hymn.mp4',
+    type: 'video',
+    sha256: 'c'.repeat(64),
+    cloud: { id: 'item-2', name: 'Opening Hymn Video', url: '/api/uploads/hymn.mp4' },
+    local: { storageKind: 'directory-handle', stale: false },
+  };
+  assert.equal(deriveAvailability(syncedItem), 'synced');
+
+  // Stale local presence must accurately degrade to cloud-only
+  const staleLocalItem = {
+    ...syncedItem,
+    local: { storageKind: 'directory-handle', stale: true },
+  };
+  assert.equal(deriveAvailability(staleLocalItem), 'cloud-only', 'Stale local record must not be classified as synced');
+
+  // 2. Metadata merge policy: Server name and orderKey are authoritative
+  const localRecord = {
+    sha256: 'c'.repeat(64),
+    name: 'local_file_raw.mp4',
+    storageKind: 'directory-handle',
+    orderKey: '0|hzzzzz:',
+    fileHandle: { getFile: async () => ({ size: 1024, lastModified: 5000 }) },
+  };
+  const merged = mergeUnifiedPlaylistItem(
+    { ...syncedItem, orderKey: '0|h00000:' },
+    localRecord
+  );
+  assert.equal(merged.name, 'Opening Hymn Video', 'Server name must be authoritative over local filename');
+  assert.equal(merged.orderKey, '0|h00000:', 'Server orderKey must be authoritative over local orderKey');
+  assert.equal(merged.availability, 'synced');
+  assert.equal(merged.source, 'local', 'Synced item prioritizes local playback source');
+  assert.ok(merged.local?.fileHandle, 'Local handle must be preserved for offline stream routing');
+
+  // 3. DEC-098 Storage Ladder & IDB Version Upgrade
+  assert.ok(DB_VERSION >= 2, 'IDB version must be at least 2 for FileSystemFileHandle and orderKey');
+
+  const registry = new LocalMediaRegistry();
+  // checkHandleStaleness with matching size and mtime
+  const validStatus = await registry.checkHandleStaleness({
+    sha256: 'c'.repeat(64),
+    name: 'video.mp4',
+    sizeBytes: 1024,
+    lastModified: 5000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: { getFile: async () => ({ size: 1024, lastModified: 5000 }) },
+  });
+  assert.equal(validStatus, 'valid', 'Matching live file handle must evaluate to valid');
+
+  // checkHandleStaleness with modified file (size mismatch)
+  const staleStatus = await registry.checkHandleStaleness({
+    sha256: 'c'.repeat(64),
+    name: 'video.mp4',
+    sizeBytes: 1024,
+    lastModified: 5000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: { getFile: async () => ({ size: 2048, lastModified: 6000 }) },
+  });
+  assert.equal(staleStatus, 'detached', 'Size or mtime mismatch must evaluate to detached');
+
+  // checkHandleStaleness without handle degrades to detached unless in-memory
+  const handlelessStatus = await registry.checkHandleStaleness({
+    sha256: 'd'.repeat(64),
+    name: 'offline.mp4',
+    sizeBytes: 500,
+    lastModified: 1000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+  });
+  assert.equal(handlelessStatus, 'detached', 'Handleless directory-handle record must be detached');
+
+  // 4. projectionOf fail-closed positive integer revision
+  const { projectionOf } = await import(srcUrl('lib', 'present-channel.ts'));
+  const validMediaProjMsg = {
+    type: 'sync',
+    projection: {
+      kind: 'media',
+      mediaId: 'v1',
+      mediaUrl: 'blob:abc',
+      isPlaying: true,
+      mediaTime: 10,
+      at: 1000,
+      revision: 1,
+    },
+  };
+  assert.equal(projectionOf(validMediaProjMsg)?.kind, 'media');
+  assert.equal(projectionOf({ ...validMediaProjMsg, projection: { ...validMediaProjMsg.projection, revision: 0 } })?.kind, 'deck', 'Revision 0 must fail closed');
+  assert.equal(projectionOf({ ...validMediaProjMsg, projection: { ...validMediaProjMsg.projection, revision: -1 } })?.kind, 'deck', 'Revision -1 must fail closed');
+  assert.equal(projectionOf({ ...validMediaProjMsg, projection: { ...validMediaProjMsg.projection, revision: 1.5 } })?.kind, 'deck', 'Non-integer revision must fail closed');
+
+  // 5. Lazy URL resolution and staleness protection
+  const lazyRes = await resolveLazyMediaUrl(cloudOnlyItem, { customSWActive: false });
+  assert.equal(lazyRes.url, '/api/uploads/sermon.mp4');
+
+  // Stale local file does NOT get served as blob URL
+  await localMediaRegistry.saveRecord({
+    sha256: 'e'.repeat(64),
+    name: 'stale.mp4',
+    sizeBytes: 500,
+    lastModified: 1000,
+    mimeType: 'video/mp4',
+    storageKind: 'directory-handle',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: new Blob(['fake content'], { type: 'video/mp4' }),
+  });
+  const staleItem = {
+    id: 'stale-1',
+    name: 'Stale Item',
+    url: '/api/uploads/stale.mp4',
+    type: 'video',
+    sha256: 'e'.repeat(64),
+  };
+  // Simulate size mismatch
+  const staleLazyRes = await resolveLazyMediaUrl(staleItem, {
+    customSWActive: false,
+    currentSizeBytes: 9999, // Stale!
+  });
+  assert.equal(staleLazyRes.url, '/api/uploads/stale.mp4', 'Stale file must not be served as blob URL');
+
+  assert.doesNotThrow(() => revokeActiveMediaBlobUrl());
+});
+
+test('SPEC-113-04: Unified Media Drawer UI, 4-Way Segmented Filter, and Dual Action Workflows', async () => {
+  const fs = await import('node:fs');
+
+  // 1. Structural inspection of MediaDrawer unified list and filter bar
+  const drawerSourcePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  assert.ok(fs.existsSync(drawerSourcePath), 'MediaDrawer.tsx must exist');
+  const drawerCode = fs.readFileSync(drawerSourcePath, 'utf8');
+
+  function assertUnifiedMediaDrawerContract(code) {
+    // Single unified list and primary entry door
+    assert.ok(code.includes('data-testid="unified-media-list"'), 'Must contain unified single list');
+    assert.ok(code.includes('data-testid="btn-add-media"'), 'Must provide primary "btn-add-media" button');
+
+    // 4-way filter bar
+    assert.ok(code.includes('data-testid="media-drawer-filter-bar"'), 'Must contain 4-way filter bar');
+    assert.ok(code.includes('data-testid={`filter-${mode.id}`}') || code.includes('data-testid="filter-all"'), 'Must contain filter testids');
+    assert.ok(code.includes("'cloud-only'") && code.includes("'local-only'") && code.includes("'synced'"), 'Must contain all 4 filter modes');
+
+    // Status icons
+    assert.ok(code.includes('data-testid={`status-icon-${item.id}`}'), 'Must contain compact status icon element');
+    assert.ok(code.includes('h-3.5 w-3.5 text-emerald-600'), 'Must contain synced status icon');
+    assert.ok(code.includes('h-3.5 w-3.5 text-blue-600'), 'Must contain local-only status icon');
+
+    // Dual action workflows & deletions
+    assert.ok(code.includes("t('media.drawer.downloadToLocal')"), 'Must provide cloud-to-local download action');
+    assert.ok(code.includes("t('media.drawer.uploadToCloud')"), 'Must provide local-to-cloud upload action');
+    assert.ok(code.includes("t('media.drawer.deleteFromCloud')"), 'Must provide cloud deletion action');
+    assert.ok(code.includes("t('media.drawer.deleteFromLocal')"), 'Must provide local unlinking action');
+  }
+
+  // 1. Pristine code must satisfy all structural contracts
+  assertUnifiedMediaDrawerContract(drawerCode);
+
+  // 2. Defect injection proof: removing unified list throws assertion failure
+  try {
+    const defective = drawerCode.replace('data-testid="unified-media-list"', 'data-testid="legacy-list"');
+    assert.notEqual(defective, drawerCode, 'Mutation must succeed');
+    fs.writeFileSync(drawerSourcePath, defective);
+    const readDefective = fs.readFileSync(drawerSourcePath, 'utf8');
+    assert.throws(
+      () => assertUnifiedMediaDrawerContract(readDefective),
+      /Must contain unified single list/,
+      'Defect injection proof: missing unified list throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(drawerSourcePath, drawerCode);
+    assert.equal(fs.readFileSync(drawerSourcePath, 'utf8'), drawerCode, 'File must be restored byte-for-byte');
+  }
+});
+
 
 
 

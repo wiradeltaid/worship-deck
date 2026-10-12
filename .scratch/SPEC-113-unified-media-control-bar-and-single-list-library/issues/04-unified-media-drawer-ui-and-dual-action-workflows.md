@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** ["SPEC-113-03"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Redesign `MediaDrawer.tsx` into a single compact unified list with a 4-way segmented filter, compact status icons, single `Tambah Media` entry door from Komputer, 2-step cloud upload workflow, and explicit independent deletion actions, with complete bilingual `useT()` localization.

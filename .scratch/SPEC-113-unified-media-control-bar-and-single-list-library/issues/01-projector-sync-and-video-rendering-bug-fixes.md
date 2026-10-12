@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Resolve critical synchronization, element handover, and video scaling defects in `PresenterOperator.tsx`, `ProjectedMediaLayer.tsx`, `MediaStage.tsx`, and `media-engine.ts`.

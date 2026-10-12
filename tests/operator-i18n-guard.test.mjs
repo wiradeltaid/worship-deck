@@ -60,14 +60,48 @@ export function scanI18nUsage(source, rel) {
       });
     }
 
-    // Defect 2: t('...', ...) or t("...", ...) called with a second argument
-    if (/\bt\(\s*['"][^'"]+['"]\s*,/.test(line)) {
-      findings.push({
-        rel,
-        lineNo,
-        kind: 'interpolating-t-call',
-        line: line.trim(),
-      });
+    // Defect 2: t('...', ...) called with 3 or more arguments (t takes key: I18nKey, params?: Record<string, string | number>)
+    const tMatch = /\bt\(\s*['"][^'"]+['"]\s*,/.exec(line);
+    if (tMatch) {
+      const argsStart = tMatch.index + tMatch[0].length;
+      let depthParen = 1;
+      let depthBrace = 0;
+      let depthBracket = 0;
+      let inQuote = null;
+      let topLevelCommas = 1;
+      let j = argsStart;
+      while (j < line.length) {
+        const ch = line[j];
+        if (inQuote) {
+          if (ch === inQuote && line[j - 1] !== '\\') inQuote = null;
+        } else if (ch === '"' || ch === "'" || ch === '`') {
+          inQuote = ch;
+        } else if (ch === '(') {
+          depthParen++;
+        } else if (ch === ')') {
+          depthParen--;
+          if (depthParen === 0) break;
+        } else if (ch === '{') {
+          depthBrace++;
+        } else if (ch === '}') {
+          depthBrace--;
+        } else if (ch === '[') {
+          depthBracket++;
+        } else if (ch === ']') {
+          depthBracket--;
+        } else if (ch === ',' && depthParen === 1 && depthBrace === 0 && depthBracket === 0) {
+          topLevelCommas++;
+        }
+        j++;
+      }
+      if (topLevelCommas >= 2) {
+        findings.push({
+          rel,
+          lineNo,
+          kind: 'excessive-args-t-call',
+          line: line.trim(),
+        });
+      }
     }
   }
   return findings;
@@ -109,13 +143,13 @@ test('guard proof: both undestructured useT and multi-arg t() are detected', () 
   );
 
   assert.deepEqual(
-    scanI18nUsage("t('admin.songSets.created', { title: 'abc' })", 'probe.tsx'),
+    scanI18nUsage("t('admin.songSets.created', { title: 'abc' }, 'extra')", 'probe.tsx'),
     [
       {
         rel: 'probe.tsx',
         lineNo: 1,
-        kind: 'interpolating-t-call',
-        line: "t('admin.songSets.created', { title: 'abc' })",
+        kind: 'excessive-args-t-call',
+        line: "t('admin.songSets.created', { title: 'abc' }, 'extra')",
       },
     ]
   );

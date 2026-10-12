@@ -99,3 +99,83 @@ export function routePlaybackSource(
     reason: 'all-predicates-met',
   };
 }
+
+let activeBlobUrl: string | null = null;
+
+/**
+ * Resolves a media item's playable URL lazily on demand.
+ * If local SW is not active but a local File/Blob handle exists, creates a temporary blob URL
+ * and revokes prior blob URLs to avoid persistent memory leaks.
+ */
+export async function resolveLazyMediaUrl(
+  item: PlaylistItem | null | undefined,
+  options?: { customSWActive?: boolean; currentSizeBytes?: number; currentLastModified?: number }
+): Promise<{ url: string; revoke?: () => void }> {
+  if (!item) return { url: '' };
+
+  const route = routePlaybackSource(item, options);
+  if (route.canRouteLocal) {
+    return { url: route.resolvedUrl };
+  }
+
+  // If routing failed because file is stale or detached, DO NOT serve local blob!
+  if (route.reason === 'file-stale-or-detached') {
+    return { url: route.resolvedUrl };
+  }
+
+  // Fallback: only serve lazy Blob URL if route failed because SW controller is missing,
+  // AND the local file record is verified valid (not stale/detached).
+  if (item.sha256 && route.reason === 'sw-controller-missing') {
+    const rec = localMediaRegistry.getRecord(item.sha256);
+    if (rec?.fileHandle) {
+      const sizeToCheck = options?.currentSizeBytes ?? rec.sizeBytes;
+      const mtimeToCheck = options?.currentLastModified ?? rec.lastModified;
+      const staleness = localMediaRegistry.checkStaleness(rec, sizeToCheck, mtimeToCheck);
+      if (staleness !== 'valid') {
+        return { url: route.resolvedUrl };
+      }
+
+      if (activeBlobUrl && typeof URL !== 'undefined') {
+        URL.revokeObjectURL(activeBlobUrl);
+        activeBlobUrl = null;
+      }
+
+      let fileObj: Blob | File | null = null;
+      if (typeof rec.fileHandle.getFile === 'function') {
+        try {
+          fileObj = await rec.fileHandle.getFile();
+        } catch {
+          fileObj = null;
+        }
+      } else if (rec.fileHandle instanceof Blob || rec.fileHandle instanceof File) {
+        fileObj = rec.fileHandle;
+      }
+
+      if (fileObj && typeof URL !== 'undefined') {
+        const u = URL.createObjectURL(fileObj);
+        activeBlobUrl = u;
+        return {
+          url: u,
+          revoke: () => {
+            if (activeBlobUrl === u && typeof URL !== 'undefined') {
+              URL.revokeObjectURL(u);
+              activeBlobUrl = null;
+            }
+          },
+        };
+      }
+    }
+  }
+
+  return { url: route.resolvedUrl };
+}
+
+/**
+ * Revokes any currently active lazy blob URL.
+ */
+export function revokeActiveMediaBlobUrl(): void {
+  if (activeBlobUrl && typeof URL !== 'undefined') {
+    URL.revokeObjectURL(activeBlobUrl);
+    activeBlobUrl = null;
+  }
+}

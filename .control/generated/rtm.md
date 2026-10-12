@@ -1977,10 +1977,10 @@ rtm:
   test:
   - tests/local-media-player.test.mjs
   - tests/projected-transitions.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -1991,10 +1991,10 @@ rtm:
   release: unified-media-control-bar-and-single-list-library
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2005,10 +2005,10 @@ rtm:
   release: unified-media-control-bar-and-single-list-library
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2019,10 +2019,10 @@ rtm:
   release: unified-media-control-bar-and-single-list-library
   test:
   - tests/local-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16

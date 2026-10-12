@@ -41,13 +41,15 @@ test('SPEC-105-03: RunSheetPage source guards for adaptive smart resume and spli
   assert.ok(
     src.includes('Resume (Slide {sessionInfo.slideNumber})') ||
     src.includes('Resume (Slide') ||
+    src.includes('runsheet.resumeAction') ||
     src.includes('{t(\'edit.actions.resume\')'),
     'RunSheetPage must render Resume with slide number'
   );
 
   // Must render "Start from Beginning (Slide 1)" and call clearPresenterSession
   assert.ok(
-    src.includes('Start from Beginning (Slide 1)'),
+    src.includes('Start from Beginning (Slide 1)') ||
+    src.includes('runsheet.startBeginningOption'),
     'RunSheetPage must render Start from Beginning (Slide 1) label'
   );
   assert.ok(

@@ -386,6 +386,7 @@ export function scanMediaPlayerSuiteLocalization(
     'MediaUploader.tsx',
     'MediaLauncherButton.tsx',
     'MediaDock.tsx',
+    'MediaControlBar.tsx',
   ];
 
   for (const file of files) {
@@ -405,6 +406,7 @@ export function scanMediaPlayerSuiteLocalization(
   const dockSrc = fs.readFileSync(path.join(mediaDir, 'MediaDock.tsx'), 'utf8');
   const uploaderSrc = fs.readFileSync(path.join(mediaDir, 'MediaUploader.tsx'), 'utf8');
   const launcherSrc = fs.readFileSync(path.join(mediaDir, 'MediaLauncherButton.tsx'), 'utf8');
+  const controlBarSrc = fs.readFileSync(path.join(mediaDir, 'MediaControlBar.tsx'), 'utf8');
 
   // Forbidden un-localized literals
   const forbiddenRawStrings = [
@@ -423,6 +425,7 @@ export function scanMediaPlayerSuiteLocalization(
     { src: dockSrc, file: 'MediaDock.tsx', raw: 'aria-label="Volume media"' },
     { src: launcherSrc, file: 'MediaLauncherButton.tsx', raw: 'title="Buka Media Player & Playlist"' },
     { src: uploaderSrc, file: 'MediaUploader.tsx', raw: 'Tambah Audio / Video (Maks 500 MiB)' },
+    { src: controlBarSrc, file: 'MediaControlBar.tsx', raw: "'Proyeksi video hanya untuk berkas video'" },
   ];
 
   for (const { src, file, raw } of forbiddenRawStrings) {
@@ -459,6 +462,32 @@ test('SPEC-112-02: Real-file defect injection — raw un-localized string in Med
     fs.writeFileSync(dockPath, original);
     assert.equal(
       fs.readFileSync(dockPath, 'utf8'),
+      original,
+      'file must be restored identically'
+    );
+  }
+});
+
+test('SPEC-113-02: Real-file defect injection — raw tooltip string in MediaControlBar.tsx fails scan', () => {
+  const barPath = path.join(rootDir, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const original = fs.readFileSync(barPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "t('media.controlBar.videoOnlyTooltip')",
+      "'Proyeksi video hanya untuk berkas video'"
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(barPath, defective);
+
+    const findings = scanMediaPlayerSuiteLocalization();
+    assert.ok(
+      findings.some((f) => f.includes('MediaControlBar.tsx contains un-localized raw string')),
+      'Expected raw string in MediaControlBar.tsx to trigger finding'
+    );
+  } finally {
+    fs.writeFileSync(barPath, original);
+    assert.equal(
+      fs.readFileSync(barPath, 'utf8'),
       original,
       'file must be restored identically'
     );

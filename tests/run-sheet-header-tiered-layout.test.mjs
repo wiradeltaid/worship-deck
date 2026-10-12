@@ -41,7 +41,7 @@ export function scanRunSheetHeaderTieredLayout(runSheetPath = runSheetPagePath) 
   }
 
   // 2. Title container enforces line-break prevention (truncate / whitespace-nowrap independently) & native title attribute
-  const titleMatch = cleanSrc.match(/<h1\b[^>]*className="([^"]*)"[^>]*title=\{([^}]+)\}[^>]*>/);
+  const titleMatch = cleanSrc.match(/<h1\b[^>]*className="([^"]*)"[^>]*title=\{([\s\S]*?)\}\s*>/);
   if (!titleMatch) {
     findings.push('Service title missing required h1 element with className and native title attribute');
   } else {
@@ -190,7 +190,7 @@ test('SPEC-86-01: Real-file defect injection — missing whitespace-nowrap alone
 test('SPEC-86-01: Real-file defect injection — missing native title attribute fails accessibility guard', () => {
   const original = fs.readFileSync(runSheetPagePath, 'utf8');
   try {
-    const defective = original.replace(/title=\{`Run-Sheet: \$\{svc\.date \|\| svc\.id\}`\}/, '');
+    const defective = original.replace(/title=\{`[\s\S]*?\$\{svc\.date \|\| svc\.id\}`\}/, '');
     assert.notEqual(defective, original, 'mutation replacement must succeed');
     fs.writeFileSync(runSheetPagePath, defective);
 

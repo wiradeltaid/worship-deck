@@ -120,7 +120,7 @@ export default function ProjectedMediaLayer({
         src={source.mediaUrl}
         onCanPlay={handleCanPlay}
         onError={handleError}
-        className="max-h-full max-w-full object-contain pointer-events-none"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
       />
     </div>
   );

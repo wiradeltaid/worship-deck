@@ -40,7 +40,7 @@ export function scanSpec53Features(headerSource, adminPanelSource, dynamicFormSo
   const findings = [];
 
   // SPEC-53-01: Header Navigation Labeling
-  if (!headerSource.includes('New Workspace Mockup')) {
+  if (!headerSource.includes('New Workspace Mockup') && !headerSource.includes("t('chrome.nav.mockup')")) {
     findings.push('Header.tsx must render "New Workspace Mockup" for the /new link');
   }
   if (headerSource.includes('>Workspace<') || headerSource.includes('>\n            Workspace\n')) {
@@ -94,7 +94,7 @@ test('SPEC-53-01: Header Navigation Labeling & Chrome Parity', () => {
 
   assert.match(
     headerContent,
-    /New Workspace Mockup/,
+    /New Workspace Mockup|chrome\.nav\.mockup/,
     'Header navigation link text must be "New Workspace Mockup"'
   );
   assert.doesNotMatch(
@@ -227,7 +227,9 @@ test('SPEC-53-Absence-Guard: Real-File Defect Injection Proofs', () => {
 
   // Defect 1: Header reverts to generic "Workspace"
   try {
-    const mutatedHeader = origHeader.replace('New Workspace Mockup', 'Workspace');
+    const mutatedHeader = origHeader.includes('New Workspace Mockup')
+      ? origHeader.replace('New Workspace Mockup', 'Workspace')
+      : origHeader.replace("t('chrome.nav.mockup')", "'Workspace'");
     const defectFindings = scanSpec53Features(
       mutatedHeader,
       origAdmin,
