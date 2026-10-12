@@ -2097,7 +2097,7 @@ decisions:
 
   - id: DEC-100
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-12)"
     title: Daily Autopilot mandate for Media Player Suite Hardening and Playlist Sync (SPEC-114)
     file: .control/decisions/DEC-100-daily-autopilot-mandate-media-player-suite-hardening-and-playlist-sync.md

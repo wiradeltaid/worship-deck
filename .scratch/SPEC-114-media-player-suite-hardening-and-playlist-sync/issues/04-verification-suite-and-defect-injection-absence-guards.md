@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** [SPEC-114-03]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement unit, integration, and executable defect injection absence guards covering playback state sync, 3-way deletion, shuffle/repeat transitions, sanctuary audio-only invariants, and header button cleanup across `tests/local-media-player.test.mjs`, `tests/presenter-media-player.test.mjs`, and `tests/bilingual-i18n-parity.test.mjs`.
@@ -35,3 +35,8 @@ Implement unit, integration, and executable defect injection absence guards cove
 - Absolute zero hardcoded UI strings; language toggle seamlessly switches all labels between English and Indonesian.
 
 ## Comments
+- Delivered in iteration I-4 of mandate DEC-100.
+- Added strict bilingual i18n parity test across all 10 SPEC-114 keys with real-file defect injection in `tests/bilingual-i18n-parity.test.mjs`.
+- Added header redundant launcher absence guard asserting removal of `<MediaLauncherButton>` and dead subscription state with real-file defect injection in `tests/presenter-media-player.test.mjs`.
+- Verified all 45 smoke tests pass, all 22 bilingual parity tests pass, and public repository guard passes.
+- Peer reviewed and ratified with SETUJU by DeepSeek Pro (`deepseekpro` via CodeBuddy CN).

@@ -441,5 +441,55 @@ test('SPEC-110-04: Guard Test Suite & Injected Defect Verification', async () =>
   assert.equal(mockEl.volume, 0.75, 'Cancelling fade immediately restores base volume');
 });
 
+test('SPEC-114-04: Header Redundant Launcher Absence Guard and Integration with MediaControlBar', async () => {
+  const fs = await import('node:fs');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8');
+
+  function assertHeaderLauncherAbsence(code) {
+    // 1. MediaLauncherButton must be absent from PresenterOperator
+    assert.ok(
+      !code.includes('<MediaLauncherButton'),
+      'PresenterOperator header row 2 must not render redundant MediaLauncherButton'
+    );
+    // 2. Dead state variables must be absent
+    assert.ok(
+      !code.includes('setMediaItemCount'),
+      'PresenterOperator must not retain dead setMediaItemCount state'
+    );
+    assert.ok(
+      !code.includes('setMediaIsPlaying'),
+      'PresenterOperator must not retain dead setMediaIsPlaying state'
+    );
+    // 3. MediaControlBar must be mounted as single canonical launcher
+    assert.ok(
+      code.includes('<MediaControlBar'),
+      'PresenterOperator must mount MediaControlBar as single canonical launcher'
+    );
+  }
+
+  // 1. Pristine code satisfies contract
+  assertHeaderLauncherAbsence(presenterSrc);
+
+  // 2. Defect injection proof: re-injecting MediaLauncherButton fails assertion
+  try {
+    const defective = presenterSrc.replace(
+      '<MediaControlBar',
+      '<MediaLauncherButton />\n      <MediaControlBar'
+    );
+    assert.notEqual(defective, presenterSrc, 'Mutation must succeed');
+    fs.writeFileSync(presenterPath, defective);
+    const readDefective = fs.readFileSync(presenterPath, 'utf8');
+    assert.throws(
+      () => assertHeaderLauncherAbsence(readDefective),
+      /PresenterOperator header row 2 must not render redundant MediaLauncherButton/,
+      'Defect injection proof: re-injecting MediaLauncherButton throws assertion error'
+    );
+  } finally {
+    fs.writeFileSync(presenterPath, presenterSrc);
+    assert.equal(fs.readFileSync(presenterPath, 'utf8'), presenterSrc, 'File must be restored byte-for-byte');
+  }
+});
+
 
 
