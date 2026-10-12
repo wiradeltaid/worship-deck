@@ -964,6 +964,8 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'media.dock.seekAriaLabel': 'Posisi pemutaran media',
   'media.dock.volumeAriaLabel': 'Volume media',
   'media.controlBar.videoOnlyTooltip': 'Proyeksi video hanya untuk berkas video',
+  'media.controlBar.projectArmedLabel': 'Tayang (Slide)',
+  'media.controlBar.projectedAudioFallback': 'Proyeksi video aktif (menampilkan slide saat audio). Klik untuk mematikan.',
   // SPEC-112: Media Status Badge
   'media.badge.local': 'Tersedia di lokal',
   'media.badge.downloading': 'Mengunduh {percent}%',

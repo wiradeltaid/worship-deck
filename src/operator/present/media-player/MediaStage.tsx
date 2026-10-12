@@ -147,11 +147,8 @@ export const MediaStage = memo(function MediaStage({
           store.dispatch({ type: 'SET_PLAYING', isPlaying: res.success });
         });
       } else {
-        // Track finish teardown: Always disable projection before transitioning to a different track
-        store.dispatch({ type: 'SET_PROJECTED', isProjected: false });
-        store.dispatch({ type: 'SET_PROJECT_STATUS', projectStatus: 'off' });
-
-        // Auto-advance to next audio track
+        // Auto-advance to next track: keep isProjected persistent across items.
+        // PresenterOperator will stream video if nextItem is video, or fallback to slides if audio.
         store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
         store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
         setTimeout(() => {

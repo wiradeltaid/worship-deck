@@ -962,6 +962,8 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'media.dock.seekAriaLabel': 'Media playback position',
   'media.dock.volumeAriaLabel': 'Media volume',
   'media.controlBar.videoOnlyTooltip': 'Video projection is available for video files only',
+  'media.controlBar.projectArmedLabel': 'Live (Slide)',
+  'media.controlBar.projectedAudioFallback': 'Video projection is armed (showing slide during audio). Click to disarm.',
   // SPEC-112: Media Status Badge
   'media.badge.local': 'Available locally',
   'media.badge.downloading': 'Downloading {percent}%',

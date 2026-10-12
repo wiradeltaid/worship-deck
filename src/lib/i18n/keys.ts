@@ -887,6 +887,8 @@ export const I18N_KEYS = [
   'media.dock.seekAriaLabel',
   'media.dock.volumeAriaLabel',
   'media.controlBar.videoOnlyTooltip',
+  'media.controlBar.projectArmedLabel',
+  'media.controlBar.projectedAudioFallback',
   // SPEC-112: Media Status Badge
   'media.badge.local',
   'media.badge.downloading',
