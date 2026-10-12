@@ -4785,6 +4785,53 @@ waves:
         tests:
           - tests/local-media-player.test.mjs
 
+  - id: SPEC-114
+    status: open
+    release: media-player-suite-hardening-and-playlist-sync
+    prd: [operator-turn]
+    fr: [FR-16, FR-25]
+    size: M
+    depends_on: [SPEC-113]
+    spec_folder: .scratch/SPEC-114-media-player-suite-hardening-and-playlist-sync/
+    spec_reviewed:
+      date: '2026-10-12'
+      sha: 'a89d5f07'
+      lenses: [structure, prose, edge-case-hunter, async-concurrency, data-lifecycle, traceability, test-evidence, i18n-parity]
+    tickets:
+      - id: "SPEC-114-01"
+        component: presenter
+        satisfies: [UC-12, FR-16]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-114-02"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-25]
+        blocked_by: ["SPEC-114-01"]
+        touches: [present-channel, uploads]
+        tests:
+          - tests/local-media-player.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+      - id: "SPEC-114-03"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-25]
+        blocked_by: ["SPEC-114-02"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/local-media-player.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+      - id: "SPEC-114-04"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-25]
+        blocked_by: ["SPEC-114-03"]
+        touches: [present-channel]
+        tests:
+          - tests/local-media-player.test.mjs
+          - tests/presenter-media-player.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+
 
 
 
