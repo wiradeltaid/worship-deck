@@ -22,12 +22,21 @@ import {
   Shuffle,
   Repeat,
   Repeat1,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
-import { canProjectMediaItem, type PlaylistState, type PlaylistItem, type RepeatMode } from './playlist-model';
+import {
+  canProjectMediaItem,
+  getPrevPlaylistItem,
+  resolveNextPlaylistItem,
+  type PlaylistState,
+  type PlaylistItem,
+  type RepeatMode,
+} from './playlist-model';
 import { routePlaybackSource } from './playback-router';
 import { useT } from '@/lib/i18n/operator';
 
@@ -81,6 +90,67 @@ export const MediaControlBar = memo(function MediaControlBar({
       }
     }
   }, [isCued, state.isPlaying, engine, store]);
+
+  const handlePrevTrack = useCallback(() => {
+    if (!isCued) return;
+    if (state.currentTime > 3) {
+      engine.seek(0);
+      store.dispatch({ type: 'SET_TIME', currentTime: 0 });
+      return;
+    }
+    const prev = getPrevPlaylistItem(state.activeId, state.items);
+    if (prev) {
+      store.dispatch({ type: 'SELECT_ITEM', id: prev.id });
+      if (state.isPlaying) {
+        setTimeout(() => {
+          void engine.play().then((res) => {
+            if (!res.success) store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+          });
+        }, 50);
+      }
+    }
+  }, [isCued, state.currentTime, state.activeId, state.items, state.isPlaying, engine, store]);
+
+  const handleNextTrack = useCallback(() => {
+    if (!isCued) return;
+    const next = resolveNextPlaylistItem(state);
+    if (next) {
+      if (next.id === state.activeId) {
+        engine.seek(0);
+        store.dispatch({ type: 'SET_TIME', currentTime: 0 });
+        if (!state.isPlaying) {
+          void engine.play().then((res) => {
+            store.dispatch({ type: 'SET_PLAYING', isPlaying: res.success });
+          });
+        }
+      } else {
+        store.dispatch({ type: 'SELECT_ITEM', id: next.id });
+        if (state.isPlaying) {
+          setTimeout(() => {
+            void engine.play().then((res) => {
+              if (!res.success) store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+            });
+          }, 50);
+        }
+      }
+    } else {
+      // Fallback if at end without repeat: advance to next item in list if available
+      const currIdx = state.items.findIndex((i) => i.id === state.activeId);
+      if (currIdx >= 0 && currIdx < state.items.length - 1) {
+        const nextItem = state.items[currIdx + 1];
+        if (nextItem) {
+          store.dispatch({ type: 'SELECT_ITEM', id: nextItem.id });
+          if (state.isPlaying) {
+            setTimeout(() => {
+              void engine.play().then((res) => {
+                if (!res.success) store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+              });
+            }, 50);
+          }
+        }
+      }
+    }
+  }, [isCued, state, engine, store]);
 
   const handleStop = useCallback(() => {
     if (!isCued) return;
@@ -200,8 +270,25 @@ export const MediaControlBar = memo(function MediaControlBar({
         className
       )}
     >
-      {/* 1. Left Panic Group: Play/Pause, Stop, Fade, Mute, Volume Slider */}
+      {/* 1. Left Panic Group: Prev, Play/Pause, Next, Stop, Fade, Mute, Volume Slider */}
       <div className="flex items-center gap-1.5 shrink-0" data-testid="media-panic-group">
+        {/* Previous Track */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="media-control-bar-prev"
+          disabled={!isCued}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handlePrevTrack}
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+          title={t('media.controlBar.prevTitle')}
+          aria-label={t('media.controlBar.prevTitle')}
+        >
+          <SkipBack className="h-3.5 w-3.5" />
+        </Button>
+
+        {/* Play / Pause Toggle */}
         <Button
           type="button"
           size="sm"
@@ -224,6 +311,22 @@ export const MediaControlBar = memo(function MediaControlBar({
               <span>{t('media.topBar.playLabel')}</span>
             </>
           )}
+        </Button>
+
+        {/* Next Track */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="media-control-bar-next"
+          disabled={!isCued}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleNextTrack}
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+          title={t('media.controlBar.nextTitle')}
+          aria-label={t('media.controlBar.nextTitle')}
+        >
+          <SkipForward className="h-3.5 w-3.5" />
         </Button>
 
         <Button

@@ -1259,6 +1259,7 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
     repeatMode: 'off',
   };
   assert.equal(resolveNextPlaylistItem(videoState), null, 'Video track must never auto-advance');
+  assert.equal(resolveNextPlaylistItem({ ...videoState, repeatMode: 'one' })?.id, 'track-3', 'Repeat-One repeats active video track');
 
   // Invariant 2: Repeat-One repeats active track regardless of shuffle
   const repeatOneState = {
@@ -1309,9 +1310,11 @@ test('SPEC-114-03: MediaControlBar Shuffle, 3-State Repeat, and Redundant Launch
   const presenterCode = fs.readFileSync(presenterSourcePath, 'utf8');
 
   function assertShuffleRepeatContract(bar, presenter) {
-    // Shuffle & Repeat buttons in MediaControlBar
+    // Shuffle & Repeat & Transport buttons in MediaControlBar
     assert.ok(bar.includes('data-testid="media-control-bar-shuffle"'), 'Must have shuffle button');
     assert.ok(bar.includes('data-testid="media-control-bar-repeat"'), 'Must have repeat button');
+    assert.ok(bar.includes('data-testid="media-control-bar-prev"'), 'Must have prev button');
+    assert.ok(bar.includes('data-testid="media-control-bar-next"'), 'Must have next button');
     assert.ok(bar.includes('Shuffle') && bar.includes('Repeat') && bar.includes('Repeat1'), 'Must render icons');
     assert.ok(bar.includes("t('media.controlBar.shuffleOn')"), 'Must use localized shuffle tooltip');
     assert.ok(bar.includes("t('media.controlBar.repeatOne')"), 'Must use localized repeat tooltip');

@@ -263,14 +263,16 @@ export function resolveNextPlaylistItem(
   rng: () => number = Math.random
 ): PlaylistItem | null {
   const current = state.items.find((i) => i.id === state.activeId);
-  if (!current || current.type === 'video') {
-    // Current video track never auto-advances (AD-24 sanctuary protection)
-    return null;
-  }
+  if (!current) return null;
 
-  // 1. Repeat-One strictly overrides shuffle and sequential advance
+  // 1. Repeat-One strictly overrides shuffle and sequential advance (loops current audio or video track)
   if (state.repeatMode === 'one') {
     return current;
+  }
+
+  // Current video track never auto-advances to a different track (AD-24 sanctuary protection)
+  if (current.type === 'video') {
+    return null;
   }
 
   // Filter only audio items for sanctuary screen protection
