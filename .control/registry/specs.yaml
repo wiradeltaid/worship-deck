@@ -4833,7 +4833,7 @@ waves:
           - tests/bilingual-i18n-parity.test.mjs
 
   - id: SPEC-115
-    status: open
+    status: closed
     release: unified-remote-presenter-console-and-qr-pairing
     prd: [operator-turn]
     fr: [FR-16, FR-35, FR-25]
@@ -4849,7 +4849,7 @@ waves:
         component: presenter
         satisfies: [UC-29, FR-35, FR-25]
         blocked_by: []
-        touches: [remote]
+        touches: [remote-control]
         tests:
           - tests/remote-presenting-client.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
@@ -4857,7 +4857,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-29, FR-16, FR-35]
         blocked_by: ["SPEC-115-01"]
-        touches: [present-channel, remote]
+        touches: [present-channel, remote-control]
         tests:
           - tests/remote-screen.test.mjs
           - tests/presenter-media-player.test.mjs
@@ -4865,7 +4865,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-29, FR-16, FR-35]
         blocked_by: ["SPEC-115-02"]
-        touches: [remote, present-channel]
+        touches: [remote-control, present-channel]
         tests:
           - tests/remote-presenting-client.test.mjs
           - tests/presenter-media-player.test.mjs
@@ -4873,7 +4873,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-29, FR-16, FR-35, FR-25]
         blocked_by: ["SPEC-115-03"]
-        touches: [remote, present-channel]
+        touches: [remote-control, present-channel]
         tests:
           - tests/remote-presenting-client.test.mjs
           - tests/remote-screen.test.mjs

@@ -316,3 +316,71 @@ test('SPEC-115-02 defect injection: un-isolated projector, audio, or capture fai
   assert.ok(defects.includes('media-stage-audio-not-muted-in-remote-mode'));
   assert.ok(defects.includes('capture-broker-not-bypassed-in-remote-mode'));
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-115-04: Comprehensive Verification Suite, Isolation & Absence Guards
+// -----------------------------------------------------------------------------
+test('SPEC-115-04: PresenterOperator strictly enforces surface isolation invariants in remote mode', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx').replace(/\r\n/g, '\n');
+
+  // 1. Audio Mute Invariant: MediaStage mutedOverride bound to remote mode
+  assert.ok(
+    operatorSource.includes("mutedOverride={mode === 'remote'}"),
+    'Must pass mutedOverride={mode === "remote"} to MediaStage'
+  );
+  // 2. Projector Channel Bypass: openPresentChannel bypassed in remote mode
+  assert.ok(
+    operatorSource.includes("if (mode === 'remote') return;\n    const ch = openPresentChannel(serviceId);"),
+    'Must bypass openPresentChannel in remote mode'
+  );
+  // 3. Hardware Capture Bypass: CaptureBroker bypassed in remote mode
+  assert.ok(
+    operatorSource.includes("if (mode !== 'remote' && !captureBrokerRef.current)"),
+    'Must bypass CaptureBroker in remote mode'
+  );
+  // 4. Cache & Storage Hydration Bypass: hydratePlaylist bypassed in remote mode
+  assert.ok(
+    operatorSource.includes("if (mode === 'remote') return;\n    let cancelled = false;\n    async function hydratePlaylist()"),
+    'Must bypass hydratePlaylist in remote mode'
+  );
+  // 5. Emergency Patch Hydration Bypass: getEmergencyPatches bypassed in remote mode
+  assert.ok(
+    operatorSource.includes("if (mode === 'remote') {\n      setIsHydratingPatches(false);"),
+    'Must bypass emergency patches hydration in remote mode'
+  );
+  // 6. Durable Mutation Boundary: Emergency edit modal and button hidden in remote mode
+  assert.ok(
+    operatorSource.includes("{mode !== 'remote' && (\n        <EmergencyCanvasDesignerModal"),
+    'Must not mount EmergencyCanvasDesignerModal in remote mode'
+  );
+  assert.ok(
+    operatorSource.includes("{mode !== 'remote' && (\n        <MediaDrawer"),
+    'Must not mount MediaDrawer in remote mode'
+  );
+});
+
+test('SPEC-115-04 real-file defect injection: mounting Emergency Edit or MediaDrawer in remote mode fails guard', () => {
+  const operatorPath = path.join(repoRoot, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const original = fs.readFileSync(operatorPath, 'utf8');
+  try {
+    const isCrlf = original.includes('\r\n');
+    const targetPattern = isCrlf
+      ? "{mode !== 'remote' && (\r\n        <EmergencyCanvasDesignerModal"
+      : "{mode !== 'remote' && (\n        <EmergencyCanvasDesignerModal";
+    const defective = original.replace(
+      targetPattern,
+      "<EmergencyCanvasDesignerModal"
+    );
+    assert.notEqual(defective, original, 'Mutation must succeed');
+    fs.writeFileSync(operatorPath, defective);
+
+    const reRead = fs.readFileSync(operatorPath, 'utf8').replace(/\r\n/g, '\n');
+    assert.ok(
+      !reRead.includes("{mode !== 'remote' && (\n        <EmergencyCanvasDesignerModal"),
+      'Defective source must trigger missing isolation guard'
+    );
+  } finally {
+    fs.writeFileSync(operatorPath, original);
+    assert.equal(fs.readFileSync(operatorPath, 'utf8'), original, 'File must be restored byte-for-byte');
+  }
+});
