@@ -648,3 +648,52 @@ test('9. An API restart ends every pairing (memory-only, no DB table)', async ()
   });
   assert.equal(intentAfterRestart.status, 409);
 });
+
+test('10. SPEC-118-04: Token-based remote resume, session token re-binding, and revocation', async () => {
+  // Clear any existing pairing
+  await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'DELETE', cookie: cookieOp1 });
+
+  // 1. Host creates pair
+  const pair = await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'POST', cookie: cookieOp1 });
+  assert.equal(pair.status, 200);
+
+  // 2. Remote claims code and receives session_token
+  const claim = await apiRequest(`/api/present/${serviceId}/remote/claim`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { code: pair.body.code },
+  });
+  assert.equal(claim.status, 200);
+  assert.ok(claim.body.token, 'Must return token');
+  assert.equal(typeof claim.body.token, 'string');
+  const validToken = claim.body.token;
+
+  // 3. Resume with valid session_token returns 200 and paired: true
+  const resumeValid = await apiRequest(`/api/present/${serviceId}/remote/resume`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { token: validToken },
+  });
+  assert.equal(resumeValid.status, 200);
+  assert.equal(resumeValid.body.paired, true);
+  assert.equal(resumeValid.body.token, validToken);
+
+  // 4. Resume with invalid token returns 401
+  const resumeInvalid = await apiRequest(`/api/present/${serviceId}/remote/resume`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { token: 'invalid-token-123' },
+  });
+  assert.equal(resumeInvalid.status, 401);
+
+  // 5. Host creating a new pair revokes the prior session_token (AD-37 single-controller invariant)
+  const newPair = await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'POST', cookie: cookieOp1 });
+  assert.equal(newPair.status, 200);
+
+  const resumeAfterRevocation = await apiRequest(`/api/present/${serviceId}/remote/resume`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { token: validToken },
+  });
+  assert.equal(resumeAfterRevocation.status, 401);
+});

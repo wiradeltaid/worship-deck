@@ -224,6 +224,18 @@ export default function RemoteOperator({
           }
         }
       });
+    } else {
+      const savedToken = session.getSessionToken();
+      if (savedToken) {
+        setPairingBusy(true);
+        void session.resume(savedToken).then((res) => {
+          if (!active) return;
+          setPairingBusy(false);
+          if (res.ok) {
+            setPaired(true);
+          }
+        });
+      }
     }
 
     return () => {

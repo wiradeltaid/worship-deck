@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-29, FR-35]
 **Blocked by:** ["SPEC-118-03"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Harden the remote control connection protocol in Go backend (`internal/httpapi/remote.go`) and client (`presenter-remote-client.ts`). Implement token-based session resumption (`session_token`) so that mobile controllers can reconnect seamlessly after transient Wi-Fi drops or screen locks without needing a new PIN, while preserving the strict one-time-burn posture of the 6-digit pairing code and single-controller authority (AD-37). Tune SSE heartbeat tolerance from 15s to 30s.

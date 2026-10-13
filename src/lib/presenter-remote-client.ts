@@ -614,6 +614,7 @@ export class RemoteControlSession {
   private generation = 0;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private sessionToken: string | null = null;
 
   constructor(options: RemoteControlSessionOptions) {
     this.serviceId = options.serviceId;
@@ -621,6 +622,18 @@ export class RemoteControlSession {
     this.onConnectionChange = options.onConnectionChange;
     this.maxRetries = options.maxRetries ?? 5;
     this.retryDelayBaseMs = options.retryDelayBaseMs ?? 1000;
+  }
+
+  public getSessionToken(): string | null {
+    if (this.sessionToken) return this.sessionToken;
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        return sessionStorage.getItem(`presenter_remote_token_${this.serviceId}`);
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 
   public async checkPairStatus(): Promise<{ paired: boolean; hasGrant: boolean }> {
@@ -657,7 +670,21 @@ export class RemoteControlSession {
         this.onConnectionChange?.('error');
         return { ok: false, error: res.status === 409 ? 'conflict' : 'invalid' };
       }
-      const data = (await res.json()) as { paired?: boolean; state?: RemoteControlSessionState };
+      const data = (await res.json()) as {
+        paired?: boolean;
+        token?: string;
+        session_token?: string;
+        state?: RemoteControlSessionState;
+      };
+      const token = data.token || data.session_token || null;
+      if (token) {
+        this.sessionToken = token;
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          try {
+            sessionStorage.setItem(`presenter_remote_token_${this.serviceId}`, token);
+          } catch {}
+        }
+      }
       if (data.state) {
         this.onState(data.state);
       }
@@ -665,6 +692,61 @@ export class RemoteControlSession {
       return { ok: true };
     } catch {
       this.onConnectionChange?.('error');
+      return { ok: false, error: 'network' };
+    }
+  }
+
+  public async resume(savedToken?: string): Promise<{ ok: boolean; error?: string }> {
+    let tokenToUse = savedToken || this.sessionToken;
+    if (!tokenToUse && typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        tokenToUse = sessionStorage.getItem(`presenter_remote_token_${this.serviceId}`);
+      } catch {}
+    }
+    if (!tokenToUse) {
+      return { ok: false, error: 'no-token' };
+    }
+    this.stopped = false;
+    this.reconnectAttempts = 0;
+    this.clearReconnectTimer();
+    this.onConnectionChange?.('claiming');
+    try {
+      const res = await fetch(`/api/present/${this.serviceId}/remote/resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenToUse }),
+        credentials: 'same-origin',
+      });
+      if (!res.ok) {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          try {
+            sessionStorage.removeItem(`presenter_remote_token_${this.serviceId}`);
+          } catch {}
+        }
+        this.sessionToken = null;
+        this.onConnectionChange?.('disconnected');
+        return { ok: false, error: res.status === 401 ? 'revoked' : 'invalid' };
+      }
+      const data = (await res.json()) as {
+        paired?: boolean;
+        token?: string;
+        session_token?: string;
+        state?: RemoteControlSessionState;
+      };
+      const token = data.token || data.session_token || tokenToUse;
+      this.sessionToken = token;
+      if (typeof window !== 'undefined' && window.sessionStorage && token) {
+        try {
+          sessionStorage.setItem(`presenter_remote_token_${this.serviceId}`, token);
+        } catch {}
+      }
+      if (data.state) {
+        this.onState(data.state);
+      }
+      this.openStream();
+      return { ok: true };
+    } catch {
+      this.onConnectionChange?.('reconnecting');
       return { ok: false, error: 'network' };
     }
   }
@@ -694,7 +776,8 @@ export class RemoteControlSession {
       this.eventSource = null;
     }
 
-    const url = `/api/present/${this.serviceId}/remote/stream?role=remote`;
+    const tokenParam = this.sessionToken ? `&token=${encodeURIComponent(this.sessionToken)}` : '';
+    const url = `/api/present/${this.serviceId}/remote/stream?role=remote${tokenParam}`;
     const es = new EventSource(url, { withCredentials: true });
     this.eventSource = es;
 
@@ -728,22 +811,32 @@ export class RemoteControlSession {
         this.eventSource = null;
       }
 
-      // Check pairing status to decide whether to reconnect directly without re-pairing
+      // If we hold a session token, attempt seamless resume
       let hasGrant = true;
-      try {
-        const res = await fetch(`/api/present/${this.serviceId}/remote/pair`, {
-          credentials: 'same-origin',
-        });
-        if (res.ok) {
-          const body = (await res.json()) as { paired?: boolean; has_grant?: boolean };
-          if (body && body.has_grant === false) {
-            hasGrant = false;
-          }
-        } else if (res.status === 401 || res.status === 403 || res.status === 404) {
+      if (this.sessionToken) {
+        const resumeRes = await this.resume();
+        if (resumeRes.ok) {
+          return;
+        }
+        if (resumeRes.error === 'revoked') {
           hasGrant = false;
         }
-      } catch {
-        // Network error — transient network blip; keep hasGrant true to attempt retry
+      } else {
+        try {
+          const res = await fetch(`/api/present/${this.serviceId}/remote/pair`, {
+            credentials: 'same-origin',
+          });
+          if (res.ok) {
+            const body = (await res.json()) as { paired?: boolean; has_grant?: boolean };
+            if (body && body.has_grant === false) {
+              hasGrant = false;
+            }
+          } else if (res.status === 401 || res.status === 403 || res.status === 404) {
+            hasGrant = false;
+          }
+        } catch {
+          // Network error — transient network blip; keep hasGrant true to attempt retry
+        }
       }
 
       if (this.stopped || currentGen !== this.generation) return;
@@ -785,11 +878,19 @@ export class RemoteControlSession {
     }
   }
 
-  public stop(): void {
+  public stop(clearToken = false): void {
     this.stopped = true;
     this.generation++;
     this.reconnectAttempts = 0;
     this.clearReconnectTimer();
+    if (clearToken) {
+      this.sessionToken = null;
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        try {
+          sessionStorage.removeItem(`presenter_remote_token_${this.serviceId}`);
+        } catch {}
+      }
+    }
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;

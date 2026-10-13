@@ -861,3 +861,61 @@ test('SPEC-117-03 defect injection: missing host telemetry broadcasts fails scan
   ]);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-118-04: Resilient Remote Pairing Connection, Reconnect Retention, and Heartbeat Jitter Tolerance
+// -----------------------------------------------------------------------------
+export function scanSpec11804ResilientRemoteReconnectGuards(sources) {
+  const defects = [];
+  // 1. remote.go tunes StreamFreshnessWindow to 30s
+  if (!sources.remoteGo.includes('StreamFreshnessWindow = 30 * time.Second')) {
+    defects.push('missing-30s-stream-freshness-window');
+  }
+  // 2. remote.go implements postRemoteResume
+  if (!sources.remoteGo.includes('func (s *Server) postRemoteResume(')) {
+    defects.push('missing-remote-resume-endpoint-handler');
+  }
+  // 3. server.go registers POST /api/present/{id}/remote/resume
+  if (!sources.serverGo.includes('"POST /api/present/{id}/remote/resume", s.postRemoteResume')) {
+    defects.push('missing-remote-resume-route-registration');
+  }
+  // 4. presenter-remote-client.ts implements resume method
+  if (!sources.client.includes('public async resume(savedToken?: string): Promise<{ ok: boolean; error?: string }>')) {
+    defects.push('missing-client-resume-method');
+  }
+  // 5. RemoteOperator checks session.getSessionToken() and auto-resumes
+  if (!sources.remoteOp.includes('session.getSessionToken()') || !sources.remoteOp.includes('session.resume(savedToken)')) {
+    defects.push('missing-remote-operator-auto-resume');
+  }
+  return defects;
+}
+
+test('SPEC-118-04: Resilient remote pairing connection, token-based resume, and heartbeat jitter tolerance', async () => {
+  const sources = {
+    remoteGo: readRaw('internal/httpapi/remote.go').replace(/\r\n/g, '\n'),
+    serverGo: readRaw('internal/httpapi/server.go').replace(/\r\n/g, '\n'),
+    client: readRaw('src/lib/presenter-remote-client.ts').replace(/\r\n/g, '\n'),
+    remoteOp: readRaw('src/operator/present/RemoteOperator.tsx').replace(/\r\n/g, '\n'),
+  };
+
+  const defects = scanSpec11804ResilientRemoteReconnectGuards(sources);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-118-04 defect injection: missing resume handler, route, or client method fails scan guard', () => {
+  const mutated = {
+    remoteGo: 'const StreamFreshnessWindow = 15 * time.Second;',
+    serverGo: 'mux.HandleFunc("POST /api/present/{id}/remote/claim", s.postRemoteClaim)',
+    client: 'export class RemoteControlSession { public claim() {} }',
+    remoteOp: '<div>No auto-resume</div>',
+  };
+
+  const defects = scanSpec11804ResilientRemoteReconnectGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-30s-stream-freshness-window',
+    'missing-remote-resume-endpoint-handler',
+    'missing-remote-resume-route-registration',
+    'missing-client-resume-method',
+    'missing-remote-operator-auto-resume',
+  ]);
+});
+
