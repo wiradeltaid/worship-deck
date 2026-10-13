@@ -2208,6 +2208,26 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-118-presenter-layout-stability-tablet-media-bar-and-remote-resilience/
 
+  - id: DEC-106
+    type: mandate
+    status: applied
+    applied_at: '2026-10-13'
+    accepted_by: "kodesh87 (2026-10-13)"
+    title: Daily Autopilot mandate for Presenter Remote Media Seekbar Telemetry Resilience, Inert Remote Audio Isolation, and Touch Scrubbing (SPEC-119)
+    file: .control/decisions/DEC-106-daily-autopilot-mandate-remote-seekbar-telemetry-resilience-touch-scrubbing.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-20'
+    touches:
+      - .control/memlog/autopilot-DEC-106.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-119-presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing/
+
 
 
 

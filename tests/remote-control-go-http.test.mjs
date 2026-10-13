@@ -697,3 +697,53 @@ test('10. SPEC-118-04: Token-based remote resume, session token re-binding, and 
   });
   assert.equal(resumeAfterRevocation.status, 401);
 });
+
+test('11. SPEC-119-02: Go backend merges state and retains playlistManifest across throttled clock updates', async () => {
+  await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'DELETE', cookie: cookieOp1 });
+  const pair = await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'POST', cookie: cookieOp1 });
+
+  // 1. Host posts initial media state with full playlistManifest
+  const postInitial = await apiRequest(`/api/present/${serviceId}/remote/state`, {
+    method: 'POST',
+    cookie: cookieOp1,
+    body: {
+      media: {
+        activeId: 'm-track-1',
+        isPlaying: true,
+        currentTime: 0,
+        playlistManifest: [
+          { id: 'm-track-1', name: 'Amazing Grace', type: 'audio', duration: 240 },
+          { id: 'm-track-2', name: 'How Great Thou Art', type: 'audio', duration: 180 },
+        ],
+      },
+    },
+  });
+  assert.equal(postInitial.status, 200);
+
+  // 2. Host posts subsequent throttled clock packet (omits playlistManifest)
+  const postThrottledClock = await apiRequest(`/api/present/${serviceId}/remote/state`, {
+    method: 'POST',
+    cookie: cookieOp1,
+    body: {
+      media: {
+        currentTime: 12.5,
+      },
+    },
+  });
+  assert.equal(postThrottledClock.status, 200);
+
+  // 3. Remote claims pairing and receives merged state
+  const claim = await apiRequest(`/api/present/${serviceId}/remote/claim`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { code: pair.body.code },
+  });
+  assert.equal(claim.status, 200);
+  assert.ok(claim.body.state, 'Claim must return cached session state');
+  assert.equal(claim.body.state.media.currentTime, 12.5, 'Latest currentTime is reflected');
+  assert.equal(claim.body.state.media.isPlaying, true, 'Prior isPlaying flag is preserved');
+  assert.equal(claim.body.state.media.activeId, 'm-track-1', 'Prior activeId is preserved');
+  assert.ok(Array.isArray(claim.body.state.media.playlistManifest), 'playlistManifest is preserved');
+  assert.equal(claim.body.state.media.playlistManifest.length, 2, 'Full playlistManifest items retained');
+  assert.equal(claim.body.state.media.playlistManifest[0].name, 'Amazing Grace');
+});

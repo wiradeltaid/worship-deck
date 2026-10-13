@@ -687,7 +687,30 @@ func (s *Server) postRemoteState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	state.lastState = stateBytes
+	// Deep merge body into cached lastState (retaining playlistManifest and full presentation state across throttled updates)
+	merged := make(map[string]any)
+	if len(state.lastState) > 0 {
+		_ = json.Unmarshal(state.lastState, &merged)
+	}
+	for k, v := range body {
+		if k == "media" {
+			if existingMedia, ok := merged["media"].(map[string]any); ok {
+				if newMedia, ok := v.(map[string]any); ok {
+					for mk, mv := range newMedia {
+						existingMedia[mk] = mv
+					}
+					merged["media"] = existingMedia
+					continue
+				}
+			}
+		}
+		merged[k] = v
+	}
+	if mergedBytes, mErr := json.Marshal(merged); mErr == nil {
+		state.lastState = mergedBytes
+	} else {
+		state.lastState = stateBytes
+	}
 
 	for ch := range state.remoteChans {
 		select {

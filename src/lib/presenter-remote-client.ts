@@ -385,6 +385,8 @@ export class PresenterRemoteSession {
   private startRequestedEpoch = 0;
   private stopEpoch = 0;
   private stopped = false;
+  private isBroadcasting = false;
+  private pendingBroadcastState: Partial<RemoteControlSessionState> | null = null;
 
   constructor(options: PresenterRemoteSessionOptions) {
     this.serviceId = options.serviceId;
@@ -490,6 +492,7 @@ export class PresenterRemoteSession {
     this.stopped = true;
     this.stopEpoch = this.startRequestedEpoch;
     this.generation++;
+    this.pendingBroadcastState = null;
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
@@ -521,21 +524,56 @@ export class PresenterRemoteSession {
 
   /**
    * Broadcasts live presentation and media state updates to paired remote client(s).
+   * Implements single-flight coalescing: merges incoming states into a pending slot
+   * while an HTTP request is in-flight, superseding intermediate timestamps and
+   * eliminating sequential promise chaining backlogs and SSE buffer drops.
    */
   public async broadcastState(state: Partial<RemoteControlSessionState>): Promise<void> {
-    return this.enqueue(async () => {
-      try {
-        const res = await fetch(`/api/present/${this.serviceId}/remote/state`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify(state),
-        });
-        await res.text().catch(() => {});
-      } catch {
-        // Ignore network error on broadcast
+    if (this.stopped) return;
+
+    if (this.isBroadcasting) {
+      if (!this.pendingBroadcastState) {
+        this.pendingBroadcastState = { ...state };
+      } else {
+        const mergedMedia = state.media
+          ? { ...(this.pendingBroadcastState.media || {}), ...state.media }
+          : this.pendingBroadcastState.media;
+        this.pendingBroadcastState = {
+          ...this.pendingBroadcastState,
+          ...state,
+          ...(mergedMedia ? { media: mergedMedia } : {}),
+        };
       }
-    });
+      return;
+    }
+
+    this.isBroadcasting = true;
+    let nextState: Partial<RemoteControlSessionState> | null = state;
+
+    try {
+      while (nextState && !this.stopped) {
+        const currentStateToSend: Partial<RemoteControlSessionState> = nextState;
+        nextState = null;
+        try {
+          const res = await fetch(`/api/present/${this.serviceId}/remote/state`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(currentStateToSend),
+          });
+          await res.text().catch(() => {});
+        } catch {
+          // Ignore network error on broadcast
+        }
+
+        if (this.pendingBroadcastState) {
+          nextState = this.pendingBroadcastState;
+          this.pendingBroadcastState = null;
+        }
+      }
+    } finally {
+      this.isBroadcasting = false;
+    }
   }
 }
 

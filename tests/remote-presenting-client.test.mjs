@@ -919,3 +919,139 @@ test('SPEC-118-04 defect injection: missing resume handler, route, or client met
   ]);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-119-02: Optimized Host Media Telemetry Throttling & Coalescing Broadcast Queue
+// -----------------------------------------------------------------------------
+export function scanSpec11902TelemetryThrottlingAndCoalescingGuards(sources) {
+  const defects = [];
+  // 1. PresenterOperator decoupling of playlistManifest from timeupdate
+  if (!sources.operator.includes('lastManifestFingerprintRef') || !sources.operator.includes('if (manifestChanged)')) {
+    defects.push('missing-manifest-decoupling-from-clock');
+  }
+  // 2. PresenterOperator throttling of continuous playback clock
+  if (!sources.operator.includes('lastMediaBroadcastTimeRef') || !sources.operator.includes('now - lastMediaBroadcastTimeRef.current >= 500')) {
+    defects.push('missing-continuous-clock-throttling');
+  }
+  // 3. PresenterOperator immediate broadcast of discrete state changes & connect initial sync
+  if (!sources.operator.includes('forceImmediate || discreteChanged || manifestChanged || isSeek || throttleElapsed')) {
+    defects.push('missing-discrete-change-immediate-broadcast');
+  }
+  if (!sources.operator.includes('broadcastMediaSnapshot(true)')) {
+    defects.push('missing-connect-initial-media-sync');
+  }
+  // 4. presenter-remote-client single-flight coalescing queue
+  if (!sources.client.includes('private isBroadcasting = false;') || !sources.client.includes('private pendingBroadcastState: Partial<RemoteControlSessionState> | null = null;')) {
+    defects.push('missing-single-flight-broadcast-flags');
+  }
+  if (!sources.client.includes('if (this.isBroadcasting)') || !sources.client.includes('this.pendingBroadcastState =')) {
+    defects.push('missing-broadcast-coalescing-logic');
+  }
+  // 5. Verify absence of media/manifest in presentation snapshot effect (liveness dependency effect)
+  const normOp = sources.operator.replace(/\r\n/g, '\n');
+  const presentationSnapshotEffectMatch = normOp.match(
+    /\/\/\s*Immediate presentation snapshot broadcast when remote client connects or liveness updates[\s\S]*?useEffect\(\(\)\s*=>\s*\{([\s\S]*?)\},\s*\[mode,\s*remoteState,\s*liveness\.verdict,\s*presentationLock\]\);/m
+  );
+  if (!presentationSnapshotEffectMatch) {
+    defects.push('missing-presentation-snapshot-effect');
+  } else if (presentationSnapshotEffectMatch[1].includes('playlistManifest') || presentationSnapshotEffectMatch[1].includes('media:')) {
+    defects.push('presentation-snapshot-effect-contains-redundant-media-broadcast');
+  }
+  return defects;
+}
+
+test('SPEC-119-02: Optimized host media telemetry throttling & coalescing broadcast queue contracts', () => {
+  const sources = {
+    operator: readRaw('src/operator/present/PresenterOperator.tsx').replace(/\r\n/g, '\n'),
+    client: readRaw('src/lib/presenter-remote-client.ts').replace(/\r\n/g, '\n'),
+  };
+
+  const defects = scanSpec11902TelemetryThrottlingAndCoalescingGuards(sources);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-119-02 defect injection: missing throttling or coalescing fails scan guard', () => {
+  const mutated = {
+    operator: 'return mediaStore.subscribe(() => { void remoteSessionRef.current?.broadcastState({ media: snap }); });',
+    client: 'public async broadcastState(state) { return fetch("/api/state", { method: "POST" }); }',
+  };
+
+  const defects = scanSpec11902TelemetryThrottlingAndCoalescingGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-manifest-decoupling-from-clock',
+    'missing-continuous-clock-throttling',
+    'missing-discrete-change-immediate-broadcast',
+    'missing-connect-initial-media-sync',
+    'missing-single-flight-broadcast-flags',
+    'missing-broadcast-coalescing-logic',
+    'missing-presentation-snapshot-effect',
+  ]);
+});
+
+test('SPEC-119-02 defect injection: redundant media broadcast in presentation liveness effect fails guard', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx').replace(/\r\n/g, '\n');
+  const clientSource = readRaw('src/lib/presenter-remote-client.ts').replace(/\r\n/g, '\n');
+
+  // Inject redundant media broadcast into presentation liveness effect
+  const mutatedOperator = operatorSource.replace(
+    'presentationLock,\n        scripture:',
+    'presentationLock,\n        media: { playlistManifest: [] },\n        scripture:'
+  );
+
+  const defects = scanSpec11902TelemetryThrottlingAndCoalescingGuards({
+    operator: mutatedOperator,
+    client: clientSource,
+  });
+  assert.deepEqual(defects, ['presentation-snapshot-effect-contains-redundant-media-broadcast']);
+});
+
+test('SPEC-119-02 behavioral: PresenterRemoteSession coalesces in-flight broadcast states', async () => {
+  const { PresenterRemoteSession } = await import(srcUrl('src', 'lib', 'presenter-remote-client.ts'));
+
+  const fetchCalls = [];
+  const inFlightResolvers = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    fetchCalls.push({ url, body: JSON.parse(opts.body) });
+    return new Promise((resolve) => {
+      inFlightResolvers.push(() => resolve({ ok: true, text: async () => '' }));
+    });
+  };
+
+  try {
+    const session = new PresenterRemoteSession({
+      serviceId: 101,
+      getPlanIdentity: () => 'plan-1',
+      handlers: {},
+    });
+
+    // Fire 1st broadcast: starts in-flight fetch
+    const p1 = session.broadcastState({ media: { currentTime: 1.0, isPlaying: true } });
+    assert.equal(fetchCalls.length, 1, 'First broadcast must start fetch immediately');
+
+    // Fire 2nd and 3rd broadcasts while 1st is in-flight
+    const p2 = session.broadcastState({ media: { currentTime: 1.25, isPlaying: true } });
+    const p3 = session.broadcastState({ media: { currentTime: 1.5, volume: 0.9 } });
+
+    assert.equal(fetchCalls.length, 1, 'In-flight broadcast must prevent duplicate concurrent fetch requests');
+
+    // Resolve 1st request
+    inFlightResolvers.shift()();
+
+    // Allow microtask tick for loop to advance to 2nd request
+    await new Promise((r) => setImmediate(r));
+
+    assert.equal(fetchCalls.length, 2, 'Coalesced state must be dispatched as 2nd request');
+    assert.equal(fetchCalls[1].body.media.currentTime, 1.5, 'Latest currentTime (1.5) supersedes intermediate (1.25)');
+    assert.equal(fetchCalls[1].body.media.isPlaying, true, 'Prior merged fields (isPlaying) are preserved');
+    assert.equal(fetchCalls[1].body.media.volume, 0.9, 'New fields (volume) are merged');
+
+    // Resolve 2nd request
+    inFlightResolvers.shift()();
+    await Promise.all([p1, p2, p3]);
+
+    assert.equal(fetchCalls.length, 2, 'No further requests when pending queue is empty');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
