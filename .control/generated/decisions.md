@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**105 decisions** — accepted: 1 · applied: 103 · superseded: 1.
+**106 decisions** — accepted: 2 · applied: 103 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -113,3 +113,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-103` | Daily Autopilot mandate for Target-Authority Remote Presenter Console (SPEC-116) | `applied` | mandate | `.control/memlog/autopilot-DEC-103.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-116-target-authority-remote-presenter-console/` | `.control/decisions/DEC-103-daily-autopilot-mandate-target-authority-remote-presenter-console.md` |
 | `DEC-104` | Daily Autopilot mandate for Mobile Media Bar Ergonomics, Presenter Header Layout Harmony, and Remote Synchron… | `applied` | mandate | `.control/memlog/autopilot-DEC-104.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/` | `.control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-and-remote-sync.md` |
 | `DEC-105` | Daily Autopilot mandate for Presenter Layout Stability across Viewports, Tablet Media Bar Ergonomics, and Rem… | `applied` | mandate | `.control/memlog/autopilot-DEC-105.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-118-presenter-layout-stability-tablet-media-bar-and-remote-resilience/` | `.control/decisions/DEC-105-daily-autopilot-mandate-presenter-layout-stability-tablet-media-bar-remote-resilience.md` |
+| `DEC-106` | Daily Autopilot mandate for Presenter Remote Media Seekbar Telemetry Resilience, Inert Remote Audio Isolation… | `accepted` | mandate | `.control/memlog/autopilot-DEC-106.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-119-presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing/` | `.control/decisions/DEC-106-daily-autopilot-mandate-remote-seekbar-telemetry-resilience-touch-scrubbing.md` |

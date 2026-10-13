@@ -5015,6 +5015,47 @@ waves:
         tests:
           - tests/remote-control-go-http.test.mjs
           - tests/remote-presenting-client.test.mjs
+  - id: SPEC-119
+    status: open
+    release: presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing
+    prd: [operator-turn]
+    fr: [FR-16, FR-35]
+    size: M
+    depends_on: [SPEC-118]
+    spec_folder: .scratch/SPEC-119-presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing/
+    spec_reviewed:
+      date: '2026-10-13'
+      sha: '203e8a08'
+      lenses: [structure, prose, edge-case-hunter, state-telemetry, touch-ergonomics]
+    tickets:
+      - id: "SPEC-119-01"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-media-player.test.mjs
+      - id: "SPEC-119-02"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: ["SPEC-119-01"]
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-presenting-client.test.mjs
+      - id: "SPEC-119-03"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: ["SPEC-119-02"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-media-player.test.mjs
+      - id: "SPEC-119-04"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: ["SPEC-119-03"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-media-player.test.mjs
 
 
 
