@@ -71,6 +71,9 @@ export const MediaControlBar = memo(function MediaControlBar({
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
   const [seekingTime, setSeekingTime] = useState<number | null>(null);
   const isSeekingRef = useRef(false);
+  const lastSeekTargetRef = useRef<number | null>(null);
+  const lastSeekPreTimeRef = useRef<number | null>(null);
+  const lastSeekCommittedAtRef = useRef<number>(0);
 
   useEffect(() => {
     return store.subscribe(() => {
@@ -81,6 +84,7 @@ export const MediaControlBar = memo(function MediaControlBar({
   const activeItem = state.items.find((i) => i.id === state.activeId) || null;
   const isCued = Boolean(activeItem);
   const isVideo = activeItem?.type === 'video';
+  const duration = state.duration || activeItem?.duration || 0;
 
   const routeResult = activeItem ? routePlaybackSource(activeItem) : null;
   const activeSource = activeItem?.source || routeResult?.source || 'cloud';
@@ -312,20 +316,25 @@ export const MediaControlBar = memo(function MediaControlBar({
   const commitSeek = useCallback(
     (val: number) => {
       isSeekingRef.current = false;
+      const targetVal = duration > 0 ? Math.max(0, Math.min(val, duration)) : Math.max(0, val);
       if (onRemoteMediaIntent) {
+        lastSeekPreTimeRef.current = state.currentTime;
+        lastSeekTargetRef.current = targetVal;
+        lastSeekCommittedAtRef.current = Date.now();
+        store.dispatch({ type: 'SET_TIME', currentTime: targetVal });
         onRemoteMediaIntent({
           type: 'media-seek',
-          timeSeconds: val,
+          timeSeconds: targetVal,
           planIdentity,
         });
         setSeekingTime(null);
         return;
       }
-      engine.seek(val);
-      store.dispatch({ type: 'SET_TIME', currentTime: val });
+      engine.seek(targetVal);
+      store.dispatch({ type: 'SET_TIME', currentTime: targetVal });
       setSeekingTime(null);
     },
-    [onRemoteMediaIntent, planIdentity, engine, store]
+    [onRemoteMediaIntent, planIdentity, engine, store, duration, state.currentTime]
   );
 
   const handleSeekPointerUp = useCallback(
@@ -353,8 +362,35 @@ export const MediaControlBar = memo(function MediaControlBar({
     [commitSeek]
   );
 
-  const displayTime = seekingTime ?? state.currentTime;
-  const duration = state.duration || activeItem?.duration || 0;
+  // Reconcile optimistic seek target: during the 1000ms grace window following a remote seek,
+  // ignore regressing host timestamps that lag behind the committed target (handling both forward and backward seek)
+  let effectiveCurrentTime = state.currentTime;
+  if (onRemoteMediaIntent && lastSeekTargetRef.current !== null) {
+    const elapsed = Date.now() - lastSeekCommittedAtRef.current;
+    if (elapsed < 1000) {
+      const isForward =
+        lastSeekPreTimeRef.current === null ||
+        lastSeekTargetRef.current >= lastSeekPreTimeRef.current;
+      const hasCaughtUp =
+        Math.abs(state.currentTime - lastSeekTargetRef.current) <= 0.75 ||
+        (isForward
+          ? state.currentTime >= lastSeekTargetRef.current
+          : state.currentTime <= lastSeekTargetRef.current);
+
+      if (hasCaughtUp) {
+        lastSeekTargetRef.current = null;
+        lastSeekPreTimeRef.current = null;
+        effectiveCurrentTime = state.currentTime;
+      } else {
+        effectiveCurrentTime = lastSeekTargetRef.current;
+      }
+    } else {
+      lastSeekTargetRef.current = null;
+      lastSeekPreTimeRef.current = null;
+    }
+  }
+
+  const displayTime = seekingTime ?? effectiveCurrentTime;
 
   return (
     <div

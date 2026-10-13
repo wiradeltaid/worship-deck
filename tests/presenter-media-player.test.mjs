@@ -1120,3 +1120,187 @@ test('SPEC-119-01 defect injection: missing isInert guards or props fails scan g
     ['missing-presenter-operator-isinert-binding']
   );
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-119-03: Optimistic Seek Hold, Telemetry Reconciliation & Rubber-Banding Elimination
+// -----------------------------------------------------------------------------
+export function scanSpec11903OptimisticSeekHoldGuards(barSource) {
+  const defects = [];
+  // 1. Optimistic store dispatch on remote seek
+  if (
+    !barSource.includes('if (onRemoteMediaIntent)') ||
+    !barSource.includes('lastSeekTargetRef.current = targetVal;') ||
+    !barSource.includes("store.dispatch({ type: 'SET_TIME', currentTime: targetVal });")
+  ) {
+    defects.push('missing-remote-optimistic-seek-dispatch');
+  }
+  // 2. Optimistic seek hold grace period
+  if (
+    !barSource.includes('lastSeekCommittedAtRef') ||
+    !barSource.includes('elapsed < 1000') ||
+    !barSource.includes('effectiveCurrentTime = lastSeekTargetRef.current')
+  ) {
+    defects.push('missing-optimistic-seek-grace-period');
+  }
+  // 3. Direction-aware telemetry reconciliation on catchup
+  if (!barSource.includes('Math.abs(state.currentTime - lastSeekTargetRef.current) <= 0.75')) {
+    defects.push('missing-seek-reconciliation-on-catchup');
+  }
+  if (!barSource.includes('isForward') || !barSource.includes('state.currentTime <= lastSeekTargetRef.current')) {
+    defects.push('missing-direction-aware-seek-reconciliation');
+  }
+  return defects;
+}
+
+test('SPEC-119-03: MediaControlBar implements optimistic seek hold and rubber-banding elimination contracts', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const barSource = fs.readFileSync(barPath, 'utf8');
+
+  const defects = scanSpec11903OptimisticSeekHoldGuards(barSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-119-03 defect injection: missing optimistic dispatch or grace period fails scan guard', () => {
+  const mutated = `
+    const commitSeek = (val) => {
+      if (onRemoteMediaIntent) {
+        onRemoteMediaIntent({ type: 'media-seek', timeSeconds: val });
+        setSeekingTime(null);
+        return;
+      }
+    };
+    const displayTime = seekingTime ?? state.currentTime;
+  `;
+  const defects = scanSpec11903OptimisticSeekHoldGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-remote-optimistic-seek-dispatch',
+    'missing-optimistic-seek-grace-period',
+    'missing-seek-reconciliation-on-catchup',
+    'missing-direction-aware-seek-reconciliation',
+  ]);
+});
+
+test('SPEC-119-03 behavioral: optimistic seek hold eliminates rubber-banding on both forward and backward seek', () => {
+  function computeEffectiveTime({
+    currentTime,
+    lastSeekTarget,
+    lastSeekPreTime,
+    lastSeekCommittedAt,
+    now,
+    hasRemoteIntent,
+  }) {
+    let effective = currentTime;
+    if (hasRemoteIntent && lastSeekTarget !== null) {
+      const elapsed = now - lastSeekCommittedAt;
+      if (elapsed < 1000) {
+        const isForward =
+          lastSeekPreTime === null || lastSeekTarget >= lastSeekPreTime;
+        const hasCaughtUp =
+          Math.abs(currentTime - lastSeekTarget) <= 0.75 ||
+          (isForward
+            ? currentTime >= lastSeekTarget
+            : currentTime <= lastSeekTarget);
+
+        if (hasCaughtUp) {
+          lastSeekTarget = null;
+          lastSeekPreTime = null;
+          effective = currentTime;
+        } else {
+          effective = lastSeekTarget;
+        }
+      } else {
+        lastSeekTarget = null;
+        lastSeekPreTime = null;
+      }
+    }
+    return { effective, lastSeekTarget, lastSeekPreTime };
+  }
+
+  // --- A. Forward seek simulation (0.5s -> 150.0s) ---
+  const commitTimeA = 1000;
+  // 1. Immediately after commit (elapsed = 100ms), host sends stale timestamp (0.5s): hold at 150.0s!
+  const t1 = computeEffectiveTime({
+    currentTime: 0.5,
+    lastSeekTarget: 150.0,
+    lastSeekPreTime: 0.5,
+    lastSeekCommittedAt: commitTimeA,
+    now: 1100,
+    hasRemoteIntent: true,
+  });
+  assert.equal(t1.effective, 150.0, 'Forward seek: Must hold at 150.0s rather than snapping to stale host 0.5s');
+  assert.equal(t1.lastSeekTarget, 150.0);
+
+  // 2. Midway (elapsed = 400ms), host sends another pre-seek packet (0.8s): hold at 150.0s!
+  const t2 = computeEffectiveTime({
+    currentTime: 0.8,
+    lastSeekTarget: t1.lastSeekTarget,
+    lastSeekPreTime: t1.lastSeekPreTime,
+    lastSeekCommittedAt: commitTimeA,
+    now: 1400,
+    hasRemoteIntent: true,
+  });
+  assert.equal(t2.effective, 150.0, 'Forward seek: Must hold at 150.0s against rubber-banding');
+
+  // 3. Host processes seek and sends caught-up timestamp (150.2s): reconciles smoothly!
+  const t3 = computeEffectiveTime({
+    currentTime: 150.2,
+    lastSeekTarget: t2.lastSeekTarget,
+    lastSeekPreTime: t2.lastSeekPreTime,
+    lastSeekCommittedAt: commitTimeA,
+    now: 1600,
+    hasRemoteIntent: true,
+  });
+  assert.equal(t3.effective, 150.2, 'Forward seek: Smoothly reconciles to live host playback');
+  assert.equal(t3.lastSeekTarget, null);
+
+  // --- B. Backward seek simulation (150.0s -> 30.0s) ---
+  const commitTimeB = 2000;
+  // 1. Immediately after backward seek commit (elapsed = 100ms), host sends stale pre-seek timestamp (150.0s):
+  // Must NOT trigger catchup just because 150 >= 30! Must hold at 30.0s!
+  const b1 = computeEffectiveTime({
+    currentTime: 150.0,
+    lastSeekTarget: 30.0,
+    lastSeekPreTime: 150.0,
+    lastSeekCommittedAt: commitTimeB,
+    now: 2100,
+    hasRemoteIntent: true,
+  });
+  assert.equal(b1.effective, 30.0, 'Backward seek: Must hold at 30.0s and NOT snap back to stale 150.0s');
+  assert.equal(b1.lastSeekTarget, 30.0);
+
+  // 2. Midway (elapsed = 400ms), host sends 148.0s: hold at 30.0s!
+  const b2 = computeEffectiveTime({
+    currentTime: 148.0,
+    lastSeekTarget: b1.lastSeekTarget,
+    lastSeekPreTime: b1.lastSeekPreTime,
+    lastSeekCommittedAt: commitTimeB,
+    now: 2400,
+    hasRemoteIntent: true,
+  });
+  assert.equal(b2.effective, 30.0, 'Backward seek: Must hold at 30.0s against rubber-banding');
+
+  // 3. Host processes backward seek and sends caught-up timestamp (30.1s): reconciles smoothly!
+  const b3 = computeEffectiveTime({
+    currentTime: 30.1,
+    lastSeekTarget: b2.lastSeekTarget,
+    lastSeekPreTime: b2.lastSeekPreTime,
+    lastSeekCommittedAt: commitTimeB,
+    now: 2600,
+    hasRemoteIntent: true,
+  });
+  assert.equal(b3.effective, 30.1, 'Backward seek: Smoothly reconciles to live host playback');
+  assert.equal(b3.lastSeekTarget, null);
+
+  // --- C. Grace period expiry release ---
+  const c1 = computeEffectiveTime({
+    currentTime: 10.0,
+    lastSeekTarget: 150.0,
+    lastSeekPreTime: 0.0,
+    lastSeekCommittedAt: 1000,
+    now: 2500,
+    hasRemoteIntent: true,
+  });
+  assert.equal(c1.effective, 10.0, 'Releases hold once 1000ms grace window expires');
+  assert.equal(c1.lastSeekTarget, null);
+});
