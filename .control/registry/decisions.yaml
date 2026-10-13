@@ -2188,6 +2188,26 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/
 
+  - id: DEC-105
+    type: mandate
+    status: applied
+    applied_at: '2026-10-13'
+    accepted_by: "kodesh87 (2026-10-13)"
+    title: Daily Autopilot mandate for Presenter Layout Stability across Viewports, Tablet Media Bar Ergonomics, and Remote Connection Resilience (SPEC-118)
+    file: .control/decisions/DEC-105-daily-autopilot-mandate-presenter-layout-stability-tablet-media-bar-remote-resilience.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-20'
+    touches:
+      - .control/memlog/autopilot-DEC-105.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-118-presenter-layout-stability-tablet-media-bar-and-remote-resilience/
+
 
 
 

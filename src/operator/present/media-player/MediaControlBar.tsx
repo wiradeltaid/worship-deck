@@ -361,18 +361,18 @@ export const MediaControlBar = memo(function MediaControlBar({
       data-testid="media-control-bar"
       aria-label="Media Control Bar"
       className={cn(
-        'w-full h-auto md:h-13 shrink-0 px-3 py-2 md:py-0 bg-card/95 border-b border-border shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-3 select-none text-xs transition-opacity',
+        'w-full h-auto xl:h-13 shrink-0 px-3 py-2 xl:py-0 bg-card/95 border-b border-border shadow-xs flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2 xl:gap-3 select-none text-xs transition-opacity',
         !isCued && 'opacity-60 bg-muted/20',
         className
       )}
     >
-      {/* Row 1 on Mobile (< md) / Center metadata & seekbar + Right Drawer Launcher on Desktop (>= md) */}
+      {/* Row 1 on Mobile & Tablet (< xl) / Center metadata & seekbar + Right Drawer Launcher on Desktop (>= xl) */}
       <div
         data-testid="media-control-bar-row-1"
-        className="flex items-center justify-between gap-2 w-full min-w-0 md:contents"
+        className="flex items-center justify-between gap-2 w-full min-w-0 xl:contents"
       >
         {/* Track metadata & full-width seekbar */}
-        <div className="flex flex-1 items-center gap-2.5 min-w-0 max-w-2xl px-1 md:order-2">
+        <div className="flex flex-1 items-center gap-2.5 min-w-0 max-w-2xl px-1 xl:order-2">
           {activeItem ? (
             <>
               <div className="flex items-center gap-1.5 shrink-0 max-w-[9rem] sm:max-w-[12rem] min-w-0">
@@ -438,9 +438,9 @@ export const MediaControlBar = memo(function MediaControlBar({
           )}
         </div>
 
-        {/* Playlist Drawer Launcher (Right of Row 1 on mobile, 4th item on desktop) */}
+        {/* Playlist Drawer Launcher (Right of Row 1 on mobile/tablet, 4th item on desktop) */}
         {onOpenDrawer && (
-          <div className="shrink-0 md:order-4">
+          <div className="shrink-0 xl:order-4">
             <Button
               type="button"
               size="sm"
@@ -458,13 +458,13 @@ export const MediaControlBar = memo(function MediaControlBar({
         )}
       </div>
 
-      {/* Row 2 on Mobile (< md) / Left panic controls & Right projector toggle on Desktop (>= md) */}
+      {/* Row 2 on Mobile & Tablet (< xl) / Left panic controls & Right projector toggle on Desktop (>= xl) */}
       <div
         data-testid="media-control-bar-row-2"
-        className="flex items-center justify-between gap-1.5 w-full min-w-0 overflow-x-auto no-scrollbar py-0.5 md:contents"
+        className="flex items-center justify-between gap-1.5 w-full min-w-0 overflow-x-auto no-scrollbar py-0.5 xl:contents"
       >
         {/* Panic Group: Prev, Play/Pause, Next, Stop, Fade, Mute, Volume Slider, Shuffle, Repeat */}
-        <div className="flex items-center gap-1.5 shrink-0 md:order-1" data-testid="media-panic-group">
+        <div className="flex items-center gap-1.5 shrink-0 xl:order-1" data-testid="media-panic-group">
           {/* Previous Track */}
           <Button
             type="button"
@@ -646,8 +646,8 @@ export const MediaControlBar = memo(function MediaControlBar({
           </Button>
         </div>
 
-        {/* Bidirectional Projector Toggle (Row 2 right on mobile, 3rd item on desktop) */}
-        <div className="shrink-0 md:order-3">
+        {/* Bidirectional Projector Toggle (Row 2 right on mobile/tablet, 3rd item on desktop) */}
+        <div className="shrink-0 xl:order-3">
           <Button
             type="button"
             size="sm"

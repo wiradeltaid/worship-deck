@@ -22,10 +22,10 @@ import (
 //   pick up their phone, and enter the 6-digit code comfortably without rushing,
 //   while short enough that an unclaimed code on an unattended screen does not
 //   remain an open invitation.
-// - StreamFreshnessWindow: 15s.
+// - StreamFreshnessWindow: 30s.
 //   Provides a reliable heartbeat and freshness window for SSE streams,
 //   absorbing temporary Wi-Fi jitter in a worship hall while detecting dead
-//   connections in single-digit/low-double-digit seconds.
+//   connections within 30 seconds (SPEC-118).
 // OQ-53 asks for ONE exported pair read by both ends. These two constants are
 // that pair, and the server is the single source: the pair response carries
 // `expiresIn` so a client never declares its own copy. A parallel TypeScript
@@ -34,7 +34,7 @@ import (
 // exactly how AD-29's projector heartbeat once reported a healthy screen dead.
 const (
 	PairingCodeLifetime   = 60 * time.Second
-	StreamFreshnessWindow = 15 * time.Second
+	StreamFreshnessWindow = 30 * time.Second
 )
 
 // Allowed intent types on PresentMessage (src/lib/present-channel.ts) and media transport controls.
@@ -80,6 +80,7 @@ type remoteSessionState struct {
 	// Remote client identity (session UID or token)
 	pairedRemoteUID int
 	hasPairedRemote bool
+	sessionToken    string
 
 	// Cached last known presentation state to return on claim or stream reconnect
 	lastState json.RawMessage
@@ -189,6 +190,14 @@ func generate6DigitCode() string {
 	return format6DigitCode(n.Int64())
 }
 
+func generateSessionToken() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%x", time.Now().UnixNano())
+	}
+	return fmt.Sprintf("%x", b)
+}
+
 // 1. POST /api/present/{id}/remote/pair
 // Claims presenting role for the caller and returns a short-lived single-use code.
 // Called again while first code is unclaimed, returns a new code and invalidates the old.
@@ -222,6 +231,7 @@ func (s *Server) postRemotePair(w http.ResponseWriter, r *http.Request) {
 	}
 	state.hasPairedRemote = false
 	state.pairedRemoteUID = 0
+	state.sessionToken = ""
 	state.presenterUID = sess.UID
 	state.pendingCode = code
 	state.codeExpiresAt = time.Now().Add(PairingCodeLifetime)
@@ -310,6 +320,7 @@ func (s *Server) postRemoteClaim(w http.ResponseWriter, r *http.Request) {
 	state.pendingCode = ""
 	state.hasPairedRemote = true
 	state.pairedRemoteUID = sess.UID
+	state.sessionToken = generateSessionToken()
 
 	var currentState any = nil
 	if len(state.lastState) > 0 {
@@ -317,8 +328,67 @@ func (s *Server) postRemoteClaim(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"paired": true,
-		"state":  currentState,
+		"paired":        true,
+		"token":         state.sessionToken,
+		"session_token": state.sessionToken,
+		"state":         currentState,
+	})
+}
+
+// 2b. POST /api/present/{id}/remote/resume
+// Re-binds caller with a valid session_token after network drop.
+// With invalid or revoked token -> 401.
+func (s *Server) postRemoteResume(w http.ResponseWriter, r *http.Request) {
+	serviceID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || serviceID <= 0 {
+		writeError(w, http.StatusBadRequest, "Invalid Service ID")
+		return
+	}
+
+	sess := sessionFrom(r)
+	if sess == nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	body, err, status, msg := readJSONObject(r, 64<<10)
+	if err != nil {
+		writeError(w, status, msg)
+		return
+	}
+
+	token, _ := body["token"].(string)
+	if token == "" {
+		token, _ = body["session_token"].(string)
+	}
+	if token == "" {
+		writeError(w, http.StatusBadRequest, "Missing session token")
+		return
+	}
+
+	state := globalRemoteHub.getOrCreateSession(serviceID)
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	// Verify token matches active paired session
+	if !state.hasPairedRemote || state.sessionToken == "" || state.sessionToken != token {
+		writeError(w, http.StatusUnauthorized, "Invalid or expired remote session token")
+		return
+	}
+
+	// Rebind caller UID in case user ID or cookie was refreshed
+	state.pairedRemoteUID = sess.UID
+
+	var currentState any = nil
+	if len(state.lastState) > 0 {
+		_ = json.Unmarshal(state.lastState, &currentState)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"paired":        true,
+		"token":         state.sessionToken,
+		"session_token": state.sessionToken,
+		"state":         currentState,
 	})
 }
 
@@ -345,8 +415,20 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenQuery := r.URL.Query().Get("token")
+	if tokenQuery == "" {
+		tokenQuery = r.URL.Query().Get("session_token")
+	}
 	role := r.URL.Query().Get("role")
-	if role != "presenter" && role != "remote" {
+	if tokenQuery != "" {
+		state := globalRemoteHub.getOrCreateSession(serviceID)
+		state.mu.Lock()
+		if state.hasPairedRemote && state.sessionToken != "" && state.sessionToken == tokenQuery {
+			role = "remote"
+			state.pairedRemoteUID = sess.UID
+		}
+		state.mu.Unlock()
+	} else if role != "presenter" && role != "remote" {
 		// Default: if caller is the paired remote UID, role is remote; otherwise presenter
 		state := globalRemoteHub.getOrCreateSession(serviceID)
 		state.mu.Lock()
@@ -638,6 +720,7 @@ func (s *Server) deleteRemotePair(w http.ResponseWriter, r *http.Request) {
 	state.pendingCode = ""
 	state.hasPairedRemote = false
 	state.pairedRemoteUID = 0
+	state.sessionToken = ""
 
 	// Close remote client streams
 	for ch := range state.remoteChans {

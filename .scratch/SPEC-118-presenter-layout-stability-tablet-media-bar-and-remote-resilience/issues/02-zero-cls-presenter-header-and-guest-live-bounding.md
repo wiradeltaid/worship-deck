@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-25]
 **Blocked by:** ["SPEC-118-01"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Stabilize the presenter header layout in `PresenterOperator.tsx` and enforce bounded geometry in `PresenterGuestFeedControl.tsx`. Prevent guest live activation from expanding Row 3 and pulling upper action buttons (Row 1 & Row 2) leftward or triggering staggered wrap artifacts on compact screens, while strictly preserving all existing button purposes, labels, and interaction semantics.

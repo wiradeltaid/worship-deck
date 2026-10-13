@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, FR-16, FR-25]
 **Blocked by:** ["SPEC-118-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Audit and stabilize all buttons and notification banners in the presenter header (`PresenterOperator.tsx`). Eliminate erratic layout shifts that occur when alerts, warnings, or prompts appear (e.g. `projector-reopen-prompt`, `congregationScreenBlocked`, or status banners). Preserve all existing button functions, UX, and testids without moving or altering button designs, while isolating prompt banners into a dedicated notification slot.

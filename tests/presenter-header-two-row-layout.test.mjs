@@ -232,3 +232,57 @@ test('SPEC-86-04: Real-file defect injection — displacing emergency-edit-butto
     assert.equal(fs.readFileSync(presenterOperatorPath, 'utf8'), original, 'file must be restored identically');
   }
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-118-03: Header Alert Isolation & Presentation Lock Stability
+// -----------------------------------------------------------------------------
+export function scanSpec11803HeaderAlertAndLockGuards(presenterSrc) {
+  const findings = [];
+  const cleanSrc = stripComments(presenterSrc);
+
+  // 1. Dedicated notification strip outside main header flexbox
+  if (!cleanSrc.includes('data-testid="presenter-header-notification-strip"')) {
+    findings.push('PresenterOperator.tsx missing data-testid="presenter-header-notification-strip"');
+  }
+
+  // 2. projector-reopen-prompt and congregationScreenBlocked must NOT be inside <header>
+  const headerMatch = cleanSrc.match(/<header\b[\s\S]*?<\/header>/);
+  if (headerMatch) {
+    const headerContent = headerMatch[0];
+    if (headerContent.includes('data-testid="projector-reopen-prompt"')) {
+      findings.push('data-testid="projector-reopen-prompt" must be outside <header> flexbox in notification strip');
+    }
+    if (headerContent.includes("t('presenter.congregationScreenBlocked')")) {
+      findings.push('congregationScreenBlocked alert must be outside <header> flexbox in notification strip');
+    }
+  }
+
+  // 3. Presentation lock toggle must declare predictable width (min-w-[76px] or min-w-[84px]) with justify-center
+  const lockMatch = cleanSrc.match(/data-testid="presentation-lock-toggle"[^>]*className="([^"]*)"/);
+  if (!lockMatch || (!lockMatch[1].includes('min-w-[76px]') && !lockMatch[1].includes('min-w-[84px]'))) {
+    findings.push('presentation-lock-toggle missing min-w-[76px] or min-w-[84px] for toggle dimensional stability');
+  }
+  if (!lockMatch || !lockMatch[1].includes('justify-center')) {
+    findings.push('presentation-lock-toggle missing justify-center for toggle dimensional stability');
+  }
+
+  return findings;
+}
+
+test('SPEC-118-03: Header alert strip isolation and lock toggle dimensional stability', () => {
+  const content = fs.readFileSync(presenterOperatorPath, 'utf8');
+  const findings = scanSpec11803HeaderAlertAndLockGuards(content);
+  assert.deepEqual(findings, []);
+});
+
+test('SPEC-118-03 defect injection: prompt inside header flexbox or unstable lock toggle fails guard', () => {
+  const mutated = '<header><div data-testid="projector-reopen-prompt">Prompt</div><p>t(\'presenter.congregationScreenBlocked\')</p></header><Button data-testid="presentation-lock-toggle" className="h-8 gap-1.5 text-xs select-none" />';
+  const findings = scanSpec11803HeaderAlertAndLockGuards(mutated);
+  assert.deepEqual(findings, [
+    'PresenterOperator.tsx missing data-testid="presenter-header-notification-strip"',
+    'data-testid="projector-reopen-prompt" must be outside <header> flexbox in notification strip',
+    'congregationScreenBlocked alert must be outside <header> flexbox in notification strip',
+    'presentation-lock-toggle missing min-w-[76px] or min-w-[84px] for toggle dimensional stability',
+    'presentation-lock-toggle missing justify-center for toggle dimensional stability',
+  ]);
+});
