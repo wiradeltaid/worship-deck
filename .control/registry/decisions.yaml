@@ -2149,6 +2149,25 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-115-unified-remote-presenter-console-and-qr-pairing/
 
+  - id: DEC-103
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-13)"
+    title: Daily Autopilot mandate for Target-Authority Remote Presenter Console (SPEC-116)
+    file: .control/decisions/DEC-103-daily-autopilot-mandate-target-authority-remote-presenter-console.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-20'
+    touches:
+      - .control/memlog/autopilot-DEC-103.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-116-target-authority-remote-presenter-console/
+
 
 
 
