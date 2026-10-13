@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** []
-**Status:** closed
+**Status:** done
 
 ## Summary
 Implement remote scripture intent dispatching in `PresenterOperator.tsx` when `mode === 'remote'`, wire scripture chunk pagination updates and clear scripture intents to `onSendIntent`, mirror scripture overlay state over SSE, and forward service `raw_payload` rundown text through `RemotePage.tsx` and `RemoteOperator.tsx`.
