@@ -78,6 +78,7 @@ export default function RemotePage() {
       serviceId={data.id}
       serviceDate={data.date}
       slides={data.plan || []}
+      rundownText={data.raw_payload || ''}
       planIdentity={typeof data.plan_identity === 'string' ? data.plan_identity : ''}
       transition={data.transition || 'fade'}
       autoClaimCode={code || undefined}

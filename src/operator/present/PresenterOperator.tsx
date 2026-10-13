@@ -504,6 +504,7 @@ export interface PresenterOperatorProps {
     background: string | null;
   };
   controlledMediaState?: RemoteControlSessionState['media'];
+  controlledScriptureState?: RemoteControlSessionState['scripture'];
 }
 
 export default function PresenterOperator({
@@ -519,6 +520,7 @@ export default function PresenterOperator({
   onSendIntent,
   controlledState,
   controlledMediaState,
+  controlledScriptureState,
 }: PresenterOperatorProps) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
@@ -715,6 +717,62 @@ export default function PresenterOperator({
       }
     }
   }, [mode, controlledMediaState, mediaStore]);
+
+  // SPEC-116-01: Synchronize mirrored scripture state from host SSE events in remote mode
+  useEffect(() => {
+    if (mode === 'remote') {
+      if (controlledScriptureState === null) {
+        setLoadedScripture(null);
+        loadedScriptureRef.current = null;
+        setScripturePageIndex(0);
+        scripturePageIndexRef.current = 0;
+        setScriptureOverlay(null);
+        scriptureOverlayRef.current = null;
+      } else if (controlledScriptureState) {
+        const { reference, text, verses, mode: scMode, is_whole_chapter, pageIndex } = controlledScriptureState;
+        const { passage, initialOverlay } = installScripturePassage({
+          reference,
+          verses,
+          text,
+          isWholeChapter: is_whole_chapter,
+          mode: scMode,
+          currentMode: scriptureModeRef.current,
+        });
+        const loaded = {
+          reference: passage.reference,
+          verses: passage.verses,
+          typographyMode: passage.typographyMode,
+          is_whole_chapter,
+        };
+        setLoadedScripture(loaded);
+        loadedScriptureRef.current = loaded;
+        if (scMode) {
+          setScriptureMode(scMode);
+        }
+        const pageIdx =
+          typeof pageIndex === 'number' && pageIndex >= 0 && pageIndex < passage.pages.length
+            ? pageIndex
+            : 0;
+        setScripturePageIndex(pageIdx);
+        scripturePageIndexRef.current = pageIdx;
+        const activePage = passage.pages[pageIdx] || initialOverlay;
+        setScriptureOverlay({
+          reference: passage.reference,
+          displayReference: activePage.displayReference,
+          text: activePage.text,
+          mode: passage.mode,
+          verses: activePage.verses,
+          currentPage: activePage.page,
+          totalPages: activePage.totalPages,
+          typographyMode: activePage.typographyMode,
+          isContinuation: activePage.isContinuation,
+          continuationIndex: activePage.continuationIndex,
+          continuationCount: activePage.continuationCount,
+          estimatedVisualLines: activePage.estimatedVisualLines,
+        });
+      }
+    }
+  }, [mode, controlledScriptureState]);
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
@@ -743,6 +801,7 @@ export default function PresenterOperator({
     reference: string;
     verses: Array<{ verse: number; text: string }>;
     typographyMode: ScriptureTypographyMode;
+    is_whole_chapter?: boolean;
   } | null>(() => (restoredSession?.loadedScripture ?? null));
   const [scripturePageIndex, setScripturePageIndex] = useState<number>(
     () => (restoredSession?.scripturePageIndex ?? 0)
@@ -849,7 +908,12 @@ export default function PresenterOperator({
     restoredSession?.liveTransition ?? deckTransition
   );
   const backgroundRef = useRef<string | null>(restoredSession?.liveBackground ?? null);
-  const loadedScriptureRef = useRef(restoredSession?.loadedScripture ?? null);
+  const loadedScriptureRef = useRef<{
+    reference: string;
+    verses: Array<{ verse: number; text: string }>;
+    typographyMode: ScriptureTypographyMode;
+    is_whole_chapter?: boolean;
+  } | null>(restoredSession?.loadedScripture ?? null);
   loadedScriptureRef.current = loadedScripture;
   const scripturePageIndexRef = useRef(restoredSession?.scripturePageIndex ?? 0);
   scripturePageIndexRef.current = scripturePageIndex;
@@ -1344,6 +1408,7 @@ export default function PresenterOperator({
       verses?: Array<{ verse: number; text: string }>;
       mode?: ScriptureDisplayMode;
       is_whole_chapter?: boolean;
+      pageIndex?: number;
     }) => {
       const { passage, initialOverlay } = installScripturePassage({
         reference: data.reference,
@@ -1358,24 +1423,33 @@ export default function PresenterOperator({
         reference: passage.reference,
         verses: passage.verses,
         typographyMode: passage.typographyMode,
+        is_whole_chapter: data.is_whole_chapter,
       };
       setLoadedScripture(loaded);
       loadedScriptureRef.current = loaded;
-      setScripturePageIndex(0);
-      scripturePageIndexRef.current = 0;
+
+      const pageIdx =
+        typeof data.pageIndex === 'number' && data.pageIndex >= 0 && data.pageIndex < passage.pages.length
+          ? data.pageIndex
+          : 0;
+      setScripturePageIndex(pageIdx);
+      scripturePageIndexRef.current = pageIdx;
+
+      const activePage = passage.pages[pageIdx] || initialOverlay;
 
       const newOverlay: ScriptureOverlay = {
         reference: passage.reference,
-        displayReference: initialOverlay.displayReference,
-        text: initialOverlay.text,
+        displayReference: activePage.displayReference,
+        text: activePage.text,
         mode: passage.mode,
-        verses: initialOverlay.verses,
-        currentPage: initialOverlay.page,
-        totalPages: initialOverlay.totalPages,
-        typographyMode: initialOverlay.typographyMode,
-        isContinuation: initialOverlay.isContinuation,
-        continuationIndex: initialOverlay.continuationIndex,
-        continuationCount: initialOverlay.continuationCount,
+        verses: activePage.verses,
+        currentPage: activePage.page,
+        totalPages: activePage.totalPages,
+        typographyMode: activePage.typographyMode,
+        isContinuation: activePage.isContinuation,
+        continuationIndex: activePage.continuationIndex,
+        continuationCount: activePage.continuationCount,
+        estimatedVisualLines: activePage.estimatedVisualLines,
       };
       setScriptureOverlay(newOverlay);
       persistCurrentSession();
@@ -1384,10 +1458,11 @@ export default function PresenterOperator({
         onSendIntent?.({
           type: 'scripture',
           reference: passage.reference,
-          text: initialOverlay.text,
+          text: activePage.text,
           verses: passage.verses,
           mode: passage.mode === 'inline' ? 'inline' : 'per-verse',
           is_whole_chapter: data.is_whole_chapter,
+          pageIndex: pageIdx,
           planIdentity: planIdentityRef.current,
         });
         return;
@@ -1398,9 +1473,46 @@ export default function PresenterOperator({
         ...newOverlay,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({
+        scripture: {
+          reference: passage.reference,
+          text: activePage.text,
+          verses: passage.verses,
+          mode: passage.mode === 'inline' ? 'inline' : 'per-verse',
+          is_whole_chapter: data.is_whole_chapter,
+          pageIndex: pageIdx,
+          totalPages: activePage.totalPages,
+        },
+      });
     },
     [mode, onSendIntent, broadcast, setScriptureOverlay, persistCurrentSession]
   );
+
+  const clearScriptureAndSync = useCallback(() => {
+    setLoadedScripture(null);
+    loadedScriptureRef.current = null;
+    setScripturePageIndex(0);
+    scripturePageIndexRef.current = 0;
+    setScriptureOverlay(null);
+    scriptureOverlayRef.current = null;
+    persistCurrentSession();
+
+    if (mode === 'remote') {
+      onSendIntent?.({
+        type: 'clear-scripture',
+        planIdentity: planIdentityRef.current,
+      });
+      return;
+    }
+
+    broadcast({
+      type: 'clear-scripture',
+      planIdentity: planIdentityRef.current,
+    });
+    void remoteSessionRef.current?.broadcastState({
+      scripture: null,
+    });
+  }, [mode, onSendIntent, broadcast, persistCurrentSession]);
 
   const visibilityController = useMemo(() => {
     return createSlideVisibilityController({
@@ -1688,6 +1800,7 @@ export default function PresenterOperator({
         setTransitionAndSync,
         setBackgroundAndSync,
         setScriptureAndSync,
+        clearScriptureAndSync,
         broadcast,
         handleMediaPlay: () => {
           void mediaEngine.play().then((res) => {
@@ -1751,6 +1864,7 @@ export default function PresenterOperator({
     setTransitionAndSync,
     setBackgroundAndSync,
     setScriptureAndSync,
+    clearScriptureAndSync,
     broadcast,
     mediaEngine,
     mediaStore,
@@ -1796,6 +1910,18 @@ export default function PresenterOperator({
           shuffle: snap.shuffle,
           repeatMode: snap.repeatMode,
         },
+        scripture:
+          loadedScriptureRef.current && scriptureOverlayRef.current
+            ? {
+                reference: loadedScriptureRef.current.reference,
+                text: scriptureOverlayRef.current.text,
+                verses: loadedScriptureRef.current.verses,
+                mode: scriptureModeRef.current,
+                is_whole_chapter: Boolean(loadedScriptureRef.current.is_whole_chapter),
+                pageIndex: scripturePageIndexRef.current,
+                totalPages: scriptureOverlayRef.current.totalPages,
+              }
+            : null,
       });
     }
   }, [mode, remoteState, mediaStore]);
@@ -2250,12 +2376,13 @@ export default function PresenterOperator({
             Array.isArray(cached.verses) && cached.verses.length > 0
               ? cached.verses
               : [{ verse: 1, text: cached.text }];
+          const isWholeChapter = Boolean(cached.is_whole_chapter || parsedRef?.isWholeChapter);
           const typographyMode: ScriptureTypographyMode =
             cached.typography_mode ||
-            (cached.is_whole_chapter || cached.reference.indexOf(':') === -1 || verses.length > 4
+            (isWholeChapter || cached.reference.indexOf(':') === -1 || verses.length > 4
               ? 'chapter'
               : 'verse');
-          const loaded = { reference: baseRef, verses, typographyMode };
+          const loaded = { reference: baseRef, verses, typographyMode, is_whole_chapter: isWholeChapter };
           setLoadedScripture(loaded);
           loadedScriptureRef.current = loaded;
           setScripturePageIndex(0);
@@ -2279,11 +2406,35 @@ export default function PresenterOperator({
           };
           setScriptureOverlay(newOverlay);
           persistCurrentSession();
-          broadcast({
-            type: 'scripture',
-            ...newOverlay,
-            planIdentity: planIdentityRef.current,
-          });
+          if (mode === 'remote') {
+            onSendIntent?.({
+              type: 'scripture',
+              reference: baseRef,
+              text: firstPage.text,
+              verses: verses,
+              mode: scriptureMode,
+              is_whole_chapter: isWholeChapter,
+              pageIndex: 0,
+              planIdentity: planIdentityRef.current,
+            });
+          } else {
+            broadcast({
+              type: 'scripture',
+              ...newOverlay,
+              planIdentity: planIdentityRef.current,
+            });
+            void remoteSessionRef.current?.broadcastState({
+              scripture: {
+                reference: baseRef,
+                text: firstPage.text,
+                verses: verses,
+                mode: scriptureMode,
+                is_whole_chapter: isWholeChapter,
+                pageIndex: 0,
+                totalPages: firstPage.totalPages,
+              },
+            });
+          }
           toast.info(t('presenter.scripture.offlineCachedNotice'));
           return;
         }
@@ -2345,7 +2496,7 @@ export default function PresenterOperator({
         is_whole_chapter: isWholeChapter,
       });
 
-      const loaded = { reference: baseRef, verses, typographyMode };
+      const loaded = { reference: baseRef, verses, typographyMode, is_whole_chapter: isWholeChapter };
       setLoadedScripture(loaded);
       loadedScriptureRef.current = loaded;
       setScripturePageIndex(0);
@@ -2369,11 +2520,35 @@ export default function PresenterOperator({
       };
       setScriptureOverlay(newOverlay);
       persistCurrentSession();
-      broadcast({
-        type: 'scripture',
-        ...newOverlay,
-        planIdentity: planIdentityRef.current,
-      });
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'scripture',
+          reference: baseRef,
+          text: firstPage.text,
+          verses: verses,
+          mode: scriptureMode,
+          is_whole_chapter: isWholeChapter,
+          pageIndex: 0,
+          planIdentity: planIdentityRef.current,
+        });
+      } else {
+        broadcast({
+          type: 'scripture',
+          ...newOverlay,
+          planIdentity: planIdentityRef.current,
+        });
+        void remoteSessionRef.current?.broadcastState({
+          scripture: {
+            reference: baseRef,
+            text: firstPage.text,
+            verses: verses,
+            mode: scriptureMode,
+            is_whole_chapter: isWholeChapter,
+            pageIndex: 0,
+            totalPages: firstPage.totalPages,
+          },
+        });
+      }
     } catch {
       setScriptureError(t('presenter.scripture.lookupFailed'));
     } finally {
@@ -2392,18 +2567,18 @@ export default function PresenterOperator({
   }, [loadedScripture, scriptureMode]);
 
   const handleModeChange = useCallback(
-    (mode: ScriptureDisplayMode) => {
-      setScriptureMode(mode);
+    (newMode: ScriptureDisplayMode) => {
+      setScriptureMode(newMode);
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('worship_deck_scripture_mode', mode);
+          localStorage.setItem('worship_deck_scripture_mode', newMode);
         } catch {}
       }
       if (loadedScripture) {
         const pages = paginateScriptureVerses(
           loadedScripture.reference,
           loadedScripture.verses,
-          mode,
+          newMode,
           loadedScripture.typographyMode
         );
         const validIdx = Math.min(scripturePageIndex, Math.max(0, pages.length - 1));
@@ -2414,7 +2589,7 @@ export default function PresenterOperator({
             reference: loadedScripture.reference,
             displayReference: activePage.displayReference,
             text: activePage.text,
-            mode,
+            mode: newMode,
             verses: activePage.verses,
             currentPage: activePage.page,
             totalPages: activePage.totalPages,
@@ -2426,15 +2601,39 @@ export default function PresenterOperator({
           };
           setScriptureOverlay(newOverlay);
           persistCurrentSession();
-          broadcast({
-            type: 'scripture',
-            ...newOverlay,
-            planIdentity: planIdentityRef.current,
-          });
+          if (mode === 'remote') {
+            onSendIntent?.({
+              type: 'scripture',
+              reference: loadedScripture.reference,
+              text: activePage.text,
+              verses: loadedScripture.verses,
+              mode: newMode,
+              is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+              pageIndex: validIdx,
+              planIdentity: planIdentityRef.current,
+            });
+          } else {
+            broadcast({
+              type: 'scripture',
+              ...newOverlay,
+              planIdentity: planIdentityRef.current,
+            });
+            void remoteSessionRef.current?.broadcastState({
+              scripture: {
+                reference: loadedScripture.reference,
+                text: activePage.text,
+                verses: loadedScripture.verses,
+                mode: newMode,
+                is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+                pageIndex: validIdx,
+                totalPages: activePage.totalPages,
+              },
+            });
+          }
         }
       }
     },
-    [loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast, persistCurrentSession]
+    [mode, onSendIntent, loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast, persistCurrentSession]
   );
 
   const handlePageChange = useCallback(
@@ -2470,14 +2669,38 @@ export default function PresenterOperator({
         };
         setScriptureOverlay(newOverlay);
         persistCurrentSession();
-        broadcast({
-          type: 'scripture',
-          ...newOverlay,
-          planIdentity: planIdentityRef.current,
-        });
+        if (mode === 'remote') {
+          onSendIntent?.({
+            type: 'scripture',
+            reference: loadedScripture.reference,
+            text: activePage.text,
+            verses: loadedScripture.verses,
+            mode: scriptureMode,
+            is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+            pageIndex: newIdx,
+            planIdentity: planIdentityRef.current,
+          });
+        } else {
+          broadcast({
+            type: 'scripture',
+            ...newOverlay,
+            planIdentity: planIdentityRef.current,
+          });
+          void remoteSessionRef.current?.broadcastState({
+            scripture: {
+              reference: loadedScripture.reference,
+              text: activePage.text,
+              verses: loadedScripture.verses,
+              mode: scriptureMode,
+              is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+              pageIndex: newIdx,
+              totalPages: activePage.totalPages,
+            },
+          });
+        }
       }
     },
-    [loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast, persistCurrentSession]
+    [mode, onSendIntent, loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast, persistCurrentSession]
   );
 
   return (
@@ -3214,17 +3437,7 @@ export default function PresenterOperator({
                 variant="outline"
                 data-testid="presenter-clear-scripture-button"
                 onClick={() => {
-                  setLoadedScripture(null);
-                  loadedScriptureRef.current = null;
-                  setScripturePageIndex(0);
-                  scripturePageIndexRef.current = 0;
-                  setScriptureOverlay(null);
-                  scriptureOverlayRef.current = null;
-                  persistCurrentSession();
-                  broadcast({
-                    type: 'clear-scripture',
-                    planIdentity: planIdentityRef.current,
-                  });
+                  clearScriptureAndSync();
                 }}
               >
                 {t('presenter.clearScripture')}

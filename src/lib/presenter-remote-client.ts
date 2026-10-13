@@ -25,6 +25,7 @@ export type PresenterRemoteIntent =
       verses?: Array<{ verse: number; text: string }>;
       is_whole_chapter?: boolean;
       mode?: 'per-verse' | 'inline';
+      pageIndex?: number;
       planIdentity: string;
     }
   | { type: 'clear-scripture'; planIdentity: string }
@@ -49,7 +50,9 @@ export interface PresenterActionHandlers {
     verses?: Array<{ verse: number; text: string }>;
     mode?: 'per-verse' | 'inline';
     is_whole_chapter?: boolean;
+    pageIndex?: number;
   }) => void;
+  clearScriptureAndSync?: () => void;
   broadcast: (msg: PresentMessage) => void;
   handleMediaPlay?: () => void;
   handleMediaPause?: () => void;
@@ -129,6 +132,10 @@ export function applyRemoteIntent(
         const typographyMode =
           (intent as any).typographyMode ||
           (isWholeChapter || verses.length > 4 ? 'chapter' : 'verse');
+        const pageIndex =
+          typeof (intent as any).pageIndex === 'number' && (intent as any).pageIndex >= 0
+            ? (intent as any).pageIndex
+            : 0;
 
         if (typeof handlers.setScriptureAndSync === 'function') {
           handlers.setScriptureAndSync({
@@ -137,6 +144,7 @@ export function applyRemoteIntent(
             verses,
             mode: explicitMode,
             is_whole_chapter: isWholeChapter,
+            pageIndex,
           });
           return true;
         }
@@ -144,7 +152,7 @@ export function applyRemoteIntent(
         // Normalize incoming remote scripture through the canonical visual line-budget paginator
         const fallbackMode = explicitMode || 'per-verse';
         const chunks = paginateScriptureVerses(intent.reference, verses, fallbackMode, typographyMode);
-        const activeChunk = chunks[0] || {
+        const activeChunk = chunks[pageIndex] || chunks[0] || {
           page: 1,
           totalPages: 1,
           verses,
@@ -176,6 +184,10 @@ export function applyRemoteIntent(
       return false;
     }
     case 'clear-scripture': {
+      if (typeof handlers.clearScriptureAndSync === 'function') {
+        handlers.clearScriptureAndSync();
+        return true;
+      }
       handlers.broadcast({
         type: 'clear-scripture',
         planIdentity: currentPlanIdentity,
@@ -461,6 +473,15 @@ export type RemoteControlSessionState = {
     shuffle?: boolean;
     repeatMode?: 'off' | 'all' | 'one';
   };
+  scripture?: {
+    reference: string;
+    text: string;
+    verses?: Array<{ verse: number; text: string }>;
+    mode?: 'per-verse' | 'inline';
+    is_whole_chapter?: boolean;
+    pageIndex?: number;
+    totalPages?: number;
+  } | null;
 };
 
 export type RemoteControlConnectionState =
