@@ -1040,3 +1040,175 @@ test('SPEC-106-02: structural scan and defect injection: verify controlled dropd
   assert.throws(() => validateControlledDropdown(missingCTA), /Permission Discovery Violation/);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-116-03: Guest HDMI Capture Remote Telemetry, Idempotent Projection,
+// and Projector Reopen/Refocus Protocol
+// -----------------------------------------------------------------------------
+test('SPEC-116-03: applyRemoteIntent validates and dispatches guest capture and projector reopen intents', async () => {
+  const { applyRemoteIntent } = await import(srcUrl('lib', 'presenter-remote-client.ts'));
+
+  const calls = [];
+  const handlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: () => {},
+    handleGuestArm: () => calls.push({ fn: 'handleGuestArm' }),
+    handleGuestDisarm: () => calls.push({ fn: 'handleGuestDisarm' }),
+    handleGuestProject: (proj) => calls.push({ fn: 'handleGuestProject', proj }),
+    handleRequestReopenProjector: () => calls.push({ fn: 'handleRequestReopenProjector' }),
+  };
+
+  const planId = 'plan-guest-spec11603';
+
+  // 1. guest-arm & guest-disarm
+  assert.equal(applyRemoteIntent({ type: 'guest-arm', planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'guest-disarm', planIdentity: planId }, planId, handlers), true);
+
+  // 2. guest-project with boolean projection
+  assert.equal(applyRemoteIntent({ type: 'guest-project', projected: true, planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'guest-project', projected: false, planIdentity: planId }, planId, handlers), true);
+  assert.equal(applyRemoteIntent({ type: 'guest-project', projected: 'not-bool', planIdentity: planId }, planId, handlers), false);
+
+  // 3. request-reopen-projector
+  assert.equal(applyRemoteIntent({ type: 'request-reopen-projector', planIdentity: planId }, planId, handlers), true);
+
+  // 4. planIdentity mismatch rejects all
+  assert.equal(applyRemoteIntent({ type: 'guest-arm', planIdentity: 'stale-plan' }, planId, handlers), false);
+  assert.equal(applyRemoteIntent({ type: 'guest-project', projected: true, planIdentity: 'stale-plan' }, planId, handlers), false);
+
+  assert.deepEqual(calls, [
+    { fn: 'handleGuestArm' },
+    { fn: 'handleGuestDisarm' },
+    { fn: 'handleGuestProject', proj: true },
+    { fn: 'handleGuestProject', proj: false },
+    { fn: 'handleRequestReopenProjector' },
+  ]);
+});
+
+test('SPEC-116-03: PresenterGuestFeedControl and PresenterOperator wire remote capture and projector reopen CTA', () => {
+  const feedControlSrc = fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx'), 'utf8');
+  const operatorSrc = fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx'), 'utf8');
+
+  // 1. PresenterGuestFeedControl supports remote intent dispatching
+  assert.ok(feedControlSrc.includes("type: 'guest-arm'"), 'Must dispatch guest-arm intent when remote');
+  assert.ok(feedControlSrc.includes("type: 'guest-disarm'"), 'Must dispatch guest-disarm intent when remote');
+  assert.ok(feedControlSrc.includes("type: 'guest-project'"), 'Must dispatch guest-project intent when remote');
+
+  // 2. PresenterOperator mounts Row 3 on remote mode
+  assert.ok(
+    operatorSrc.includes("(guestFeedControllerRef.current || mode === 'remote')"),
+    'PresenterOperator must mount Row 3 on remote mode'
+  );
+
+  // 3. PresenterOperator provides projector reopen CTA on host and remote
+  assert.ok(
+    operatorSrc.includes('data-testid="projector-reopen-prompt"'),
+    'PresenterOperator must render projector-reopen-prompt banner on host'
+  );
+  assert.ok(
+    operatorSrc.includes('data-testid="btn-open-projector-prompt"'),
+    'PresenterOperator must provide 1-click CTA button to open projector on host'
+  );
+  assert.ok(
+    operatorSrc.includes('data-testid="remote-request-reopen-projector-button"'),
+    'PresenterOperator must render request-reopen button on remote'
+  );
+});
+
+export function scanSpec11603GuestAndProjectorGuards(sources) {
+  const defects = [];
+  if (!sources.operator.includes('data-testid="projector-reopen-prompt"')) {
+    defects.push('missing-host-projector-reopen-prompt');
+  }
+  if (!sources.operator.includes('data-testid="remote-request-reopen-projector-button"')) {
+    defects.push('missing-remote-request-reopen-button');
+  }
+  if (!sources.feed.includes("type: 'guest-arm'")) {
+    defects.push('missing-guest-arm-intent');
+  }
+  if (!sources.feed.includes("type: 'guest-project'")) {
+    defects.push('missing-guest-project-intent');
+  }
+  return defects;
+}
+
+test('SPEC-116-03: guestFeed and projector SSE telemetry contract serialization and end-to-end parity', async () => {
+  const { PresenterRemoteSession } = await import(srcUrl('lib', 'presenter-remote-client.ts'));
+
+  const postedPayloads = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    if (url.includes('/api/present/1/remote/state')) {
+      postedPayloads.push(JSON.parse(opts.body));
+      return {
+        text: async () => 'ok',
+      };
+    }
+    return originalFetch(url, opts);
+  };
+
+  try {
+    const session = new PresenterRemoteSession({
+      serviceId: 1,
+      getPlanIdentity: () => 'plan-telemetry',
+      handlers: {
+        setIndexAndSync: () => {},
+        setBlankAndSync: () => {},
+        setTransitionAndSync: () => {},
+        setBackgroundAndSync: () => {},
+        broadcast: () => {},
+      },
+    });
+
+    const sampleTelemetry = {
+      guestFeed: {
+        uiState: 'confirmed-live',
+        projection: { kind: 'guest', guestSessionId: 'sess-1', guestAttemptId: 'att-1' },
+        frameHealth: 'healthy',
+        errorMessage: null,
+      },
+      projector: {
+        hasOpen: true,
+      },
+    };
+
+    await session.broadcastState(sampleTelemetry);
+
+    assert.equal(postedPayloads.length, 1);
+    const sent = postedPayloads[0];
+    assert.equal(sent.guestFeed.uiState, 'confirmed-live');
+    assert.deepEqual(sent.guestFeed.projection, { kind: 'guest', guestSessionId: 'sess-1', guestAttemptId: 'att-1' });
+    assert.equal(sent.guestFeed.frameHealth, 'healthy');
+    assert.equal(sent.guestFeed.errorMessage, null);
+    assert.equal(sent.projector.hasOpen, true);
+    assert.equal(sent.projector.isAlive, undefined, 'Remote must remain liveness-blind (AD-29/AD-37)');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('SPEC-116-03 defect injection: missing guest intents or projector reopen prompt triggers guard finding', () => {
+  const validSources = {
+    operator: fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx'), 'utf8'),
+    feed: fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx'), 'utf8'),
+  };
+
+  const mutatedSources = {
+    operator: '<div>No prompt or button</div>',
+    feed: '<div>No guest intents</div>',
+  };
+
+  const defects = scanSpec11603GuestAndProjectorGuards(mutatedSources);
+  assert.deepEqual(defects, [
+    'missing-host-projector-reopen-prompt',
+    'missing-remote-request-reopen-button',
+    'missing-guest-arm-intent',
+    'missing-guest-project-intent',
+  ]);
+
+  const cleanDefects = scanSpec11603GuestAndProjectorGuards(validSources);
+  assert.deepEqual(cleanDefects, []);
+});
+

@@ -85,6 +85,12 @@ export default function RemoteOperator({
   const [remoteScriptureState, setRemoteScriptureState] = useState<
     RemoteControlSessionState['scripture']
   >(undefined);
+  const [remoteGuestFeedState, setRemoteGuestFeedState] = useState<
+    RemoteControlSessionState['guestFeed']
+  >(undefined);
+  const [remoteProjectorState, setRemoteProjectorState] = useState<
+    RemoteControlSessionState['projector']
+  >(undefined);
   const [connectionState, setConnectionState] =
     useState<RemoteControlConnectionState>('idle');
   const [moreOpen, setMoreOpen] = useState(false);
@@ -168,6 +174,12 @@ export default function RemoteOperator({
       }
       if (state.scripture !== undefined) {
         setRemoteScriptureState(state.scripture);
+      }
+      if (state.guestFeed !== undefined) {
+        setRemoteGuestFeedState(state.guestFeed);
+      }
+      if (state.projector !== undefined) {
+        setRemoteProjectorState(state.projector);
       }
     },
     [slides.length]
@@ -424,6 +436,8 @@ export default function RemoteOperator({
         controlledState={controlledState}
         controlledMediaState={remoteMediaState}
         controlledScriptureState={remoteScriptureState}
+        controlledGuestFeedState={remoteGuestFeedState}
+        controlledProjectorState={remoteProjectorState}
       />
     </div>
   );

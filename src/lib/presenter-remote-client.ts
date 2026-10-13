@@ -1,6 +1,7 @@
 import type { SlideTransition } from './transitions';
-import type { PresentMessage } from './present-channel';
+import type { PresentMessage, ProjectedSource } from './present-channel';
 import { paginateScriptureVerses } from './scripture-format';
+import type { GuestFeedUiState, FrameHealthStatus } from '@/operator/present/presenter-guest-feed-controller';
 
 export type PresenterRemoteIntent =
   | {
@@ -40,7 +41,11 @@ export type PresenterRemoteIntent =
   | { type: 'media-set-volume'; volume: number; planIdentity: string }
   | { type: 'media-set-mute'; muted: boolean; planIdentity: string }
   | { type: 'media-toggle-shuffle'; planIdentity: string }
-  | { type: 'media-cycle-repeat'; planIdentity: string };
+  | { type: 'media-cycle-repeat'; planIdentity: string }
+  | { type: 'guest-arm'; planIdentity: string }
+  | { type: 'guest-disarm'; planIdentity: string }
+  | { type: 'guest-project'; projected: boolean; planIdentity: string }
+  | { type: 'request-reopen-projector'; planIdentity: string };
 
 export interface PresenterActionHandlers {
   setIndexAndSync: (index: number) => Promise<boolean | void> | boolean | void;
@@ -69,6 +74,10 @@ export interface PresenterActionHandlers {
   handleMediaSetMute?: (muted: boolean) => void;
   handleMediaToggleShuffle?: () => void;
   handleMediaCycleRepeat?: () => void;
+  handleGuestArm?: () => void;
+  handleGuestDisarm?: () => void;
+  handleGuestProject?: (projected: boolean) => void;
+  handleRequestReopenProjector?: () => void;
 }
 
 /**
@@ -307,6 +316,37 @@ export function applyRemoteIntent(
       }
       return false;
     }
+    case 'guest-arm': {
+      if (typeof handlers.handleGuestArm === 'function') {
+        handlers.handleGuestArm();
+        return true;
+      }
+      return false;
+    }
+    case 'guest-disarm': {
+      if (typeof handlers.handleGuestDisarm === 'function') {
+        handlers.handleGuestDisarm();
+        return true;
+      }
+      return false;
+    }
+    case 'guest-project': {
+      if (
+        typeof intent.projected === 'boolean' &&
+        typeof handlers.handleGuestProject === 'function'
+      ) {
+        handlers.handleGuestProject(intent.projected);
+        return true;
+      }
+      return false;
+    }
+    case 'request-reopen-projector': {
+      if (typeof handlers.handleRequestReopenProjector === 'function') {
+        handlers.handleRequestReopenProjector();
+        return true;
+      }
+      return false;
+    }
     default:
       return false;
   }
@@ -524,6 +564,15 @@ export type RemoteControlSessionState = {
     is_whole_chapter?: boolean;
     pageIndex?: number;
     totalPages?: number;
+  } | null;
+  guestFeed?: {
+    uiState: GuestFeedUiState;
+    projection: ProjectedSource;
+    frameHealth: FrameHealthStatus;
+    errorMessage: string | null;
+  } | null;
+  projector?: {
+    hasOpen: boolean;
   } | null;
 };
 

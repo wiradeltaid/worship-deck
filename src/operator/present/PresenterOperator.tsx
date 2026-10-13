@@ -49,6 +49,7 @@ import {
   Sparkles,
   Upload,
   Copy,
+  Monitor,
 } from 'lucide-react';
 import QRCodeSvg from '@/components/QRCodeSvg';
 import Link from '@/components/Link';
@@ -505,6 +506,8 @@ export interface PresenterOperatorProps {
   };
   controlledMediaState?: RemoteControlSessionState['media'];
   controlledScriptureState?: RemoteControlSessionState['scripture'];
+  controlledGuestFeedState?: RemoteControlSessionState['guestFeed'];
+  controlledProjectorState?: RemoteControlSessionState['projector'];
 }
 
 export default function PresenterOperator({
@@ -521,6 +524,8 @@ export default function PresenterOperator({
   controlledState,
   controlledMediaState,
   controlledScriptureState,
+  controlledGuestFeedState,
+  controlledProjectorState,
 }: PresenterOperatorProps) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
@@ -826,6 +831,14 @@ export default function PresenterOperator({
   const [remoteCode, setRemoteCode] = useState<string | null>(null);
   const [remoteDialogOpen, setRemoteDialogOpen] = useState(false);
   const [remoteActionBusy, setRemoteActionBusy] = useState(false);
+  const [projectorPromptOpen, setProjectorPromptOpen] = useState(false);
+  const [mirroredGuestFeedState, setMirroredGuestFeedState] = useState(controlledGuestFeedState);
+
+  useEffect(() => {
+    if (mode === 'remote') {
+      setMirroredGuestFeedState(controlledGuestFeedState);
+    }
+  }, [mode, controlledGuestFeedState]);
   const [scriptureOverlay, setScriptureOverlayState] = useState<ScriptureOverlay | null>(
     () => (restoredSession?.scriptureOverlay ?? null)
   );
@@ -872,6 +885,20 @@ export default function PresenterOperator({
           guestAttemptId: guestAttemptIdRef.current,
         });
       },
+    });
+  }
+
+  const dummyGuestFeedControllerRef = useRef<PresenterGuestFeedController | null>(null);
+  if (!dummyGuestFeedControllerRef.current) {
+    dummyGuestFeedControllerRef.current = new PresenterGuestFeedController({
+      broker: {
+        enumerateDevices: async () => [],
+        getSnapshot: () => ({ guestSessionId: null, devices: [], selectedDeviceId: null }),
+        subscribe: () => () => {},
+        arm: async () => {},
+        disarm: () => {},
+      } as any,
+      broadcastSync: () => {},
     });
   }
   useEffect(() => {
@@ -1874,6 +1901,45 @@ export default function PresenterOperator({
           const next: RepeatMode = snap.repeatMode === 'off' ? 'all' : snap.repeatMode === 'all' ? 'one' : 'off';
           mediaStore.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: next });
         },
+        handleGuestArm: () => {
+          const dev = captureBrokerRef.current?.getSnapshot().selectedDeviceId;
+          if (dev && guestFeedControllerRef.current) {
+            void guestFeedControllerRef.current.arm(dev);
+          }
+        },
+        handleGuestDisarm: () => {
+          guestFeedControllerRef.current?.disarm();
+        },
+        handleGuestProject: (projected) => {
+          if (projected) {
+            try {
+              guestFeedControllerRef.current?.switch(liveness.verdict === 'live');
+            } catch (err: any) {
+              const currentSnap = guestFeedControllerRef.current?.getSnapshot();
+              if (currentSnap) {
+                void remoteSessionRef.current?.broadcastState({
+                  guestFeed: {
+                    uiState: currentSnap.uiState,
+                    projection: currentSnap.projection,
+                    frameHealth: currentSnap.frameHealth,
+                    errorMessage: err?.message || 'Switch to guest rejected by presenter workstation',
+                  },
+                });
+              }
+            }
+          } else {
+            guestFeedControllerRef.current?.revertToDeck();
+          }
+        },
+        handleRequestReopenProjector: () => {
+          if (projectorRef.current && !projectorRef.current.closed) {
+            try {
+              projectorRef.current.focus();
+            } catch {}
+          } else {
+            setProjectorPromptOpen(true);
+          }
+        },
       },
       onCode: (code) => {
         setRemoteCode(code);
@@ -1900,6 +1966,7 @@ export default function PresenterOperator({
     broadcast,
     mediaEngine,
     mediaStore,
+    liveness.verdict,
   ]);
 
   // Host-to-remote media playback state mirroring over SSE (only when remote is connected)
@@ -1923,6 +1990,24 @@ export default function PresenterOperator({
       });
     });
   }, [mode, remoteState, mediaStore]);
+
+  // Host-to-remote guest feed state mirroring over SSE (only when remote is connected)
+  useEffect(() => {
+    if (mode === 'remote') return;
+    if (remoteState !== 'connected') return;
+    const ctrl = guestFeedControllerRef.current;
+    if (!ctrl) return;
+    return ctrl.subscribe((snap) => {
+      void remoteSessionRef.current?.broadcastState({
+        guestFeed: {
+          uiState: snap.uiState,
+          projection: snap.projection,
+          frameHealth: snap.frameHealth,
+          errorMessage: snap.errorMessage,
+        },
+      });
+    });
+  }, [mode, remoteState]);
 
   // Immediate full presentation & media snapshot broadcast when remote client connects
   useEffect(() => {
@@ -1958,9 +2043,20 @@ export default function PresenterOperator({
                 totalPages: scriptureOverlayRef.current.totalPages,
               }
             : null,
+        guestFeed: guestFeedControllerRef.current
+          ? {
+              uiState: guestFeedControllerRef.current.getSnapshot().uiState,
+              projection: guestFeedControllerRef.current.getSnapshot().projection,
+              frameHealth: guestFeedControllerRef.current.getSnapshot().frameHealth,
+              errorMessage: guestFeedControllerRef.current.getSnapshot().errorMessage,
+            }
+          : null,
+        projector: {
+          hasOpen: Boolean(projectorRef.current && !projectorRef.current.closed),
+        },
       });
     }
-  }, [mode, remoteState, mediaStore]);
+  }, [mode, remoteState, mediaStore, liveness.verdict]);
 
   useEffect(() => {
     if (mode === 'remote') return;
@@ -2885,11 +2981,15 @@ export default function PresenterOperator({
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
-          {guestFeedControllerRef.current && (
+          {(guestFeedControllerRef.current || mode === 'remote') && (
             <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
               <PresenterGuestFeedControl
-                controller={guestFeedControllerRef.current}
-                isProjectorResponding={liveness.verdict === 'live'}
+                controller={guestFeedControllerRef.current || dummyGuestFeedControllerRef.current!}
+                isProjectorResponding={mode === 'remote' ? true : liveness.verdict === 'live'}
+                isRemote={mode === 'remote'}
+                mirroredGuestFeed={mirroredGuestFeedState}
+                onRemoteIntent={mode === 'remote' ? onSendIntent : undefined}
+                planIdentity={planIdentity}
               />
             </div>
           )}
@@ -2911,6 +3011,44 @@ export default function PresenterOperator({
             .
           </p>
         ) : null}
+        {projectorPromptOpen && mode !== 'remote' && (
+          <div
+            data-testid="projector-reopen-prompt"
+            role="alert"
+            className="basis-full rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs flex items-center justify-between gap-2"
+          >
+            <span className="font-semibold text-amber-300">
+              Remote controller meminta pembukaan layar proyektor.
+            </span>
+            <Button
+              size="xs"
+              variant="default"
+              data-testid="btn-open-projector-prompt"
+              onClick={() => {
+                openProjector();
+                setProjectorPromptOpen(false);
+              }}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs h-7"
+            >
+              Buka Proyektor Sekarang
+            </Button>
+          </div>
+        )}
+        {mode === 'remote' && (
+          <div className="flex items-center gap-2">
+            <Button
+              size="xs"
+              variant="outline"
+              data-testid="remote-request-reopen-projector-button"
+              onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
+              className="h-7 text-[11px] gap-1"
+              title="Minta Buka Proyektor"
+            >
+              <Monitor className="size-3" />
+              <span>Minta Buka Proyektor</span>
+            </Button>
+          </div>
+        )}
         {mode !== 'remote' && liveness.verdict === 'lost' ? (
           <p role="status" className="basis-full text-xs text-amber-300">
             {t('presenter.congregationScreenLost')}

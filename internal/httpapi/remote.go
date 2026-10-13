@@ -55,8 +55,12 @@ var allowedIntentTypes = map[string]bool{
 	"media-reorder-item":   true,
 	"media-set-volume":     true,
 	"media-set-mute":       true,
-	"media-toggle-shuffle": true,
-	"media-cycle-repeat":   true,
+	"media-toggle-shuffle":    true,
+	"media-cycle-repeat":      true,
+	"guest-arm":               true,
+	"guest-disarm":            true,
+	"guest-project":           true,
+	"request-reopen-projector": true,
 }
 
 type clientChan chan []byte
@@ -511,6 +515,13 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 		_, ok := body["muted"].(bool)
 		if !ok {
 			writeError(w, http.StatusBadRequest, "Invalid muted, must be boolean")
+			return
+		}
+	}
+	if intentType == "guest-project" {
+		_, ok := body["projected"].(bool)
+		if !ok {
+			writeError(w, http.StatusBadRequest, "Invalid projected, must be boolean")
 			return
 		}
 	}
