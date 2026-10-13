@@ -1304,3 +1304,81 @@ test('SPEC-119-03 behavioral: optimistic seek hold eliminates rubber-banding on 
   assert.equal(c1.effective, 10.0, 'Releases hold once 1000ms grace window expires');
   assert.equal(c1.lastSeekTarget, null);
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-119-04: Mobile Touch Ergonomics, Pointer Cancel Resilience & Smooth Scrubbing
+// -----------------------------------------------------------------------------
+export function scanSpec11904MobileTouchErgonomicsGuards(barSource) {
+  const defects = [];
+  // 1. Range slider has touch-none in className
+  if (!barSource.includes('className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none touch-none"')) {
+    defects.push('missing-touch-none-gesture-containment');
+  }
+  // 2. commitSeek idempotency check
+  if (!barSource.includes('if (!isSeekingRef.current) return;')) {
+    defects.push('missing-idempotent-seek-commit-guard');
+  }
+  // 3. Pointer capture handling
+  if (!barSource.includes('setPointerCapture') || !barSource.includes('releasePointerCapture')) {
+    defects.push('missing-pointer-capture-lifecycle');
+  }
+  // 4. Pointer cancel and touch event bindings
+  if (
+    !barSource.includes('onPointerCancel={handleSeekPointerUp}') ||
+    !barSource.includes('onTouchEnd={handleSeekTouchEnd}') ||
+    !barSource.includes('onTouchCancel={handleSeekTouchEnd}')
+  ) {
+    defects.push('missing-pointer-cancel-or-touch-handlers');
+  }
+  return defects;
+}
+
+test('SPEC-119-04: MediaControlBar implements touch-none, pointer capture, and cancel resilience contracts', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const barSource = fs.readFileSync(barPath, 'utf8');
+
+  const defects = scanSpec11904MobileTouchErgonomicsGuards(barSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-119-04 defect injection: missing touch ergonomics or handlers fails scan guard', () => {
+  const mutated = `
+    const commitSeek = (val) => { isSeekingRef.current = false; };
+    <input type="range" className="h-1.5 w-full focus:outline-none" onPointerUp={handleSeekPointerUp} />
+  `;
+  const defects = scanSpec11904MobileTouchErgonomicsGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-touch-none-gesture-containment',
+    'missing-idempotent-seek-commit-guard',
+    'missing-pointer-capture-lifecycle',
+    'missing-pointer-cancel-or-touch-handlers',
+  ]);
+});
+
+test('SPEC-119-04 behavioral: idempotent seek commit prevents duplicate intents across multi-event touch cycles', () => {
+  let isSeeking = true;
+  let commitCount = 0;
+  const committedValues = [];
+
+  function commitSeek(val) {
+    if (!isSeeking) return;
+    isSeeking = false;
+    commitCount++;
+    committedValues.push(val);
+  }
+
+  // 1. Mobile browser emits pointerup on finger release: commits once
+  commitSeek(45.5);
+  assert.equal(commitCount, 1);
+  assert.deepEqual(committedValues, [45.5]);
+
+  // 2. Mobile browser emits subsequent touchend on same gesture cycle: ignored (idempotent)!
+  commitSeek(45.5);
+  assert.equal(commitCount, 1, 'Subsequent touchend must not commit duplicate intent');
+
+  // 3. Blur event also fires on the range input: ignored (idempotent)!
+  commitSeek(45.5);
+  assert.equal(commitCount, 1, 'Subsequent blur must not commit duplicate intent');
+  assert.deepEqual(committedValues, [45.5]);
+});

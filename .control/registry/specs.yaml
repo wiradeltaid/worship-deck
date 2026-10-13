@@ -5016,7 +5016,7 @@ waves:
           - tests/remote-control-go-http.test.mjs
           - tests/remote-presenting-client.test.mjs
   - id: SPEC-119
-    status: open
+    status: closed
     release: presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing
     prd: [operator-turn]
     fr: [FR-16, FR-35]

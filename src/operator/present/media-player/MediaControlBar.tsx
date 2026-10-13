@@ -315,6 +315,7 @@ export const MediaControlBar = memo(function MediaControlBar({
 
   const commitSeek = useCallback(
     (val: number) => {
+      if (!isSeekingRef.current) return;
       isSeekingRef.current = false;
       const targetVal = duration > 0 ? Math.max(0, Math.min(val, duration)) : Math.max(0, val);
       if (onRemoteMediaIntent) {
@@ -337,8 +338,35 @@ export const MediaControlBar = memo(function MediaControlBar({
     [onRemoteMediaIntent, planIdentity, engine, store, duration, state.currentTime]
   );
 
+  const handleSeekPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLInputElement>) => {
+      e.stopPropagation();
+      isSeekingRef.current = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignore environments where pointer capture is unsupported
+      }
+    },
+    []
+  );
+
   const handleSeekPointerUp = useCallback(
     (e: React.PointerEvent<HTMLInputElement>) => {
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // Ignore
+      }
+      commitSeek(parseFloat(e.currentTarget.value));
+    },
+    [commitSeek]
+  );
+
+  const handleSeekTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLInputElement>) => {
       commitSeek(parseFloat(e.currentTarget.value));
     },
     [commitSeek]
@@ -347,6 +375,7 @@ export const MediaControlBar = memo(function MediaControlBar({
   const handleSeekKeyUp = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        isSeekingRef.current = true;
         commitSeek(parseFloat(e.currentTarget.value));
       }
     },
@@ -455,12 +484,16 @@ export const MediaControlBar = memo(function MediaControlBar({
                   step={0.1}
                   value={displayTime}
                   onChange={handleSeekChange}
+                  onPointerDown={handleSeekPointerDown}
                   onPointerUp={handleSeekPointerUp}
+                  onPointerCancel={handleSeekPointerUp}
+                  onTouchEnd={handleSeekTouchEnd}
+                  onTouchCancel={handleSeekTouchEnd}
                   onKeyUp={handleSeekKeyUp}
                   onBlur={handleSeekBlur}
                   onMouseDown={(e) => e.stopPropagation()}
                   aria-label={t('media.dock.seekAriaLabel')}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none touch-none"
                 />
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
                   {formatTime(duration)}
