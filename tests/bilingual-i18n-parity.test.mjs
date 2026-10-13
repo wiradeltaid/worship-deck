@@ -884,7 +884,7 @@ test('SPEC-116-04: Real-file defect injection — missing SPEC-116 key in catalo
   const original = fs.readFileSync(catalogueEnPath, 'utf8');
   try {
     const defective = original.replace(
-      "'presenter.openProjectorNow': 'Open Projector Now',",
+      "'presenter.openProjectorNow': 'Open Congregation Screen Now',",
       ''
     );
     assert.notEqual(defective, original, 'mutation replacement must succeed');
