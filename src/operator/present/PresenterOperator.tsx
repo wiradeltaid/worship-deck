@@ -3017,7 +3017,7 @@ export default function PresenterOperator({
             role="alert"
             className="basis-full rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs flex items-center justify-between gap-2"
           >
-            <span className="font-semibold text-amber-300">
+            <span className="font-semibold text-amber-700 dark:text-amber-300">
               {t('presenter.projectorReopenRequested')}
             </span>
             <Button
