@@ -798,13 +798,13 @@ export function scanSpec11701MediaControlBarResponsiveGuards(barSource) {
   if (!barSource.includes('data-testid="media-control-bar-row-2"')) {
     defects.push('missing-media-control-bar-row-2');
   }
-  if (!barSource.includes('flex-col md:flex-row')) {
+  if (!barSource.includes('flex-col md:flex-row') && !barSource.includes('flex-col xl:flex-row')) {
     defects.push('missing-responsive-flex-direction');
   }
-  if (!barSource.includes('h-auto md:h-13')) {
+  if (!barSource.includes('h-auto md:h-13') && !barSource.includes('h-auto xl:h-13')) {
     defects.push('missing-responsive-height');
   }
-  if (!barSource.includes('md:contents')) {
+  if (!barSource.includes('md:contents') && !barSource.includes('xl:contents')) {
     defects.push('missing-desktop-contents-flattening');
   }
   return defects;
@@ -819,13 +819,13 @@ test('SPEC-117-01: MediaControlBar renders responsive 2-row layout with desktop 
   const defects = scanSpec11701MediaControlBarResponsiveGuards(barSource);
   assert.deepEqual(defects, []);
 
-  // 2. Row 1 houses metadata & seekbar (md:order-2) and drawer launcher (md:order-4)
-  assert.ok(barSource.includes('md:order-2'), 'Metadata and seekbar must have md:order-2 for desktop center placement');
-  assert.ok(barSource.includes('md:order-4'), 'Drawer launcher must have md:order-4 for desktop right placement');
+  // 2. Row 1 houses metadata & seekbar (xl:order-2 or md:order-2) and drawer launcher (xl:order-4 or md:order-4)
+  assert.ok(barSource.includes('xl:order-2') || barSource.includes('md:order-2'), 'Metadata and seekbar must have desktop order modifier');
+  assert.ok(barSource.includes('xl:order-4') || barSource.includes('md:order-4'), 'Drawer launcher must have desktop order modifier');
 
-  // 3. Row 2 houses panic controls (md:order-1) and projector toggle (md:order-3)
-  assert.ok(barSource.includes('md:order-1'), 'Panic controls must have md:order-1 for desktop left placement');
-  assert.ok(barSource.includes('md:order-3'), 'Projector toggle must have md:order-3 for desktop right placement');
+  // 3. Row 2 houses panic controls (xl:order-1 or md:order-1) and projector toggle (xl:order-3 or md:order-3)
+  assert.ok(barSource.includes('xl:order-1') || barSource.includes('md:order-1'), 'Panic controls must have desktop order modifier');
+  assert.ok(barSource.includes('xl:order-3') || barSource.includes('md:order-3'), 'Projector toggle must have desktop order modifier');
 
   // 4. Mobile touch target size: Play button has min-w-[40px]
   assert.ok(barSource.includes('min-w-[40px]'), 'Play/Pause button must have min-w-[40px] for mobile ergonomics');
@@ -948,3 +948,74 @@ test('SPEC-117-04 defect injection: missing manifest emission or sync reducer fa
   ]);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-118-01: Tablet Breakpoint Elevation to xl (1280px) and 2-Row MediaControlBar Layout
+// -----------------------------------------------------------------------------
+export function scanSpec11801TabletMediaBarGuards(barSource) {
+  const defects = [];
+  if (!barSource.includes('h-auto xl:h-13')) {
+    defects.push('missing-xl-height-breakpoint');
+  }
+  if (!barSource.includes('flex flex-col xl:flex-row')) {
+    defects.push('missing-xl-flex-direction');
+  }
+  if (!barSource.includes('items-stretch xl:items-center')) {
+    defects.push('missing-xl-items-alignment');
+  }
+  if (!barSource.includes('gap-2 xl:gap-3')) {
+    defects.push('missing-xl-gap');
+  }
+  if (!barSource.includes('xl:contents')) {
+    defects.push('missing-xl-contents-flattening');
+  }
+  if (!barSource.includes('xl:order-1')) {
+    defects.push('missing-xl-order-1');
+  }
+  if (!barSource.includes('xl:order-2')) {
+    defects.push('missing-xl-order-2');
+  }
+  if (!barSource.includes('xl:order-3')) {
+    defects.push('missing-xl-order-3');
+  }
+  if (!barSource.includes('xl:order-4')) {
+    defects.push('missing-xl-order-4');
+  }
+  // Structural tightening: obsolete md layout modifiers must be completely removed
+  if (
+    barSource.includes('md:h-13') ||
+    barSource.includes('md:flex-row') ||
+    barSource.includes('md:items-center') ||
+    barSource.includes('md:gap-3') ||
+    barSource.includes('md:contents') ||
+    barSource.includes('md:order-')
+  ) {
+    defects.push('retained-legacy-md-layout-modifier');
+  }
+  return defects;
+}
+
+test('SPEC-118-01: MediaControlBar elevates 2-row layout breakpoint to xl (1280px) for tablet coverage', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const barSource = fs.readFileSync(barPath, 'utf8');
+
+  const defects = scanSpec11801TabletMediaBarGuards(barSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-118-01 defect injection: md breakpoint instead of xl fails tablet scan guard', () => {
+  const mutated = '<div className="h-auto md:h-13 flex-col md:flex-row md:contents md:order-1">Legacy md breakpoint</div>';
+  const defects = scanSpec11801TabletMediaBarGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-xl-height-breakpoint',
+    'missing-xl-flex-direction',
+    'missing-xl-items-alignment',
+    'missing-xl-gap',
+    'missing-xl-contents-flattening',
+    'missing-xl-order-1',
+    'missing-xl-order-2',
+    'missing-xl-order-3',
+    'missing-xl-order-4',
+    'retained-legacy-md-layout-modifier',
+  ]);
+});

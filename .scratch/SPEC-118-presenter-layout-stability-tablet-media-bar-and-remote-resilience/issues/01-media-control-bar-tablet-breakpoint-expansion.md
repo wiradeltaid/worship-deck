@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-25, FR-35]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Expand the responsive 2-row layout breakpoint in `MediaControlBar.tsx` from `md:` (768px) to `xl:` (1280px). This ensures that tablets (such as iPad Mini in 744px/768px portrait and 1024px landscape, as well as 10"–12" tablets up to 1279px) display the spacious 2-row layout with a full-width scrubbable seekbar, while widescreen desktop workstations (>= 1280px) cleanly flatten into the single horizontal bar.
