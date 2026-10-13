@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-25, FR-35]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Refactor `MediaControlBar.tsx` to provide an ergonomic responsive 2-row layout on mobile and compact screens (< 768px) while strictly preserving the compact 1-row layout on desktop screens (>= 768px). Row 1 houses track identification, full-width scrubbar, and drawer launcher, while Row 2 organizes transport controls, playback modes, volume slider, and video projection toggle with touch-friendly spacing.

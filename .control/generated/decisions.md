@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**103 decisions** — accepted: 1 · applied: 101 · superseded: 1.
+**104 decisions** — accepted: 1 · applied: 102 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -111,3 +111,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-101` | Persistent Video Projection with Slide Fallback, Browser-Local Playback Preferences, and List Removal Semanti… | `applied` | decision | `src/operator/present/media-player/MediaStage.tsx`, `src/operator/present/media-player/MediaControlBar.tsx`, `src/operator/present/media-player/MediaDrawer.tsx`, `src/operator/present/media-player/playlist-model.ts`, `src/operator/present/PresenterOperator.tsx`, `tests/local-media-player.test.mjs`, `.how/presenter/SDD-presenter.md`, `.how/presenter/02-contracts/02-present-channel.md` | `.control/decisions/DEC-101-persistent-video-projection-and-slide-fallback.md` |
 | `DEC-102` | Daily Autopilot mandate for Unified Remote Presenter Console and QR Pairing (SPEC-115) | `applied` | mandate | `.control/memlog/autopilot-DEC-102.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-115-unified-remote-presenter-console-and-qr-pairing/` | `.control/decisions/DEC-102-daily-autopilot-mandate-unified-remote-presenter-console-and-qr-pairing.md` |
 | `DEC-103` | Daily Autopilot mandate for Target-Authority Remote Presenter Console (SPEC-116) | `applied` | mandate | `.control/memlog/autopilot-DEC-103.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-116-target-authority-remote-presenter-console/` | `.control/decisions/DEC-103-daily-autopilot-mandate-target-authority-remote-presenter-console.md` |
+| `DEC-104` | Daily Autopilot mandate for Mobile Media Bar Ergonomics, Presenter Header Layout Harmony, and Remote Synchron… | `applied` | mandate | `.control/memlog/autopilot-DEC-104.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/` | `.control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-and-remote-sync.md` |

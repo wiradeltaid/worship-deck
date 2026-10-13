@@ -1212,3 +1212,43 @@ test('SPEC-116-03 defect injection: missing guest intents or projector reopen pr
   assert.deepEqual(cleanDefects, []);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-117-02: Presenter Header Layout Harmony & Compact Guest Live Controls
+// -----------------------------------------------------------------------------
+export function scanSpec11702HeaderHarmonyAndGuestLiveGuards(sources) {
+  const defects = [];
+  // 1. PresenterGuestFeedControl suppresses device picker and disarm button when isRemote && confirmed-live
+  if (!sources.feed.includes("!(isRemote && uiState === 'confirmed-live')")) {
+    defects.push('missing-remote-confirmed-live-compact-gating');
+  }
+  // 2. PresenterOperator houses remote-request-reopen-projector-button inside presenter-header-row-1
+  const row1Match = sources.operator.match(/data-testid="presenter-header-row-1"[\s\S]*?<\/div>/);
+  if (!row1Match || !row1Match[0].includes('data-testid="remote-request-reopen-projector-button"')) {
+    defects.push('missing-reopen-button-in-presenter-header-row-1');
+  }
+  return defects;
+}
+
+test('SPEC-117-02: Header layout harmony and compact guest feed control contracts', () => {
+  const sources = {
+    operator: fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx'), 'utf8'),
+    feed: fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx'), 'utf8'),
+  };
+
+  const defects = scanSpec11702HeaderHarmonyAndGuestLiveGuards(sources);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-117-02 defect injection: uncompacted live guest controls or external reopen button fails scan guard', () => {
+  const mutated = {
+    operator: '<div data-testid="presenter-header-row-1">No button</div>\n</header><Button data-testid="remote-request-reopen-projector-button" />',
+    feed: '<DropdownMenu>Always open</DropdownMenu><Button data-testid="guest-disarm-button">Disarm</Button>',
+  };
+  const defects = scanSpec11702HeaderHarmonyAndGuestLiveGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-remote-confirmed-live-compact-gating',
+    'missing-reopen-button-in-presenter-header-row-1',
+  ]);
+});
+
+

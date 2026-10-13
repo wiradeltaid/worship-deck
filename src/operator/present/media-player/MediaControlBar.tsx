@@ -361,319 +361,332 @@ export const MediaControlBar = memo(function MediaControlBar({
       data-testid="media-control-bar"
       aria-label="Media Control Bar"
       className={cn(
-        'w-full h-13 shrink-0 px-3 bg-card/95 border-b border-border shadow-xs flex items-center justify-between gap-3 select-none text-xs transition-opacity',
+        'w-full h-auto md:h-13 shrink-0 px-3 py-2 md:py-0 bg-card/95 border-b border-border shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-3 select-none text-xs transition-opacity',
         !isCued && 'opacity-60 bg-muted/20',
         className
       )}
     >
-      {/* 1. Left Panic Group: Prev, Play/Pause, Next, Stop, Fade, Mute, Volume Slider */}
-      <div className="flex items-center gap-1.5 shrink-0" data-testid="media-panic-group">
-        {/* Previous Track */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="media-control-bar-prev"
-          disabled={!isCued}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handlePrevTrack}
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          title={t('media.controlBar.prevTitle')}
-          aria-label={t('media.controlBar.prevTitle')}
-        >
-          <SkipBack className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Play / Pause Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant={state.isPlaying ? 'default' : 'outline'}
-          data-testid="media-control-bar-play"
-          disabled={!isCued}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => void handlePlayPause()}
-          className="h-8 px-2.5 gap-1.5 font-medium"
-          title={state.isPlaying ? t('media.topBar.pauseTitle') : t('media.topBar.playTitle')}
-        >
-          {state.isPlaying ? (
+      {/* Row 1 on Mobile (< md) / Center metadata & seekbar + Right Drawer Launcher on Desktop (>= md) */}
+      <div
+        data-testid="media-control-bar-row-1"
+        className="flex items-center justify-between gap-2 w-full min-w-0 md:contents"
+      >
+        {/* Track metadata & full-width seekbar */}
+        <div className="flex flex-1 items-center gap-2.5 min-w-0 max-w-2xl px-1 md:order-2">
+          {activeItem ? (
             <>
-              <Pause className="h-3.5 w-3.5" />
-              <span>{t('media.topBar.pauseLabel')}</span>
+              <div className="flex items-center gap-1.5 shrink-0 max-w-[9rem] sm:max-w-[12rem] min-w-0">
+                {isVideo ? (
+                  <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                ) : (
+                  <Music className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                )}
+                <span className="font-semibold text-foreground truncate text-xs" title={activeItem.name}>
+                  {activeItem.name}
+                </span>
+                <span
+                  data-testid="media-source-indicator"
+                  className={cn(
+                    'inline-flex items-center gap-0.5 rounded px-1 py-0.2 text-[9px] font-bold uppercase shrink-0',
+                    activeSource === 'local'
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                      : 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30'
+                  )}
+                >
+                  {activeSource === 'local' ? (
+                    <>
+                      <HardDrive className="h-2.5 w-2.5" />
+                      <span>{t('media.topBar.sourceLocal')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="h-2.5 w-2.5" />
+                      <span>{t('media.topBar.sourceCloud')}</span>
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {/* Seekbar & Time */}
+              <div className="flex flex-1 items-center gap-2 min-w-0">
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
+                  {formatTime(displayTime)}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 100}
+                  step={0.1}
+                  value={displayTime}
+                  onChange={handleSeekChange}
+                  onPointerUp={handleSeekPointerUp}
+                  onKeyUp={handleSeekKeyUp}
+                  onBlur={handleSeekBlur}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  aria-label={t('media.dock.seekAriaLabel')}
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
+                />
+                <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
+                  {formatTime(duration)}
+                </span>
+              </div>
             </>
           ) : (
-            <>
-              <Play className="h-3.5 w-3.5" />
-              <span>{t('media.topBar.playLabel')}</span>
-            </>
+            <span className="text-muted-foreground/70 italic text-[11px] mx-auto">
+              {t('media.topBar.emptyPlaceholder')}
+            </span>
           )}
-        </Button>
-
-        {/* Next Track */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="media-control-bar-next"
-          disabled={!isCued}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleNextTrack}
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          title={t('media.controlBar.nextTitle')}
-          aria-label={t('media.controlBar.nextTitle')}
-        >
-          <SkipForward className="h-3.5 w-3.5" />
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="media-control-bar-stop"
-          disabled={!isCued || (!state.isPlaying && state.currentTime === 0)}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => void handleStop()}
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-          title={t('media.topBar.stopTitle')}
-        >
-          <Square className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Panic: 3s Fade Out with Auto-Pause */}
-        <Button
-          type="button"
-          size="sm"
-          variant={state.isFading ? 'default' : 'outline'}
-          data-testid="media-control-bar-fade"
-          disabled={!isCued || !state.isPlaying || state.isFading}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => void handleFadeOut()}
-          className={cn(
-            'h-8 px-2 gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10',
-            state.isFading && 'animate-pulse bg-amber-500/20'
-          )}
-          title={t('media.topBar.fadeTitle')}
-        >
-          <TrendingDown className="h-3.5 w-3.5" />
-          <span>{t('media.topBar.fadeLabel')}</span>
-        </Button>
-
-        {/* Mute Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="media-control-bar-mute"
-          disabled={!isCued}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleToggleMute}
-          className={cn(
-            'h-8 w-8 p-0',
-            state.isMuted
-              ? 'bg-destructive/15 text-destructive border-destructive/40'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          title={state.isMuted ? t('media.topBar.unmuteTitle') : t('media.topBar.muteTitle')}
-        >
-          {state.isMuted ? (
-            <VolumeX className="h-3.5 w-3.5" />
-          ) : (
-            <Volume2 className="h-3.5 w-3.5" />
-          )}
-        </Button>
-
-        {/* Volume Slider directly next to Mute */}
-        <div className={cn("items-center gap-1.5 ml-0.5", isRemote ? "flex w-20 sm:w-24" : "hidden sm:flex w-24")}>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            disabled={!isCued}
-            value={state.isMuted ? 0 : state.volume}
-            onChange={handleVolumeChange}
-            onMouseDown={(e) => e.stopPropagation()}
-            aria-label={t('media.dock.volumeAriaLabel')}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none disabled:opacity-40"
-          />
         </div>
 
-        {/* Shuffle Mode Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant={state.shuffle ? 'default' : 'outline'}
-          data-testid="media-control-bar-shuffle"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleToggleShuffle}
-          className={cn(
-            'h-8 w-8 p-0',
-            state.shuffle
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          title={state.shuffle ? t('media.controlBar.shuffleOn') : t('media.controlBar.shuffleOff')}
-          aria-label={t('media.controlBar.shuffleLabel')}
-        >
-          <Shuffle className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* 3-State Repeat Mode Cycle (Off -> All -> One -> Off) */}
-        <Button
-          type="button"
-          size="sm"
-          variant={state.repeatMode !== 'off' ? 'default' : 'outline'}
-          data-testid="media-control-bar-repeat"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleCycleRepeat}
-          className={cn(
-            'h-8 w-8 p-0',
-            state.repeatMode !== 'off'
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          title={
-            state.repeatMode === 'one'
-              ? t('media.controlBar.repeatOne')
-              : state.repeatMode === 'all'
-                ? t('media.controlBar.repeatAll')
-                : t('media.controlBar.repeatOff')
-          }
-          aria-label={t('media.controlBar.repeatLabel')}
-        >
-          {state.repeatMode === 'one' ? (
-            <Repeat1 className="h-3.5 w-3.5" />
-          ) : (
-            <Repeat className="h-3.5 w-3.5" />
-          )}
-        </Button>
-      </div>
-
-      {/* 2. Center: Media Type Icon, Track Name, Source Badge, Current/Total Time, Seekbar */}
-      <div className="flex flex-1 items-center gap-2.5 min-w-0 max-w-2xl px-1">
-        {activeItem ? (
-          <>
-            <div className="flex items-center gap-1.5 shrink-0 max-w-[12rem] min-w-0">
-              {isVideo ? (
-                <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              ) : (
-                <Music className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              )}
-              <span className="font-semibold text-foreground truncate text-xs" title={activeItem.name}>
-                {activeItem.name}
-              </span>
-              <span
-                data-testid="media-source-indicator"
-                className={cn(
-                  'inline-flex items-center gap-0.5 rounded px-1 py-0.2 text-[9px] font-bold uppercase shrink-0',
-                  activeSource === 'local'
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                    : 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30'
-                )}
-              >
-                {activeSource === 'local' ? (
-                  <>
-                    <HardDrive className="h-2.5 w-2.5" />
-                    <span>{t('media.topBar.sourceLocal')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Cloud className="h-2.5 w-2.5" />
-                    <span>{t('media.topBar.sourceCloud')}</span>
-                  </>
-                )}
-              </span>
-            </div>
-
-            {/* Seekbar & Time */}
-            <div className="flex flex-1 items-center gap-2 min-w-0">
-              <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
-                {formatTime(displayTime)}
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={duration || 100}
-                step={0.1}
-                value={displayTime}
-                onChange={handleSeekChange}
-                onPointerUp={handleSeekPointerUp}
-                onKeyUp={handleSeekKeyUp}
-                onBlur={handleSeekBlur}
-                onMouseDown={(e) => e.stopPropagation()}
-                aria-label={t('media.dock.seekAriaLabel')}
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none"
-              />
-              <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
-                {formatTime(duration)}
-              </span>
-            </div>
-          </>
-        ) : (
-          <span className="text-muted-foreground/70 italic text-[11px] mx-auto">
-            {t('media.topBar.emptyPlaceholder')}
-          </span>
+        {/* Playlist Drawer Launcher (Right of Row 1 on mobile, 4th item on desktop) */}
+        {onOpenDrawer && (
+          <div className="shrink-0 md:order-4">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="media-control-bar-drawer"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onOpenDrawer}
+              className="h-8 px-2.5 gap-1.5 text-xs text-foreground font-medium"
+              title={t('media.topBar.openDrawerTitle')}
+            >
+              <ListMusic className="h-3.5 w-3.5 text-primary" />
+              <span>{t('media.topBar.drawerCount', { count: state.items.length })}</span>
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* 3. Right: Projector Video Toggle & Drawer Launcher */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Bidirectional Projector Toggle */}
-        <Button
-          type="button"
-          size="sm"
-          variant={state.isProjected ? 'default' : 'outline'}
-          data-testid="media-control-bar-project"
-          disabled={!isCued}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={handleToggleProject}
-          className={cn(
-            'h-8 px-2.5 gap-1.5 text-xs font-semibold',
-            state.isProjected
-              ? isVideo
-                ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                : 'bg-primary/20 text-primary border-primary/40 hover:bg-primary/30'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          title={
-            state.isProjected
-              ? isVideo
-                ? t('media.topBar.takeOffTitle')
-                : t('media.controlBar.projectedAudioFallback')
-              : !isVideo
-              ? t('media.controlBar.videoOnlyTooltip')
-              : t('media.topBar.projectVideoTitle')
-          }
-        >
-          {state.isProjected ? (
-            <>
-              <Monitor className="h-3.5 w-3.5" />
-              <span>{isVideo ? t('media.topBar.takeOffLabel') : t('media.controlBar.projectArmedLabel')}</span>
-            </>
-          ) : (
-            <>
-              <MonitorOff className="h-3.5 w-3.5" />
-              <span>{t('media.topBar.projectVideoLabel')}</span>
-            </>
-          )}
-        </Button>
-
-        {/* Drawer Launcher (host only) */}
-        {onOpenDrawer && (
+      {/* Row 2 on Mobile (< md) / Left panic controls & Right projector toggle on Desktop (>= md) */}
+      <div
+        data-testid="media-control-bar-row-2"
+        className="flex items-center justify-between gap-1.5 w-full min-w-0 overflow-x-auto no-scrollbar py-0.5 md:contents"
+      >
+        {/* Panic Group: Prev, Play/Pause, Next, Stop, Fade, Mute, Volume Slider, Shuffle, Repeat */}
+        <div className="flex items-center gap-1.5 shrink-0 md:order-1" data-testid="media-panic-group">
+          {/* Previous Track */}
           <Button
             type="button"
             size="sm"
             variant="outline"
-            data-testid="media-control-bar-drawer"
+            data-testid="media-control-bar-prev"
+            disabled={!isCued}
             onMouseDown={(e) => e.preventDefault()}
-            onClick={onOpenDrawer}
-            className="h-8 px-2.5 gap-1.5 text-xs text-foreground font-medium"
-            title={t('media.topBar.openDrawerTitle')}
+            onClick={handlePrevTrack}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            title={t('media.controlBar.prevTitle')}
+            aria-label={t('media.controlBar.prevTitle')}
           >
-            <ListMusic className="h-3.5 w-3.5 text-primary" />
-            <span>{t('media.topBar.drawerCount', { count: state.items.length })}</span>
+            <SkipBack className="h-3.5 w-3.5" />
           </Button>
-        )}
+
+          {/* Play / Pause Toggle */}
+          <Button
+            type="button"
+            size="sm"
+            variant={state.isPlaying ? 'default' : 'outline'}
+            data-testid="media-control-bar-play"
+            disabled={!isCued}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void handlePlayPause()}
+            className="h-8 px-2.5 gap-1.5 font-medium min-w-[40px]"
+            title={state.isPlaying ? t('media.topBar.pauseTitle') : t('media.topBar.playTitle')}
+          >
+            {state.isPlaying ? (
+              <>
+                <Pause className="h-3.5 w-3.5" />
+                <span>{t('media.topBar.pauseLabel')}</span>
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5" />
+                <span>{t('media.topBar.playLabel')}</span>
+              </>
+            )}
+          </Button>
+
+          {/* Next Track */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="media-control-bar-next"
+            disabled={!isCued}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleNextTrack}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            title={t('media.controlBar.nextTitle')}
+            aria-label={t('media.controlBar.nextTitle')}
+          >
+            <SkipForward className="h-3.5 w-3.5" />
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="media-control-bar-stop"
+            disabled={!isCued || (!state.isPlaying && state.currentTime === 0)}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void handleStop()}
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            title={t('media.topBar.stopTitle')}
+          >
+            <Square className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Panic: 3s Fade Out with Auto-Pause */}
+          <Button
+            type="button"
+            size="sm"
+            variant={state.isFading ? 'default' : 'outline'}
+            data-testid="media-control-bar-fade"
+            disabled={!isCued || !state.isPlaying || state.isFading}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void handleFadeOut()}
+            className={cn(
+              'h-8 px-2 gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10',
+              state.isFading && 'animate-pulse bg-amber-500/20'
+            )}
+            title={t('media.topBar.fadeTitle')}
+          >
+            <TrendingDown className="h-3.5 w-3.5" />
+            <span>{t('media.topBar.fadeLabel')}</span>
+          </Button>
+
+          {/* Mute Toggle */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="media-control-bar-mute"
+            disabled={!isCued}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleToggleMute}
+            className={cn(
+              'h-8 w-8 p-0',
+              state.isMuted
+                ? 'bg-destructive/15 text-destructive border-destructive/40'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            title={state.isMuted ? t('media.topBar.unmuteTitle') : t('media.topBar.muteTitle')}
+          >
+            {state.isMuted ? (
+              <VolumeX className="h-3.5 w-3.5" />
+            ) : (
+              <Volume2 className="h-3.5 w-3.5" />
+            )}
+          </Button>
+
+          {/* Volume Slider directly next to Mute */}
+          <div className={cn("items-center gap-1.5 ml-0.5", isRemote ? "flex w-20 sm:w-24" : "hidden sm:flex w-24")}>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              disabled={!isCued}
+              value={state.isMuted ? 0 : state.volume}
+              onChange={handleVolumeChange}
+              onMouseDown={(e) => e.stopPropagation()}
+              aria-label={t('media.dock.volumeAriaLabel')}
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none disabled:opacity-40"
+            />
+          </div>
+
+          {/* Shuffle Mode Toggle */}
+          <Button
+            type="button"
+            size="sm"
+            variant={state.shuffle ? 'default' : 'outline'}
+            data-testid="media-control-bar-shuffle"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleToggleShuffle}
+            className={cn(
+              'h-8 w-8 p-0',
+              state.shuffle
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            title={state.shuffle ? t('media.controlBar.shuffleOn') : t('media.controlBar.shuffleOff')}
+            aria-label={t('media.controlBar.shuffleLabel')}
+          >
+            <Shuffle className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* 3-State Repeat Mode Cycle (Off -> All -> One -> Off) */}
+          <Button
+            type="button"
+            size="sm"
+            variant={state.repeatMode !== 'off' ? 'default' : 'outline'}
+            data-testid="media-control-bar-repeat"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleCycleRepeat}
+            className={cn(
+              'h-8 w-8 p-0',
+              state.repeatMode !== 'off'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            title={
+              state.repeatMode === 'one'
+                ? t('media.controlBar.repeatOne')
+                : state.repeatMode === 'all'
+                  ? t('media.controlBar.repeatAll')
+                  : t('media.controlBar.repeatOff')
+            }
+            aria-label={t('media.controlBar.repeatLabel')}
+          >
+            {state.repeatMode === 'one' ? (
+              <Repeat1 className="h-3.5 w-3.5" />
+            ) : (
+              <Repeat className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </div>
+
+        {/* Bidirectional Projector Toggle (Row 2 right on mobile, 3rd item on desktop) */}
+        <div className="shrink-0 md:order-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={state.isProjected ? 'default' : 'outline'}
+            data-testid="media-control-bar-project"
+            disabled={!isCued}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleToggleProject}
+            className={cn(
+              'h-8 px-2.5 gap-1.5 text-xs font-semibold',
+              state.isProjected
+                ? isVideo
+                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                  : 'bg-primary/20 text-primary border-primary/40 hover:bg-primary/30'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+            title={
+              state.isProjected
+                ? isVideo
+                  ? t('media.topBar.takeOffTitle')
+                  : t('media.controlBar.projectedAudioFallback')
+                : !isVideo
+                ? t('media.controlBar.videoOnlyTooltip')
+                : t('media.topBar.projectVideoTitle')
+            }
+          >
+            {state.isProjected ? (
+              <>
+                <Monitor className="h-3.5 w-3.5" />
+                <span>{isVideo ? t('media.topBar.takeOffLabel') : t('media.controlBar.projectArmedLabel')}</span>
+              </>
+            ) : (
+              <>
+                <MonitorOff className="h-3.5 w-3.5" />
+                <span>{t('media.topBar.projectVideoLabel')}</span>
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

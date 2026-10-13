@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-25]
 **Blocked by:** ["SPEC-117-01"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Harmonize the presenter header layout in `PresenterOperator.tsx` and streamline `PresenterGuestFeedControl.tsx` to eliminate staggered staircase wrapping, orphan button rows on mobile remote view, and layout explosion when guest video projection is active (`Image #2`).

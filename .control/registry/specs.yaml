@@ -4926,7 +4926,7 @@ waves:
           - tests/remote-presenting-client.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
   - id: SPEC-117
-    status: open
+    status: closed
     release: mobile-media-bar-header-harmony-and-remote-sync
     prd: [operator-turn]
     fr: [FR-16, FR-25, FR-35]
@@ -4942,7 +4942,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-29, FR-16, FR-25, FR-35]
         blocked_by: []
-        touches: [remote-control, media-player]
+        touches: [remote-control, present-channel]
         tests:
           - tests/presenter-media-player.test.mjs
           - tests/remote-screen.test.mjs
@@ -4950,7 +4950,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-29, FR-16, FR-25]
         blocked_by: ["SPEC-117-01"]
-        touches: [remote-control, presenter-header]
+        touches: [remote-control, present-channel]
         tests:
           - tests/presenter-guest-feed-controls.test.mjs
           - tests/remote-screen.test.mjs
@@ -4966,7 +4966,7 @@ waves:
         component: presenter
         satisfies: [UC-12, UC-29, FR-35]
         blocked_by: ["SPEC-117-03"]
-        touches: [remote-control, media-player, media-drawer]
+        touches: [remote-control, present-channel]
         tests:
           - tests/presenter-media-player.test.mjs
           - tests/remote-presenting-client.test.mjs

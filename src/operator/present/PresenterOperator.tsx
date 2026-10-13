@@ -157,6 +157,7 @@ import {
   type PresenterRemoteConnectionState,
   type PresenterRemoteIntent,
   type RemoteControlSessionState,
+  type PlaylistItemSummary,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
@@ -503,6 +504,7 @@ export interface PresenterOperatorProps {
     blank: boolean;
     transition: SlideTransition;
     background: string | null;
+    presentationLock?: boolean;
   };
   controlledMediaState?: RemoteControlSessionState['media'];
   controlledScriptureState?: RemoteControlSessionState['scripture'];
@@ -695,12 +697,21 @@ export default function PresenterOperator({
         backgroundRef.current = controlledState.background;
         setLiveBackground(controlledState.background);
       }
+      if (typeof controlledState.presentationLock === 'boolean') {
+        setPresentationLock(controlledState.presentationLock);
+      }
     }
   }, [mode, controlledState, activeSlides.length]);
 
   // SPEC-115-03: Synchronize mirrored media state from host SSE events
   useEffect(() => {
     if (mode === 'remote' && controlledMediaState) {
+      if (Array.isArray(controlledMediaState.playlistManifest)) {
+        mediaStore.dispatch({
+          type: 'SYNC_MANIFEST',
+          manifest: controlledMediaState.playlistManifest,
+        });
+      }
       if (controlledMediaState.activeId !== undefined) {
         if (controlledMediaState.activeId && controlledMediaState.activeId !== mediaStore.getSnapshot().activeId) {
           mediaStore.dispatch({ type: 'SELECT_ITEM', id: controlledMediaState.activeId });
@@ -1389,6 +1400,12 @@ export default function PresenterOperator({
         projection: projectionRef.current,
         guestAttemptId: guestAttemptIdRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({
+        index: clamped,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+        background: backgroundRef.current,
+      });
     },
     [mode, onSendIntent, broadcast, activeSlides.length, persistCurrentSession]
   );
@@ -1434,6 +1451,7 @@ export default function PresenterOperator({
         blank: next,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({ blank: next });
     },
     [mode, onSendIntent, broadcast, persistCurrentSession]
   );
@@ -1652,6 +1670,7 @@ export default function PresenterOperator({
         transition: next,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({ transition: next });
     },
     [mode, onSendIntent, broadcast, persistCurrentSession]
   );
@@ -1679,6 +1698,7 @@ export default function PresenterOperator({
         background: next,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({ background: next });
     },
     [mode, onSendIntent, broadcast, persistCurrentSession]
   );
@@ -1975,6 +1995,14 @@ export default function PresenterOperator({
     if (remoteState !== 'connected') return;
     return mediaStore.subscribe(() => {
       const snap = mediaStore.getSnapshot();
+      const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
+        id: it.id,
+        name: it.name,
+        type: it.type,
+        source: it.source || 'cloud',
+        duration: it.duration || 0,
+        orderKey: it.orderKey ?? String(idx),
+      }));
       void remoteSessionRef.current?.broadcastState({
         media: {
           activeId: snap.activeId,
@@ -1986,6 +2014,7 @@ export default function PresenterOperator({
           repeatMode: snap.repeatMode,
           volume: snap.volume,
           isMuted: snap.isMuted,
+          playlistManifest,
         },
       });
     });
@@ -2014,12 +2043,21 @@ export default function PresenterOperator({
     if (mode === 'remote') return;
     if (remoteState === 'connected') {
       const snap = mediaStore.getSnapshot();
+      const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
+        id: it.id,
+        name: it.name,
+        type: it.type,
+        source: it.source || 'cloud',
+        duration: it.duration || 0,
+        orderKey: it.orderKey ?? String(idx),
+      }));
       void remoteSessionRef.current?.broadcastState({
         index: indexRef.current,
         blank: blankRef.current,
         transition: transitionRef.current,
         background: backgroundRef.current,
         planIdentity: planIdentityRef.current,
+        presentationLock,
         media: {
           activeId: snap.activeId,
           isPlaying: snap.isPlaying,
@@ -2030,6 +2068,7 @@ export default function PresenterOperator({
           repeatMode: snap.repeatMode,
           volume: snap.volume,
           isMuted: snap.isMuted,
+          playlistManifest,
         },
         scripture:
           loadedScriptureRef.current && scriptureOverlayRef.current
@@ -2867,6 +2906,19 @@ export default function PresenterOperator({
         <div data-testid="presenter-header-actions" className="flex flex-col items-end gap-2">
           {/* Row 1 (Display & Audience Controls) */}
           <div data-testid="presenter-header-row-1" className="flex flex-wrap items-center justify-end gap-2">
+            {mode === 'remote' && (
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="remote-request-reopen-projector-button"
+                onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
+                className="h-8 text-xs gap-1.5 px-2.5 font-medium"
+                title={t('presenter.requestReopenProjector')}
+              >
+                <Monitor className="size-3.5" />
+                <span>{t('presenter.requestReopenProjector')}</span>
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -2934,7 +2986,15 @@ export default function PresenterOperator({
               variant="outline"
               size="sm"
               data-testid="presentation-lock-toggle"
-              onClick={() => setPresentationLock((prev) => !prev)}
+              onClick={() => {
+                setPresentationLock((prev) => {
+                  const nextLock = !prev;
+                  if (mode !== 'remote') {
+                    void remoteSessionRef.current?.broadcastState({ presentationLock: nextLock });
+                  }
+                  return nextLock;
+                });
+              }}
               className="h-8 gap-1.5 text-xs select-none"
               title={
                 presentationLock
@@ -3031,21 +3091,6 @@ export default function PresenterOperator({
               className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs h-7"
             >
               {t('presenter.openProjectorNow')}
-            </Button>
-          </div>
-        )}
-        {mode === 'remote' && (
-          <div className="flex items-center gap-2">
-            <Button
-              size="xs"
-              variant="outline"
-              data-testid="remote-request-reopen-projector-button"
-              onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
-              className="h-7 text-[11px] gap-1"
-              title={t('presenter.requestReopenProjector')}
-            >
-              <Monitor className="size-3" />
-              <span>{t('presenter.requestReopenProjector')}</span>
             </Button>
           </div>
         )}

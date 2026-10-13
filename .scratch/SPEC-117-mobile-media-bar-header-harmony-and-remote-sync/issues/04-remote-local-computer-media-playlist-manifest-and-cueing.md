@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-35]
 **Blocked by:** ["SPEC-117-03"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Mirror the host workstation's complete media playlist manifest (including local computer tracks stored in host IndexedDB) to connected mobile remote consoles via SSE. Display both cloud and computer songs in the remote media drawer with appropriate source badges, and enable remote selection and cueing of computer songs on the host machine without requiring local file downloads on mobile.

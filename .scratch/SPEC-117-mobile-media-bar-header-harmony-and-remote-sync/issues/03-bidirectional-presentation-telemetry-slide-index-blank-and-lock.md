@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** ["SPEC-117-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Implement real-time bidirectional telemetry mirroring from the presentation host workstation to connected mobile remote clients over SSE for slide index, blank screen, slide transition, background override, and presentation lock state. When an operator advances or navigates slides on the host PC (via keyboard, mouse, thumbnails, or auto-loop), remote devices immediately reflect the active slide index.

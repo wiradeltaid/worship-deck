@@ -13,6 +13,7 @@ import {
   selectPlaylistItem,
   saveMediaPreference,
 } from './playlist-model';
+import type { PlaylistItemSummary } from '@/lib/presenter-remote-client';
 
 export type MediaAction =
   | { type: 'ADD_ITEMS'; items: PlaylistItem[] }
@@ -31,6 +32,7 @@ export type MediaAction =
   | { type: 'SET_REPEAT_MODE'; repeatMode: RepeatMode }
   | { type: 'UPDATE_ITEM_STATUS'; id: string; status: MediaStatus; errorMessage?: string }
   | { type: 'UPDATE_ITEM'; id: string; patch: Partial<PlaylistItem> }
+  | { type: 'SYNC_MANIFEST'; manifest: PlaylistItemSummary[] }
   | { type: 'RESET' };
 
 export interface MediaStore {
@@ -138,6 +140,52 @@ export function createMediaStore(initialState?: Partial<PlaylistState>): MediaSt
           ...action.patch,
         };
         return { ...current, items: updated };
+      }
+
+      case 'SYNC_MANIFEST': {
+        const manifest = action.manifest;
+        if (!Array.isArray(manifest)) return current;
+        const existingMap = new Map(current.items.map((i) => [i.id, i]));
+        const merged: PlaylistItem[] = manifest.map((m, idx) => {
+          const existing = existingMap.get(m.id);
+          if (existing) {
+            return {
+              ...existing,
+              name: m.name,
+              type: m.type,
+              source: m.source,
+              duration: m.duration || existing.duration,
+              orderKey: m.orderKey ?? String(idx),
+            };
+          }
+          return {
+            id: m.id,
+            name: m.name,
+            type: m.type,
+            source: m.source,
+            url: '',
+            duration: m.duration || 0,
+            status: 'ready',
+            orderKey: m.orderKey ?? String(idx),
+          };
+        });
+
+        if (
+          current.items.length === merged.length &&
+          current.items.every(
+            (it, i) =>
+              it.id === merged[i]?.id &&
+              it.source === merged[i]?.source &&
+              it.name === merged[i]?.name
+          )
+        ) {
+          return current;
+        }
+
+        return {
+          ...current,
+          items: merged,
+        };
       }
 
       case 'RESET':

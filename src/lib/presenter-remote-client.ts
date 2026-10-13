@@ -539,12 +539,22 @@ export class PresenterRemoteSession {
   }
 }
 
+export interface PlaylistItemSummary {
+  id: string;
+  name: string;
+  type: 'audio' | 'video';
+  source: 'cloud' | 'local';
+  duration: number;
+  orderKey?: string;
+}
+
 export type RemoteControlSessionState = {
   index?: number;
   blank?: boolean;
   transition?: SlideTransition;
   background?: string | null;
   planIdentity?: string;
+  presentationLock?: boolean;
   media?: {
     activeId?: string | null;
     isPlaying?: boolean;
@@ -555,6 +565,7 @@ export type RemoteControlSessionState = {
     repeatMode?: 'off' | 'all' | 'one';
     volume?: number;
     isMuted?: boolean;
+    playlistManifest?: PlaylistItemSummary[];
   };
   scripture?: {
     reference: string;

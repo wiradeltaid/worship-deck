@@ -2168,6 +2168,26 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-116-target-authority-remote-presenter-console/
 
+  - id: DEC-104
+    type: mandate
+    status: applied
+    applied_at: '2026-10-13'
+    accepted_by: "kodesh87 (2026-10-13)"
+    title: Daily Autopilot mandate for Mobile Media Bar Ergonomics, Presenter Header Layout Harmony, and Remote Synchronization (SPEC-117)
+    file: .control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-and-remote-sync.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-20'
+    touches:
+      - .control/memlog/autopilot-DEC-104.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/
+
 
 
 

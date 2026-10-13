@@ -2202,10 +2202,10 @@ rtm:
   test:
   - tests/presenter-media-player.test.mjs
   - tests/remote-screen.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2217,10 +2217,10 @@ rtm:
   test:
   - tests/presenter-guest-feed-controls.test.mjs
   - tests/remote-screen.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2232,10 +2232,10 @@ rtm:
   test:
   - tests/remote-presenting-client.test.mjs
   - tests/remote-control-go-http.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2247,10 +2247,10 @@ rtm:
   test:
   - tests/presenter-media-player.test.mjs
   - tests/remote-presenting-client.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -9360,10 +9360,10 @@ rtm:
   test:
   - tests/presenter-media-player.test.mjs
   - tests/remote-screen.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
@@ -9375,10 +9375,10 @@ rtm:
   test:
   - tests/presenter-guest-feed-controls.test.mjs
   - tests/remote-screen.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
@@ -9390,10 +9390,10 @@ rtm:
   test:
   - tests/remote-presenting-client.test.mjs
   - tests/remote-control-go-http.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
@@ -9405,10 +9405,10 @@ rtm:
   test:
   - tests/presenter-media-player.test.mjs
   - tests/remote-presenting-client.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
