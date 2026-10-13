@@ -2986,6 +2986,7 @@ export default function PresenterOperator({
               variant="outline"
               size="sm"
               data-testid="presentation-lock-toggle"
+              className="h-8 gap-1.5 text-xs select-none min-w-[76px] sm:min-w-[84px] justify-center"
               onClick={() => {
                 setPresentationLock((prev) => {
                   const nextLock = !prev;
@@ -2995,7 +2996,6 @@ export default function PresenterOperator({
                   return nextLock;
                 });
               }}
-              className="h-8 gap-1.5 text-xs select-none"
               title={
                 presentationLock
                   ? t('presenter.unlockTitle')
@@ -3054,8 +3054,12 @@ export default function PresenterOperator({
             </div>
           )}
         </div>
+      </header>
+
+      {/* SPEC-118-03: Dedicated Alert & Notification Strip beneath header (Zero-Shift Slot) */}
+      <div data-testid="presenter-header-notification-strip">
         {projectorBlocked && mode !== 'remote' ? (
-          <p className="basis-full text-xs text-amber-300">
+          <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
             {t('presenter.congregationScreenBlocked')}{' '}
             <a
               className="underline underline-offset-2"
@@ -3069,13 +3073,13 @@ export default function PresenterOperator({
               {t('presenter.openCongregationScreenTab')}
             </a>
             .
-          </p>
+          </div>
         ) : null}
         {projectorPromptOpen && mode !== 'remote' && (
           <div
             data-testid="projector-reopen-prompt"
             role="alert"
-            className="basis-full rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs flex items-center justify-between gap-2"
+            className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs flex items-center justify-between gap-2"
           >
             <span className="font-semibold text-amber-700 dark:text-amber-300">
               {t('presenter.projectorReopenRequested')}
@@ -3095,16 +3099,16 @@ export default function PresenterOperator({
           </div>
         )}
         {mode !== 'remote' && liveness.verdict === 'lost' ? (
-          <p role="status" className="basis-full text-xs text-amber-300">
+          <div role="status" className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
             {t('presenter.congregationScreenLost')}
-          </p>
+          </div>
         ) : null}
         {remoteState === 'role-lost' ? (
-          <p role="status" className="basis-full text-xs text-amber-300">
+          <div role="status" className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-300">
             Remote link disconnected. Another device claimed presenting control or the connection was lost.
-          </p>
+          </div>
         ) : null}
-      </header>
+      </div>
 
       {/* SPEC-113: Unified MediaControlBar Layout (~52px, zero layout shift) */}
       <div className="mx-auto w-full max-w-[96rem] px-4 pt-3">

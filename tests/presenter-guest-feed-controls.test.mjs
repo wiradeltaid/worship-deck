@@ -813,7 +813,7 @@ test('SPEC-103-01: structural scan verifies DropdownMenuGroup enclosing Dropdown
 
 function validateControlPlacement(presenterContent) {
   const actionsMatch = presenterContent.match(
-    /<div[^>]*data-testid="presenter-header-actions"[^>]*>([\s\S]*?)<\/div>\s*\{projectorBlocked/
+    /<div[^>]*data-testid="presenter-header-actions"[^>]*>([\s\S]*?)<\/div>\s*(?:\{projectorBlocked|<\/header>)/
   );
   if (!actionsMatch) {
     throw new Error('Placement Violation: presenter-header-actions container missing');
