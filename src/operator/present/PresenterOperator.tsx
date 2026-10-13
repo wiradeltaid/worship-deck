@@ -503,6 +503,7 @@ export interface PresenterOperatorProps {
     blank: boolean;
     transition: SlideTransition;
     background: string | null;
+    presentationLock?: boolean;
   };
   controlledMediaState?: RemoteControlSessionState['media'];
   controlledScriptureState?: RemoteControlSessionState['scripture'];
@@ -694,6 +695,9 @@ export default function PresenterOperator({
       if (controlledState.background !== undefined) {
         backgroundRef.current = controlledState.background;
         setLiveBackground(controlledState.background);
+      }
+      if (typeof controlledState.presentationLock === 'boolean') {
+        setPresentationLock(controlledState.presentationLock);
       }
     }
   }, [mode, controlledState, activeSlides.length]);
@@ -1389,6 +1393,12 @@ export default function PresenterOperator({
         projection: projectionRef.current,
         guestAttemptId: guestAttemptIdRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({
+        index: clamped,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+        background: backgroundRef.current,
+      });
     },
     [mode, onSendIntent, broadcast, activeSlides.length, persistCurrentSession]
   );
@@ -1434,6 +1444,7 @@ export default function PresenterOperator({
         blank: next,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({ blank: next });
     },
     [mode, onSendIntent, broadcast, persistCurrentSession]
   );
@@ -1652,6 +1663,7 @@ export default function PresenterOperator({
         transition: next,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({ transition: next });
     },
     [mode, onSendIntent, broadcast, persistCurrentSession]
   );
@@ -1679,6 +1691,7 @@ export default function PresenterOperator({
         background: next,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({ background: next });
     },
     [mode, onSendIntent, broadcast, persistCurrentSession]
   );
@@ -2020,6 +2033,7 @@ export default function PresenterOperator({
         transition: transitionRef.current,
         background: backgroundRef.current,
         planIdentity: planIdentityRef.current,
+        presentationLock,
         media: {
           activeId: snap.activeId,
           isPlaying: snap.isPlaying,
@@ -2947,7 +2961,15 @@ export default function PresenterOperator({
               variant="outline"
               size="sm"
               data-testid="presentation-lock-toggle"
-              onClick={() => setPresentationLock((prev) => !prev)}
+              onClick={() => {
+                setPresentationLock((prev) => {
+                  const nextLock = !prev;
+                  if (mode !== 'remote') {
+                    void remoteSessionRef.current?.broadcastState({ presentationLock: nextLock });
+                  }
+                  return nextLock;
+                });
+              }}
               className="h-8 gap-1.5 text-xs select-none"
               title={
                 presentationLock

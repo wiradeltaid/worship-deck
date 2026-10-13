@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-an
 
 ## Resume
 
-- Iteration: I-2 (SPEC-117-02 Delivered)
+- Iteration: I-3 (SPEC-117-03 Delivered)
 - Run branch: autopilot/DEC-104
-- Stopped at: Iteration I-2 completed (SPEC-117-02 closed)
+- Stopped at: Iteration I-3 completed (SPEC-117-03 closed)
 - Blocked: —
 - Parked: ad-n
-- Next: I-3 (SPEC-117-03: Bidirectional Presentation Telemetry for Host Slide Index, Blank, and Lock Sync)
+- Next: I-4 (SPEC-117-04: Remote Local Computer Media Playlist Manifest Synchronization and Unified Cueing)
 
 ## Decisions
 
@@ -20,9 +20,11 @@ artifact: .control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-an
 | I-0 (start) | mandate | Start daily autopilot mandate DEC-104 for Mobile Media Bar Ergonomics, Presenter Header Layout Harmony, and Remote Synchronization (SPEC-117) | waiting for interactive manual dispatch | low | .control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-and-remote-sync.md |
 | I-1 | SPEC-117-01 | Refactor MediaControlBar to responsive 2-row layout on mobile (<768px) with full-width seekbar while flattening to desktop single-row (md:contents) | compressed 14-button single-row overflow on mobile | accidental mis-taps on smartphones and un-scrubbable seekbar | MediaControlBar.tsx, tests/presenter-media-player.test.mjs, .scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/issues/01-responsive-2-row-media-control-bar-mobile-ergonomics.md |
 | I-2 | SPEC-117-02 | Consolidate remote header actions in Row 1, eliminate external reopen button sibling, and compact guest live controls by suppressing device dropdown and disarm button | fragmented multi-row staircase wrap on mobile remote consoles | distorted header layouts and unaligned buttons during live guest streaming | PresenterOperator.tsx, PresenterGuestFeedControl.tsx, tests/presenter-guest-feed-controls.test.mjs, .scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/issues/02-presenter-header-layout-harmony-and-compact-guest-controls.md |
+| I-3 | SPEC-117-03 | Broadcast host slide index, blank, transition, background, and lock state over SSE, consume in RemoteOperator controlledState with echo-guard | desynchronized mobile remote staying stuck on initial slide during host navigation | remote operators unable to see live slide progression or presentation lock state | PresenterOperator.tsx, RemoteOperator.tsx, presenter-remote-client.ts, tests/remote-presenting-client.test.mjs, .scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/issues/03-bidirectional-presentation-telemetry-slide-index-blank-and-lock.md |
 
 ## Smoke Test Results
 
 - Preflight verification: PASS (Go test suite green, Vite build green, public-repo-guard green, full npm test suite green [1946 pass, 0 fail, exit code 0], validator green)
 - SPEC-117-01: PASS (14/14 tests in presenter-media-player pass including responsive 2-row layout and desktop flattening guards; 123/123 tests in smoke:spec-116 pass; tsc --noEmit 0 errors; Vite build clean; go test ./... 100% green)
 - SPEC-117-02: PASS (35/35 tests in presenter-guest-feed-controls pass including compact guest live controls & header row harmony guards; 125/125 tests in smoke:spec-116 pass; tsc --noEmit 0 errors; Vite build clean; go test ./... 100% green)
+- SPEC-117-03: PASS (29/29 tests in remote-presenting-client pass including bidirectional telemetry broadcasts and echo-guard contracts; 9/9 tests in remote-control-go-http pass; 127/127 tests in smoke:spec-116 pass; tsc --noEmit 0 errors; Vite build clean; go test ./... 100% green)

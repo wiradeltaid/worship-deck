@@ -794,3 +794,70 @@ test('SPEC-116-01: multi-page scripture pagination round-trip preserves full pas
   assert.equal(msg0.currentPage, 1, 'Must return to page 1');
   assert.equal(msg0.totalPages, msg1.totalPages, 'Total pages must remain consistent');
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-117-03: Bidirectional Presentation Telemetry Synchronization
+// -----------------------------------------------------------------------------
+export function scanSpec11703BidirectionalTelemetryGuards(sources) {
+  const defects = [];
+  // 1. setIndexAndSync broadcasts index to remote session
+  if (!sources.operator.includes("void remoteSessionRef.current?.broadcastState({\n        index: clamped,")) {
+    defects.push('missing-setIndexAndSync-remote-broadcast');
+  }
+  // 2. setBlankAndSync broadcasts blank to remote session
+  if (!sources.operator.includes("void remoteSessionRef.current?.broadcastState({ blank: next });")) {
+    defects.push('missing-setBlankAndSync-remote-broadcast');
+  }
+  // 3. setTransitionAndSync broadcasts transition to remote session
+  if (!sources.operator.includes("void remoteSessionRef.current?.broadcastState({ transition: next });")) {
+    defects.push('missing-setTransitionAndSync-remote-broadcast');
+  }
+  // 4. setBackgroundAndSync broadcasts background to remote session
+  if (!sources.operator.includes("void remoteSessionRef.current?.broadcastState({ background: next });")) {
+    defects.push('missing-setBackgroundAndSync-remote-broadcast');
+  }
+  // 5. presentation-lock-toggle broadcasts lock to remote session
+  if (!sources.operator.includes("void remoteSessionRef.current?.broadcastState({ presentationLock: nextLock });")) {
+    defects.push('missing-lock-toggle-remote-broadcast');
+  }
+  // 6. presenter-remote-client declares presentationLock in RemoteControlSessionState
+  if (!sources.client.includes('presentationLock?: boolean;')) {
+    defects.push('missing-session-state-presentation-lock');
+  }
+  // 7. RemoteOperator applies presentationLock from state update
+  if (!sources.remoteOp.includes("typeof state.presentationLock === 'boolean'")) {
+    defects.push('missing-remote-operator-lock-consumption');
+  }
+  return defects;
+}
+
+test('SPEC-117-03: Bidirectional presentation telemetry broadcasting and echo-guard contracts', () => {
+  const sources = {
+    operator: readRaw('src/operator/present/PresenterOperator.tsx').replace(/\r\n/g, '\n'),
+    client: readRaw('src/lib/presenter-remote-client.ts').replace(/\r\n/g, '\n'),
+    remoteOp: readRaw('src/operator/present/RemoteOperator.tsx').replace(/\r\n/g, '\n'),
+  };
+
+  const defects = scanSpec11703BidirectionalTelemetryGuards(sources);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-117-03 defect injection: missing host telemetry broadcasts fails scan guard', () => {
+  const mutated = {
+    operator: '<div>No broadcastState calls</div>',
+    client: 'type RemoteControlSessionState = { index?: number };',
+    remoteOp: '<div>No lock state update</div>',
+  };
+
+  const defects = scanSpec11703BidirectionalTelemetryGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-setIndexAndSync-remote-broadcast',
+    'missing-setBlankAndSync-remote-broadcast',
+    'missing-setTransitionAndSync-remote-broadcast',
+    'missing-setBackgroundAndSync-remote-broadcast',
+    'missing-lock-toggle-remote-broadcast',
+    'missing-session-state-presentation-lock',
+    'missing-remote-operator-lock-consumption',
+  ]);
+});
+

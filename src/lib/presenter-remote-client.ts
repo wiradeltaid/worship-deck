@@ -545,6 +545,7 @@ export type RemoteControlSessionState = {
   transition?: SlideTransition;
   background?: string | null;
   planIdentity?: string;
+  presentationLock?: boolean;
   media?: {
     activeId?: string | null;
     isPlaying?: boolean;

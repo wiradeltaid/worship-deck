@@ -63,6 +63,7 @@ export default function RemoteOperator({
   const [liveTransition, setLiveTransition] =
     useState<SlideTransition>(deckTransition);
   const [liveBackground, setLiveBackground] = useState<string | null>(null);
+  const [presentationLock, setPresentationLock] = useState(true);
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
@@ -168,6 +169,9 @@ export default function RemoteOperator({
       }
       if (state.background !== undefined) {
         setLiveBackground(state.background);
+      }
+      if (typeof state.presentationLock === 'boolean') {
+        setPresentationLock(state.presentationLock);
       }
       if (state.media) {
         setRemoteMediaState(state.media);
@@ -362,8 +366,9 @@ export default function RemoteOperator({
       blank,
       transition: liveTransition,
       background: liveBackground,
+      presentationLock,
     }),
-    [index, blank, liveTransition, liveBackground]
+    [index, blank, liveTransition, liveBackground, presentationLock]
   );
 
   if (!paired) {
