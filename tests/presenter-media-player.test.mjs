@@ -1019,3 +1019,104 @@ test('SPEC-118-01 defect injection: md breakpoint instead of xl fails tablet sca
     'retained-legacy-md-layout-modifier',
   ]);
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-119-01: Passive Inert MediaStage on Remote Mode (`isInert`) & Suppression of Local Playback Dispatchers
+// -----------------------------------------------------------------------------
+export function scanSpec11901InertRemoteMediaStageGuards(stageSource, presenterSource) {
+  const defects = [];
+  if (!stageSource.includes('isInert?: boolean')) {
+    defects.push('missing-isinert-prop-definition');
+  }
+  if (!stageSource.includes('isInert = false')) {
+    defects.push('missing-isinert-prop-default');
+  }
+  if (!stageSource.includes('if (isInert)') || !/if\s*\(\s*isInert\s*\)\s*\{[\s\S]*?audioRef\.current\.pause\(\);[\s\S]*?return;\s*\}/m.test(stageSource)) {
+    defects.push('missing-isinert-subscription-guard');
+  }
+  if (!/const\s+handleTimeUpdate\s*=\s*useCallback\s*\([^)]*\)\s*=>\s*\{\s*if\s*\(\s*isInert\s*\)\s*return;/m.test(stageSource)) {
+    defects.push('missing-handletimeupdate-isinert-guard');
+  }
+  if (!/const\s+handleLoadedMetadata\s*=\s*useCallback\s*\([^)]*\)\s*=>\s*\{\s*if\s*\(\s*isInert\s*\)\s*return;/m.test(stageSource)) {
+    defects.push('missing-handleloadedmetadata-isinert-guard');
+  }
+  if (!/const\s+handlePlay\s*=\s*useCallback\s*\(\(\)\s*=>\s*\{\s*if\s*\(\s*isInert\s*\)\s*return;/m.test(stageSource)) {
+    defects.push('missing-handleplay-isinert-guard');
+  }
+  if (!/const\s+handlePause\s*=\s*useCallback\s*\(\(\)\s*=>\s*\{\s*if\s*\(\s*isInert\s*\)\s*return;/m.test(stageSource)) {
+    defects.push('missing-handlepause-isinert-guard');
+  }
+  if (!/const\s+handleEnded\s*=\s*useCallback\s*\(\(\)\s*=>\s*\{\s*if\s*\(\s*isInert\s*\)\s*return;/m.test(stageSource)) {
+    defects.push('missing-handleended-isinert-guard');
+  }
+  if (!/const\s+handleError\s*=\s*useCallback\s*\([^)]*\)\s*=>\s*\{\s*if\s*\(\s*isInert\s*\)\s*return;/m.test(stageSource)) {
+    defects.push('missing-handleerror-isinert-guard');
+  }
+  if (!presenterSource.includes("isInert={mode === 'remote'}")) {
+    defects.push('missing-presenter-operator-isinert-binding');
+  }
+  return defects;
+}
+
+test('SPEC-119-01: MediaStage implements isInert capability and suppresses local media source loading & dispatchers', async () => {
+  const fs = await import('node:fs');
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const stageSource = fs.readFileSync(stagePath, 'utf8');
+  const presenterSource = fs.readFileSync(presenterPath, 'utf8');
+
+  const defects = scanSpec11901InertRemoteMediaStageGuards(stageSource, presenterSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-119-01 defect injection: missing isInert guards or props fails scan guard per handler', async () => {
+  const fs = await import('node:fs');
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const pristineStage = fs.readFileSync(stagePath, 'utf8');
+  const pristinePresenter = fs.readFileSync(presenterPath, 'utf8');
+
+  // 1. Missing prop definition
+  assert.deepEqual(
+    scanSpec11901InertRemoteMediaStageGuards(pristineStage.replace('isInert?: boolean;', ''), pristinePresenter),
+    ['missing-isinert-prop-definition']
+  );
+
+  // 2. Missing prop default
+  assert.deepEqual(
+    scanSpec11901InertRemoteMediaStageGuards(pristineStage.replace('isInert = false,', ''), pristinePresenter),
+    ['missing-isinert-prop-default']
+  );
+
+  // 3. Missing subscription inert early return
+  assert.deepEqual(
+    scanSpec11901InertRemoteMediaStageGuards(pristineStage.replace('if (isInert) {', 'if (false && isInert) {'), pristinePresenter),
+    ['missing-isinert-subscription-guard']
+  );
+
+  // 4. Missing per-handler guards on real source
+  const handlers = [
+    { name: 'handleTimeUpdate', defect: 'missing-handletimeupdate-isinert-guard' },
+    { name: 'handleLoadedMetadata', defect: 'missing-handleloadedmetadata-isinert-guard' },
+    { name: 'handlePlay', defect: 'missing-handleplay-isinert-guard' },
+    { name: 'handlePause', defect: 'missing-handlepause-isinert-guard' },
+    { name: 'handleEnded', defect: 'missing-handleended-isinert-guard' },
+    { name: 'handleError', defect: 'missing-handleerror-isinert-guard' },
+  ];
+
+  for (const h of handlers) {
+    const mutated = pristineStage.replace(
+      new RegExp(`(const\\s+${h.name}\\s*=\\s*useCallback\\s*\\([^)]*\\)\\s*=>\\s*\\{\\s*)if\\s*\\(\\s*isInert\\s*\\)\\s*return;`),
+      '$1'
+    );
+    assert.notEqual(mutated, pristineStage, `Mutation regex must match ${h.name}`);
+    const defects = scanSpec11901InertRemoteMediaStageGuards(mutated, pristinePresenter);
+    assert.deepEqual(defects, [h.defect], `Stripping guard from ${h.name} must trigger exactly ${h.defect}`);
+  }
+
+  // 5. Missing PresenterOperator binding
+  assert.deepEqual(
+    scanSpec11901InertRemoteMediaStageGuards(pristineStage, pristinePresenter.replace("isInert={mode === 'remote'}", '')),
+    ['missing-presenter-operator-isinert-binding']
+  );
+});

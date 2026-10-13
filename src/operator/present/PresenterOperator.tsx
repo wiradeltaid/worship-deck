@@ -3751,6 +3751,7 @@ export default function PresenterOperator({
         videoRef={mediaVideoRef}
         onToastError={(msg) => toast.error(msg)}
         mutedOverride={mode === 'remote'}
+        isInert={mode === 'remote'}
       />
 
       <SlideGridDialog

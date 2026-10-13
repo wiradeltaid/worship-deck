@@ -2,7 +2,9 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
+**Closed at:** 2026-10-13
+**Verdict:** APPROVED (Peer reviews: DeepSeek V4 Pro via CodeBuddy CN [APPROVED], Terra via Codex CLI [APPROVED])
 
 ## Summary
 Enforce a completely passive, inert posture in `MediaStage.tsx` when `isInert === true` (`mode === 'remote'`). Suppress local media element `src` loading, playback calls, and all synthetic event dispatchers (`SET_TIME`, `SET_DURATION`, `SET_PLAYING`, `SET_PROJECT_STATUS`, etc.) from running on the remote controller. This stops the remote phone's idle local audio element from overriding `mediaStore.currentTime` with `0:00` and clobbering authoritative host SSE telemetry.

@@ -17,6 +17,7 @@ export interface MediaStageProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   onToastError?: (message: string) => void;
   mutedOverride?: boolean;
+  isInert?: boolean;
 }
 
 export const MediaStage = memo(function MediaStage({
@@ -26,13 +27,14 @@ export const MediaStage = memo(function MediaStage({
   videoRef,
   onToastError,
   mutedOverride = false,
+  isInert = false,
 }: MediaStageProps) {
   const activeItemRef = useRef<PlaylistItem | null>(null);
   const [isRepeatOne, setIsRepeatOne] = useState(() => store.getSnapshot().repeatMode === 'one');
 
-  // Enforce zero-sound mute guarantee on mount and on mode change
+  // Enforce zero-sound mute guarantee and inert resource stripping on mount and on mode change
   useEffect(() => {
-    if (mutedOverride) {
+    if (mutedOverride || isInert) {
       if (audioRef.current) {
         audioRef.current.muted = true;
         audioRef.current.volume = 0;
@@ -42,10 +44,22 @@ export const MediaStage = memo(function MediaStage({
         videoRef.current.volume = 0;
       }
     }
-  }, [mutedOverride, audioRef, videoRef]);
+  }, [mutedOverride, isInert, audioRef, videoRef]);
 
-  // Keep track of active item and synchronize src
+  // Keep track of active item and synchronize src (guarded: fully inert when isInert is true)
   useEffect(() => {
+    if (isInert) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeAttribute('src');
+      }
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
+      }
+      return;
+    }
+
     return store.subscribe(() => {
       const state = store.getSnapshot();
       const repeatOne = state.repeatMode === 'one';
@@ -129,33 +143,38 @@ export const MediaStage = memo(function MediaStage({
         }
       }
     });
-  }, [store, engine, audioRef, videoRef, mutedOverride]);
+  }, [store, engine, audioRef, videoRef, mutedOverride, isInert]);
 
   const handleTimeUpdate = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {
+      if (isInert) return;
       const el = e.currentTarget;
       store.dispatch({ type: 'SET_TIME', currentTime: el.currentTime });
     },
-    [store]
+    [store, isInert]
   );
 
   const handleLoadedMetadata = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {
+      if (isInert) return;
       const el = e.currentTarget;
       store.dispatch({ type: 'SET_DURATION', duration: el.duration || 0 });
     },
-    [store]
+    [store, isInert]
   );
 
   const handlePlay = useCallback(() => {
+    if (isInert) return;
     store.dispatch({ type: 'SET_PLAYING', isPlaying: true });
-  }, [store]);
+  }, [store, isInert]);
 
   const handlePause = useCallback(() => {
+    if (isInert) return;
     store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
-  }, [store]);
+  }, [store, isInert]);
 
   const handleEnded = useCallback(() => {
+    if (isInert) return;
     const state = store.getSnapshot();
     const nextItem = resolveNextPlaylistItem(state);
 
@@ -188,10 +207,11 @@ export const MediaStage = memo(function MediaStage({
       // Halt playback, keep dock active without abrupt disappearance
       store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
     }
-  }, [store, engine]);
+  }, [store, engine, isInert]);
 
   const handleError = useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {
+      if (isInert) return;
       const el = e.currentTarget;
       // Ignore unload errors when element has no src attribute or empty src
       if (!el.currentSrc && !el.getAttribute('src')) {
@@ -219,7 +239,7 @@ export const MediaStage = memo(function MediaStage({
         onToastError(errorMsg);
       }
     },
-    [store, onToastError]
+    [store, onToastError, isInert]
   );
 
   return (
