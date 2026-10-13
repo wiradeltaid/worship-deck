@@ -4970,6 +4970,52 @@ waves:
         tests:
           - tests/presenter-media-player.test.mjs
           - tests/remote-presenting-client.test.mjs
+  - id: SPEC-118
+    status: open
+    release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+    prd: [operator-turn]
+    fr: [FR-16, FR-25, FR-35]
+    size: M
+    depends_on: [SPEC-117]
+    spec_folder: .scratch/SPEC-118-presenter-layout-stability-tablet-media-bar-and-remote-resilience/
+    spec_reviewed:
+      date: '2026-10-13'
+      sha: '5a1bfff1'
+      lenses: [structure, prose, edge-case-hunter, responsive-layout, security-authz]
+    tickets:
+      - id: "SPEC-118-01"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-25, FR-35]
+        blocked_by: []
+        touches: [present-channel]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/remote-screen.test.mjs
+      - id: "SPEC-118-02"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-25]
+        blocked_by: ["SPEC-118-01"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-guest-feed-controls.test.mjs
+          - tests/presenter-header-two-row-layout.test.mjs
+      - id: "SPEC-118-03"
+        component: presenter
+        satisfies: [UC-12, FR-16, FR-25]
+        blocked_by: ["SPEC-118-02"]
+        touches: [present-channel]
+        tests:
+          - tests/presenter-header-two-row-layout.test.mjs
+          - tests/theme-chrome.test.mjs
+      - id: "SPEC-118-04"
+        component: presenter
+        satisfies: [UC-29, FR-35]
+        blocked_by: ["SPEC-118-03"]
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-control-go-http.test.mjs
+          - tests/remote-presenting-client.test.mjs
+
 
 
 

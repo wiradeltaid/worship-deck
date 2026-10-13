@@ -2256,6 +2256,51 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-118-01
+  spec: SPEC-118
+  release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-118-02
+  spec: SPEC-118
+  release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  - tests/presenter-header-two-row-layout.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-118-03
+  spec: SPEC-118
+  release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+  test:
+  - tests/presenter-header-two-row-layout.test.mjs
+  - tests/theme-chrome.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -9409,6 +9454,51 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-118-01
+  spec: SPEC-118
+  release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-118-02
+  spec: SPEC-118
+  release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  - tests/presenter-header-two-row-layout.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-118-04
+  spec: SPEC-118
+  release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
+  test:
+  - tests/remote-control-go-http.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
