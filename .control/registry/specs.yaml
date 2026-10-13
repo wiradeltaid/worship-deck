@@ -4879,6 +4879,53 @@ waves:
           - tests/remote-screen.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
 
+  - id: SPEC-116
+    status: open
+    release: target-authority-remote-presenter-console
+    prd: [operator-turn]
+    fr: [FR-16, FR-35, FR-25]
+    size: M
+    depends_on: [SPEC-115]
+    spec_folder: .scratch/SPEC-116-target-authority-remote-presenter-console/
+    spec_reviewed:
+      date: '2026-10-13'
+      sha: '8e5a4b3f'
+      lenses: [structure, prose, edge-case-hunter, remote-contract-boundary, state-machine-telemetry, authorization, verification-evidence]
+    tickets:
+      - id: "SPEC-116-01"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: []
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-presenting-client.test.mjs
+          - tests/remote-screen.test.mjs
+      - id: "SPEC-116-02"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-35]
+        blocked_by: ["SPEC-116-01"]
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/remote-presenting-client.test.mjs
+      - id: "SPEC-116-03"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-25, FR-35]
+        blocked_by: ["SPEC-116-02"]
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-control-go-http.test.mjs
+          - tests/presenter-guest-feed-controls.test.mjs
+      - id: "SPEC-116-04"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-25, FR-35]
+        blocked_by: ["SPEC-116-03"]
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-screen.test.mjs
+          - tests/remote-presenting-client.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+
 
 
 

@@ -2135,6 +2135,67 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-116-01
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-116-02
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-116-03
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/remote-control-go-http.test.mjs
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-116-04
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/remote-screen.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -9167,6 +9228,67 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-116-01
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-116-02
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-116-03
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/remote-control-go-http.test.mjs
+  - tests/presenter-guest-feed-controls.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-116-04
+  spec: SPEC-116
+  release: target-authority-remote-presenter-console
+  test:
+  - tests/remote-screen.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
