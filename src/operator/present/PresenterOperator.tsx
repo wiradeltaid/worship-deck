@@ -157,6 +157,7 @@ import {
   type PresenterRemoteConnectionState,
   type PresenterRemoteIntent,
   type RemoteControlSessionState,
+  type PlaylistItemSummary,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
@@ -705,6 +706,12 @@ export default function PresenterOperator({
   // SPEC-115-03: Synchronize mirrored media state from host SSE events
   useEffect(() => {
     if (mode === 'remote' && controlledMediaState) {
+      if (Array.isArray(controlledMediaState.playlistManifest)) {
+        mediaStore.dispatch({
+          type: 'SYNC_MANIFEST',
+          manifest: controlledMediaState.playlistManifest,
+        });
+      }
       if (controlledMediaState.activeId !== undefined) {
         if (controlledMediaState.activeId && controlledMediaState.activeId !== mediaStore.getSnapshot().activeId) {
           mediaStore.dispatch({ type: 'SELECT_ITEM', id: controlledMediaState.activeId });
@@ -1988,6 +1995,14 @@ export default function PresenterOperator({
     if (remoteState !== 'connected') return;
     return mediaStore.subscribe(() => {
       const snap = mediaStore.getSnapshot();
+      const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
+        id: it.id,
+        name: it.name,
+        type: it.type,
+        source: it.source || 'cloud',
+        duration: it.duration || 0,
+        orderKey: it.orderKey ?? String(idx),
+      }));
       void remoteSessionRef.current?.broadcastState({
         media: {
           activeId: snap.activeId,
@@ -1999,6 +2014,7 @@ export default function PresenterOperator({
           repeatMode: snap.repeatMode,
           volume: snap.volume,
           isMuted: snap.isMuted,
+          playlistManifest,
         },
       });
     });
@@ -2027,6 +2043,14 @@ export default function PresenterOperator({
     if (mode === 'remote') return;
     if (remoteState === 'connected') {
       const snap = mediaStore.getSnapshot();
+      const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
+        id: it.id,
+        name: it.name,
+        type: it.type,
+        source: it.source || 'cloud',
+        duration: it.duration || 0,
+        orderKey: it.orderKey ?? String(idx),
+      }));
       void remoteSessionRef.current?.broadcastState({
         index: indexRef.current,
         blank: blankRef.current,
@@ -2044,6 +2068,7 @@ export default function PresenterOperator({
           repeatMode: snap.repeatMode,
           volume: snap.volume,
           isMuted: snap.isMuted,
+          playlistManifest,
         },
         scripture:
           loadedScriptureRef.current && scriptureOverlayRef.current

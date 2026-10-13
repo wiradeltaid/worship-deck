@@ -1,7 +1,7 @@
 ---
 type: mandate
 id: DEC-104
-status: accepted
+status: applied
 accepted_by: 'kodesh87 (2026-10-13)'
 touches:
   - .control/memlog/autopilot-DEC-104.md

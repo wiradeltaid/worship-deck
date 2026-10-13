@@ -2170,7 +2170,8 @@ decisions:
 
   - id: DEC-104
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-10-13'
     accepted_by: "kodesh87 (2026-10-13)"
     title: Daily Autopilot mandate for Mobile Media Bar Ergonomics, Presenter Header Layout Harmony, and Remote Synchronization (SPEC-117)
     file: .control/decisions/DEC-104-daily-autopilot-mandate-mobile-media-bar-and-remote-sync.md
