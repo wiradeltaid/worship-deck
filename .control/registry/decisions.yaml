@@ -2151,7 +2151,7 @@ decisions:
 
   - id: DEC-103
     type: mandate
-    status: accepted
+    status: applied
     accepted_by: "kodesh87 (2026-10-13)"
     title: Daily Autopilot mandate for Target-Authority Remote Presenter Console (SPEC-116)
     file: .control/decisions/DEC-103-daily-autopilot-mandate-target-authority-remote-presenter-console.md
