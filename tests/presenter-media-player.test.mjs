@@ -786,3 +786,59 @@ test('SPEC-116-02 defect injection: missing remote media intents or drawer props
   const cleanDefects = scanSpec11602MediaDrawerAndVolumeGuards(validSources);
   assert.deepEqual(cleanDefects, []);
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-117-01: Responsive 2-Row MediaControlBar Layout and Mobile Touch Ergonomics
+// -----------------------------------------------------------------------------
+export function scanSpec11701MediaControlBarResponsiveGuards(barSource) {
+  const defects = [];
+  if (!barSource.includes('data-testid="media-control-bar-row-1"')) {
+    defects.push('missing-media-control-bar-row-1');
+  }
+  if (!barSource.includes('data-testid="media-control-bar-row-2"')) {
+    defects.push('missing-media-control-bar-row-2');
+  }
+  if (!barSource.includes('flex-col md:flex-row')) {
+    defects.push('missing-responsive-flex-direction');
+  }
+  if (!barSource.includes('h-auto md:h-13')) {
+    defects.push('missing-responsive-height');
+  }
+  if (!barSource.includes('md:contents')) {
+    defects.push('missing-desktop-contents-flattening');
+  }
+  return defects;
+}
+
+test('SPEC-117-01: MediaControlBar renders responsive 2-row layout with desktop flattening', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const barSource = fs.readFileSync(barPath, 'utf8');
+
+  // 1. Pristine source passes all responsive layout guards
+  const defects = scanSpec11701MediaControlBarResponsiveGuards(barSource);
+  assert.deepEqual(defects, []);
+
+  // 2. Row 1 houses metadata & seekbar (md:order-2) and drawer launcher (md:order-4)
+  assert.ok(barSource.includes('md:order-2'), 'Metadata and seekbar must have md:order-2 for desktop center placement');
+  assert.ok(barSource.includes('md:order-4'), 'Drawer launcher must have md:order-4 for desktop right placement');
+
+  // 3. Row 2 houses panic controls (md:order-1) and projector toggle (md:order-3)
+  assert.ok(barSource.includes('md:order-1'), 'Panic controls must have md:order-1 for desktop left placement');
+  assert.ok(barSource.includes('md:order-3'), 'Projector toggle must have md:order-3 for desktop right placement');
+
+  // 4. Mobile touch target size: Play button has min-w-[40px]
+  assert.ok(barSource.includes('min-w-[40px]'), 'Play/Pause button must have min-w-[40px] for mobile ergonomics');
+});
+
+test('SPEC-117-01 defect injection: missing 2-row layout or desktop contents fails scan guard', async () => {
+  const mutated = '<div className="flex-row h-13">Single row legacy layout</div>';
+  const defects = scanSpec11701MediaControlBarResponsiveGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-media-control-bar-row-1',
+    'missing-media-control-bar-row-2',
+    'missing-responsive-flex-direction',
+    'missing-responsive-height',
+    'missing-desktop-contents-flattening',
+  ]);
+});
