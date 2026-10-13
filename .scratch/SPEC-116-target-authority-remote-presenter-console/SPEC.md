@@ -1,4 +1,4 @@
-# SPEC-116 — Target-Authority Remote Presenter Architecture: Scripture Remote Intent Dispatching, Media Playlist Hydration, Remote Drawer Selection, and Hardware Telemetry Mirroring
+# SPEC-116 — Target-Authority Remote Presenter Architecture: Scripture Remote Intent Dispatching, Media Playlist Hydration, Remote Drawer Selection, Volume Control, and Hardware Telemetry Mirroring
 
 ## Requirement Traceability & Scope
 - **PRD**: `operator-turn`
@@ -32,15 +32,15 @@ Following the initial delivery of `SPEC-115` (Dual-Mode Console Shell and QR Pai
 2. **Media Transport Inactivity Due to Playlist Mount Suppression**:
    - In `PresenterOperator.tsx`, playlist hydration is completely aborted on mount when `mode === 'remote'`.
    - As a result, `mediaStore.items` is permanently empty on remote clients, `activeItem` resolves to `undefined`, and `isCued = Boolean(activeItem)` evaluates to `false`.
-   - In `MediaControlBar.tsx`, all transport controls (`Play`, `Prev`, `Next`, `Stop`, `Project Video`) are disabled (`disabled={!isCued}`), the seekbar is inert, and the track display reads *"No media loaded"*.
+   - In `MediaControlBar.tsx`, all transport controls (`Play`, `Prev`, `Next`, `Stop`, `Project Video`, `Fade`, `Volume`, `Mute`) are disabled, the seekbar is inert, and the track display reads *"No media loaded"*.
 
 3. **Media Drawer Button Missing on Remote Console**:
    - In `PresenterOperator.tsx`, `onOpenDrawer` is passed as `undefined` in remote mode, and `<MediaDrawer>` is excluded from mounting.
    - Operators holding a mobile device cannot open the media drawer to view loaded service songs or select specific background tracks to cue on the host workstation.
 
-4. **Audio Fade Out Disablement on Remote Control Bar**:
-   - Although the Go backend (`internal/httpapi/remote.go`) supports `media-fade` intents, `MediaControlBar.tsx` explicitly disables the button with `disabled={... || isRemote}`.
-   - Mobile operators cannot trigger the emergency 3-second audio fade-out from across the sanctuary.
+4. **Software Volume Slider, Mute, and Audio Fade Out Inactive on Remote**:
+   - In `MediaControlBar.tsx`, Fade Out, Mute Toggle, and the Volume Slider are explicitly disabled with `disabled={... || isRemote}`.
+   - While physical soundboard faders cannot be moved from web sandbox, software playback volume (`HTMLMediaElement.volume`) on the host machine should be remotely controllable from the mobile console via dedicated intents (`media-set-volume`, `media-set-mute`, `media-fade`).
 
 5. **Rundown Sheet Text Omission on Remote Route**:
    - In `spa/src/pages/RemotePage.tsx` and `src/operator/present/RemoteOperator.tsx`, `data.raw_payload` (rundown text) is omitted from component props, leaving the sidebar permanently displaying *"No rundown text provided"*.
@@ -70,8 +70,8 @@ Following the initial delivery of `SPEC-115` (Dual-Mode Console Shell and QR Pai
 
 ### 2.1 Target Authority Principle (`AD-10`, `AD-37`)
 - **Single Hardware Executor**: The Host PC is the sole executor of audio decoders, physical display surfaces, and capture cards.
-- **Idempotent Intent-Driven Actions**: All remote commands carry desired target state (e.g., `guest-project` with `projected: boolean`), preserving idempotency over the wire.
-- **Telemetry Reflection**: Host PC mirrors full presentation state, media playback state, scripture overlay, and guest capture status over SSE `POST /api/present/:id/remote/state`.
+- **Idempotent Intent-Driven Actions**: All remote commands carry desired target state (e.g., `guest-project` with `projected: boolean`, `media-set-volume` with `volume: number`, `media-set-mute` with `muted: boolean`), preserving idempotency over the wire.
+- **Telemetry Reflection**: Host PC mirrors full presentation state, media playback state (including `volume` and `isMuted`), scripture overlay, and guest capture status over SSE `POST /api/present/:id/remote/state`.
 
 ### 2.2 Scripture Intent Plumbing & Bidirectional State
 - `PresenterRemoteIntent` carries:
@@ -79,13 +79,16 @@ Following the initial delivery of `SPEC-115` (Dual-Mode Console Shell and QR Pai
   - `{ type: 'clear-scripture'; planIdentity: string }`
 - Remote client dispatches `scripture` intents on push and chunk page changes. Host applies the intent, recalculates `scriptureOverlay`, updates session cache, broadcasts to physical screen, and mirrors active `scripture` state back to remote clients via SSE.
 
-### 2.3 Read-Only Media Playlist Hydration & Track Selection
+### 2.3 Read-Only Media Playlist Hydration, Remote Selection & Software Volume Control
 - Remote clients execute read-only fetch to `GET /api/media/playlist` on mount to populate `mediaStore.items`, strictly bypassing `localMediaRegistry.hydrate()`.
 - Populating playlist items sets `isCued = true`, enabling track seekbars, durations, and transport buttons.
 - The `MediaDrawer` button is restored on remote mode (`onOpenDrawer={() => setMediaDrawerOpen(true)}`).
   - Inside `MediaDrawer.tsx`, destructive/local mutations (`Upload file`, `Delete`, `Import`) are hidden when `isRemote`.
   - Clicking a track dispatches `onRemoteMediaIntent({ type: 'media-select-item', id, planIdentity })`.
-- In `MediaControlBar.tsx`, the `|| isRemote` condition on `media-control-bar-fade` is lifted. Volume sliders remain disabled on remote as physical master volume is managed at the sound desk.
+- In `MediaControlBar.tsx`, the `|| isRemote` condition on `media-control-bar-fade`, `media-control-bar-mute`, and `media-control-bar-volume` is lifted:
+  - Adjusting the volume slider dispatches `onRemoteMediaIntent({ type: 'media-set-volume', volume: newVolume, planIdentity })`.
+  - Clicking Mute dispatches `onRemoteMediaIntent({ type: 'media-set-mute', muted: !state.isMuted, planIdentity })`.
+  - Host PC applies volume and mute to `mediaEngine` and mirrors updated `volume` and `isMuted` back over SSE.
 
 ### 2.4 Guest HDMI Capture Telemetry & Idempotent Projection
 - Extend `allowedIntentTypes` in `internal/httpapi/remote.go` and `PresenterRemoteIntent` with:
@@ -108,6 +111,6 @@ Following the initial delivery of `SPEC-115` (Dual-Mode Console Shell and QR Pai
 ## 3. Work Breakdown & Ticket Sequencing
 
 - **SPEC-116-01**: Push Scripture Remote Intent Dispatching, Chunk Pagination Sync, Clear Scripture, and Rundown Text Plumbing
-- **SPEC-116-02**: Remote Read-Only Media Playlist Hydration, Media Drawer Track Selection, and Remote Audio Fade-Out
+- **SPEC-116-02**: Remote Read-Only Media Playlist Hydration, Media Drawer Track Selection, Remote Volume Control, and Audio Fade-Out
 - **SPEC-116-03**: Guest HDMI Capture Remote Telemetry, Idempotent Projection, and Projector Reopen/Refocus Protocol
 - **SPEC-116-04**: Comprehensive Verification Suite, Regression Guards, and Bilingual Localization Parity
