@@ -36,6 +36,9 @@ export type PresenterRemoteIntent =
   | { type: 'media-seek'; timeSeconds: number; planIdentity: string }
   | { type: 'media-toggle-project'; planIdentity: string }
   | { type: 'media-select-item'; id: string; planIdentity: string }
+  | { type: 'media-reorder-item'; id: string; direction: 'up' | 'down'; planIdentity: string }
+  | { type: 'media-set-volume'; volume: number; planIdentity: string }
+  | { type: 'media-set-mute'; muted: boolean; planIdentity: string }
   | { type: 'media-toggle-shuffle'; planIdentity: string }
   | { type: 'media-cycle-repeat'; planIdentity: string };
 
@@ -61,6 +64,9 @@ export interface PresenterActionHandlers {
   handleMediaSeek?: (timeSeconds: number) => void;
   handleMediaToggleProject?: () => void;
   handleMediaSelectItem?: (id: string) => void;
+  handleMediaReorderItem?: (id: string, direction: 'up' | 'down') => void;
+  handleMediaSetVolume?: (volume: number) => void;
+  handleMediaSetMute?: (muted: boolean) => void;
   handleMediaToggleShuffle?: () => void;
   handleMediaCycleRepeat?: () => void;
 }
@@ -248,6 +254,41 @@ export function applyRemoteIntent(
         typeof handlers.handleMediaSelectItem === 'function'
       ) {
         handlers.handleMediaSelectItem(intent.id.trim());
+        return true;
+      }
+      return false;
+    }
+    case 'media-reorder-item': {
+      if (
+        typeof intent.id === 'string' &&
+        intent.id.trim() &&
+        (intent.direction === 'up' || intent.direction === 'down') &&
+        typeof handlers.handleMediaReorderItem === 'function'
+      ) {
+        handlers.handleMediaReorderItem(intent.id.trim(), intent.direction);
+        return true;
+      }
+      return false;
+    }
+    case 'media-set-volume': {
+      if (
+        typeof intent.volume === 'number' &&
+        Number.isFinite(intent.volume) &&
+        intent.volume >= 0 &&
+        intent.volume <= 1 &&
+        typeof handlers.handleMediaSetVolume === 'function'
+      ) {
+        handlers.handleMediaSetVolume(intent.volume);
+        return true;
+      }
+      return false;
+    }
+    case 'media-set-mute': {
+      if (
+        typeof intent.muted === 'boolean' &&
+        typeof handlers.handleMediaSetMute === 'function'
+      ) {
+        handlers.handleMediaSetMute(intent.muted);
         return true;
       }
       return false;
@@ -472,6 +513,8 @@ export type RemoteControlSessionState = {
     duration?: number;
     shuffle?: boolean;
     repeatMode?: 'off' | 'all' | 'one';
+    volume?: number;
+    isMuted?: boolean;
   };
   scripture?: {
     reference: string;

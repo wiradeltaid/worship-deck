@@ -566,14 +566,16 @@ export default function PresenterOperator({
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
 
-  // SPEC-114-02: Single-owner mount hydration for persistent media playlist (host only)
+  // SPEC-114-02 & SPEC-116-02: Mount hydration for persistent media playlist (read-only on remote)
   useEffect(() => {
-    if (mode === 'remote') return;
     let cancelled = false;
     async function hydratePlaylist() {
       try {
-        await localMediaRegistry.hydrate();
-        const localMap = localMediaRegistry.getMatchingMap();
+        let localMap: ReadonlyMap<string, any> = new Map();
+        if (mode !== 'remote') {
+          await localMediaRegistry.hydrate();
+          localMap = localMediaRegistry.getMatchingMap();
+        }
 
         const res = await fetch('/api/media/playlist');
         if (!res.ok || cancelled) return;
@@ -595,34 +597,40 @@ export default function PresenterOperator({
             cloud: { id: raw.id, name: raw.name, url: contentUrl },
             orderKey: raw.order_key ?? raw.orderKey,
           };
+          if (mode === 'remote') {
+            return item;
+          }
           const localRecord = item.sha256 ? localMap.get(item.sha256) : undefined;
           return mergeUnifiedPlaylistItem(item, localRecord);
         });
 
-        const localOnlyItems: PlaylistItem[] = Array.from(localMap.values())
-          .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
-          .map((rec) => {
-            let localUrl = '';
-            if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
-              localUrl = URL.createObjectURL(rec.fileHandle);
-            }
-            return {
-              id: `local-${rec.sha256.slice(0, 8)}`,
-              name: rec.name,
-              url: localUrl,
-              type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
-              size: rec.sizeBytes,
-              sha256: rec.sha256,
-              source: 'local' as const,
-              local: {
-                storageKind: rec.storageKind,
-                stale: false,
-                fileHandle: rec.fileHandle,
-                orderKey: rec.orderKey,
-              },
-              orderKey: rec.orderKey,
-            };
-          });
+        const localOnlyItems: PlaylistItem[] =
+          mode !== 'remote'
+            ? Array.from(localMap.values())
+                .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
+                .map((rec) => {
+                  let localUrl = '';
+                  if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
+                    localUrl = URL.createObjectURL(rec.fileHandle);
+                  }
+                  return {
+                    id: `local-${rec.sha256.slice(0, 8)}`,
+                    name: rec.name,
+                    url: localUrl,
+                    type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
+                    size: rec.sizeBytes,
+                    sha256: rec.sha256,
+                    source: 'local' as const,
+                    local: {
+                      storageKind: rec.storageKind,
+                      stale: false,
+                      fileHandle: rec.fileHandle,
+                      orderKey: rec.orderKey,
+                    },
+                    orderKey: rec.orderKey,
+                  };
+                })
+            : [];
 
         const allItems = [...mergedItems, ...localOnlyItems];
         if (!cancelled && allItems.length > 0) {
@@ -714,6 +722,12 @@ export default function PresenterOperator({
       }
       if (controlledMediaState.repeatMode) {
         mediaStore.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: controlledMediaState.repeatMode });
+      }
+      if (typeof controlledMediaState.volume === 'number') {
+        mediaStore.dispatch({ type: 'SET_VOLUME', volume: controlledMediaState.volume });
+      }
+      if (typeof controlledMediaState.isMuted === 'boolean') {
+        mediaStore.dispatch({ type: 'SET_MUTED', isMuted: controlledMediaState.isMuted });
       }
     }
   }, [mode, controlledMediaState, mediaStore]);
@@ -1833,6 +1847,24 @@ export default function PresenterOperator({
         handleMediaSelectItem: (id) => {
           mediaStore.dispatch({ type: 'SELECT_ITEM', id });
         },
+        handleMediaReorderItem: (id, direction) => {
+          const items = mediaStore.getSnapshot().items;
+          const idx = items.findIndex((i) => i.id === id);
+          if (idx === -1) return;
+          if (direction === 'up' && idx > 0) {
+            mediaStore.dispatch({ type: 'MOVE_ITEM', fromIndex: idx, toIndex: idx - 1 });
+          } else if (direction === 'down' && idx < items.length - 1) {
+            mediaStore.dispatch({ type: 'MOVE_ITEM', fromIndex: idx, toIndex: idx + 1 });
+          }
+        },
+        handleMediaSetVolume: (volume) => {
+          mediaEngine.setVolume(volume);
+          mediaStore.dispatch({ type: 'SET_VOLUME', volume });
+        },
+        handleMediaSetMute: (muted) => {
+          mediaEngine.setMuted(muted);
+          mediaStore.dispatch({ type: 'SET_MUTED', isMuted: muted });
+        },
         handleMediaToggleShuffle: () => {
           const snap = mediaStore.getSnapshot();
           mediaStore.dispatch({ type: 'SET_SHUFFLE', shuffle: !snap.shuffle });
@@ -1885,6 +1917,8 @@ export default function PresenterOperator({
           duration: snap.duration,
           shuffle: snap.shuffle,
           repeatMode: snap.repeatMode,
+          volume: snap.volume,
+          isMuted: snap.isMuted,
         },
       });
     });
@@ -1909,6 +1943,8 @@ export default function PresenterOperator({
           duration: snap.duration,
           shuffle: snap.shuffle,
           repeatMode: snap.repeatMode,
+          volume: snap.volume,
+          isMuted: snap.isMuted,
         },
         scripture:
           loadedScriptureRef.current && scriptureOverlayRef.current
@@ -2892,7 +2928,7 @@ export default function PresenterOperator({
         <MediaControlBar
           store={mediaStore}
           engine={mediaEngine}
-          onOpenDrawer={mode === 'remote' ? undefined : () => setMediaDrawerOpen(true)}
+          onOpenDrawer={() => setMediaDrawerOpen(true)}
           isRemote={mode === 'remote'}
           onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
           planIdentity={planIdentity}
@@ -3511,14 +3547,15 @@ export default function PresenterOperator({
         </aside>
       </main>
 
-      {mode !== 'remote' && (
-        <MediaDrawer
-          open={mediaDrawerOpen}
-          onClose={() => setMediaDrawerOpen(false)}
-          store={mediaStore}
-          engine={mediaEngine}
-        />
-      )}
+      <MediaDrawer
+        open={mediaDrawerOpen}
+        onClose={() => setMediaDrawerOpen(false)}
+        store={mediaStore}
+        engine={mediaEngine}
+        isRemote={mode === 'remote'}
+        onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
+        planIdentity={planIdentity}
+      />
 
       <MediaStage
         store={mediaStore}

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-35]
 **Blocked by:** ["SPEC-116-01"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Enable read-only media playlist hydration on remote clients via `GET /api/media/playlist`, activate transport controls and seekbars in `MediaControlBar.tsx`, restore `MediaDrawer` opening on remote with destructive button suppression, enable track selection via `media-select-item` remote intent, enable discrete track reordering via `ChevronUp` and `ChevronDown` arrow buttons using `media-reorder-item` intent, lift the remote gate on the Fade Out button, and enable remote volume slider and mute toggle via `media-set-volume` and `media-set-mute` remote intents with bidirectional volume/mute SSE state mirroring.
@@ -37,3 +37,12 @@ Enable read-only media playlist hydration on remote clients via `GET /api/media/
 - Clicking the `▲` (Up) or `▼` (Down) arrow button next to a track in the remote drawer moves the track up or down in the playlist on the host workstation.
 - Adjusting the volume slider or clicking Mute on mobile dispatches `media-set-volume` / `media-set-mute` to the host PC, adjusting host software volume without unmuting the local phone speaker.
 - Clicking Fade Out on mobile initiates audio attenuation on the host PC.
+
+## Comments
+- Implemented read-only playlist hydration on remote mode in `PresenterOperator.tsx` via `GET /api/media/playlist` with `localMediaRegistry.hydrate()` bypass, populating `mediaStore.items` and resolving `isCued`.
+- Restored `MediaDrawer` opening on remote with `isRemote` mutation isolation (suppressing file inputs, `btn-add-media`, and actions dropdown menus) and discrete reordering via `ChevronUp` / `ChevronDown` arrow buttons (`media-reorder-item`).
+- Added remote software volume slider and mute toggle via `media-set-volume` and `media-set-mute` intents, lifting the `isRemote` gate on Fade Out, Mute, and Volume controls in `MediaControlBar.tsx`.
+- Ensured volume slider is rendered on mobile screens (`flex w-20 sm:w-24`) without `hidden sm:flex` blockage.
+- Go backend `allowedIntentTypes` updated with `media-reorder-item`, `media-set-volume`, and `media-set-mute` with strict payload validation.
+- Peer review passed: DeepSeek V4 Pro verdict `SETUJU`; Terra Codex findings addressed (mobile volume slider visibility restored and full Go HTTP test coverage added in `tests/remote-control-go-http.test.mjs`).
+- Verified green across: `tests/presenter-media-player.test.mjs` (12/12 pass), `tests/remote-screen.test.mjs` (13/13 pass), `tests/remote-control-go-http.test.mjs` (9/9 pass), `tests/remote-presenting-client.test.mjs` (26/26 pass), `smoke:spec-115` (77/77 pass), `npm run typecheck` (0 errors), `npm run build` (clean build), `public-repo-guard.test.mjs` (5/5 pass), `go test ./...` (100% green).

@@ -338,10 +338,10 @@ test('SPEC-115-04: PresenterOperator strictly enforces surface isolation invaria
     operatorSource.includes("if (mode !== 'remote' && !captureBrokerRef.current)"),
     'Must bypass CaptureBroker in remote mode'
   );
-  // 4. Cache & Storage Hydration Bypass: hydratePlaylist bypassed in remote mode
+  // 4. Cache & Storage Hydration Bypass: localMediaRegistry.hydrate bypassed in remote mode
   assert.ok(
-    operatorSource.includes("if (mode === 'remote') return;\n    let cancelled = false;\n    async function hydratePlaylist()"),
-    'Must bypass hydratePlaylist in remote mode'
+    operatorSource.includes("if (mode !== 'remote') {\n          await localMediaRegistry.hydrate();"),
+    'Must bypass localMediaRegistry.hydrate in remote mode'
   );
   // 5. Emergency Patch Hydration Bypass: getEmergencyPatches bypassed in remote mode
   assert.ok(
@@ -354,8 +354,8 @@ test('SPEC-115-04: PresenterOperator strictly enforces surface isolation invaria
     'Must not mount EmergencyCanvasDesignerModal in remote mode'
   );
   assert.ok(
-    operatorSource.includes("{mode !== 'remote' && (\n        <MediaDrawer"),
-    'Must not mount MediaDrawer in remote mode'
+    operatorSource.includes("<MediaDrawer\n        open={mediaDrawerOpen}\n        onClose={() => setMediaDrawerOpen(false)}\n        store={mediaStore}\n        engine={mediaEngine}\n        isRemote={mode === 'remote'}"),
+    'Must mount MediaDrawer with isRemote={mode === "remote"} isolation guard'
   );
 });
 

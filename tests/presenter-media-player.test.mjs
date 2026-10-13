@@ -531,15 +531,15 @@ test('SPEC-115-02: Remote Audio Mute Invariant and Projector/Hardware Isolation 
       sCode.includes('muted={mutedOverride ? true : undefined}'),
       'MediaStage must declaratively mute audio/video elements when mutedOverride is active'
     );
-    // 7. Remote mode must bypass playlist storage hydration
+    // 7. Remote mode must bypass local storage registry hydration
     assert.ok(
-      pCode.includes("if (mode === 'remote') return;\n    let cancelled = false;\n    async function hydratePlaylist()"),
-      'PresenterOperator must bypass persistent media playlist hydration in remote mode'
+      pCode.includes("if (mode !== 'remote') {\n          await localMediaRegistry.hydrate();"),
+      'PresenterOperator must bypass local storage registry hydration in remote mode'
     );
-    // 8. MediaDrawer must not mount in remote mode
+    // 8. MediaDrawer must mount with isRemote isolation guard in remote mode
     assert.ok(
-      pCode.includes("{mode !== 'remote' && (\n        <MediaDrawer"),
-      'PresenterOperator must not mount MediaDrawer in remote mode'
+      pCode.includes("<MediaDrawer\n        open={mediaDrawerOpen}\n        onClose={() => setMediaDrawerOpen(false)}\n        store={mediaStore}\n        engine={mediaEngine}\n        isRemote={mode === 'remote'}"),
+      'PresenterOperator must mount MediaDrawer with isRemote isolation guard'
     );
     // 9. MediaEngine must receive isMutedOverride
     assert.ok(
@@ -600,4 +600,189 @@ test('SPEC-115-02: Remote Audio Mute Invariant and Projector/Hardware Isolation 
     fs.writeFileSync(presenterPath, presenterSrc);
     assert.equal(fs.readFileSync(presenterPath, 'utf8'), presenterSrc, 'File must be restored byte-for-byte');
   }
+});
+
+// -----------------------------------------------------------------------------
+// SPEC-116-02: Remote Media Playlist Hydration, MediaDrawer Selection & Reorder,
+// Software Volume Control, and Audio Fade-Out
+// -----------------------------------------------------------------------------
+test('SPEC-116-02: Remote playlist hydration and MediaDrawer isolation suppress destructive actions', async () => {
+  const fs = await import('node:fs');
+  const drawerPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+
+  const drawerSrc = fs.readFileSync(drawerPath, 'utf8').replace(/\r\n/g, '\n');
+  const presenterSrc = fs.readFileSync(presenterPath, 'utf8').replace(/\r\n/g, '\n');
+
+  // 1. MediaDrawer supports isRemote prop and suppresses destructive buttons
+  assert.ok(drawerSrc.includes('isRemote?: boolean;'), 'MediaDrawerProps must declare isRemote');
+  assert.ok(
+    drawerSrc.includes('{!isRemote && (\n          <Button\n            type="button"\n            variant="default"\n            size="sm"\n            data-testid="btn-add-media"'),
+    'MediaDrawer must suppress add-media button when isRemote'
+  );
+  assert.ok(
+    drawerSrc.includes('{!isRemote && (\n        <input\n          ref={fileInputRef}'),
+    'MediaDrawer must suppress file input when isRemote'
+  );
+  assert.ok(
+    drawerSrc.includes('{!isRemote && (\n                    <DropdownMenu>'),
+    'MediaDrawer must suppress actions dropdown menu when isRemote'
+  );
+
+  // 2. MediaDrawer dispatches remote media intents on track click and reorder arrows
+  assert.ok(
+    drawerSrc.includes("type: 'media-select-item'"),
+    'MediaDrawer must dispatch media-select-item on track click when remote'
+  );
+  assert.ok(
+    drawerSrc.includes("type: 'media-reorder-item'"),
+    'MediaDrawer must dispatch media-reorder-item on arrow click when remote'
+  );
+
+  // 3. MediaControlBar restores drawer launcher in remote mode
+  assert.ok(
+    presenterSrc.includes('onOpenDrawer={() => setMediaDrawerOpen(true)}'),
+    'PresenterOperator must provide onOpenDrawer in both host and remote mode'
+  );
+});
+
+test('SPEC-116-02: MediaControlBar remote volume slider, mute toggle, and fade out intent dispatching', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const barSrc = fs.readFileSync(barPath, 'utf8');
+
+  // 1. Fade button is not disabled by isRemote
+  assert.ok(
+    !barSrc.includes('disabled={!isCued || !state.isPlaying || state.isFading || isRemote}'),
+    'Fade button must not be disabled by isRemote'
+  );
+  assert.ok(
+    barSrc.includes("type: 'media-fade'"),
+    'handleFadeOut must dispatch media-fade intent'
+  );
+
+  // 2. Mute button is not disabled by isRemote
+  assert.ok(
+    !barSrc.includes('disabled={!isCued || isRemote}'),
+    'Mute button must not be disabled by isRemote'
+  );
+  assert.ok(
+    barSrc.includes("type: 'media-set-mute'"),
+    'handleToggleMute must dispatch media-set-mute intent'
+  );
+
+  // 3. Volume slider is not disabled by isRemote
+  assert.ok(
+    barSrc.includes("type: 'media-set-volume'"),
+    'handleVolumeChange must dispatch media-set-volume intent'
+  );
+});
+
+test('SPEC-116-02: applyRemoteIntent validates and routes media-reorder-item, media-set-volume, and media-set-mute', async () => {
+  const { applyRemoteIntent } = await import(srcUrl('lib', 'presenter-remote-client.ts'));
+
+  const calls = [];
+  const handlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: () => {},
+    handleMediaReorderItem: (id, dir) => calls.push({ fn: 'handleMediaReorderItem', id, dir }),
+    handleMediaSetVolume: (vol) => calls.push({ fn: 'handleMediaSetVolume', vol }),
+    handleMediaSetMute: (muted) => calls.push({ fn: 'handleMediaSetMute', muted }),
+  };
+
+  const planId = 'plan-media-spec11602';
+
+  // 1. media-reorder-item
+  assert.equal(
+    applyRemoteIntent({ type: 'media-reorder-item', id: 'm-1', direction: 'up', planIdentity: planId }, planId, handlers),
+    true
+  );
+  assert.equal(
+    applyRemoteIntent({ type: 'media-reorder-item', id: 'm-1', direction: 'down', planIdentity: planId }, planId, handlers),
+    true
+  );
+  assert.equal(
+    applyRemoteIntent({ type: 'media-reorder-item', id: 'm-1', direction: 'invalid', planIdentity: planId }, planId, handlers),
+    false
+  );
+  assert.equal(
+    applyRemoteIntent({ type: 'media-reorder-item', id: '', direction: 'up', planIdentity: planId }, planId, handlers),
+    false
+  );
+
+  // 2. media-set-volume
+  assert.equal(
+    applyRemoteIntent({ type: 'media-set-volume', volume: 0.75, planIdentity: planId }, planId, handlers),
+    true
+  );
+  assert.equal(
+    applyRemoteIntent({ type: 'media-set-volume', volume: -0.1, planIdentity: planId }, planId, handlers),
+    false
+  );
+  assert.equal(
+    applyRemoteIntent({ type: 'media-set-volume', volume: 1.5, planIdentity: planId }, planId, handlers),
+    false
+  );
+
+  // 3. media-set-mute
+  assert.equal(
+    applyRemoteIntent({ type: 'media-set-mute', muted: true, planIdentity: planId }, planId, handlers),
+    true
+  );
+  assert.equal(
+    applyRemoteIntent({ type: 'media-set-mute', muted: false, planIdentity: planId }, planId, handlers),
+    true
+  );
+
+  assert.deepEqual(calls, [
+    { fn: 'handleMediaReorderItem', id: 'm-1', dir: 'up' },
+    { fn: 'handleMediaReorderItem', id: 'm-1', dir: 'down' },
+    { fn: 'handleMediaSetVolume', vol: 0.75 },
+    { fn: 'handleMediaSetMute', muted: true },
+    { fn: 'handleMediaSetMute', muted: false },
+  ]);
+});
+
+export function scanSpec11602MediaDrawerAndVolumeGuards(sources) {
+  const defects = [];
+  if (!sources.drawer.includes('isRemote?: boolean;')) {
+    defects.push('missing-media-drawer-is-remote-prop');
+  }
+  if (!sources.drawer.includes("type: 'media-reorder-item'")) {
+    defects.push('missing-media-drawer-reorder-intent');
+  }
+  if (!sources.bar.includes("type: 'media-set-volume'")) {
+    defects.push('missing-media-bar-volume-intent');
+  }
+  if (!sources.bar.includes("type: 'media-set-mute'")) {
+    defects.push('missing-media-bar-mute-intent');
+  }
+  return defects;
+}
+
+test('SPEC-116-02 defect injection: missing remote media intents or drawer props fails scan guard', async () => {
+  const fs = await import('node:fs');
+  const validSources = {
+    drawer: fs.readFileSync(path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaDrawer.tsx'), 'utf8'),
+    bar: fs.readFileSync(path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx'), 'utf8'),
+  };
+
+  const mutatedSources = {
+    drawer: '<div>No isRemote or reorder intent</div>',
+    bar: '<div>No volume or mute intent</div>',
+  };
+
+  const defects = scanSpec11602MediaDrawerAndVolumeGuards(mutatedSources);
+  assert.deepEqual(defects, [
+    'missing-media-drawer-is-remote-prop',
+    'missing-media-drawer-reorder-intent',
+    'missing-media-bar-volume-intent',
+    'missing-media-bar-mute-intent',
+  ]);
+
+  const cleanDefects = scanSpec11602MediaDrawerAndVolumeGuards(validSources);
+  assert.deepEqual(cleanDefects, []);
 });

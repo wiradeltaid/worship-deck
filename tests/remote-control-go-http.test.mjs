@@ -338,6 +338,10 @@ test('4. POST /api/present/{id}/remote/intent accepts the 6 existing intents and
     { type: 'media-select-item', id: 'item-1', planIdentity: 'plan1' },
     { type: 'media-toggle-shuffle', planIdentity: 'plan1' },
     { type: 'media-cycle-repeat', planIdentity: 'plan1' },
+    { type: 'media-reorder-item', id: 'item-1', direction: 'up', planIdentity: 'plan1' },
+    { type: 'media-reorder-item', id: 'item-1', direction: 'down', planIdentity: 'plan1' },
+    { type: 'media-set-volume', volume: 0.8, planIdentity: 'plan1' },
+    { type: 'media-set-mute', muted: true, planIdentity: 'plan1' },
   ];
 
   for (const intent of validIntents) {
@@ -364,6 +368,44 @@ test('4. POST /api/present/{id}/remote/intent accepts the 6 existing intents and
     body: { type: 'media-select-item', id: '', planIdentity: 'plan1' },
   });
   assert.equal(invalidSelectItem.status, 400);
+
+  // SPEC-116-02: Invalid reorder direction or empty id -> 400
+  const invalidReorderDir = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-reorder-item', id: 'item-1', direction: 'sideways', planIdentity: 'plan1' },
+  });
+  assert.equal(invalidReorderDir.status, 400);
+
+  const invalidReorderId = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-reorder-item', id: '', direction: 'up', planIdentity: 'plan1' },
+  });
+  assert.equal(invalidReorderId.status, 400);
+
+  // SPEC-116-02: Out-of-bounds volume -> 400
+  const invalidVolLow = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-set-volume', volume: -0.1, planIdentity: 'plan1' },
+  });
+  assert.equal(invalidVolLow.status, 400);
+
+  const invalidVolHigh = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-set-volume', volume: 1.5, planIdentity: 'plan1' },
+  });
+  assert.equal(invalidVolHigh.status, 400);
+
+  // SPEC-116-02: Non-boolean muted -> 400
+  const invalidMute = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: cookieOp2,
+    body: { type: 'media-set-mute', muted: 'yes', planIdentity: 'plan1' },
+  });
+  assert.equal(invalidMute.status, 400);
 
   // Unknown intent type -> 400
   const invalidIntent = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
