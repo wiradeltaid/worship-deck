@@ -6,7 +6,7 @@ artifact: .control/decisions/DEC-103-daily-autopilot-mandate-target-authority-re
 
 ## Resume
 
-- Iteration: I-4 (Completed SPEC-116-04 & SPEC-116 Closure)
+- Iteration: I-4 (commit e25b1771)
 - Run branch: autopilot/DEC-103
 - Stopped at: Mandate DEC-103 completed (all FRs in SPEC-116 delivered, verified, peer-reviewed, and closed)
 - Blocked: —
