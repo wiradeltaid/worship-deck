@@ -2867,6 +2867,19 @@ export default function PresenterOperator({
         <div data-testid="presenter-header-actions" className="flex flex-col items-end gap-2">
           {/* Row 1 (Display & Audience Controls) */}
           <div data-testid="presenter-header-row-1" className="flex flex-wrap items-center justify-end gap-2">
+            {mode === 'remote' && (
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="remote-request-reopen-projector-button"
+                onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
+                className="h-8 text-xs gap-1.5 px-2.5 font-medium"
+                title={t('presenter.requestReopenProjector')}
+              >
+                <Monitor className="size-3.5" />
+                <span>{t('presenter.requestReopenProjector')}</span>
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -3031,21 +3044,6 @@ export default function PresenterOperator({
               className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs h-7"
             >
               {t('presenter.openProjectorNow')}
-            </Button>
-          </div>
-        )}
-        {mode === 'remote' && (
-          <div className="flex items-center gap-2">
-            <Button
-              size="xs"
-              variant="outline"
-              data-testid="remote-request-reopen-projector-button"
-              onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
-              className="h-7 text-[11px] gap-1"
-              title={t('presenter.requestReopenProjector')}
-            >
-              <Monitor className="size-3" />
-              <span>{t('presenter.requestReopenProjector')}</span>
             </Button>
           </div>
         )}

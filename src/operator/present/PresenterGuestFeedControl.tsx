@@ -157,75 +157,77 @@ export default memo(function PresenterGuestFeedControl({
         <span>{t('presenter.guestFeed.title')}</span>
       </div>
 
-      {/* Device Picker via shadcn DropdownMenu */}
-      <DropdownMenu
-        open={deviceMenuOpen}
-        onOpenChange={handleDeviceMenuOpenChange}
-      >
-        <DropdownMenuTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={uiState === 'arming' || isGuestActive}
-              data-testid="guest-device-select-trigger"
-              className="h-7 max-w-[170px] justify-between gap-1 truncate px-2 text-xs font-normal"
-            >
-              <span className="truncate">{selectedLabel}</span>
-              <ChevronDown className="size-3 shrink-0 opacity-50" />
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="start" className="w-56 text-xs">
-          <DropdownMenuGroup>
-            <DropdownMenuLabel className="text-[11px] text-muted-foreground">
-              {t('presenter.guestFeed.selectDevice')}
-            </DropdownMenuLabel>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          {deviceMenuDevices.length === 0 ? (
-            <div className="flex flex-col gap-2 p-2 text-xs">
-              <span className="text-muted-foreground">
-                {t('presenter.guestFeed.noDevices')}
-              </span>
+      {/* Device Picker via shadcn DropdownMenu (suppressed on remote when confirmed-live) */}
+      {!(isRemote && uiState === 'confirmed-live') && (
+        <DropdownMenu
+          open={deviceMenuOpen}
+          onOpenChange={handleDeviceMenuOpenChange}
+        >
+          <DropdownMenuTrigger
+            render={
               <Button
                 type="button"
-                size="sm"
                 variant="outline"
-                data-testid="guest-enable-access-dropdown-button"
-                onClick={() => {
-                  if (controller) void controller.requestPermission();
-                }}
-                className="h-7 w-full gap-1 px-2 text-xs"
+                size="sm"
+                disabled={uiState === 'arming' || isGuestActive}
+                data-testid="guest-device-select-trigger"
+                className="h-7 max-w-[170px] justify-between gap-1 truncate px-2 text-xs font-normal"
               >
-                <Camera className="size-3" />
-                <span>{t('presenter.guestFeed.enableAccess')}</span>
+                <span className="truncate">{selectedLabel}</span>
+                <ChevronDown className="size-3 shrink-0 opacity-50" />
               </Button>
-            </div>
-          ) : (
-            <DropdownMenuRadioGroup
-              value={selectedDeviceId || ''}
-              onValueChange={(val) => {
-                if (val && controller) {
-                  controller.selectDevice(val);
-                  setDeviceMenuOpen(false);
-                }
-              }}
-            >
-              {deviceMenuDevices.map((d) => (
-                <DropdownMenuRadioItem
-                  key={d.deviceId}
-                  value={d.deviceId}
-                  className="text-xs"
+            }
+          />
+          <DropdownMenuContent align="start" className="w-56 text-xs">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-[11px] text-muted-foreground">
+                {t('presenter.guestFeed.selectDevice')}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            {deviceMenuDevices.length === 0 ? (
+              <div className="flex flex-col gap-2 p-2 text-xs">
+                <span className="text-muted-foreground">
+                  {t('presenter.guestFeed.noDevices')}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  data-testid="guest-enable-access-dropdown-button"
+                  onClick={() => {
+                    if (controller) void controller.requestPermission();
+                  }}
+                  className="h-7 w-full gap-1 px-2 text-xs"
                 >
-                  {d.label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+                  <Camera className="size-3" />
+                  <span>{t('presenter.guestFeed.enableAccess')}</span>
+                </Button>
+              </div>
+            ) : (
+              <DropdownMenuRadioGroup
+                value={selectedDeviceId || ''}
+                onValueChange={(val) => {
+                  if (val && controller) {
+                    controller.selectDevice(val);
+                    setDeviceMenuOpen(false);
+                  }
+                }}
+              >
+                {deviceMenuDevices.map((d) => (
+                  <DropdownMenuRadioItem
+                    key={d.deviceId}
+                    value={d.deviceId}
+                    className="text-xs"
+                  >
+                    {d.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* Enable Camera Access CTA when no devices discovered */}
       {!isRemote && !hasUsableDevices && (uiState === 'idle' || uiState === 'error') && (
@@ -266,7 +268,7 @@ export default memo(function PresenterGuestFeedControl({
               : t('presenter.guestFeed.arm')}
           </span>
         </Button>
-      ) : (
+      ) : !(isRemote && uiState === 'confirmed-live') ? (
         <Button
           type="button"
           size="sm"
@@ -284,7 +286,7 @@ export default memo(function PresenterGuestFeedControl({
           <VideoOff className="size-3" />
           <span>{t('presenter.guestFeed.disarm')}</span>
         </Button>
-      )}
+      ) : null}
 
       {/* State Badges */}
       {uiState === 'ready' && (
