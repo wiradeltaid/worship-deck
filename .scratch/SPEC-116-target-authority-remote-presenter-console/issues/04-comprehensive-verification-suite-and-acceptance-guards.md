@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-25, FR-35]
 **Blocked by:** ["SPEC-116-03"]
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement automated unit and behavioral verification tests for scripture remote intent routing, remote read-only playlist hydration, remote drawer track selection, remote audio fade out, guest capture remote telemetry, projector reopen/refocus protocol, and ensure 1:1 bilingual dictionary parity with executable defect-injection proofs.
@@ -27,3 +27,11 @@ Implement automated unit and behavioral verification tests for scripture remote 
 - Defect injection tests prove that failing to route scripture intents or exposing mutative buttons on remote fails the guard.
 - 100% bilingual dictionary parity across all new keys in English and Indonesian catalogues.
 - Full test suite (`npm test`, `go test ./...`) passes with exit code 0.
+
+## Comments
+- Implemented and verified comprehensive unit, regression, and defect injection test suites across `tests/remote-presenting-client.test.mjs`, `tests/remote-screen.test.mjs`, `tests/presenter-media-player.test.mjs`, `tests/presenter-guest-feed-controls.test.mjs`, `tests/remote-control-go-http.test.mjs`, and `tests/bilingual-i18n-parity.test.mjs`.
+- Added script `smoke:spec-116` in `package.json` covering all 121 scoped tests.
+- Established 1:1 bilingual localization parity for all SPEC-116 keys in `keys.ts`, `catalogue-en.ts`, and `catalogue-id.ts` with real-file defect injection proofs.
+- Verified FR-35 browser acceptance tests in `tests/acceptance-fr35-remote.test.mjs`.
+- Created smoke evidence report at `.scratch/SPEC-116-target-authority-remote-presenter-console/smoke/smoke-evidence.md`.
+- Full suite green: `npm run smoke:spec-116` (121/121 pass), `go test ./...` (100% pass), `npm run typecheck` (0 errors), `npm run build` (clean build), `public-repo-guard.test.mjs` (5/5 pass), `git diff --check` (clean).

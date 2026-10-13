@@ -52,8 +52,15 @@ var allowedIntentTypes = map[string]bool{
 	"media-seek":           true,
 	"media-toggle-project": true,
 	"media-select-item":    true,
-	"media-toggle-shuffle": true,
-	"media-cycle-repeat":   true,
+	"media-reorder-item":   true,
+	"media-set-volume":     true,
+	"media-set-mute":       true,
+	"media-toggle-shuffle":    true,
+	"media-cycle-repeat":      true,
+	"guest-arm":               true,
+	"guest-disarm":            true,
+	"guest-project":           true,
+	"request-reopen-projector": true,
 }
 
 type clientChan chan []byte
@@ -482,6 +489,39 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 		id, ok := body["id"].(string)
 		if !ok || strings.TrimSpace(id) == "" {
 			writeError(w, http.StatusBadRequest, "Invalid item id")
+			return
+		}
+	}
+	if intentType == "media-reorder-item" {
+		id, ok := body["id"].(string)
+		if !ok || strings.TrimSpace(id) == "" {
+			writeError(w, http.StatusBadRequest, "Invalid item id")
+			return
+		}
+		dir, ok := body["direction"].(string)
+		if !ok || (dir != "up" && dir != "down") {
+			writeError(w, http.StatusBadRequest, "Invalid reorder direction, must be 'up' or 'down'")
+			return
+		}
+	}
+	if intentType == "media-set-volume" {
+		v, ok := body["volume"].(float64)
+		if !ok || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || v > 1 {
+			writeError(w, http.StatusBadRequest, "Invalid volume, must be between 0.0 and 1.0")
+			return
+		}
+	}
+	if intentType == "media-set-mute" {
+		_, ok := body["muted"].(bool)
+		if !ok {
+			writeError(w, http.StatusBadRequest, "Invalid muted, must be boolean")
+			return
+		}
+	}
+	if intentType == "guest-project" {
+		_, ok := body["projected"].(bool)
+		if !ok {
+			writeError(w, http.StatusBadRequest, "Invalid projected, must be boolean")
 			return
 		}
 	}

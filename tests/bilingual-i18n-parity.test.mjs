@@ -863,3 +863,43 @@ test('SPEC-115-01: Real-file defect injection — raw string in PresenterOperato
     assert.equal(fs.readFileSync(operatorPath, 'utf8'), original, 'file must be restored identically');
   }
 });
+
+test('SPEC-116-04: Strict Bilingual i18n parity across all SPEC-116 keys', () => {
+  const spec116Keys = [
+    'presenter.projectorReopenRequested',
+    'presenter.openProjectorNow',
+    'presenter.requestReopenProjector',
+  ];
+
+  for (const key of spec116Keys) {
+    const en = resolveString(key, 'en');
+    const id = resolveString(key, 'id');
+    assert.ok(!en.startsWith('[missing:i18n:'), `Missing English translation for ${key}`);
+    assert.ok(!id.startsWith('[missing:i18n:'), `Missing Indonesian translation for ${key}`);
+    assert.notEqual(en, id, `Translations must differ between EN and ID for ${key}`);
+  }
+});
+
+test('SPEC-116-04: Real-file defect injection — missing SPEC-116 key in catalogue-en.ts fails guard', () => {
+  const original = fs.readFileSync(catalogueEnPath, 'utf8');
+  try {
+    const defective = original.replace(
+      "'presenter.openProjectorNow': 'Open Congregation Screen Now',",
+      ''
+    );
+    assert.notEqual(defective, original, 'mutation replacement must succeed');
+    fs.writeFileSync(catalogueEnPath, defective);
+
+    const findings = scanAllKeysBilingualParity();
+    assert.ok(
+      findings.some((f) =>
+        f.includes('catalogue-en.ts missing translation for key: presenter.openProjectorNow')
+      ),
+      'Expected missing key in catalogue-en.ts to fail guard'
+    );
+  } finally {
+    fs.writeFileSync(catalogueEnPath, original);
+    assert.equal(fs.readFileSync(catalogueEnPath, 'utf8'), original, 'file must be restored identically');
+  }
+});
+

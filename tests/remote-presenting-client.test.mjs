@@ -561,3 +561,236 @@ test('SPEC-115-03 defect injection: unhandled media intent or omitted media inte
   // Negative seek must return false
   assert.equal(applyRemoteIntent({ type: 'media-seek', timeSeconds: -10, planIdentity: 'p' }, 'p', handlers), false);
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-116-01: Push Scripture Remote Intent Dispatching, Chunk Pagination Sync,
+// Clear Scripture, and Rundown Text Plumbing
+// -----------------------------------------------------------------------------
+test('SPEC-116-01: applyRemoteIntent handles scripture intents with pageIndex and clear-scripture', () => {
+  const calls = [];
+  const handlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: (msg) => calls.push({ fn: 'broadcast', msg }),
+    setScriptureAndSync: (data) => calls.push({ fn: 'setScriptureAndSync', data }),
+    clearScriptureAndSync: () => calls.push({ fn: 'clearScriptureAndSync' }),
+  };
+
+  const planId = 'plan-scripture-spec116';
+
+  // 1. Scripture intent with pageIndex routes to setScriptureAndSync
+  const scriptureApplied = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'John 3:16-17',
+      text: 'For God so loved the world...',
+      verses: [
+        { verse: 16, text: 'For God so loved the world...' },
+        { verse: 17, text: 'For God did not send his Son...' },
+      ],
+      mode: 'per-verse',
+      is_whole_chapter: false,
+      pageIndex: 1,
+      planIdentity: planId,
+    },
+    planId,
+    handlers
+  );
+  assert.equal(scriptureApplied, true);
+  assert.equal(calls[0].fn, 'setScriptureAndSync');
+  assert.equal(calls[0].data.reference, 'John 3:16-17');
+  assert.equal(calls[0].data.pageIndex, 1);
+
+  // 2. Clear scripture routes to clearScriptureAndSync handler
+  const clearApplied = applyRemoteIntent(
+    { type: 'clear-scripture', planIdentity: planId },
+    planId,
+    handlers
+  );
+  assert.equal(clearApplied, true);
+  assert.equal(calls[1].fn, 'clearScriptureAndSync');
+
+  // 3. Fallback when setScriptureAndSync / clearScriptureAndSync not present
+  const fallbackCalls = [];
+  const fallbackHandlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: (msg) => fallbackCalls.push({ fn: 'broadcast', msg }),
+  };
+
+  const fbScripture = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'Genesis 1:1',
+      text: 'In the beginning...',
+      verses: [{ verse: 1, text: 'In the beginning...' }],
+      pageIndex: 0,
+      planIdentity: planId,
+    },
+    planId,
+    fallbackHandlers
+  );
+  assert.equal(fbScripture, true);
+  assert.equal(fallbackCalls[0].fn, 'broadcast');
+  assert.equal(fallbackCalls[0].msg.type, 'scripture');
+  assert.equal(fallbackCalls[0].msg.reference, 'Genesis 1:1');
+
+  const fbClear = applyRemoteIntent(
+    { type: 'clear-scripture', planIdentity: planId },
+    planId,
+    fallbackHandlers
+  );
+  assert.equal(fbClear, true);
+  assert.equal(fallbackCalls[1].fn, 'broadcast');
+  assert.equal(fallbackCalls[1].msg.type, 'clear-scripture');
+});
+
+test('SPEC-116-01: PresenterOperator dispatches scripture, pagination, and clear intents via onSendIntent in remote mode', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx');
+
+  // Must dispatch scripture intent in pushScripture
+  assert.ok(
+    operatorSource.includes("type: 'scripture'") &&
+      operatorSource.includes("onSendIntent"),
+    'PresenterOperator must dispatch scripture intent via onSendIntent when mode is remote'
+  );
+
+  // Must dispatch clear-scripture intent
+  assert.ok(
+    operatorSource.includes("type: 'clear-scripture'"),
+    'PresenterOperator must dispatch clear-scripture intent'
+  );
+
+  // Must support controlledScriptureState prop
+  assert.ok(
+    operatorSource.includes('controlledScriptureState'),
+    'PresenterOperator must accept controlledScriptureState prop'
+  );
+
+  // Must dispatch scripture intent in handleModeChange
+  assert.ok(
+    operatorSource.includes('const handleModeChange') &&
+      operatorSource.includes("mode === 'remote'"),
+    'handleModeChange must check remote mode and dispatch via onSendIntent'
+  );
+});
+
+test('SPEC-116-01: RemotePage and RemoteOperator plumb rundownText raw_payload to PresenterOperator', () => {
+  const pageSource = readRaw('spa/src/pages/RemotePage.tsx');
+  assert.ok(
+    pageSource.includes('rundownText={data.raw_payload || \'\'}'),
+    'RemotePage.tsx must pass rundownText={data.raw_payload || \'\'} to RemoteOperator'
+  );
+
+  const operatorSource = readRaw('src/operator/present/RemoteOperator.tsx');
+  assert.ok(
+    operatorSource.includes('rundownText?: string') ||
+      operatorSource.includes('rundownText = \'\''),
+    'RemoteOperator.tsx must accept rundownText prop'
+  );
+  assert.ok(
+    operatorSource.includes('rundownText={rundownText}'),
+    'RemoteOperator.tsx must forward rundownText to PresenterOperator'
+  );
+});
+
+export function scanSpec11601ScriptureAndRundownPlumbing(sources) {
+  const defects = [];
+  if (!sources.operator.includes("type: 'scripture'") || !sources.operator.includes("controlledScriptureState")) {
+    defects.push('missing-remote-scripture-intent-or-controlled-state');
+  }
+  if (!sources.page.includes("rundownText={data.raw_payload || ''}")) {
+    defects.push('missing-remote-page-rundown-plumbing');
+  }
+  if (!sources.remoteOp.includes("rundownText={rundownText}")) {
+    defects.push('missing-remote-operator-rundown-forwarding');
+  }
+  return defects;
+}
+
+test('SPEC-116-01 defect injection: missing scripture remote dispatch or omitted rundown forwarding fails scan guard', () => {
+  const validSources = {
+    operator: readRaw('src/operator/present/PresenterOperator.tsx'),
+    page: readRaw('spa/src/pages/RemotePage.tsx'),
+    remoteOp: readRaw('src/operator/present/RemoteOperator.tsx'),
+  };
+
+  const mutatedSources = {
+    operator: '<div>No scripture remote dispatch or controlled state</div>',
+    page: '<RemoteOperator />',
+    remoteOp: '<PresenterOperator />',
+  };
+
+  const injectedDefects = scanSpec11601ScriptureAndRundownPlumbing(mutatedSources);
+  assert.deepEqual(injectedDefects, [
+    'missing-remote-scripture-intent-or-controlled-state',
+    'missing-remote-page-rundown-plumbing',
+    'missing-remote-operator-rundown-forwarding',
+  ]);
+});
+
+test('SPEC-116-01: multi-page scripture pagination round-trip preserves full passage verses and pageIndex parity', () => {
+  const planId = 'plan-multipage-roundtrip';
+  const tenVerses = Array.from({ length: 10 }, (_, i) => ({
+    verse: i + 1,
+    text: `Blessed are the peacemakers in verse ${i + 1}, for they shall inherit the kingdom of heaven with joy and peace.`,
+  }));
+
+  const broadcastCalls = [];
+  const handlers = {
+    setIndexAndSync: () => {},
+    setBlankAndSync: () => {},
+    setTransitionAndSync: () => {},
+    setBackgroundAndSync: () => {},
+    broadcast: (msg) => broadcastCalls.push(msg),
+  };
+
+  // 1. Remote dispatches pageIndex: 1 on a multi-page passage
+  const page1Applied = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'Matthew 5:1-10',
+      text: tenVerses.map((v) => v.text).join(' '),
+      verses: tenVerses,
+      mode: 'per-verse',
+      pageIndex: 1,
+      planIdentity: planId,
+    },
+    planId,
+    handlers
+  );
+
+  assert.equal(page1Applied, true);
+  assert.equal(broadcastCalls.length, 1);
+  const msg1 = broadcastCalls[0];
+  assert.equal(msg1.type, 'scripture');
+  assert.equal(msg1.currentPage, 2, 'Must advance to page 2 (1-based)');
+  assert.ok(msg1.totalPages >= 2, 'Multi-page passage must yield at least 2 pages');
+  assert.ok(msg1.verses.length >= 1, 'Chunk must contain verse items');
+
+  // 2. Remote navigates back to pageIndex: 0
+  const page0Applied = applyRemoteIntent(
+    {
+      type: 'scripture',
+      reference: 'Matthew 5:1-10',
+      text: tenVerses.map((v) => v.text).join(' '),
+      verses: tenVerses,
+      mode: 'per-verse',
+      pageIndex: 0,
+      planIdentity: planId,
+    },
+    planId,
+    handlers
+  );
+
+  assert.equal(page0Applied, true);
+  assert.equal(broadcastCalls.length, 2);
+  const msg0 = broadcastCalls[1];
+  assert.equal(msg0.type, 'scripture');
+  assert.equal(msg0.currentPage, 1, 'Must return to page 1');
+  assert.equal(msg0.totalPages, msg1.totalPages, 'Total pages must remain consistent');
+});

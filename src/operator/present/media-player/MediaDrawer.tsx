@@ -56,6 +56,7 @@ import {
 import { localMediaRegistry, type LocalMediaRecord } from './local-media-registry';
 import { computeBlobSHA256 } from './media-hasher';
 import { useT } from '@/lib/i18n/operator';
+import type { PresenterRemoteIntent } from '@/lib/presenter-remote-client';
 
 export type MediaDrawerFilter = 'all' | 'cloud-only' | 'local-only' | 'synced';
 
@@ -68,6 +69,9 @@ export interface MediaDrawerProps {
   onDownloadItem?: (item: PlaylistItem) => void;
   onCancelDownload?: (sha256: string) => void;
   downloadProgressMap?: Record<string, number>;
+  isRemote?: boolean;
+  onRemoteMediaIntent?: (intent: PresenterRemoteIntent) => void;
+  planIdentity?: string;
 }
 
 export const MediaDrawer = memo(function MediaDrawer({
@@ -79,6 +83,9 @@ export const MediaDrawer = memo(function MediaDrawer({
   onDownloadItem,
   onCancelDownload,
   downloadProgressMap = {},
+  isRemote = false,
+  onRemoteMediaIntent,
+  planIdentity = '',
 }: MediaDrawerProps) {
   const { t } = useT();
   const [state, setState] = useState<PlaylistState>(store.getSnapshot());
@@ -104,13 +111,40 @@ export const MediaDrawer = memo(function MediaDrawer({
 
   const handleSelectItem = useCallback(
     (id: string) => {
+      if (onRemoteMediaIntent) {
+        onRemoteMediaIntent({
+          type: 'media-select-item',
+          id,
+          planIdentity,
+        });
+        return;
+      }
       store.dispatch({ type: 'SELECT_ITEM', id });
     },
-    [store]
+    [store, onRemoteMediaIntent, planIdentity]
   );
 
   const handleTogglePlayItem = useCallback(
     async (id: string) => {
+      if (onRemoteMediaIntent) {
+        if (state.activeId === id) {
+          onRemoteMediaIntent({
+            type: state.isPlaying ? 'media-pause' : 'media-play',
+            planIdentity,
+          });
+        } else {
+          onRemoteMediaIntent({
+            type: 'media-select-item',
+            id,
+            planIdentity,
+          });
+          onRemoteMediaIntent({
+            type: 'media-play',
+            planIdentity,
+          });
+        }
+        return;
+      }
       if (state.activeId === id && state.isPlaying) {
         engine.pause();
         store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
@@ -127,7 +161,7 @@ export const MediaDrawer = memo(function MediaDrawer({
         store.dispatch({ type: 'SELECT_ITEM', id });
       }
     },
-    [state.activeId, state.isPlaying, store, engine]
+    [state.activeId, state.isPlaying, store, engine, onRemoteMediaIntent, planIdentity]
   );
 
   const handleDeleteCloudOnly = useCallback(
@@ -206,29 +240,62 @@ export const MediaDrawer = memo(function MediaDrawer({
   );
 
   const handleMoveUp = useCallback(
-    (e: React.MouseEvent, index: number) => {
+    (e: React.MouseEvent, index: number, item: PlaylistItem) => {
       e.stopPropagation();
       if (index > 0) {
+        if (onRemoteMediaIntent) {
+          onRemoteMediaIntent({
+            type: 'media-reorder-item',
+            id: item.id,
+            direction: 'up',
+            planIdentity,
+          });
+          return;
+        }
         store.dispatch({ type: 'MOVE_ITEM', fromIndex: index, toIndex: index - 1 });
       }
     },
-    [store]
+    [store, onRemoteMediaIntent, planIdentity]
   );
 
   const handleMoveDown = useCallback(
-    (e: React.MouseEvent, index: number) => {
+    (e: React.MouseEvent, index: number, item: PlaylistItem) => {
       e.stopPropagation();
       if (index < state.items.length - 1) {
+        if (onRemoteMediaIntent) {
+          onRemoteMediaIntent({
+            type: 'media-reorder-item',
+            id: item.id,
+            direction: 'down',
+            planIdentity,
+          });
+          return;
+        }
         store.dispatch({ type: 'MOVE_ITEM', fromIndex: index, toIndex: index + 1 });
       }
     },
-    [store, state.items.length]
+    [store, state.items.length, onRemoteMediaIntent, planIdentity]
   );
 
   const handleToggleProject = useCallback(
     (e: React.MouseEvent, item: PlaylistItem) => {
       e.stopPropagation();
       if (!canProjectMediaItem(item)) return;
+
+      if (onRemoteMediaIntent) {
+        if (state.activeId !== item.id) {
+          onRemoteMediaIntent({
+            type: 'media-select-item',
+            id: item.id,
+            planIdentity,
+          });
+        }
+        onRemoteMediaIntent({
+          type: 'media-toggle-project',
+          planIdentity,
+        });
+        return;
+      }
 
       if (state.activeId !== item.id) {
         store.dispatch({ type: 'SELECT_ITEM', id: item.id });
@@ -237,7 +304,7 @@ export const MediaDrawer = memo(function MediaDrawer({
       const nextProjected = !(state.activeId === item.id && state.isProjected);
       store.dispatch({ type: 'SET_PROJECTED', isProjected: nextProjected });
     },
-    [state.activeId, state.isProjected, store]
+    [state.activeId, state.isProjected, store, onRemoteMediaIntent, planIdentity]
   );
 
   // Manual Local Import from Computer (DEC-098 Storage Ladder)
@@ -479,22 +546,24 @@ export const MediaDrawer = memo(function MediaDrawer({
       )}
     >
       {/* Hidden file input for fallback file upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept="audio/*,video/*"
-        className="hidden"
-        onClick={(e) => {
-          (e.currentTarget as HTMLInputElement).value = '';
-        }}
-        onChange={(e) => {
-          if (e.target.files && e.target.files.length > 0) {
-            void handleImportLocalFiles(e.target.files);
-          }
-          e.target.value = '';
-        }}
-      />
+      {!isRemote && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="audio/*,video/*"
+          className="hidden"
+          onClick={(e) => {
+            (e.currentTarget as HTMLInputElement).value = '';
+          }}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              void handleImportLocalFiles(e.target.files);
+            }
+            e.target.value = '';
+          }}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -522,19 +591,21 @@ export const MediaDrawer = memo(function MediaDrawer({
       {/* Actions & Filter Controls */}
       <div className="p-3 border-b border-border bg-muted/20 space-y-2.5">
         {/* Primary Action Button: Tambah Media dari Komputer */}
-        <Button
-          type="button"
-          variant="default"
-          size="sm"
-          data-testid="btn-add-media"
-          disabled={isImporting}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => void handleOpenLocalPicker()}
-          className="w-full h-8 gap-1.5 text-xs font-semibold cursor-pointer"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>{isImporting ? t('media.drawer.processing') : t('media.drawer.addFromComputer')}</span>
-        </Button>
+        {!isRemote && (
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            data-testid="btn-add-media"
+            disabled={isImporting}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void handleOpenLocalPicker()}
+            className="w-full h-8 gap-1.5 text-xs font-semibold cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>{isImporting ? t('media.drawer.processing') : t('media.drawer.addFromComputer')}</span>
+          </Button>
+        )}
 
         {/* 4-Way Filter Dropdown */}
         <div data-testid="media-drawer-filter-bar" className="w-full">
@@ -639,7 +710,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                       size="sm"
                       disabled={itemIndex <= 0}
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={(e) => handleMoveUp(e, itemIndex)}
+                      onClick={(e) => handleMoveUp(e, itemIndex, item)}
                       className="h-3.5 w-3.5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
                       title={t('media.drawer.moveUp')}
                     >
@@ -651,7 +722,7 @@ export const MediaDrawer = memo(function MediaDrawer({
                       size="sm"
                       disabled={itemIndex >= state.items.length - 1}
                       onMouseDown={(e) => e.preventDefault()}
-                      onClick={(e) => handleMoveDown(e, itemIndex)}
+                      onClick={(e) => handleMoveDown(e, itemIndex, item)}
                       className="h-3.5 w-3.5 p-0 text-muted-foreground hover:text-foreground disabled:opacity-20 cursor-pointer"
                       title={t('media.drawer.moveDown')}
                     >
@@ -750,91 +821,93 @@ export const MediaDrawer = memo(function MediaDrawer({
                   })()}
 
                   {/* Actions Dropdown Menu */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      aria-label="Actions"
-                      className="h-6 w-6 inline-flex items-center justify-center rounded p-0 text-muted-foreground hover:text-foreground cursor-pointer"
-                    >
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 text-xs">
-                      {/* Cloud Download / Upload Workflows */}
-                      {availability === 'cloud-only' && onDownloadItem && (
-                        <DropdownMenuItem
-                          onClick={() => onDownloadItem(item)}
-                          className="cursor-pointer gap-2"
-                        >
-                          <Download className="h-3.5 w-3.5 text-primary" />
-                          <span>{t('media.drawer.downloadToLocal')}</span>
-                        </DropdownMenuItem>
-                      )}
-                      {availability === 'local-only' && (
-                        <DropdownMenuItem
-                          onClick={() => void handleUploadItemToCloud(item)}
-                          className="cursor-pointer gap-2"
-                        >
-                          <Upload className="h-3.5 w-3.5 text-primary" />
-                          <span>{t('media.drawer.uploadToCloud')}</span>
-                        </DropdownMenuItem>
-                      )}
+                  {!isRemote && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        aria-label="Actions"
+                        className="h-6 w-6 inline-flex items-center justify-center rounded p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 text-xs">
+                        {/* Cloud Download / Upload Workflows */}
+                        {availability === 'cloud-only' && onDownloadItem && (
+                          <DropdownMenuItem
+                            onClick={() => onDownloadItem(item)}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Download className="h-3.5 w-3.5 text-primary" />
+                            <span>{t('media.drawer.downloadToLocal')}</span>
+                          </DropdownMenuItem>
+                        )}
+                        {availability === 'local-only' && (
+                          <DropdownMenuItem
+                            onClick={() => void handleUploadItemToCloud(item)}
+                            className="cursor-pointer gap-2"
+                          >
+                            <Upload className="h-3.5 w-3.5 text-primary" />
+                            <span>{t('media.drawer.uploadToCloud')}</span>
+                          </DropdownMenuItem>
+                        )}
 
-                      <DropdownMenuSeparator />
+                        <DropdownMenuSeparator />
 
-                      {/* Explicit Deletion triggers based on availability */}
-                      {availability === 'local-only' && (
-                        <DropdownMenuItem
-                          disabled={cannotDelete}
-                          onClick={() => void handleDeleteLocalOnly(item, itemSha)}
-                          className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
-                        >
-                          <HardDrive className="h-3.5 w-3.5" />
-                          <span>{t('media.drawer.deleteFromLocal')}</span>
-                        </DropdownMenuItem>
-                      )}
-
-                      {availability === 'cloud-only' && (
-                        <DropdownMenuItem
-                          disabled={cannotDelete}
-                          onClick={() => void handleDeleteCloudOnly(item)}
-                          className="cursor-pointer text-destructive focus:text-destructive gap-2"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>{t('media.drawer.deleteFromCloud')}</span>
-                        </DropdownMenuItem>
-                      )}
-
-                      {availability === 'synced' && (
-                        <>
+                        {/* Explicit Deletion triggers based on availability */}
+                        {availability === 'local-only' && (
                           <DropdownMenuItem
                             disabled={cannotDelete}
                             onClick={() => void handleDeleteLocalOnly(item, itemSha)}
                             className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
                           >
                             <HardDrive className="h-3.5 w-3.5" />
-                            <span>{t('media.drawer.deleteFromLocalOnly')}</span>
+                            <span>{t('media.drawer.deleteFromLocal')}</span>
                           </DropdownMenuItem>
+                        )}
 
+                        {availability === 'cloud-only' && (
                           <DropdownMenuItem
                             disabled={cannotDelete}
                             onClick={() => void handleDeleteCloudOnly(item)}
                             className="cursor-pointer text-destructive focus:text-destructive gap-2"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            <span>{t('media.drawer.deleteFromCloudOnly')}</span>
+                            <span>{t('media.drawer.deleteFromCloud')}</span>
                           </DropdownMenuItem>
+                        )}
 
-                          <DropdownMenuItem
-                            disabled={cannotDelete}
-                            onClick={() => void handleDeleteBoth(item, itemSha)}
-                            className="cursor-pointer text-destructive focus:text-destructive gap-2 font-medium"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>{t('media.drawer.deleteBoth')}</span>
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {availability === 'synced' && (
+                          <>
+                            <DropdownMenuItem
+                              disabled={cannotDelete}
+                              onClick={() => void handleDeleteLocalOnly(item, itemSha)}
+                              className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 dark:focus:text-amber-400 gap-2"
+                            >
+                              <HardDrive className="h-3.5 w-3.5" />
+                              <span>{t('media.drawer.deleteFromLocalOnly')}</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              disabled={cannotDelete}
+                              onClick={() => void handleDeleteCloudOnly(item)}
+                              className="cursor-pointer text-destructive focus:text-destructive gap-2"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>{t('media.drawer.deleteFromCloudOnly')}</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              disabled={cannotDelete}
+                              onClick={() => void handleDeleteBoth(item, itemSha)}
+                              className="cursor-pointer text-destructive focus:text-destructive gap-2 font-medium"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>{t('media.drawer.deleteBoth')}</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
             );

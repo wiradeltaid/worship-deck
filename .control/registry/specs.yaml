@@ -4880,7 +4880,7 @@ waves:
           - tests/bilingual-i18n-parity.test.mjs
 
   - id: SPEC-116
-    status: open
+    status: closed
     release: target-authority-remote-presenter-console
     prd: [operator-turn]
     fr: [FR-16, FR-35, FR-25]

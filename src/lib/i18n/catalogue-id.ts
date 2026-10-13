@@ -1082,4 +1082,8 @@ export const CATALOGUE_ID: Record<I18nKey, string> = {
   'presenter.remote.statusError': 'Kesalahan Koneksi',
   'presenter.remote.statusDisconnected': 'Terputus',
   'presenter.remote.mobileUrl': 'URL Ponsel',
+  // SPEC-116: Remote Control Target Authority & Congregation Screen Reopen Protocol
+  'presenter.projectorReopenRequested': 'Remote controller meminta pembukaan layar jemaat.',
+  'presenter.openProjectorNow': 'Buka Layar Jemaat Sekarang',
+  'presenter.requestReopenProjector': 'Minta Buka Layar Jemaat',
 };

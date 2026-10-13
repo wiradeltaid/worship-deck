@@ -44,6 +44,7 @@ export default function RemoteOperator({
   serviceId,
   serviceDate,
   slides,
+  rundownText = '',
   planIdentity,
   transition: deckTransition,
   autoClaimCode,
@@ -51,6 +52,7 @@ export default function RemoteOperator({
   serviceId: number;
   serviceDate: string;
   slides: SlidePlanItem[];
+  rundownText?: string;
   planIdentity: string;
   transition: SlideTransition;
   autoClaimCode?: string;
@@ -79,6 +81,15 @@ export default function RemoteOperator({
   const [paired, setPaired] = useState(false);
   const [remoteMediaState, setRemoteMediaState] = useState<
     RemoteControlSessionState['media']
+  >(undefined);
+  const [remoteScriptureState, setRemoteScriptureState] = useState<
+    RemoteControlSessionState['scripture']
+  >(undefined);
+  const [remoteGuestFeedState, setRemoteGuestFeedState] = useState<
+    RemoteControlSessionState['guestFeed']
+  >(undefined);
+  const [remoteProjectorState, setRemoteProjectorState] = useState<
+    RemoteControlSessionState['projector']
   >(undefined);
   const [connectionState, setConnectionState] =
     useState<RemoteControlConnectionState>('idle');
@@ -160,6 +171,15 @@ export default function RemoteOperator({
       }
       if (state.media) {
         setRemoteMediaState(state.media);
+      }
+      if (state.scripture !== undefined) {
+        setRemoteScriptureState(state.scripture);
+      }
+      if (state.guestFeed !== undefined) {
+        setRemoteGuestFeedState(state.guestFeed);
+      }
+      if (state.projector !== undefined) {
+        setRemoteProjectorState(state.projector);
       }
     },
     [slides.length]
@@ -408,12 +428,16 @@ export default function RemoteOperator({
         serviceId={serviceId}
         serviceDate={serviceDate}
         slides={slides}
+        rundownText={rundownText}
         planIdentity={planIdentity}
         transition={liveTransition}
         mode="remote"
         onSendIntent={sendIntent}
         controlledState={controlledState}
         controlledMediaState={remoteMediaState}
+        controlledScriptureState={remoteScriptureState}
+        controlledGuestFeedState={remoteGuestFeedState}
+        controlledProjectorState={remoteProjectorState}
       />
     </div>
   );

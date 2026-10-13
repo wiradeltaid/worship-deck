@@ -49,6 +49,7 @@ import {
   Sparkles,
   Upload,
   Copy,
+  Monitor,
 } from 'lucide-react';
 import QRCodeSvg from '@/components/QRCodeSvg';
 import Link from '@/components/Link';
@@ -504,6 +505,9 @@ export interface PresenterOperatorProps {
     background: string | null;
   };
   controlledMediaState?: RemoteControlSessionState['media'];
+  controlledScriptureState?: RemoteControlSessionState['scripture'];
+  controlledGuestFeedState?: RemoteControlSessionState['guestFeed'];
+  controlledProjectorState?: RemoteControlSessionState['projector'];
 }
 
 export default function PresenterOperator({
@@ -519,6 +523,9 @@ export default function PresenterOperator({
   onSendIntent,
   controlledState,
   controlledMediaState,
+  controlledScriptureState,
+  controlledGuestFeedState,
+  controlledProjectorState,
 }: PresenterOperatorProps) {
   const { t } = useT();
   const [activeSlides, setActiveSlides] = useState<SlidePlanItem[]>(slides);
@@ -564,14 +571,16 @@ export default function PresenterOperator({
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
 
-  // SPEC-114-02: Single-owner mount hydration for persistent media playlist (host only)
+  // SPEC-114-02 & SPEC-116-02: Mount hydration for persistent media playlist (read-only on remote)
   useEffect(() => {
-    if (mode === 'remote') return;
     let cancelled = false;
     async function hydratePlaylist() {
       try {
-        await localMediaRegistry.hydrate();
-        const localMap = localMediaRegistry.getMatchingMap();
+        let localMap: ReadonlyMap<string, any> = new Map();
+        if (mode !== 'remote') {
+          await localMediaRegistry.hydrate();
+          localMap = localMediaRegistry.getMatchingMap();
+        }
 
         const res = await fetch('/api/media/playlist');
         if (!res.ok || cancelled) return;
@@ -593,34 +602,40 @@ export default function PresenterOperator({
             cloud: { id: raw.id, name: raw.name, url: contentUrl },
             orderKey: raw.order_key ?? raw.orderKey,
           };
+          if (mode === 'remote') {
+            return item;
+          }
           const localRecord = item.sha256 ? localMap.get(item.sha256) : undefined;
           return mergeUnifiedPlaylistItem(item, localRecord);
         });
 
-        const localOnlyItems: PlaylistItem[] = Array.from(localMap.values())
-          .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
-          .map((rec) => {
-            let localUrl = '';
-            if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
-              localUrl = URL.createObjectURL(rec.fileHandle);
-            }
-            return {
-              id: `local-${rec.sha256.slice(0, 8)}`,
-              name: rec.name,
-              url: localUrl,
-              type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
-              size: rec.sizeBytes,
-              sha256: rec.sha256,
-              source: 'local' as const,
-              local: {
-                storageKind: rec.storageKind,
-                stale: false,
-                fileHandle: rec.fileHandle,
-                orderKey: rec.orderKey,
-              },
-              orderKey: rec.orderKey,
-            };
-          });
+        const localOnlyItems: PlaylistItem[] =
+          mode !== 'remote'
+            ? Array.from(localMap.values())
+                .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
+                .map((rec) => {
+                  let localUrl = '';
+                  if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
+                    localUrl = URL.createObjectURL(rec.fileHandle);
+                  }
+                  return {
+                    id: `local-${rec.sha256.slice(0, 8)}`,
+                    name: rec.name,
+                    url: localUrl,
+                    type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
+                    size: rec.sizeBytes,
+                    sha256: rec.sha256,
+                    source: 'local' as const,
+                    local: {
+                      storageKind: rec.storageKind,
+                      stale: false,
+                      fileHandle: rec.fileHandle,
+                      orderKey: rec.orderKey,
+                    },
+                    orderKey: rec.orderKey,
+                  };
+                })
+            : [];
 
         const allItems = [...mergedItems, ...localOnlyItems];
         if (!cancelled && allItems.length > 0) {
@@ -713,8 +728,70 @@ export default function PresenterOperator({
       if (controlledMediaState.repeatMode) {
         mediaStore.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: controlledMediaState.repeatMode });
       }
+      if (typeof controlledMediaState.volume === 'number') {
+        mediaStore.dispatch({ type: 'SET_VOLUME', volume: controlledMediaState.volume });
+      }
+      if (typeof controlledMediaState.isMuted === 'boolean') {
+        mediaStore.dispatch({ type: 'SET_MUTED', isMuted: controlledMediaState.isMuted });
+      }
     }
   }, [mode, controlledMediaState, mediaStore]);
+
+  // SPEC-116-01: Synchronize mirrored scripture state from host SSE events in remote mode
+  useEffect(() => {
+    if (mode === 'remote') {
+      if (controlledScriptureState === null) {
+        setLoadedScripture(null);
+        loadedScriptureRef.current = null;
+        setScripturePageIndex(0);
+        scripturePageIndexRef.current = 0;
+        setScriptureOverlay(null);
+        scriptureOverlayRef.current = null;
+      } else if (controlledScriptureState) {
+        const { reference, text, verses, mode: scMode, is_whole_chapter, pageIndex } = controlledScriptureState;
+        const { passage, initialOverlay } = installScripturePassage({
+          reference,
+          verses,
+          text,
+          isWholeChapter: is_whole_chapter,
+          mode: scMode,
+          currentMode: scriptureModeRef.current,
+        });
+        const loaded = {
+          reference: passage.reference,
+          verses: passage.verses,
+          typographyMode: passage.typographyMode,
+          is_whole_chapter,
+        };
+        setLoadedScripture(loaded);
+        loadedScriptureRef.current = loaded;
+        if (scMode) {
+          setScriptureMode(scMode);
+        }
+        const pageIdx =
+          typeof pageIndex === 'number' && pageIndex >= 0 && pageIndex < passage.pages.length
+            ? pageIndex
+            : 0;
+        setScripturePageIndex(pageIdx);
+        scripturePageIndexRef.current = pageIdx;
+        const activePage = passage.pages[pageIdx] || initialOverlay;
+        setScriptureOverlay({
+          reference: passage.reference,
+          displayReference: activePage.displayReference,
+          text: activePage.text,
+          mode: passage.mode,
+          verses: activePage.verses,
+          currentPage: activePage.page,
+          totalPages: activePage.totalPages,
+          typographyMode: activePage.typographyMode,
+          isContinuation: activePage.isContinuation,
+          continuationIndex: activePage.continuationIndex,
+          continuationCount: activePage.continuationCount,
+          estimatedVisualLines: activePage.estimatedVisualLines,
+        });
+      }
+    }
+  }, [mode, controlledScriptureState]);
   const [backgroundLibrary, setBackgroundLibrary] = useState<
     Array<{ id: number; url: string; isDefault: boolean }>
   >([]);
@@ -743,6 +820,7 @@ export default function PresenterOperator({
     reference: string;
     verses: Array<{ verse: number; text: string }>;
     typographyMode: ScriptureTypographyMode;
+    is_whole_chapter?: boolean;
   } | null>(() => (restoredSession?.loadedScripture ?? null));
   const [scripturePageIndex, setScripturePageIndex] = useState<number>(
     () => (restoredSession?.scripturePageIndex ?? 0)
@@ -753,6 +831,14 @@ export default function PresenterOperator({
   const [remoteCode, setRemoteCode] = useState<string | null>(null);
   const [remoteDialogOpen, setRemoteDialogOpen] = useState(false);
   const [remoteActionBusy, setRemoteActionBusy] = useState(false);
+  const [projectorPromptOpen, setProjectorPromptOpen] = useState(false);
+  const [mirroredGuestFeedState, setMirroredGuestFeedState] = useState(controlledGuestFeedState);
+
+  useEffect(() => {
+    if (mode === 'remote') {
+      setMirroredGuestFeedState(controlledGuestFeedState);
+    }
+  }, [mode, controlledGuestFeedState]);
   const [scriptureOverlay, setScriptureOverlayState] = useState<ScriptureOverlay | null>(
     () => (restoredSession?.scriptureOverlay ?? null)
   );
@@ -799,6 +885,20 @@ export default function PresenterOperator({
           guestAttemptId: guestAttemptIdRef.current,
         });
       },
+    });
+  }
+
+  const dummyGuestFeedControllerRef = useRef<PresenterGuestFeedController | null>(null);
+  if (!dummyGuestFeedControllerRef.current) {
+    dummyGuestFeedControllerRef.current = new PresenterGuestFeedController({
+      broker: {
+        enumerateDevices: async () => [],
+        getSnapshot: () => ({ guestSessionId: null, devices: [], selectedDeviceId: null }),
+        subscribe: () => () => {},
+        arm: async () => {},
+        disarm: () => {},
+      } as any,
+      broadcastSync: () => {},
     });
   }
   useEffect(() => {
@@ -849,7 +949,12 @@ export default function PresenterOperator({
     restoredSession?.liveTransition ?? deckTransition
   );
   const backgroundRef = useRef<string | null>(restoredSession?.liveBackground ?? null);
-  const loadedScriptureRef = useRef(restoredSession?.loadedScripture ?? null);
+  const loadedScriptureRef = useRef<{
+    reference: string;
+    verses: Array<{ verse: number; text: string }>;
+    typographyMode: ScriptureTypographyMode;
+    is_whole_chapter?: boolean;
+  } | null>(restoredSession?.loadedScripture ?? null);
   loadedScriptureRef.current = loadedScripture;
   const scripturePageIndexRef = useRef(restoredSession?.scripturePageIndex ?? 0);
   scripturePageIndexRef.current = scripturePageIndex;
@@ -1344,6 +1449,7 @@ export default function PresenterOperator({
       verses?: Array<{ verse: number; text: string }>;
       mode?: ScriptureDisplayMode;
       is_whole_chapter?: boolean;
+      pageIndex?: number;
     }) => {
       const { passage, initialOverlay } = installScripturePassage({
         reference: data.reference,
@@ -1358,24 +1464,33 @@ export default function PresenterOperator({
         reference: passage.reference,
         verses: passage.verses,
         typographyMode: passage.typographyMode,
+        is_whole_chapter: data.is_whole_chapter,
       };
       setLoadedScripture(loaded);
       loadedScriptureRef.current = loaded;
-      setScripturePageIndex(0);
-      scripturePageIndexRef.current = 0;
+
+      const pageIdx =
+        typeof data.pageIndex === 'number' && data.pageIndex >= 0 && data.pageIndex < passage.pages.length
+          ? data.pageIndex
+          : 0;
+      setScripturePageIndex(pageIdx);
+      scripturePageIndexRef.current = pageIdx;
+
+      const activePage = passage.pages[pageIdx] || initialOverlay;
 
       const newOverlay: ScriptureOverlay = {
         reference: passage.reference,
-        displayReference: initialOverlay.displayReference,
-        text: initialOverlay.text,
+        displayReference: activePage.displayReference,
+        text: activePage.text,
         mode: passage.mode,
-        verses: initialOverlay.verses,
-        currentPage: initialOverlay.page,
-        totalPages: initialOverlay.totalPages,
-        typographyMode: initialOverlay.typographyMode,
-        isContinuation: initialOverlay.isContinuation,
-        continuationIndex: initialOverlay.continuationIndex,
-        continuationCount: initialOverlay.continuationCount,
+        verses: activePage.verses,
+        currentPage: activePage.page,
+        totalPages: activePage.totalPages,
+        typographyMode: activePage.typographyMode,
+        isContinuation: activePage.isContinuation,
+        continuationIndex: activePage.continuationIndex,
+        continuationCount: activePage.continuationCount,
+        estimatedVisualLines: activePage.estimatedVisualLines,
       };
       setScriptureOverlay(newOverlay);
       persistCurrentSession();
@@ -1384,10 +1499,11 @@ export default function PresenterOperator({
         onSendIntent?.({
           type: 'scripture',
           reference: passage.reference,
-          text: initialOverlay.text,
+          text: activePage.text,
           verses: passage.verses,
           mode: passage.mode === 'inline' ? 'inline' : 'per-verse',
           is_whole_chapter: data.is_whole_chapter,
+          pageIndex: pageIdx,
           planIdentity: planIdentityRef.current,
         });
         return;
@@ -1398,9 +1514,46 @@ export default function PresenterOperator({
         ...newOverlay,
         planIdentity: planIdentityRef.current,
       });
+      void remoteSessionRef.current?.broadcastState({
+        scripture: {
+          reference: passage.reference,
+          text: activePage.text,
+          verses: passage.verses,
+          mode: passage.mode === 'inline' ? 'inline' : 'per-verse',
+          is_whole_chapter: data.is_whole_chapter,
+          pageIndex: pageIdx,
+          totalPages: activePage.totalPages,
+        },
+      });
     },
     [mode, onSendIntent, broadcast, setScriptureOverlay, persistCurrentSession]
   );
+
+  const clearScriptureAndSync = useCallback(() => {
+    setLoadedScripture(null);
+    loadedScriptureRef.current = null;
+    setScripturePageIndex(0);
+    scripturePageIndexRef.current = 0;
+    setScriptureOverlay(null);
+    scriptureOverlayRef.current = null;
+    persistCurrentSession();
+
+    if (mode === 'remote') {
+      onSendIntent?.({
+        type: 'clear-scripture',
+        planIdentity: planIdentityRef.current,
+      });
+      return;
+    }
+
+    broadcast({
+      type: 'clear-scripture',
+      planIdentity: planIdentityRef.current,
+    });
+    void remoteSessionRef.current?.broadcastState({
+      scripture: null,
+    });
+  }, [mode, onSendIntent, broadcast, persistCurrentSession]);
 
   const visibilityController = useMemo(() => {
     return createSlideVisibilityController({
@@ -1688,6 +1841,7 @@ export default function PresenterOperator({
         setTransitionAndSync,
         setBackgroundAndSync,
         setScriptureAndSync,
+        clearScriptureAndSync,
         broadcast,
         handleMediaPlay: () => {
           void mediaEngine.play().then((res) => {
@@ -1720,6 +1874,24 @@ export default function PresenterOperator({
         handleMediaSelectItem: (id) => {
           mediaStore.dispatch({ type: 'SELECT_ITEM', id });
         },
+        handleMediaReorderItem: (id, direction) => {
+          const items = mediaStore.getSnapshot().items;
+          const idx = items.findIndex((i) => i.id === id);
+          if (idx === -1) return;
+          if (direction === 'up' && idx > 0) {
+            mediaStore.dispatch({ type: 'MOVE_ITEM', fromIndex: idx, toIndex: idx - 1 });
+          } else if (direction === 'down' && idx < items.length - 1) {
+            mediaStore.dispatch({ type: 'MOVE_ITEM', fromIndex: idx, toIndex: idx + 1 });
+          }
+        },
+        handleMediaSetVolume: (volume) => {
+          mediaEngine.setVolume(volume);
+          mediaStore.dispatch({ type: 'SET_VOLUME', volume });
+        },
+        handleMediaSetMute: (muted) => {
+          mediaEngine.setMuted(muted);
+          mediaStore.dispatch({ type: 'SET_MUTED', isMuted: muted });
+        },
         handleMediaToggleShuffle: () => {
           const snap = mediaStore.getSnapshot();
           mediaStore.dispatch({ type: 'SET_SHUFFLE', shuffle: !snap.shuffle });
@@ -1728,6 +1900,45 @@ export default function PresenterOperator({
           const snap = mediaStore.getSnapshot();
           const next: RepeatMode = snap.repeatMode === 'off' ? 'all' : snap.repeatMode === 'all' ? 'one' : 'off';
           mediaStore.dispatch({ type: 'SET_REPEAT_MODE', repeatMode: next });
+        },
+        handleGuestArm: () => {
+          const dev = captureBrokerRef.current?.getSnapshot().selectedDeviceId;
+          if (dev && guestFeedControllerRef.current) {
+            void guestFeedControllerRef.current.arm(dev);
+          }
+        },
+        handleGuestDisarm: () => {
+          guestFeedControllerRef.current?.disarm();
+        },
+        handleGuestProject: (projected) => {
+          if (projected) {
+            try {
+              guestFeedControllerRef.current?.switch(liveness.verdict === 'live');
+            } catch (err: any) {
+              const currentSnap = guestFeedControllerRef.current?.getSnapshot();
+              if (currentSnap) {
+                void remoteSessionRef.current?.broadcastState({
+                  guestFeed: {
+                    uiState: currentSnap.uiState,
+                    projection: currentSnap.projection,
+                    frameHealth: currentSnap.frameHealth,
+                    errorMessage: err?.message || 'Switch to guest rejected by presenter workstation',
+                  },
+                });
+              }
+            }
+          } else {
+            guestFeedControllerRef.current?.revertToDeck();
+          }
+        },
+        handleRequestReopenProjector: () => {
+          if (projectorRef.current && !projectorRef.current.closed) {
+            try {
+              projectorRef.current.focus();
+            } catch {}
+          } else {
+            setProjectorPromptOpen(true);
+          }
         },
       },
       onCode: (code) => {
@@ -1751,9 +1962,11 @@ export default function PresenterOperator({
     setTransitionAndSync,
     setBackgroundAndSync,
     setScriptureAndSync,
+    clearScriptureAndSync,
     broadcast,
     mediaEngine,
     mediaStore,
+    liveness.verdict,
   ]);
 
   // Host-to-remote media playback state mirroring over SSE (only when remote is connected)
@@ -1771,10 +1984,30 @@ export default function PresenterOperator({
           duration: snap.duration,
           shuffle: snap.shuffle,
           repeatMode: snap.repeatMode,
+          volume: snap.volume,
+          isMuted: snap.isMuted,
         },
       });
     });
   }, [mode, remoteState, mediaStore]);
+
+  // Host-to-remote guest feed state mirroring over SSE (only when remote is connected)
+  useEffect(() => {
+    if (mode === 'remote') return;
+    if (remoteState !== 'connected') return;
+    const ctrl = guestFeedControllerRef.current;
+    if (!ctrl) return;
+    return ctrl.subscribe((snap) => {
+      void remoteSessionRef.current?.broadcastState({
+        guestFeed: {
+          uiState: snap.uiState,
+          projection: snap.projection,
+          frameHealth: snap.frameHealth,
+          errorMessage: snap.errorMessage,
+        },
+      });
+    });
+  }, [mode, remoteState]);
 
   // Immediate full presentation & media snapshot broadcast when remote client connects
   useEffect(() => {
@@ -1795,10 +2028,35 @@ export default function PresenterOperator({
           duration: snap.duration,
           shuffle: snap.shuffle,
           repeatMode: snap.repeatMode,
+          volume: snap.volume,
+          isMuted: snap.isMuted,
+        },
+        scripture:
+          loadedScriptureRef.current && scriptureOverlayRef.current
+            ? {
+                reference: loadedScriptureRef.current.reference,
+                text: scriptureOverlayRef.current.text,
+                verses: loadedScriptureRef.current.verses,
+                mode: scriptureModeRef.current,
+                is_whole_chapter: Boolean(loadedScriptureRef.current.is_whole_chapter),
+                pageIndex: scripturePageIndexRef.current,
+                totalPages: scriptureOverlayRef.current.totalPages,
+              }
+            : null,
+        guestFeed: guestFeedControllerRef.current
+          ? {
+              uiState: guestFeedControllerRef.current.getSnapshot().uiState,
+              projection: guestFeedControllerRef.current.getSnapshot().projection,
+              frameHealth: guestFeedControllerRef.current.getSnapshot().frameHealth,
+              errorMessage: guestFeedControllerRef.current.getSnapshot().errorMessage,
+            }
+          : null,
+        projector: {
+          hasOpen: Boolean(projectorRef.current && !projectorRef.current.closed),
         },
       });
     }
-  }, [mode, remoteState, mediaStore]);
+  }, [mode, remoteState, mediaStore, liveness.verdict]);
 
   useEffect(() => {
     if (mode === 'remote') return;
@@ -2250,12 +2508,13 @@ export default function PresenterOperator({
             Array.isArray(cached.verses) && cached.verses.length > 0
               ? cached.verses
               : [{ verse: 1, text: cached.text }];
+          const isWholeChapter = Boolean(cached.is_whole_chapter || parsedRef?.isWholeChapter);
           const typographyMode: ScriptureTypographyMode =
             cached.typography_mode ||
-            (cached.is_whole_chapter || cached.reference.indexOf(':') === -1 || verses.length > 4
+            (isWholeChapter || cached.reference.indexOf(':') === -1 || verses.length > 4
               ? 'chapter'
               : 'verse');
-          const loaded = { reference: baseRef, verses, typographyMode };
+          const loaded = { reference: baseRef, verses, typographyMode, is_whole_chapter: isWholeChapter };
           setLoadedScripture(loaded);
           loadedScriptureRef.current = loaded;
           setScripturePageIndex(0);
@@ -2279,11 +2538,35 @@ export default function PresenterOperator({
           };
           setScriptureOverlay(newOverlay);
           persistCurrentSession();
-          broadcast({
-            type: 'scripture',
-            ...newOverlay,
-            planIdentity: planIdentityRef.current,
-          });
+          if (mode === 'remote') {
+            onSendIntent?.({
+              type: 'scripture',
+              reference: baseRef,
+              text: firstPage.text,
+              verses: verses,
+              mode: scriptureMode,
+              is_whole_chapter: isWholeChapter,
+              pageIndex: 0,
+              planIdentity: planIdentityRef.current,
+            });
+          } else {
+            broadcast({
+              type: 'scripture',
+              ...newOverlay,
+              planIdentity: planIdentityRef.current,
+            });
+            void remoteSessionRef.current?.broadcastState({
+              scripture: {
+                reference: baseRef,
+                text: firstPage.text,
+                verses: verses,
+                mode: scriptureMode,
+                is_whole_chapter: isWholeChapter,
+                pageIndex: 0,
+                totalPages: firstPage.totalPages,
+              },
+            });
+          }
           toast.info(t('presenter.scripture.offlineCachedNotice'));
           return;
         }
@@ -2345,7 +2628,7 @@ export default function PresenterOperator({
         is_whole_chapter: isWholeChapter,
       });
 
-      const loaded = { reference: baseRef, verses, typographyMode };
+      const loaded = { reference: baseRef, verses, typographyMode, is_whole_chapter: isWholeChapter };
       setLoadedScripture(loaded);
       loadedScriptureRef.current = loaded;
       setScripturePageIndex(0);
@@ -2369,11 +2652,35 @@ export default function PresenterOperator({
       };
       setScriptureOverlay(newOverlay);
       persistCurrentSession();
-      broadcast({
-        type: 'scripture',
-        ...newOverlay,
-        planIdentity: planIdentityRef.current,
-      });
+      if (mode === 'remote') {
+        onSendIntent?.({
+          type: 'scripture',
+          reference: baseRef,
+          text: firstPage.text,
+          verses: verses,
+          mode: scriptureMode,
+          is_whole_chapter: isWholeChapter,
+          pageIndex: 0,
+          planIdentity: planIdentityRef.current,
+        });
+      } else {
+        broadcast({
+          type: 'scripture',
+          ...newOverlay,
+          planIdentity: planIdentityRef.current,
+        });
+        void remoteSessionRef.current?.broadcastState({
+          scripture: {
+            reference: baseRef,
+            text: firstPage.text,
+            verses: verses,
+            mode: scriptureMode,
+            is_whole_chapter: isWholeChapter,
+            pageIndex: 0,
+            totalPages: firstPage.totalPages,
+          },
+        });
+      }
     } catch {
       setScriptureError(t('presenter.scripture.lookupFailed'));
     } finally {
@@ -2392,18 +2699,18 @@ export default function PresenterOperator({
   }, [loadedScripture, scriptureMode]);
 
   const handleModeChange = useCallback(
-    (mode: ScriptureDisplayMode) => {
-      setScriptureMode(mode);
+    (newMode: ScriptureDisplayMode) => {
+      setScriptureMode(newMode);
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('worship_deck_scripture_mode', mode);
+          localStorage.setItem('worship_deck_scripture_mode', newMode);
         } catch {}
       }
       if (loadedScripture) {
         const pages = paginateScriptureVerses(
           loadedScripture.reference,
           loadedScripture.verses,
-          mode,
+          newMode,
           loadedScripture.typographyMode
         );
         const validIdx = Math.min(scripturePageIndex, Math.max(0, pages.length - 1));
@@ -2414,7 +2721,7 @@ export default function PresenterOperator({
             reference: loadedScripture.reference,
             displayReference: activePage.displayReference,
             text: activePage.text,
-            mode,
+            mode: newMode,
             verses: activePage.verses,
             currentPage: activePage.page,
             totalPages: activePage.totalPages,
@@ -2426,15 +2733,39 @@ export default function PresenterOperator({
           };
           setScriptureOverlay(newOverlay);
           persistCurrentSession();
-          broadcast({
-            type: 'scripture',
-            ...newOverlay,
-            planIdentity: planIdentityRef.current,
-          });
+          if (mode === 'remote') {
+            onSendIntent?.({
+              type: 'scripture',
+              reference: loadedScripture.reference,
+              text: activePage.text,
+              verses: loadedScripture.verses,
+              mode: newMode,
+              is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+              pageIndex: validIdx,
+              planIdentity: planIdentityRef.current,
+            });
+          } else {
+            broadcast({
+              type: 'scripture',
+              ...newOverlay,
+              planIdentity: planIdentityRef.current,
+            });
+            void remoteSessionRef.current?.broadcastState({
+              scripture: {
+                reference: loadedScripture.reference,
+                text: activePage.text,
+                verses: loadedScripture.verses,
+                mode: newMode,
+                is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+                pageIndex: validIdx,
+                totalPages: activePage.totalPages,
+              },
+            });
+          }
         }
       }
     },
-    [loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast, persistCurrentSession]
+    [mode, onSendIntent, loadedScripture, scripturePageIndex, setScriptureOverlay, broadcast, persistCurrentSession]
   );
 
   const handlePageChange = useCallback(
@@ -2470,14 +2801,38 @@ export default function PresenterOperator({
         };
         setScriptureOverlay(newOverlay);
         persistCurrentSession();
-        broadcast({
-          type: 'scripture',
-          ...newOverlay,
-          planIdentity: planIdentityRef.current,
-        });
+        if (mode === 'remote') {
+          onSendIntent?.({
+            type: 'scripture',
+            reference: loadedScripture.reference,
+            text: activePage.text,
+            verses: loadedScripture.verses,
+            mode: scriptureMode,
+            is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+            pageIndex: newIdx,
+            planIdentity: planIdentityRef.current,
+          });
+        } else {
+          broadcast({
+            type: 'scripture',
+            ...newOverlay,
+            planIdentity: planIdentityRef.current,
+          });
+          void remoteSessionRef.current?.broadcastState({
+            scripture: {
+              reference: loadedScripture.reference,
+              text: activePage.text,
+              verses: loadedScripture.verses,
+              mode: scriptureMode,
+              is_whole_chapter: Boolean(loadedScripture.is_whole_chapter),
+              pageIndex: newIdx,
+              totalPages: activePage.totalPages,
+            },
+          });
+        }
       }
     },
-    [loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast, persistCurrentSession]
+    [mode, onSendIntent, loadedScripture, scripturePages, scriptureMode, setScriptureOverlay, broadcast, persistCurrentSession]
   );
 
   return (
@@ -2626,11 +2981,15 @@ export default function PresenterOperator({
           </div>
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
-          {guestFeedControllerRef.current && (
+          {(guestFeedControllerRef.current || mode === 'remote') && (
             <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
               <PresenterGuestFeedControl
-                controller={guestFeedControllerRef.current}
-                isProjectorResponding={liveness.verdict === 'live'}
+                controller={guestFeedControllerRef.current || dummyGuestFeedControllerRef.current!}
+                isProjectorResponding={mode === 'remote' ? true : liveness.verdict === 'live'}
+                isRemote={mode === 'remote'}
+                mirroredGuestFeed={mirroredGuestFeedState}
+                onRemoteIntent={mode === 'remote' ? onSendIntent : undefined}
+                planIdentity={planIdentity}
               />
             </div>
           )}
@@ -2652,6 +3011,44 @@ export default function PresenterOperator({
             .
           </p>
         ) : null}
+        {projectorPromptOpen && mode !== 'remote' && (
+          <div
+            data-testid="projector-reopen-prompt"
+            role="alert"
+            className="basis-full rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs flex items-center justify-between gap-2"
+          >
+            <span className="font-semibold text-amber-700 dark:text-amber-300">
+              {t('presenter.projectorReopenRequested')}
+            </span>
+            <Button
+              size="xs"
+              variant="default"
+              data-testid="btn-open-projector-prompt"
+              onClick={() => {
+                openProjector();
+                setProjectorPromptOpen(false);
+              }}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs h-7"
+            >
+              {t('presenter.openProjectorNow')}
+            </Button>
+          </div>
+        )}
+        {mode === 'remote' && (
+          <div className="flex items-center gap-2">
+            <Button
+              size="xs"
+              variant="outline"
+              data-testid="remote-request-reopen-projector-button"
+              onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
+              className="h-7 text-[11px] gap-1"
+              title={t('presenter.requestReopenProjector')}
+            >
+              <Monitor className="size-3" />
+              <span>{t('presenter.requestReopenProjector')}</span>
+            </Button>
+          </div>
+        )}
         {mode !== 'remote' && liveness.verdict === 'lost' ? (
           <p role="status" className="basis-full text-xs text-amber-300">
             {t('presenter.congregationScreenLost')}
@@ -2669,7 +3066,7 @@ export default function PresenterOperator({
         <MediaControlBar
           store={mediaStore}
           engine={mediaEngine}
-          onOpenDrawer={mode === 'remote' ? undefined : () => setMediaDrawerOpen(true)}
+          onOpenDrawer={() => setMediaDrawerOpen(true)}
           isRemote={mode === 'remote'}
           onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
           planIdentity={planIdentity}
@@ -3214,17 +3611,7 @@ export default function PresenterOperator({
                 variant="outline"
                 data-testid="presenter-clear-scripture-button"
                 onClick={() => {
-                  setLoadedScripture(null);
-                  loadedScriptureRef.current = null;
-                  setScripturePageIndex(0);
-                  scripturePageIndexRef.current = 0;
-                  setScriptureOverlay(null);
-                  scriptureOverlayRef.current = null;
-                  persistCurrentSession();
-                  broadcast({
-                    type: 'clear-scripture',
-                    planIdentity: planIdentityRef.current,
-                  });
+                  clearScriptureAndSync();
                 }}
               >
                 {t('presenter.clearScripture')}
@@ -3298,14 +3685,15 @@ export default function PresenterOperator({
         </aside>
       </main>
 
-      {mode !== 'remote' && (
-        <MediaDrawer
-          open={mediaDrawerOpen}
-          onClose={() => setMediaDrawerOpen(false)}
-          store={mediaStore}
-          engine={mediaEngine}
-        />
-      )}
+      <MediaDrawer
+        open={mediaDrawerOpen}
+        onClose={() => setMediaDrawerOpen(false)}
+        store={mediaStore}
+        engine={mediaEngine}
+        isRemote={mode === 'remote'}
+        onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
+        planIdentity={planIdentity}
+      />
 
       <MediaStage
         store={mediaStore}

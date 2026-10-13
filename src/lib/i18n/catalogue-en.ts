@@ -1080,4 +1080,8 @@ export const CATALOGUE_EN: Record<I18nKey, string> = {
   'presenter.remote.statusError': 'Connection Error',
   'presenter.remote.statusDisconnected': 'Disconnected',
   'presenter.remote.mobileUrl': 'Mobile URL',
+  // SPEC-116: Remote Control Target Authority & Congregation Screen Reopen Protocol
+  'presenter.projectorReopenRequested': 'Remote controller requested congregation screen reopen.',
+  'presenter.openProjectorNow': 'Open Congregation Screen Now',
+  'presenter.requestReopenProjector': 'Request Congregation Screen Reopen',
 };

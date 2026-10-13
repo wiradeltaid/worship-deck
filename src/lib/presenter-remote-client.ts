@@ -1,6 +1,7 @@
 import type { SlideTransition } from './transitions';
-import type { PresentMessage } from './present-channel';
+import type { PresentMessage, ProjectedSource } from './present-channel';
 import { paginateScriptureVerses } from './scripture-format';
+import type { GuestFeedUiState, FrameHealthStatus } from '@/operator/present/presenter-guest-feed-controller';
 
 export type PresenterRemoteIntent =
   | {
@@ -25,6 +26,7 @@ export type PresenterRemoteIntent =
       verses?: Array<{ verse: number; text: string }>;
       is_whole_chapter?: boolean;
       mode?: 'per-verse' | 'inline';
+      pageIndex?: number;
       planIdentity: string;
     }
   | { type: 'clear-scripture'; planIdentity: string }
@@ -35,8 +37,15 @@ export type PresenterRemoteIntent =
   | { type: 'media-seek'; timeSeconds: number; planIdentity: string }
   | { type: 'media-toggle-project'; planIdentity: string }
   | { type: 'media-select-item'; id: string; planIdentity: string }
+  | { type: 'media-reorder-item'; id: string; direction: 'up' | 'down'; planIdentity: string }
+  | { type: 'media-set-volume'; volume: number; planIdentity: string }
+  | { type: 'media-set-mute'; muted: boolean; planIdentity: string }
   | { type: 'media-toggle-shuffle'; planIdentity: string }
-  | { type: 'media-cycle-repeat'; planIdentity: string };
+  | { type: 'media-cycle-repeat'; planIdentity: string }
+  | { type: 'guest-arm'; planIdentity: string }
+  | { type: 'guest-disarm'; planIdentity: string }
+  | { type: 'guest-project'; projected: boolean; planIdentity: string }
+  | { type: 'request-reopen-projector'; planIdentity: string };
 
 export interface PresenterActionHandlers {
   setIndexAndSync: (index: number) => Promise<boolean | void> | boolean | void;
@@ -49,7 +58,9 @@ export interface PresenterActionHandlers {
     verses?: Array<{ verse: number; text: string }>;
     mode?: 'per-verse' | 'inline';
     is_whole_chapter?: boolean;
+    pageIndex?: number;
   }) => void;
+  clearScriptureAndSync?: () => void;
   broadcast: (msg: PresentMessage) => void;
   handleMediaPlay?: () => void;
   handleMediaPause?: () => void;
@@ -58,8 +69,15 @@ export interface PresenterActionHandlers {
   handleMediaSeek?: (timeSeconds: number) => void;
   handleMediaToggleProject?: () => void;
   handleMediaSelectItem?: (id: string) => void;
+  handleMediaReorderItem?: (id: string, direction: 'up' | 'down') => void;
+  handleMediaSetVolume?: (volume: number) => void;
+  handleMediaSetMute?: (muted: boolean) => void;
   handleMediaToggleShuffle?: () => void;
   handleMediaCycleRepeat?: () => void;
+  handleGuestArm?: () => void;
+  handleGuestDisarm?: () => void;
+  handleGuestProject?: (projected: boolean) => void;
+  handleRequestReopenProjector?: () => void;
 }
 
 /**
@@ -129,6 +147,10 @@ export function applyRemoteIntent(
         const typographyMode =
           (intent as any).typographyMode ||
           (isWholeChapter || verses.length > 4 ? 'chapter' : 'verse');
+        const pageIndex =
+          typeof (intent as any).pageIndex === 'number' && (intent as any).pageIndex >= 0
+            ? (intent as any).pageIndex
+            : 0;
 
         if (typeof handlers.setScriptureAndSync === 'function') {
           handlers.setScriptureAndSync({
@@ -137,6 +159,7 @@ export function applyRemoteIntent(
             verses,
             mode: explicitMode,
             is_whole_chapter: isWholeChapter,
+            pageIndex,
           });
           return true;
         }
@@ -144,7 +167,7 @@ export function applyRemoteIntent(
         // Normalize incoming remote scripture through the canonical visual line-budget paginator
         const fallbackMode = explicitMode || 'per-verse';
         const chunks = paginateScriptureVerses(intent.reference, verses, fallbackMode, typographyMode);
-        const activeChunk = chunks[0] || {
+        const activeChunk = chunks[pageIndex] || chunks[0] || {
           page: 1,
           totalPages: 1,
           verses,
@@ -176,6 +199,10 @@ export function applyRemoteIntent(
       return false;
     }
     case 'clear-scripture': {
+      if (typeof handlers.clearScriptureAndSync === 'function') {
+        handlers.clearScriptureAndSync();
+        return true;
+      }
       handlers.broadcast({
         type: 'clear-scripture',
         planIdentity: currentPlanIdentity,
@@ -240,6 +267,41 @@ export function applyRemoteIntent(
       }
       return false;
     }
+    case 'media-reorder-item': {
+      if (
+        typeof intent.id === 'string' &&
+        intent.id.trim() &&
+        (intent.direction === 'up' || intent.direction === 'down') &&
+        typeof handlers.handleMediaReorderItem === 'function'
+      ) {
+        handlers.handleMediaReorderItem(intent.id.trim(), intent.direction);
+        return true;
+      }
+      return false;
+    }
+    case 'media-set-volume': {
+      if (
+        typeof intent.volume === 'number' &&
+        Number.isFinite(intent.volume) &&
+        intent.volume >= 0 &&
+        intent.volume <= 1 &&
+        typeof handlers.handleMediaSetVolume === 'function'
+      ) {
+        handlers.handleMediaSetVolume(intent.volume);
+        return true;
+      }
+      return false;
+    }
+    case 'media-set-mute': {
+      if (
+        typeof intent.muted === 'boolean' &&
+        typeof handlers.handleMediaSetMute === 'function'
+      ) {
+        handlers.handleMediaSetMute(intent.muted);
+        return true;
+      }
+      return false;
+    }
     case 'media-toggle-shuffle': {
       if (typeof handlers.handleMediaToggleShuffle === 'function') {
         handlers.handleMediaToggleShuffle();
@@ -250,6 +312,37 @@ export function applyRemoteIntent(
     case 'media-cycle-repeat': {
       if (typeof handlers.handleMediaCycleRepeat === 'function') {
         handlers.handleMediaCycleRepeat();
+        return true;
+      }
+      return false;
+    }
+    case 'guest-arm': {
+      if (typeof handlers.handleGuestArm === 'function') {
+        handlers.handleGuestArm();
+        return true;
+      }
+      return false;
+    }
+    case 'guest-disarm': {
+      if (typeof handlers.handleGuestDisarm === 'function') {
+        handlers.handleGuestDisarm();
+        return true;
+      }
+      return false;
+    }
+    case 'guest-project': {
+      if (
+        typeof intent.projected === 'boolean' &&
+        typeof handlers.handleGuestProject === 'function'
+      ) {
+        handlers.handleGuestProject(intent.projected);
+        return true;
+      }
+      return false;
+    }
+    case 'request-reopen-projector': {
+      if (typeof handlers.handleRequestReopenProjector === 'function') {
+        handlers.handleRequestReopenProjector();
         return true;
       }
       return false;
@@ -460,7 +553,27 @@ export type RemoteControlSessionState = {
     duration?: number;
     shuffle?: boolean;
     repeatMode?: 'off' | 'all' | 'one';
+    volume?: number;
+    isMuted?: boolean;
   };
+  scripture?: {
+    reference: string;
+    text: string;
+    verses?: Array<{ verse: number; text: string }>;
+    mode?: 'per-verse' | 'inline';
+    is_whole_chapter?: boolean;
+    pageIndex?: number;
+    totalPages?: number;
+  } | null;
+  guestFeed?: {
+    uiState: GuestFeedUiState;
+    projection: ProjectedSource;
+    frameHealth: FrameHealthStatus;
+    errorMessage: string | null;
+  } | null;
+  projector?: {
+    hasOpen: boolean;
+  } | null;
 };
 
 export type RemoteControlConnectionState =

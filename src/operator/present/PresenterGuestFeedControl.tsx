@@ -28,20 +28,44 @@ import type {
   PresenterGuestFeedSnapshot,
 } from './presenter-guest-feed-controller';
 
+import type { PresenterRemoteIntent, RemoteControlSessionState } from '@/lib/presenter-remote-client';
+
 export interface PresenterGuestFeedControlProps {
   controller: PresenterGuestFeedController;
   isProjectorResponding: boolean;
   className?: string;
+  isRemote?: boolean;
+  mirroredGuestFeed?: RemoteControlSessionState['guestFeed'];
+  onRemoteIntent?: (intent: PresenterRemoteIntent) => void;
+  planIdentity?: string;
 }
 
 export default memo(function PresenterGuestFeedControl({
   controller,
   isProjectorResponding,
   className,
+  isRemote = false,
+  mirroredGuestFeed,
+  onRemoteIntent,
+  planIdentity = '',
 }: PresenterGuestFeedControlProps) {
   const { t } = useT();
   const [snapshot, setSnapshot] = useState<PresenterGuestFeedSnapshot>(() =>
-    controller.getSnapshot()
+    controller
+      ? controller.getSnapshot()
+      : {
+          uiState: mirroredGuestFeed?.uiState || 'idle',
+          devices: [],
+          selectedDeviceId: 'host-capture',
+          isDeviceStale: false,
+          errorMessage: mirroredGuestFeed?.errorMessage || null,
+          projection: mirroredGuestFeed?.projection || { kind: 'deck' },
+          guestAttemptId: null,
+          guestSessionId: null,
+          frameHealth: mirroredGuestFeed?.frameHealth || 'unknown',
+          isConsoleFocused: true,
+          lastHealth: null,
+        }
   );
 
   const [deviceMenuOpen, setDeviceMenuOpen] = useState(false);
@@ -58,7 +82,20 @@ export default memo(function PresenterGuestFeedControl({
     });
   }, [controller, deviceMenuOpen]);
 
+  useEffect(() => {
+    if (isRemote && mirroredGuestFeed) {
+      setSnapshot((prev) => ({
+        ...prev,
+        uiState: mirroredGuestFeed.uiState || 'idle',
+        errorMessage: mirroredGuestFeed.errorMessage || null,
+        projection: mirroredGuestFeed.projection || { kind: 'deck' },
+        frameHealth: mirroredGuestFeed.frameHealth || 'unknown',
+      }));
+    }
+  }, [isRemote, mirroredGuestFeed]);
+
   const handleDeviceMenuOpenChange = (open: boolean) => {
+    if (isRemote || !controller) return;
     if (!open) {
       deviceMenuRequestId.current++;
       setDeviceMenuOpen(false);
@@ -75,6 +112,7 @@ export default memo(function PresenterGuestFeedControl({
 
   // Window focus listener for hotkey availability warning
   useEffect(() => {
+    if (isRemote || !controller) return;
     const onFocus = () => controller.setConsoleFocused(true);
     const onBlur = () => controller.setConsoleFocused(false);
     window.addEventListener('focus', onFocus);
@@ -83,7 +121,7 @@ export default memo(function PresenterGuestFeedControl({
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('blur', onBlur);
     };
-  }, [controller]);
+  }, [controller, isRemote]);
 
   const {
     uiState,
@@ -97,7 +135,9 @@ export default memo(function PresenterGuestFeedControl({
   const isGuestActive = uiState === 'guest-pending' || uiState === 'confirmed-live';
   const hasUsableDevices = devices.length > 0 && devices.some((d) => Boolean(d.deviceId));
   const selectedDevice = devices.find((d) => d.deviceId === selectedDeviceId);
-  const selectedLabel = selectedDevice
+  const selectedLabel = isRemote
+    ? 'Host USB HDMI'
+    : selectedDevice
     ? selectedDevice.label
     : !hasUsableDevices
     ? t('presenter.guestFeed.noDevices')
@@ -154,7 +194,9 @@ export default memo(function PresenterGuestFeedControl({
                 size="sm"
                 variant="outline"
                 data-testid="guest-enable-access-dropdown-button"
-                onClick={() => void controller.requestPermission()}
+                onClick={() => {
+                  if (controller) void controller.requestPermission();
+                }}
                 className="h-7 w-full gap-1 px-2 text-xs"
               >
                 <Camera className="size-3" />
@@ -165,7 +207,7 @@ export default memo(function PresenterGuestFeedControl({
             <DropdownMenuRadioGroup
               value={selectedDeviceId || ''}
               onValueChange={(val) => {
-                if (val) {
+                if (val && controller) {
                   controller.selectDevice(val);
                   setDeviceMenuOpen(false);
                 }
@@ -186,13 +228,13 @@ export default memo(function PresenterGuestFeedControl({
       </DropdownMenu>
 
       {/* Enable Camera Access CTA when no devices discovered */}
-      {!hasUsableDevices && (uiState === 'idle' || uiState === 'error') && (
+      {!isRemote && !hasUsableDevices && (uiState === 'idle' || uiState === 'error') && (
         <Button
           type="button"
           size="sm"
           variant="outline"
           data-testid="guest-enable-access-button"
-          onClick={() => void controller.requestPermission()}
+          onClick={() => void controller?.requestPermission()}
           className="h-7 gap-1 px-2 text-xs"
         >
           <Camera className="size-3" />
@@ -207,9 +249,13 @@ export default memo(function PresenterGuestFeedControl({
           size="sm"
           variant="outline"
           data-testid="guest-arm-button"
-          disabled={!selectedDeviceId || uiState === 'arming'}
+          disabled={(!selectedDeviceId && !isRemote) || uiState === 'arming'}
           onClick={() => {
-            if (selectedDeviceId) controller.arm(selectedDeviceId);
+            if (isRemote) {
+              onRemoteIntent?.({ type: 'guest-arm', planIdentity: planIdentity || '' });
+              return;
+            }
+            if (selectedDeviceId && controller) controller.arm(selectedDeviceId);
           }}
           className="h-7 gap-1 px-2 text-xs"
         >
@@ -226,7 +272,13 @@ export default memo(function PresenterGuestFeedControl({
           size="sm"
           variant="outline"
           data-testid="guest-disarm-button"
-          onClick={() => controller.disarm()}
+          onClick={() => {
+            if (isRemote) {
+              onRemoteIntent?.({ type: 'guest-disarm', planIdentity: planIdentity || '' });
+              return;
+            }
+            controller?.disarm();
+          }}
           className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
         >
           <VideoOff className="size-3" />
@@ -273,7 +325,13 @@ export default memo(function PresenterGuestFeedControl({
           variant="default"
           data-testid="guest-switch-button"
           disabled={!isProjectorResponding}
-          onClick={() => controller.switch(isProjectorResponding)}
+          onClick={() => {
+            if (isRemote) {
+              onRemoteIntent?.({ type: 'guest-project', projected: true, planIdentity: planIdentity || '' });
+              return;
+            }
+            controller?.switch(isProjectorResponding);
+          }}
           className="h-7 gap-1 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
           title={
             !isProjectorResponding
@@ -293,7 +351,13 @@ export default memo(function PresenterGuestFeedControl({
           size="sm"
           variant="destructive"
           data-testid="guest-revert-button"
-          onClick={() => controller.revertToDeck()}
+          onClick={() => {
+            if (isRemote) {
+              onRemoteIntent?.({ type: 'guest-project', projected: false, planIdentity: planIdentity || '' });
+              return;
+            }
+            controller?.revertToDeck();
+          }}
           className="h-7 gap-1 px-2.5 text-xs font-semibold"
         >
           <Undo2 className="size-3" />

@@ -2,7 +2,7 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** []
-**Status:** open
+**Status:** done
 
 ## Summary
 Implement remote scripture intent dispatching in `PresenterOperator.tsx` when `mode === 'remote'`, wire scripture chunk pagination updates and clear scripture intents to `onSendIntent`, mirror scripture overlay state over SSE, and forward service `raw_payload` rundown text through `RemotePage.tsx` and `RemoteOperator.tsx`.
@@ -24,3 +24,11 @@ Implement remote scripture intent dispatching in `PresenterOperator.tsx` when `m
 - Changing scripture pages on mobile advances the projected scripture slide on the host screen and maintains bidirectional page index parity.
 - Clicking Clear Scripture on mobile removes the scripture overlay on both mobile and host screens.
 - Opening the mobile remote view displays the service rundown text in the sidebar without showing "No rundown text provided".
+
+## Comments
+- Implemented remote scripture intent dispatching in `PresenterOperator.tsx` (`pushScripture`, `handlePageChange`, `handleModeChange`, `clearScriptureAndSync`).
+- Extended `PresenterRemoteIntent` with `pageIndex?: number` and updated `applyRemoteIntent` to propagate `pageIndex` and route `clear-scripture` to `clearScriptureAndSync`.
+- Added bidirectional SSE mirroring for scripture overlay via `RemoteControlSessionState['scripture']`, including full passage preservation and immediate connection snapshot.
+- Plumbed `rundownText={data.raw_payload || ''}` from `RemotePage.tsx` through `RemoteOperator.tsx` to `PresenterOperator.tsx`.
+- Peer review passed: DeepSeek V4 Pro and Terra Codex findings addressed (full passage verse parity, `handleModeChange` remote intent routing and SSE broadcast, initial connection scripture snapshot, multi-page roundtrip test, EOF hygiene).
+- Verified green across: `tests/remote-presenting-client.test.mjs` (26/26 tests pass), `tests/remote-screen.test.mjs` (13/13 tests pass), `tests/bilingual-i18n-parity.test.mjs` (25/25 tests pass), `npm run typecheck` (0 errors), `npm run build` (clean build), `public-repo-guard.test.mjs` (5/5 pass), `go test ./...` (100% green).
