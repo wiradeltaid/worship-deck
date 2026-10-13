@@ -2190,7 +2190,8 @@ decisions:
 
   - id: DEC-105
     type: mandate
-    status: accepted
+    status: applied
+    applied_at: '2026-10-13'
     accepted_by: "kodesh87 (2026-10-13)"
     title: Daily Autopilot mandate for Presenter Layout Stability across Viewports, Tablet Media Bar Ergonomics, and Remote Connection Resilience (SPEC-118)
     file: .control/decisions/DEC-105-daily-autopilot-mandate-presenter-layout-stability-tablet-media-bar-remote-resilience.md

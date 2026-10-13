@@ -4971,7 +4971,7 @@ waves:
           - tests/presenter-media-player.test.mjs
           - tests/remote-presenting-client.test.mjs
   - id: SPEC-118
-    status: open
+    status: closed
     release: presenter-layout-stability-tablet-media-bar-and-remote-resilience
     prd: [operator-turn]
     fr: [FR-16, FR-25, FR-35]

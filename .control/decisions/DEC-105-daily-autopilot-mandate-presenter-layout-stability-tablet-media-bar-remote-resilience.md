@@ -1,7 +1,8 @@
 ---
 type: mandate
 id: DEC-105
-status: accepted
+status: applied
+applied_at: '2026-10-13'
 accepted_by: 'kodesh87 (2026-10-13)'
 touches:
   - .control/memlog/autopilot-DEC-105.md

@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-105-daily-autopilot-mandate-presenter-layout-st
 
 ## Resume
 
-- Iteration: I-4
+- Iteration: I-4 (Completed)
 - Run branch: autopilot/DEC-105
 - Stopped at: Mandate DEC-105 completed (all FRs in SPEC-118 delivered, verified, peer-reviewed, and closed)
 - Blocked: —
 - Parked: —
-- Next: Mandate DEC-105 ready to close and finish
+- Next: Mandate DEC-105 applied, ready for draft PR and owner review
 
 ## Decisions
 
