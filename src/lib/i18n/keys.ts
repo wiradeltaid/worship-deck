@@ -1005,6 +1005,10 @@ export const I18N_KEYS = [
   'presenter.remote.statusError',
   'presenter.remote.statusDisconnected',
   'presenter.remote.mobileUrl',
+  // SPEC-116: Remote Control Target Authority & Projector Reopen Protocol
+  'presenter.projectorReopenRequested',
+  'presenter.openProjectorNow',
+  'presenter.requestReopenProjector',
 ] as const;
 
 export type I18nKey = (typeof I18N_KEYS)[number];

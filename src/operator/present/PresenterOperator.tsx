@@ -3018,7 +3018,7 @@ export default function PresenterOperator({
             className="basis-full rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs flex items-center justify-between gap-2"
           >
             <span className="font-semibold text-amber-300">
-              Remote controller meminta pembukaan layar proyektor.
+              {t('presenter.projectorReopenRequested')}
             </span>
             <Button
               size="xs"
@@ -3030,7 +3030,7 @@ export default function PresenterOperator({
               }}
               className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs h-7"
             >
-              Buka Proyektor Sekarang
+              {t('presenter.openProjectorNow')}
             </Button>
           </div>
         )}
@@ -3042,10 +3042,10 @@ export default function PresenterOperator({
               data-testid="remote-request-reopen-projector-button"
               onClick={() => onSendIntent?.({ type: 'request-reopen-projector', planIdentity })}
               className="h-7 text-[11px] gap-1"
-              title="Minta Buka Proyektor"
+              title={t('presenter.requestReopenProjector')}
             >
               <Monitor className="size-3" />
-              <span>Minta Buka Proyektor</span>
+              <span>{t('presenter.requestReopenProjector')}</span>
             </Button>
           </div>
         )}
