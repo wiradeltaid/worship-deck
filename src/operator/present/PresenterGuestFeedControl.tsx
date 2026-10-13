@@ -147,12 +147,12 @@ export default memo(function PresenterGuestFeedControl({
     <div
       data-testid="presenter-guest-feed-control"
       className={cn(
-        'flex flex-wrap items-center gap-2 rounded-md border border-border/40 bg-card/40 px-2 py-1 text-xs',
+        'flex flex-wrap items-center gap-2 rounded-md border border-border/40 bg-card/40 px-2 py-1 text-xs max-w-full sm:max-w-[420px]',
         isGuestActive && 'border-emerald-500/40 bg-emerald-500/5',
         className
       )}
     >
-      <div className="flex items-center gap-1.5 font-medium text-muted-foreground">
+      <div className="flex items-center gap-1.5 font-medium text-muted-foreground shrink-0">
         <Camera className="size-3.5" />
         <span>{t('presenter.guestFeed.title')}</span>
       </div>
@@ -171,7 +171,10 @@ export default memo(function PresenterGuestFeedControl({
                 size="sm"
                 disabled={uiState === 'arming' || isGuestActive}
                 data-testid="guest-device-select-trigger"
-                className="h-7 max-w-[170px] justify-between gap-1 truncate px-2 text-xs font-normal"
+                className={cn(
+                  'h-7 justify-between gap-1 truncate px-2 text-xs font-normal',
+                  isGuestActive ? 'max-w-[120px]' : 'max-w-[170px]'
+                )}
               >
                 <span className="truncate">{selectedLabel}</span>
                 <ChevronDown className="size-3 shrink-0 opacity-50" />
@@ -237,7 +240,7 @@ export default memo(function PresenterGuestFeedControl({
           variant="outline"
           data-testid="guest-enable-access-button"
           onClick={() => void controller?.requestPermission()}
-          className="h-7 gap-1 px-2 text-xs"
+          className="h-7 gap-1 px-2 text-xs shrink-0"
         >
           <Camera className="size-3" />
           <span>{t('presenter.guestFeed.enableAccess')}</span>
@@ -259,7 +262,7 @@ export default memo(function PresenterGuestFeedControl({
             }
             if (selectedDeviceId && controller) controller.arm(selectedDeviceId);
           }}
-          className="h-7 gap-1 px-2 text-xs"
+          className="h-7 gap-1 px-2 text-xs shrink-0"
         >
           <Video className="size-3" />
           <span>
@@ -281,7 +284,7 @@ export default memo(function PresenterGuestFeedControl({
             }
             controller?.disarm();
           }}
-          className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0"
         >
           <VideoOff className="size-3" />
           <span>{t('presenter.guestFeed.disarm')}</span>
@@ -293,7 +296,7 @@ export default memo(function PresenterGuestFeedControl({
         <Badge
           variant="outline"
           data-testid="guest-ready-badge"
-          className="border-blue-500/40 bg-blue-500/10 text-[10px] text-blue-600 dark:text-blue-400"
+          className="border-blue-500/40 bg-blue-500/10 text-[10px] text-blue-600 dark:text-blue-400 shrink-0"
         >
           {t('presenter.guestFeed.ready')}
         </Badge>
@@ -303,7 +306,7 @@ export default memo(function PresenterGuestFeedControl({
         <Badge
           variant="outline"
           data-testid="guest-pending-badge"
-          className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400 animate-pulse"
+          className="border-amber-500/40 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400 animate-pulse shrink-0"
         >
           {t('presenter.guestFeed.waitingProjector')}
         </Badge>
@@ -313,7 +316,7 @@ export default memo(function PresenterGuestFeedControl({
         <Badge
           variant="default"
           data-testid="guest-live-badge"
-          className="bg-emerald-600 text-white text-[10px] font-semibold"
+          className="bg-emerald-600 text-white text-[10px] font-semibold shrink-0"
         >
           {t('presenter.guestFeed.live')}
         </Badge>
@@ -334,7 +337,7 @@ export default memo(function PresenterGuestFeedControl({
             }
             controller?.switch(isProjectorResponding);
           }}
-          className="h-7 gap-1 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
+          className="h-7 gap-1 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50 shrink-0"
           title={
             !isProjectorResponding
               ? t('presenter.guestFeed.waitingProjector')
@@ -360,7 +363,7 @@ export default memo(function PresenterGuestFeedControl({
             }
             controller?.revertToDeck();
           }}
-          className="h-7 gap-1 px-2.5 text-xs font-semibold"
+          className="h-7 gap-1 px-2.5 text-xs font-semibold shrink-0"
         >
           <Undo2 className="size-3" />
           <span>{t('presenter.guestFeed.revertToDeck')}</span>

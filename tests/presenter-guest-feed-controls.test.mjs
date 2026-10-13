@@ -1251,4 +1251,43 @@ test('SPEC-117-02 defect injection: uncompacted live guest controls or external 
   ]);
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-118-02: Zero-CLS Presenter Header Layout Stabilization & Guest Live Bounded Geometry
+// -----------------------------------------------------------------------------
+export function scanSpec11802HeaderGeometryAndZeroClsGuards(sources) {
+  const defects = [];
+  // 1. PresenterOperator Row 3 must declare bounded max-width (max-w-[420px] or sm:max-w-[420px])
+  const row3Match = sources.operator.match(/data-testid="presenter-header-row-3"[^>]*className="([^"]*)"/);
+  if (!row3Match || (!row3Match[1].includes('max-w-[420px]') && !row3Match[1].includes('sm:max-w-[420px]'))) {
+    defects.push('missing-row-3-bounded-max-width');
+  }
+  // 2. PresenterGuestFeedControl must declare bounded max-width to eliminate cross-row coupling
+  if (!sources.feed.includes('max-w-[420px]') && !sources.feed.includes('sm:max-w-[420px]')) {
+    defects.push('missing-guest-feed-bounded-max-width');
+  }
+  return defects;
+}
+
+test('SPEC-118-02: Presenter header Row 3 and PresenterGuestFeedControl enforce bounded geometry', () => {
+  const sources = {
+    operator: fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterOperator.tsx'), 'utf8'),
+    feed: fs.readFileSync(path.join(root, 'src', 'operator', 'present', 'PresenterGuestFeedControl.tsx'), 'utf8'),
+  };
+
+  const defects = scanSpec11802HeaderGeometryAndZeroClsGuards(sources);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-118-02 defect injection: unbounded row-3 or guest feed control fails scan guard', () => {
+  const mutated = {
+    operator: '<div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">',
+    feed: '<div data-testid="presenter-guest-feed-control" className="flex flex-wrap items-center gap-2">',
+  };
+  const defects = scanSpec11802HeaderGeometryAndZeroClsGuards(mutated);
+  assert.deepEqual(defects, [
+    'missing-row-3-bounded-max-width',
+    'missing-guest-feed-bounded-max-width',
+  ]);
+});
+
 

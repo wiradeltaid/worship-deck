@@ -3042,7 +3042,7 @@ export default function PresenterOperator({
 
           {/* Row 3 (Guest Media & Live Capture Feed Controls) */}
           {(guestFeedControllerRef.current || mode === 'remote') && (
-            <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full">
+            <div data-testid="presenter-header-row-3" className="flex flex-wrap items-center justify-end gap-2 w-full max-w-full sm:max-w-[420px]">
               <PresenterGuestFeedControl
                 controller={guestFeedControllerRef.current || dummyGuestFeedControllerRef.current!}
                 isProjectorResponding={mode === 'remote' ? true : liveness.verdict === 'live'}
