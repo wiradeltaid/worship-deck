@@ -6,7 +6,7 @@ artifact: .control/decisions/DEC-103-daily-autopilot-mandate-target-authority-re
 
 ## Resume
 
-- Iteration: I-2 (Completed SPEC-116-02)
+- Iteration: I-2 (commit b8040867)
 - Run branch: autopilot/DEC-103
 - Stopped at: Ticket SPEC-116-02 completed, verified, peer-reviewed, and closed
 - Blocked: —
