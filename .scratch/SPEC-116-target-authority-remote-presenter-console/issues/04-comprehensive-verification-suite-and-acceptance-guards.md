@@ -9,15 +9,15 @@ Implement automated unit and behavioral verification tests for scripture remote 
 
 ## Key Responsibilities
 1. **Scripture & Media Remote Intent Tests (`tests/remote-presenting-client.test.mjs`, `tests/remote-control-go-http.test.mjs`, `tests/presenter-media-player.test.mjs`)**:
-   - Verify `pushScripture()`, `clearScripture()`, page change, `media-set-volume`, and `media-set-mute` dispatch valid intents from remote console.
-   - Verify `applyRemoteIntent` executes scripture, volume adjustments, mute toggling, and media drawer selection on host.
-   - Verify Go API validates and broadcasts new guest capture, volume, mute, and reopen intent types, returning 401 for unauthenticated and 409 for unpaired callers.
+   - Verify `pushScripture()`, `clearScripture()`, page change, `media-set-volume`, `media-set-mute`, and `media-reorder-item` dispatch valid intents from remote console.
+   - Verify `applyRemoteIntent` executes scripture, volume adjustments, mute toggling, track reordering, and media drawer selection on host.
+   - Verify Go API validates and broadcasts new guest capture, volume, mute, track reorder, and reopen intent types, returning 401 for unauthenticated and 409 for unpaired callers.
 2. **Guest Capture & Projector Reopen Tests (`tests/presenter-guest-feed-controls.test.mjs`, `tests/remote-screen.test.mjs`)**:
    - Verify host capture status mirrors accurately to remote clients over SSE without local device prompts.
    - Verify projector refocus and host reopen banner behavior.
 3. **Surface Isolation Invariant Guards (`tests/remote-screen.test.mjs`, `tests/presenter-media-player.test.mjs`)**:
    - Verify remote device never opens BroadcastChannel, never plays local audio, and never calls `navigator.mediaDevices.getUserMedia`.
-   - Verify `MediaDrawer` in remote mode suppresses mutative actions (upload/delete/reorder).
+   - Verify `MediaDrawer` in remote mode suppresses mutative file actions (upload/delete/import).
 4. **Absence & Defect Injection Proofs (`tests/bilingual-i18n-parity.test.mjs`, `tests/acceptance-fr35-remote.test.mjs`)**:
    - Inject un-routed scripture intents or missing localization keys to verify guards fail closed.
    - Verify full browser acceptance flow across pairing, scripture push, media control, and disconnect resilience.

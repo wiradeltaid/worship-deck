@@ -79,12 +79,13 @@ Following the initial delivery of `SPEC-115` (Dual-Mode Console Shell and QR Pai
   - `{ type: 'clear-scripture'; planIdentity: string }`
 - Remote client dispatches `scripture` intents on push and chunk page changes. Host applies the intent, recalculates `scriptureOverlay`, updates session cache, broadcasts to physical screen, and mirrors active `scripture` state back to remote clients via SSE.
 
-### 2.3 Read-Only Media Playlist Hydration, Remote Selection & Software Volume Control
+### 2.3 Read-Only Media Playlist Hydration, Remote Selection, Discrete Up/Down Reordering & Software Volume Control
 - Remote clients execute read-only fetch to `GET /api/media/playlist` on mount to populate `mediaStore.items`, strictly bypassing `localMediaRegistry.hydrate()`.
 - Populating playlist items sets `isCued = true`, enabling track seekbars, durations, and transport buttons.
 - The `MediaDrawer` button is restored on remote mode (`onOpenDrawer={() => setMediaDrawerOpen(true)}`).
   - Inside `MediaDrawer.tsx`, destructive/local mutations (`Upload file`, `Delete`, `Import`) are hidden when `isRemote`.
   - Clicking a track dispatches `onRemoteMediaIntent({ type: 'media-select-item', id, planIdentity })`.
+  - **Discrete Up/Down Reordering via Arrow Buttons**: The `ChevronUp` and `ChevronDown` arrow buttons remain active on remote mode. Clicking an arrow dispatches `onRemoteMediaIntent({ type: 'media-reorder-item', id, direction: 'up' | 'down', planIdentity })`. On the host workstation, `mediaStore` executes `MOVE_ITEM`, instantly reordering the playlist without touchscreen gesture conflicts.
 - In `MediaControlBar.tsx`, the `|| isRemote` condition on `media-control-bar-fade`, `media-control-bar-mute`, and `media-control-bar-volume` is lifted:
   - Adjusting the volume slider dispatches `onRemoteMediaIntent({ type: 'media-set-volume', volume: newVolume, planIdentity })`.
   - Clicking Mute dispatches `onRemoteMediaIntent({ type: 'media-set-mute', muted: !state.isMuted, planIdentity })`.
@@ -111,6 +112,6 @@ Following the initial delivery of `SPEC-115` (Dual-Mode Console Shell and QR Pai
 ## 3. Work Breakdown & Ticket Sequencing
 
 - **SPEC-116-01**: Push Scripture Remote Intent Dispatching, Chunk Pagination Sync, Clear Scripture, and Rundown Text Plumbing
-- **SPEC-116-02**: Remote Read-Only Media Playlist Hydration, Media Drawer Track Selection, Remote Volume Control, and Audio Fade-Out
+- **SPEC-116-02**: Remote Read-Only Media Playlist Hydration, Media Drawer Track Selection, Discrete Up/Down Reordering, Remote Volume Control, and Audio Fade-Out
 - **SPEC-116-03**: Guest HDMI Capture Remote Telemetry, Idempotent Projection, and Projector Reopen/Refocus Protocol
 - **SPEC-116-04**: Comprehensive Verification Suite, Regression Guards, and Bilingual Localization Parity
