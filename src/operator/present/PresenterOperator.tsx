@@ -1990,34 +1990,128 @@ export default function PresenterOperator({
   ]);
 
   // Host-to-remote media playback state mirroring over SSE (only when remote is connected)
+  const lastMediaBroadcastTimeRef = useRef<number>(0);
+  const lastMediaTimeRef = useRef<number>(0);
+  const lastMediaDiscreteStateRef = useRef<{
+    isPlaying?: boolean;
+    activeId?: string | null;
+    isProjected?: boolean;
+    volume?: number;
+    isMuted?: boolean;
+    shuffle?: boolean;
+    repeatMode?: string;
+    duration?: number;
+  } | null>(null);
+  const lastManifestFingerprintRef = useRef<string>('');
+
   useEffect(() => {
     if (mode === 'remote') return;
-    if (remoteState !== 'connected') return;
-    return mediaStore.subscribe(() => {
+    if (remoteState !== 'connected') {
+      // Reset state on disconnect so newly re-connected remote receives complete manifest + state
+      lastManifestFingerprintRef.current = '';
+      lastMediaDiscreteStateRef.current = null;
+      lastMediaBroadcastTimeRef.current = 0;
+      return;
+    }
+
+    const broadcastMediaSnapshot = (forceImmediate = false) => {
       const snap = mediaStore.getSnapshot();
-      const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
-        id: it.id,
-        name: it.name,
-        type: it.type,
-        source: it.source || 'cloud',
-        duration: it.duration || 0,
-        orderKey: it.orderKey ?? String(idx),
-      }));
-      void remoteSessionRef.current?.broadcastState({
-        media: {
-          activeId: snap.activeId,
+      const now = Date.now();
+
+      const prevDiscrete = lastMediaDiscreteStateRef.current;
+      const discreteChanged =
+        forceImmediate ||
+        !prevDiscrete ||
+        prevDiscrete.isPlaying !== snap.isPlaying ||
+        prevDiscrete.activeId !== snap.activeId ||
+        prevDiscrete.isProjected !== snap.isProjected ||
+        prevDiscrete.volume !== snap.volume ||
+        prevDiscrete.isMuted !== snap.isMuted ||
+        prevDiscrete.shuffle !== snap.shuffle ||
+        prevDiscrete.repeatMode !== snap.repeatMode ||
+        prevDiscrete.duration !== snap.duration;
+
+      const currentManifestFingerprint = JSON.stringify(
+        snap.items.map((it, idx) => [
+          it.id,
+          it.orderKey ?? idx,
+          it.name,
+          it.type,
+          it.source || 'cloud',
+          it.duration || 0,
+        ])
+      );
+      const manifestChanged =
+        forceImmediate || currentManifestFingerprint !== lastManifestFingerprintRef.current;
+
+      const timeDelta = Math.abs(snap.currentTime - lastMediaTimeRef.current);
+      const isSeek = timeDelta > 1.5;
+      const throttleElapsed = now - lastMediaBroadcastTimeRef.current >= 500;
+
+      // Broadcast immediately on connect, discrete state change, manifest change, or seek;
+      // otherwise throttle continuous playback clock to at most once per 500ms
+      if (forceImmediate || discreteChanged || manifestChanged || isSeek || throttleElapsed) {
+        lastMediaBroadcastTimeRef.current = now;
+        lastMediaTimeRef.current = snap.currentTime;
+        lastMediaDiscreteStateRef.current = {
           isPlaying: snap.isPlaying,
+          activeId: snap.activeId,
           isProjected: snap.isProjected,
-          currentTime: snap.currentTime,
-          duration: snap.duration,
-          shuffle: snap.shuffle,
-          repeatMode: snap.repeatMode,
           volume: snap.volume,
           isMuted: snap.isMuted,
-          playlistManifest,
-        },
-      });
-    });
+          shuffle: snap.shuffle,
+          repeatMode: snap.repeatMode,
+          duration: snap.duration,
+        };
+
+        let playlistManifest: PlaylistItemSummary[] | undefined = undefined;
+        if (manifestChanged) {
+          const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
+            id: it.id,
+            name: it.name,
+            type: it.type,
+            source: it.source || 'cloud',
+            duration: it.duration || 0,
+            orderKey: it.orderKey ?? String(idx),
+          }));
+          lastManifestFingerprintRef.current = currentManifestFingerprint;
+          void remoteSessionRef.current?.broadcastState({
+            media: {
+              activeId: snap.activeId,
+              isPlaying: snap.isPlaying,
+              isProjected: snap.isProjected,
+              currentTime: snap.currentTime,
+              duration: snap.duration,
+              shuffle: snap.shuffle,
+              repeatMode: snap.repeatMode,
+              volume: snap.volume,
+              isMuted: snap.isMuted,
+              playlistManifest,
+            },
+          });
+          return;
+        }
+
+        void remoteSessionRef.current?.broadcastState({
+          media: {
+            activeId: snap.activeId,
+            isPlaying: snap.isPlaying,
+            isProjected: snap.isProjected,
+            currentTime: snap.currentTime,
+            duration: snap.duration,
+            shuffle: snap.shuffle,
+            repeatMode: snap.repeatMode,
+            volume: snap.volume,
+            isMuted: snap.isMuted,
+          },
+        });
+      }
+    };
+
+    // Immediately broadcast full state and manifest once on connect (even when host is paused)
+    broadcastMediaSnapshot(true);
+
+    return mediaStore.subscribe(() => broadcastMediaSnapshot(false));
   }, [mode, remoteState, mediaStore]);
 
   // Host-to-remote guest feed state mirroring over SSE (only when remote is connected)
@@ -2038,19 +2132,10 @@ export default function PresenterOperator({
     });
   }, [mode, remoteState]);
 
-  // Immediate full presentation & media snapshot broadcast when remote client connects
+  // Immediate presentation snapshot broadcast when remote client connects or liveness updates
   useEffect(() => {
     if (mode === 'remote') return;
     if (remoteState === 'connected') {
-      const snap = mediaStore.getSnapshot();
-      const playlistManifest: PlaylistItemSummary[] = snap.items.map((it, idx) => ({
-        id: it.id,
-        name: it.name,
-        type: it.type,
-        source: it.source || 'cloud',
-        duration: it.duration || 0,
-        orderKey: it.orderKey ?? String(idx),
-      }));
       void remoteSessionRef.current?.broadcastState({
         index: indexRef.current,
         blank: blankRef.current,
@@ -2058,18 +2143,6 @@ export default function PresenterOperator({
         background: backgroundRef.current,
         planIdentity: planIdentityRef.current,
         presentationLock,
-        media: {
-          activeId: snap.activeId,
-          isPlaying: snap.isPlaying,
-          isProjected: snap.isProjected,
-          currentTime: snap.currentTime,
-          duration: snap.duration,
-          shuffle: snap.shuffle,
-          repeatMode: snap.repeatMode,
-          volume: snap.volume,
-          isMuted: snap.isMuted,
-          playlistManifest,
-        },
         scripture:
           loadedScriptureRef.current && scriptureOverlayRef.current
             ? {
@@ -2095,7 +2168,7 @@ export default function PresenterOperator({
         },
       });
     }
-  }, [mode, remoteState, mediaStore, liveness.verdict]);
+  }, [mode, remoteState, liveness.verdict, presentationLock]);
 
   useEffect(() => {
     if (mode === 'remote') return;

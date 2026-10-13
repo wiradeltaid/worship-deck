@@ -2,7 +2,9 @@
 
 **Satisfies:** [UC-12, UC-29, FR-16, FR-35]
 **Blocked by:** ["SPEC-119-01"]
-**Status:** open
+**Status:** closed
+**Closed at:** 2026-10-13
+**Verdict:** APPROVED (Peer reviews: DeepSeek V4 Pro via CodeBuddy CN [APPROVED], GLM-5.3 via CodeBuddy CN [APPROVED])
 
 ## Summary
 Optimize media telemetry broadcasting on host workstation (`PresenterOperator.tsx`) and client connection manager (`presenter-remote-client.ts`). Decouple `playlistManifest` from continuous store clock ticks, throttle continuous `currentTime` broadcasts to at most once per 500ms, and implement a single-flight coalescing broadcast queue. This eliminates HTTP request flooding, promise backlogs, and Go backend SSE buffer overflows that cause stuttering and freezes.
