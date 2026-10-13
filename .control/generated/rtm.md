@@ -2196,6 +2196,66 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-117-01
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-117-02
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-117-03
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/remote-control-go-http.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-117-04
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -9289,6 +9349,66 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-117-01
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-117-02
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/presenter-guest-feed-controls.test.mjs
+  - tests/remote-screen.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-117-03
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/remote-presenting-client.test.mjs
+  - tests/remote-control-go-http.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-117-04
+  spec: SPEC-117
+  release: mobile-media-bar-header-harmony-and-remote-sync
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35

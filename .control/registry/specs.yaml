@@ -4925,6 +4925,51 @@ waves:
           - tests/remote-screen.test.mjs
           - tests/remote-presenting-client.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
+  - id: SPEC-117
+    status: open
+    release: mobile-media-bar-header-harmony-and-remote-sync
+    prd: [operator-turn]
+    fr: [FR-16, FR-25, FR-35]
+    size: M
+    depends_on: [SPEC-116]
+    spec_folder: .scratch/SPEC-117-mobile-media-bar-header-harmony-and-remote-sync/
+    spec_reviewed:
+      date: '2026-10-13'
+      sha: 'e7845b76'
+      lenses: [structure, prose, edge-case-hunter, traceability, architecture-alignment]
+    tickets:
+      - id: "SPEC-117-01"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-25, FR-35]
+        blocked_by: []
+        touches: [remote-control, media-player]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/remote-screen.test.mjs
+      - id: "SPEC-117-02"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-25]
+        blocked_by: ["SPEC-117-01"]
+        touches: [remote-control, presenter-header]
+        tests:
+          - tests/presenter-guest-feed-controls.test.mjs
+          - tests/remote-screen.test.mjs
+      - id: "SPEC-117-03"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-16, FR-35]
+        blocked_by: ["SPEC-117-02"]
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-presenting-client.test.mjs
+          - tests/remote-control-go-http.test.mjs
+      - id: "SPEC-117-04"
+        component: presenter
+        satisfies: [UC-12, UC-29, FR-35]
+        blocked_by: ["SPEC-117-03"]
+        touches: [remote-control, media-player, media-drawer]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/remote-presenting-client.test.mjs
 
 
 
