@@ -18,13 +18,14 @@ const PairingFileName = "pairing.json"
 // PairingConfig represents the persistent FOH device pairing state.
 // Invariant K1-01: Stored strictly in application data directory, NEVER in repository or git.
 type PairingConfig struct {
-	Version    int       `json:"version"` // Schema version (1)
-	CloudURL   string    `json:"cloud_url"`
-	TenantID   string    `json:"tenant_id"`
-	ChurchName string    `json:"church_name,omitempty"`
-	DeviceID   string    `json:"device_id,omitempty"`
-	Token      string    `json:"token"` // Full bearer token for internal FOH backend requests
-	PairedAt   time.Time `json:"paired_at"`
+	Version      int       `json:"version"` // Schema version (1)
+	CloudURL     string    `json:"cloud_url"`
+	TenantID     string    `json:"tenant_id"`
+	ChurchName   string    `json:"church_name,omitempty"`
+	DeviceID     string    `json:"device_id,omitempty"`
+	Token        string    `json:"token"` // Full bearer token for internal FOH backend requests
+	PairedAt     time.Time `json:"paired_at"`
+	LastSyncedAt time.Time `json:"last_synced_at,omitempty"`
 }
 
 // pairingTokenRegex enforces ODR-019 / K1-02 token format:

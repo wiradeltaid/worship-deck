@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,6 +40,13 @@ func (s *Server) getDataDir() string {
 	return "data"
 }
 
+func (s *Server) getUploadsDir() string {
+	if d := strings.TrimSpace(os.Getenv("UPLOADS_DIR")); d != "" {
+		return d
+	}
+	return filepath.Join(s.getDataDir(), "uploads")
+}
+
 // GET /api/desktop/pairing
 func (s *Server) getDesktopPairing(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
@@ -56,15 +65,21 @@ func (s *Server) getDesktopPairing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var lastSyncedStr any = nil
+	if !cfg.LastSyncedAt.IsZero() {
+		lastSyncedStr = cfg.LastSyncedAt.Format(time.RFC3339)
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"paired":       true,
-		"version":      cfg.Version,
-		"cloud_url":    cfg.CloudURL,
-		"tenant_id":    cfg.TenantID,
-		"church_name":  cfg.ChurchName,
-		"device_id":    cfg.DeviceID,
-		"token_masked": desktop.MaskToken(cfg.Token),
-		"paired_at":    cfg.PairedAt.Format(time.RFC3339),
+		"paired":         true,
+		"version":        cfg.Version,
+		"cloud_url":      cfg.CloudURL,
+		"tenant_id":      cfg.TenantID,
+		"church_name":    cfg.ChurchName,
+		"device_id":      cfg.DeviceID,
+		"token_masked":   desktop.MaskToken(cfg.Token),
+		"paired_at":      cfg.PairedAt.Format(time.RFC3339),
+		"last_synced_at": lastSyncedStr,
 	})
 }
 
@@ -87,7 +102,7 @@ func (s *Server) testDesktopPairing(w http.ResponseWriter, r *http.Request) {
 
 	res, err := executeCloudHandshake(sanitizedURL, token)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
 
@@ -119,7 +134,7 @@ func (s *Server) postDesktopPairing(w http.ResponseWriter, r *http.Request) {
 
 	res, err := executeCloudHandshake(sanitizedURL, token)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
 

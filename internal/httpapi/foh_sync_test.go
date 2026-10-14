@@ -273,3 +273,56 @@ func TestFohSync_CorruptedAssetRejectedAndCleanedUp(t *testing.T) {
 		t.Errorf("service should not be committed if asset verification failed")
 	}
 }
+
+func TestFohSync_LocalEmergencyPatchesHoldPull(t *testing.T) {
+	srv, adminSess, _ := setupTestServer(t)
+	tempDataDir := t.TempDir()
+	srv.DataDir = tempDataDir
+	srv.IsDesktop = true
+
+	handler := srv.Handler()
+
+	// 1. Insert local service with emergency patch
+	_, err := srv.DB.Exec(`
+		INSERT INTO services (global_id, date, raw_payload, emergency_patches, created_at, updated_at)
+		VALUES ('svc-local-dirty', '2026-10-25', 'Local Dirty Service', '[{"patch":"emergency"}]', datetime('now'), datetime('now'))
+	`)
+	if err != nil {
+		t.Fatalf("failed to insert dirty service: %v", err)
+	}
+
+	// 2. Setup mock cloud
+	validSecret := "7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+	validToken := "foh_tenant123." + validSecret
+	cfg := &desktop.PairingConfig{
+		Version:  1,
+		CloudURL: "https://mock.worshipdeck.org",
+		TenantID: "tenant123",
+		Token:    validToken,
+		PairedAt: time.Now().UTC(),
+	}
+	_ = desktop.SavePairingConfig(tempDataDir, cfg)
+
+	// 3. Attempt sync pull -> MUST be refused with 409 local_changes_pending (Kernel K2-04)
+	req := httptest.NewRequest("POST", "/api/desktop/sync/pull-cloud", strings.NewReader(`{}`))
+	req = withSession(req, adminSess)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict when local changes are pending, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var errResp struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &errResp)
+	if errResp.Error.Code != "local_changes_pending" {
+		t.Errorf("expected error code 'local_changes_pending', got %q", errResp.Error.Code)
+	}
+}
+
