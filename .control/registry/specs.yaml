@@ -5123,6 +5123,26 @@ waves:
           - tests/remote-presenting-client.test.mjs
           - tests/bilingual-i18n-parity.test.mjs
           - tests/theme-chrome.test.mjs
+  - id: SPEC-122
+    status: open
+    release: mobile-media-bar-three-row-layout-and-phone-seekbar-resilience
+    prd: [operator-turn]
+    fr: [FR-16, FR-35]
+    size: S
+    depends_on: [SPEC-121]
+    spec_folder: .scratch/SPEC-122-mobile-media-bar-three-row-layout-and-phone-seekbar-resilience/
+    spec_reviewed:
+      date: '2026-10-14'
+      sha: 'b7a03fc0'
+      lenses: [structure, prose, edge-case-hunter]
+    tickets:
+      - id: "SPEC-122-01"
+        component: presenter
+        satisfies: [FR-16, FR-35, UC-12, UC-29]
+        blocked_by: []
+        touches: [present-channel, remote-control]
+        tests:
+          - tests/presenter-media-player.test.mjs
 
 
 

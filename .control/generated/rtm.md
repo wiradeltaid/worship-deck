@@ -2389,6 +2389,20 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-122-01
+  spec: SPEC-122
+  release: mobile-media-bar-three-row-layout-and-phone-seekbar-resilience
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -9689,6 +9703,20 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-122-01
+  spec: SPEC-122
+  release: mobile-media-bar-three-row-layout-and-phone-seekbar-resilience
+  test:
+  - tests/presenter-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35

@@ -228,6 +228,10 @@ dag:
     - SPEC-121-03
   - parallel:
     - SPEC-121-04
+- spec: SPEC-122
+  order:
+  - parallel:
+    - SPEC-122-01
 - spec: SPEC-13
   order:
   - parallel:
