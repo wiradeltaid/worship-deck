@@ -2228,6 +2228,26 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-119-presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing/
 
+  - id: DEC-107
+    type: mandate
+    status: accepted
+    accepted_by: "kodesh87 (2026-10-14)"
+    title: Daily Autopilot mandate for Production Release Blocker Remediation - Offline Media Playback, Secure QR Mobile Pairing, Backend Security Boundaries, and Telemetry Monotonicity (SPEC-121)
+    file: .control/decisions/DEC-107-daily-autopilot-mandate-release-blocker-remediation-offline-media-secure-remote.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-21'
+    touches:
+      - .control/memlog/autopilot-DEC-107.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-121-release-blocker-remediation-offline-media-and-secure-remote/
+
+
 
 
 

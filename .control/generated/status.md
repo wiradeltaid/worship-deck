@@ -614,9 +614,8 @@ work_progress:
   tickets_done: 5
   tickets_total: 5
   work_progress: 100%
-gate_readiness: 96%
-validators_red:
-- review-trace
+gate_readiness: 100%
+validators_red: []
 validators_skipped:
   review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
     (changed at 4c1e5ac, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at ecfb31b, reviewed at bc6c694),
@@ -638,7 +637,12 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: none
-  active_ids: []
-  active_mandate: null
+  resolution: one
+  active_ids:
+  - DEC-107
+  active_mandate:
+    id: DEC-107
+    status: accepted
+    expires: '2026-10-21'
+    scope: all
 ```

@@ -5064,6 +5064,10 @@ waves:
     size: S
     depends_on: [SPEC-119]
     spec_folder: .scratch/SPEC-120-presenter-remote-pairing-session-liveness-decoupling/
+    spec_reviewed:
+      date: '2026-10-14'
+      sha: '45e906bd'
+      lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-120-01"
         component: presenter
