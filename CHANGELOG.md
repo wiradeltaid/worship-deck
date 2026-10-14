@@ -15,6 +15,20 @@ belongs under **Unreleased** and stays there until the owner decides.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-14
+
+### Added
+- **In-Console Media Player and Control Bar:** Operators can now manage and play service audio tracks and background video directly inside the presenter console, featuring a responsive media control bar, single-list playlist drawer, volume sliders, mute toggles, shuffle, and three-state repeat modes.
+- **Offline Media Playback and Resilient Startup:** Standalone media playback functions entirely without internet connectivity, serving video and audio via local byte-range streaming and preserving locally cached playlists even during network dropouts.
+- **Congregation Screen Video Projection:** Video playback seamlessly projects to the congregation screen with synchronized playback timing, automatic slide fallback when audio plays or videos conclude, and fail-safe mute guards.
+- **Smartphone Remote Console and QR Pairing:** Operators can generate a scannable QR code on the presenter screen allowing secondary mobile devices on church local networks to control slide navigation and media playback instantly without entering church administrator account credentials.
+- **Bilingual Interface Completeness:** Full English and Indonesian parity across all operator controls, canvas layout dialogs, emergency slide editing panels, and remote control screens.
+- **Hardened Network Security Boundaries:** Robust Host header and origin verification guards protecting the desktop application from cross-site request forgery and DNS rebinding attacks on open church networks.
+
+### Boundaries and Limitations
+- Smartphone remote control operates over local network connectivity and requires the mobile device to be connected to the same Wi-Fi router or subnet as the presenter computer.
+- Background media playback uses standard web video and audio formats (such as MP4, WebM, MP3, and WAV).
+
 ## [0.1.2] - 2026-10-05
 
 ### Added
