@@ -1591,4 +1591,37 @@ test('SPEC-121-01: Service Worker DB Version Parity, Local Stream Priority, and 
     !localBlobRoute.resolvedUrl.startsWith('/api/media/local-'),
     'Must never fabricate synthetic /api/media/local- URL for local-only items'
   );
+
+  // 5. Unconnected local-only item with fileHandle resolves via resolveLazyMediaUrl to Blob URL
+  const { resolveLazyMediaUrl } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
+  const { localMediaRegistry } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  await localMediaRegistry.saveRecord({
+    sha256: sampleSha,
+    name: 'Unconnected Sermon.mp4',
+    sizeBytes: 4096000,
+    lastModified: 1000,
+    mimeType: 'video/mp4',
+    storageKind: 'in-memory',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: new Blob(['mock video content'], { type: 'video/mp4' }),
+  });
+
+  const fileHandleItem = {
+    id: 'local-33445566',
+    name: 'Unconnected Sermon.mp4',
+    url: `/local-media/${sampleSha}`,
+    type: 'video',
+    sha256: sampleSha,
+    source: 'local',
+  };
+  const lazyRes = await resolveLazyMediaUrl(fileHandleItem, {
+    customSWActive: false,
+    currentSizeBytes: 4096000,
+    currentLastModified: 1000,
+  });
+  assert.ok(lazyRes.url.startsWith('blob:'), 'Unconnected local item must resolve to playable Blob URL');
 });

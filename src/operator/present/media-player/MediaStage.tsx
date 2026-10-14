@@ -9,7 +9,11 @@ import {
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
 import { resolveNextPlaylistItem, type PlaylistItem } from './playlist-model';
-import { routePlaybackSource } from './playback-router';
+import {
+  routePlaybackSource,
+  resolveLazyMediaUrl,
+  revokeActiveMediaBlobUrl,
+} from './playback-router';
 
 export interface MediaStageProps {
   store: MediaStore;
@@ -31,7 +35,15 @@ export const MediaStage = memo(function MediaStage({
   isInert = false,
 }: MediaStageProps) {
   const activeItemRef = useRef<PlaylistItem | null>(null);
+  const playGenerationRef = useRef(0);
   const [isRepeatOne, setIsRepeatOne] = useState(() => store.getSnapshot().repeatMode === 'one');
+
+  // Revoke any active lazy blob URL on unmount
+  useEffect(() => {
+    return () => {
+      revokeActiveMediaBlobUrl();
+    };
+  }, []);
 
   // Enforce zero-sound mute guarantee and inert resource stripping on mount and on mode change
   useEffect(() => {
@@ -79,62 +91,83 @@ export const MediaStage = memo(function MediaStage({
           return;
         }
 
+        const gen = ++playGenerationRef.current;
         const route = routePlaybackSource(current);
-        const targetUrl = route.resolvedUrl || current.url;
+        const initialUrl = route.resolvedUrl || current.url;
 
-        const baseVol = mutedOverride
+        const applyTargetUrl = (targetUrl: string) => {
+          if (playGenerationRef.current !== gen) return;
+
+          const baseVol = mutedOverride
           ? 0
           : typeof engine.getBaseVolume === 'function'
           ? engine.getBaseVolume()
           : state.volume;
-        const effectiveMuted = mutedOverride ? true : state.isMuted;
+          const effectiveMuted = mutedOverride ? true : state.isMuted;
 
-        if (current.type === 'video') {
-          if (videoRef.current) {
-            const el = videoRef.current;
-            videoRef.current.src = targetUrl;
-            videoRef.current.muted = effectiveMuted;
-            videoRef.current.volume = baseVol;
-            videoRef.current.load();
-            if (state.isPlaying) {
-              const startPlay = () => {
-                void el.play().catch(() => {
-                  store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
-                });
-              };
-              if (el.readyState >= 2) {
-                startPlay();
-              } else {
-                el.addEventListener('canplay', startPlay, { once: true });
+          if (current.type === 'video') {
+            if (videoRef.current) {
+              const el = videoRef.current;
+              videoRef.current.src = targetUrl;
+              videoRef.current.muted = effectiveMuted;
+              videoRef.current.volume = baseVol;
+              videoRef.current.load();
+              if (state.isPlaying) {
+                const startPlay = () => {
+                  void el.play().catch(() => {
+                    store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+                  });
+                };
+                if (el.readyState >= 2) {
+                  startPlay();
+                } else {
+                  el.addEventListener('canplay', startPlay, { once: true });
+                }
               }
             }
+            if (audioRef.current) {
+              audioRef.current.pause();
+            }
+          } else {
+            if (audioRef.current) {
+              const el = audioRef.current;
+              audioRef.current.src = targetUrl;
+              audioRef.current.muted = effectiveMuted;
+              audioRef.current.volume = baseVol;
+              audioRef.current.load();
+              if (state.isPlaying) {
+                const startPlay = () => {
+                  void el.play().catch(() => {
+                    store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
+                  });
+                };
+                if (el.readyState >= 2) {
+                  startPlay();
+                } else {
+                  el.addEventListener('canplay', startPlay, { once: true });
+                }
+              }
+            }
+            if (videoRef.current) {
+              videoRef.current.pause();
+            }
           }
-          if (audioRef.current) {
-            audioRef.current.pause();
-          }
+        };
+
+        if (initialUrl.startsWith('/local-media/') && !route.canRouteLocal) {
+          void resolveLazyMediaUrl(current)
+            .then((lazy) => {
+              if (playGenerationRef.current === gen && lazy.url) {
+                applyTargetUrl(lazy.url);
+              } else {
+                applyTargetUrl(initialUrl);
+              }
+            })
+            .catch(() => {
+              applyTargetUrl(initialUrl);
+            });
         } else {
-          if (audioRef.current) {
-            const el = audioRef.current;
-            audioRef.current.src = targetUrl;
-            audioRef.current.muted = effectiveMuted;
-            audioRef.current.volume = baseVol;
-            audioRef.current.load();
-            if (state.isPlaying) {
-              const startPlay = () => {
-                void el.play().catch(() => {
-                  store.dispatch({ type: 'SET_PLAYING', isPlaying: false });
-                });
-              };
-              if (el.readyState >= 2) {
-                startPlay();
-              } else {
-                el.addEventListener('canplay', startPlay, { once: true });
-              }
-            }
-          }
-          if (videoRef.current) {
-            videoRef.current.pause();
-          }
+          applyTargetUrl(initialUrl);
         }
       } else if (!current) {
         if (audioRef.current) {

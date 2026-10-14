@@ -2363,7 +2363,7 @@ rtm:
   test:
   - tests/presenter-media-player.test.mjs
   - tests/local-media-player.test.mjs
-  status: open
+  status: closed
   exempt: false
   green: false
   broken_at: status

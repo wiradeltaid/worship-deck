@@ -1398,8 +1398,8 @@ export function scanSpec12101OfflineMediaStartupGuards(presenterSource, stageSou
   if (!presenterSource.includes("rec.sha256 ? `/local-media/${rec.sha256.toLowerCase()}` : ''")) {
     defects.push('missing-local-media-url-mapping');
   }
-  // 3. MediaStage resolves targetUrl via routePlaybackSource ensuring fallback cloud integration
-  if (!stageSource.includes('routePlaybackSource(current)') || !stageSource.includes('route.resolvedUrl || current.url')) {
+  // 3. MediaStage resolves targetUrl via routePlaybackSource and resolveLazyMediaUrl ensuring fallback cloud and local blob integration
+  if (!stageSource.includes('routePlaybackSource(current)') || !stageSource.includes('resolveLazyMediaUrl(current)') || !stageSource.includes('revokeActiveMediaBlobUrl')) {
     defects.push('missing-stage-route-playback-source-resolution');
   }
   // 4. PresenterOperator mounts registerMediaServiceWorker and setupStreamBridgeListener
