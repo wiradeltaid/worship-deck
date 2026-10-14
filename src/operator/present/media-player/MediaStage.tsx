@@ -36,11 +36,14 @@ export const MediaStage = memo(function MediaStage({
 }: MediaStageProps) {
   const activeItemRef = useRef<PlaylistItem | null>(null);
   const playGenerationRef = useRef(0);
+  const activeBlobRevokeRef = useRef<(() => void) | null>(null);
   const [isRepeatOne, setIsRepeatOne] = useState(() => store.getSnapshot().repeatMode === 'one');
 
   // Revoke any active lazy blob URL on unmount
   useEffect(() => {
     return () => {
+      activeBlobRevokeRef.current?.();
+      activeBlobRevokeRef.current = null;
       revokeActiveMediaBlobUrl();
     };
   }, []);
@@ -95,8 +98,19 @@ export const MediaStage = memo(function MediaStage({
         const route = routePlaybackSource(current);
         const initialUrl = route.resolvedUrl || current.url;
 
-        const applyTargetUrl = (targetUrl: string) => {
-          if (playGenerationRef.current !== gen) return;
+        const applyTargetUrl = (targetUrl: string, revoke?: () => void) => {
+          if (playGenerationRef.current !== gen) {
+            revoke?.();
+            return;
+          }
+
+          if (activeBlobRevokeRef.current) {
+            activeBlobRevokeRef.current();
+            activeBlobRevokeRef.current = null;
+          }
+          if (revoke) {
+            activeBlobRevokeRef.current = revoke;
+          }
 
           const baseVol = mutedOverride
           ? 0
@@ -158,8 +172,9 @@ export const MediaStage = memo(function MediaStage({
           void resolveLazyMediaUrl(current)
             .then((lazy) => {
               if (playGenerationRef.current === gen && lazy.url) {
-                applyTargetUrl(lazy.url);
+                applyTargetUrl(lazy.url, lazy.revoke);
               } else {
+                lazy.revoke?.();
                 applyTargetUrl(initialUrl);
               }
             })

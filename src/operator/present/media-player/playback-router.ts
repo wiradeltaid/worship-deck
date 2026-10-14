@@ -150,11 +150,6 @@ export async function resolveLazyMediaUrl(
         return { url: route.resolvedUrl };
       }
 
-      if (activeBlobUrl && typeof URL !== 'undefined') {
-        URL.revokeObjectURL(activeBlobUrl);
-        activeBlobUrl = null;
-      }
-
       let fileObj: Blob | File | null = null;
       if (typeof rec.fileHandle.getFile === 'function') {
         try {
@@ -172,8 +167,10 @@ export async function resolveLazyMediaUrl(
         return {
           url: u,
           revoke: () => {
-            if (activeBlobUrl === u && typeof URL !== 'undefined') {
+            if (typeof URL !== 'undefined') {
               URL.revokeObjectURL(u);
+            }
+            if (activeBlobUrl === u) {
               activeBlobUrl = null;
             }
           },

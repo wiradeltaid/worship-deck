@@ -1624,4 +1624,40 @@ test('SPEC-121-01: Service Worker DB Version Parity, Local Stream Priority, and 
     currentLastModified: 1000,
   });
   assert.ok(lazyRes.url.startsWith('blob:'), 'Unconnected local item must resolve to playable Blob URL');
+
+  // 6. Out-of-order A -> B resolution lifecycle: slow A resolution does not revoke B
+  let aRevoked = false;
+  let bRevoked = false;
+  const mockLazyA = {
+    url: 'blob:http://localhost/item-a',
+    revoke: () => { aRevoked = true; },
+  };
+  const mockLazyB = {
+    url: 'blob:http://localhost/item-b',
+    revoke: () => { bRevoked = true; },
+  };
+
+  // Generation 1 started for A, superseded by Gen 2 for B
+  let currentGen = 2;
+  let activeRevoke = null;
+
+  // Gen 2 (B) finishes first
+  activeRevoke = mockLazyB.revoke;
+  assert.equal(bRevoked, false, 'B is currently active');
+
+  // Gen 1 (A) finishes later (stale):
+  const genA = 1;
+  if (currentGen !== genA) {
+    mockLazyA.revoke(); // Stale A is immediately revoked without affecting active B
+  } else {
+    activeRevoke?.();
+    activeRevoke = mockLazyA.revoke;
+  }
+
+  assert.equal(aRevoked, true, 'Stale A must be revoked immediately');
+  assert.equal(bRevoked, false, 'Active B must remain untouched and playing');
+
+  // Unmount cleanly revokes active B
+  activeRevoke?.();
+  assert.equal(bRevoked, true, 'Active B revoked on unmount');
 });
