@@ -5145,7 +5145,8 @@ waves:
           - tests/presenter-media-player.test.mjs
 
   - id: SPEC-123
-    status: open
+    status: closed
+    closed_at: '2026-10-14'
     release: foh-cloud-pairing-and-delta-sync-client
     prd: [offline-deck, operator-turn]
     fr: [FR-40, FR-16]
@@ -5154,14 +5155,14 @@ waves:
     spec_folder: .scratch/SPEC-123-foh-cloud-pairing-and-delta-sync-client/
     spec_reviewed:
       date: '2026-10-14'
-      sha: '0b25e880'
+      sha: '0f2d5e26'
       lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-123-01"
         component: registry
         satisfies: [FR-40, UC-32]
         blocked_by: []
-        touches: [desktop-datadir, pairing-config, public-repo-guard]
+        touches: [sync, settings]
         tests:
           - internal/desktop/pairing_test.go
           - internal/httpapi/pairing_test.go
@@ -5169,21 +5170,21 @@ waves:
         component: registry
         satisfies: [FR-40, UC-32]
         blocked_by: ["SPEC-123-01"]
-        touches: [sync-engine, sync-assets, sqlite-mutations]
+        touches: [sync, uploads]
         tests:
           - internal/httpapi/foh_sync_test.go
       - id: "SPEC-123-03"
         component: presenter
         satisfies: [FR-16, FR-40, UC-12, UC-32]
         blocked_by: ["SPEC-123-02"]
-        touches: [presenter-liveness, sync-lock, service-freeze]
+        touches: [sync, present-channel]
         tests:
           - internal/httpapi/sync_freeze_guard_test.go
       - id: "SPEC-123-04"
         component: hub
         satisfies: [FR-16, FR-40, UC-12, UC-32]
         blocked_by: ["SPEC-123-03"]
-        touches: [operator-shell, pairing-modal, sync-indicator]
+        touches: [sync, settings]
         tests:
           - tests/foh-cloud-pairing-ui.test.mjs
 

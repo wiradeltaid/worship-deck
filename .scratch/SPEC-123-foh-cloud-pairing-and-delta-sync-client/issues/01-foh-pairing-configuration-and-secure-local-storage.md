@@ -2,7 +2,7 @@
 
 **Satisfies:** [FR-40, UC-32]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Implement desktop pairing configuration model and secure local storage:

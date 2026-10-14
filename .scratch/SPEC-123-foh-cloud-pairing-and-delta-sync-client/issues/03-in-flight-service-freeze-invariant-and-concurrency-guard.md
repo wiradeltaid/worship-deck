@@ -2,7 +2,7 @@
 
 **Satisfies:** [FR-16, FR-40, UC-12, UC-32]
 **Blocked by:** ["SPEC-123-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Enforce the Sunday In-Flight Service Freeze invariant protecting the live presentation from background sync mutations:
