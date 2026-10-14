@@ -1490,9 +1490,105 @@ test('BUG-39: MediaStage Empty src attribute guard, MediaDrawer Re-import, and C
   }
 });
 
+test('SPEC-121-01: Service Worker DB Version Parity, Local Stream Priority, and Offline Resilience', async () => {
+  const fs = await import('node:fs');
+  const { DB_VERSION } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  const { mergeUnifiedPlaylistItem } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playlist-model.ts')
+  );
+  const { routePlaybackSource } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
 
+  // 1. Service Worker IDB version parity and onupgradeneeded schema initialization
+  const swPath = path.join(ROOT, 'public', 'media-sw.js');
+  assert.ok(fs.existsSync(swPath), 'public/media-sw.js must exist on disk');
+  const swCode = fs.readFileSync(swPath, 'utf8');
 
+  function assertSwVersionContract(code, expectedVersion) {
+    assert.ok(
+      code.includes(`indexedDB.open('worship-deck-media', ${expectedVersion})`),
+      `media-sw.js must open worship-deck-media at DB version ${expectedVersion}`
+    );
+    assert.ok(
+      code.includes('req.onupgradeneeded') && code.includes("db.createObjectStore('media-index'"),
+      'media-sw.js must define onupgradeneeded to guarantee store initialization on fresh installs'
+    );
+    assert.ok(
+      code.includes('record.fileHandle') && code.includes('Blob'),
+      'media-sw.js must extract files from record.fileHandle Blob or File'
+    );
+  }
 
+  assertSwVersionContract(swCode, DB_VERSION);
 
+  // Defect injection proof 1: Stale version 1 in media-sw.js throws assertion error (in-memory)
+  const defectiveSw = swCode.replace(
+    `indexedDB.open('worship-deck-media', ${DB_VERSION})`,
+    "indexedDB.open('worship-deck-media', 1)"
+  );
+  assert.notEqual(defectiveSw, swCode, 'Mutation must succeed');
+  assert.throws(
+    () => assertSwVersionContract(defectiveSw, DB_VERSION),
+    /media-sw\.js must open worship-deck-media at DB version/,
+    'Defect injection proof: stale DB version in SW throws assertion error'
+  );
 
+  // 2. Playback routing URL priority in mergeUnifiedPlaylistItem
+  const sampleSha = '11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff';
+  const cloudItem = {
+    id: 'cloud-item-1',
+    name: 'Sermon.mp4',
+    url: 'https://cloud.storage/video.mp4',
+    type: 'video',
+    sha256: sampleSha,
+  };
+  const localRecord = {
+    sha256: sampleSha,
+    name: 'Sermon.mp4',
+    storageKind: 'opfs',
+    stale: false,
+  };
 
+  const merged = mergeUnifiedPlaylistItem(cloudItem, localRecord);
+  assert.equal(
+    merged.url,
+    `/local-media/${sampleSha}`,
+    'Synced item must prioritize local byte-range stream URL over external cloud URL for offline resilience'
+  );
+  assert.equal(merged.cloud?.url, 'https://cloud.storage/video.mp4', 'Original cloud URL must be retained in cloud sub-object');
+
+  // When local record is stale, must fall back to cloud URL
+  const staleMerged = mergeUnifiedPlaylistItem(cloudItem, { ...localRecord, stale: true });
+  assert.equal(staleMerged.url, 'https://cloud.storage/video.mp4', 'Stale local record must fall back to cloud URL');
+
+  // 3. Fallback cloud resolution in routePlaybackSource when item.url is local-media
+  const syncedItemWithLocalUrl = {
+    ...merged,
+    cloud: { id: 'cloud-item-1', name: 'Sermon.mp4', url: 'https://cloud.storage/video.mp4' },
+  };
+  // If SW controller is missing, routePlaybackSource must fall back to cloud.url, NOT /local-media/...
+  const routeFallback = routePlaybackSource(syncedItemWithLocalUrl, { customSWActive: false });
+  assert.equal(routeFallback.canRouteLocal, false);
+  assert.equal(routeFallback.resolvedUrl, 'https://cloud.storage/video.mp4', 'Fallback must return true cloud URL, not local stream URL');
+  assert.equal(routeFallback.source, 'cloud');
+
+  // 4. Local-only Blob-backed item under uncontrolled SW retains Blob URL and never fabricates synthetic /api/media/local-
+  const localOnlyBlobItem = {
+    id: 'local-aabb1122',
+    name: 'Choir rehearsal.mp3',
+    url: 'blob:http://localhost:3000/mock-blob-uuid',
+    type: 'audio',
+    sha256: '9'.repeat(64),
+    source: 'local',
+  };
+  const localBlobRoute = routePlaybackSource(localOnlyBlobItem, { customSWActive: false });
+  assert.equal(localBlobRoute.canRouteLocal, false);
+  assert.equal(localBlobRoute.resolvedUrl, 'blob:http://localhost:3000/mock-blob-uuid', 'Must retain playable Blob URL');
+  assert.ok(
+    !localBlobRoute.resolvedUrl.startsWith('/api/media/local-'),
+    'Must never fabricate synthetic /api/media/local- URL for local-only items'
+  );
+});

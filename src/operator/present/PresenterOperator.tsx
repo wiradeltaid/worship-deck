@@ -170,6 +170,8 @@ import {
   MediaControlBar,
   MediaDrawer,
   localMediaRegistry,
+  registerMediaServiceWorker,
+  setupStreamBridgeListener,
   mergeUnifiedPlaylistItem,
   type MediaStore,
   type MediaEngine,
@@ -573,6 +575,13 @@ export default function PresenterOperator({
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
 
+  // SPEC-121-01: Register media service worker and bridge listener on host mount
+  useEffect(() => {
+    if (mode === 'remote') return;
+    void registerMediaServiceWorker();
+    return setupStreamBridgeListener(localMediaRegistry);
+  }, [mode]);
+
   // SPEC-114-02 & SPEC-116-02: Mount hydration for persistent media playlist (read-only on remote)
   useEffect(() => {
     let cancelled = false;
@@ -584,10 +593,17 @@ export default function PresenterOperator({
           localMap = localMediaRegistry.getMatchingMap();
         }
 
-        const res = await fetch('/api/media/playlist');
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        const serverItems = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+        let serverItems: any[] = [];
+        try {
+          const res = await fetch('/api/media/playlist');
+          if (res.ok && !cancelled) {
+            const data = await res.json();
+            serverItems = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+          }
+        } catch {
+          // Fall back gracefully when network/fetch fails in offline desktop usage
+        }
+        if (cancelled) return;
 
         const mergedItems: PlaylistItem[] = serverItems.map((raw: any) => {
           const contentUrl = raw.content_url || raw.url || '';
@@ -616,7 +632,7 @@ export default function PresenterOperator({
             ? Array.from(localMap.values())
                 .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
                 .map((rec) => {
-                  let localUrl = '';
+                  let localUrl = rec.sha256 ? `/local-media/${rec.sha256.toLowerCase()}` : '';
                   if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
                     localUrl = URL.createObjectURL(rec.fileHandle);
                   }

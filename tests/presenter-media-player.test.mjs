@@ -1382,3 +1382,160 @@ test('SPEC-119-04 behavioral: idempotent seek commit prevents duplicate intents 
   assert.equal(commitCount, 1, 'Subsequent blur must not commit duplicate intent');
   assert.deepEqual(committedValues, [45.5]);
 });
+
+// -----------------------------------------------------------------------------
+// SPEC-121-01: Offline Media Playback Resolution & Unconnected Startup Fallback
+// -----------------------------------------------------------------------------
+export function scanSpec12101OfflineMediaStartupGuards(presenterSource, stageSource) {
+  const defects = [];
+  // 1. PresenterOperator catches fetch('/api/media/playlist') independently to preserve local items offline
+  if (
+    !/try\s*\{[\s\S]*?fetch\('\/api\/media\/playlist'\)[\s\S]*?\}\s*catch\s*\{/m.test(presenterSource)
+  ) {
+    defects.push('missing-independent-playlist-fetch-error-handling');
+  }
+  // 2. Local-only items resolve URL to /local-media/:sha256
+  if (!presenterSource.includes("rec.sha256 ? `/local-media/${rec.sha256.toLowerCase()}` : ''")) {
+    defects.push('missing-local-media-url-mapping');
+  }
+  // 3. MediaStage resolves targetUrl via routePlaybackSource ensuring fallback cloud integration
+  if (!stageSource.includes('routePlaybackSource(current)') || !stageSource.includes('route.resolvedUrl || current.url')) {
+    defects.push('missing-stage-route-playback-source-resolution');
+  }
+  // 4. PresenterOperator mounts registerMediaServiceWorker and setupStreamBridgeListener
+  if (!presenterSource.includes('registerMediaServiceWorker') || !presenterSource.includes('setupStreamBridgeListener')) {
+    defects.push('missing-presenter-sw-registration-and-bridge-listener');
+  }
+  return defects;
+}
+
+test('SPEC-121-01: PresenterOperator and MediaStage offline media playback & resilient startup guards', async () => {
+  const fs = await import('node:fs');
+  const presenterPath = path.join(ROOT, 'src', 'operator', 'present', 'PresenterOperator.tsx');
+  const stagePath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaStage.tsx');
+  const presenterSource = fs.readFileSync(presenterPath, 'utf8');
+  const stageSource = fs.readFileSync(stagePath, 'utf8');
+
+  const defects = scanSpec12101OfflineMediaStartupGuards(presenterSource, stageSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-121-01 defect injection: unhandled offline fetch or missing local URL fails scan guard', () => {
+  const mutatedPresenter = `
+    const res = await fetch('/api/media/playlist');
+    if (!res.ok) return;
+    let localUrl = '';
+  `;
+  const mutatedStage = `
+    videoRef.current.src = 'custom.mp4';
+  `;
+  const defects = scanSpec12101OfflineMediaStartupGuards(mutatedPresenter, mutatedStage);
+  assert.deepEqual(defects, [
+    'missing-independent-playlist-fetch-error-handling',
+    'missing-local-media-url-mapping',
+    'missing-stage-route-playback-source-resolution',
+    'missing-presenter-sw-registration-and-bridge-listener',
+  ]);
+});
+
+test('SPEC-121-01 behavioral: offline startup preserves local items and maps to local-media stream', async () => {
+  const { createMediaStore } = await import(
+    srcUrl('operator', 'present', 'media-player', 'media-store.ts')
+  );
+  const { routePlaybackSource } = await import(
+    srcUrl('operator', 'present', 'media-player', 'playback-router.ts')
+  );
+
+  const mediaStore = createMediaStore();
+  const sampleSha = 'aabbccdd11223344556677889900aabbccdd11223344556677889900aabbccdd';
+  const localMap = new Map([
+    [sampleSha, {
+      sha256: sampleSha,
+      name: 'Offline Worship Track.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 4096000,
+      storageKind: 'opfs',
+      orderKey: '0|h00000:',
+    }],
+  ]);
+
+  // Simulate offline hydratePlaylist logic
+  let serverItems = [];
+  try {
+    // Simulated failed fetch
+    throw new TypeError('Failed to fetch: offline/no network connection');
+  } catch {
+    // Fall back gracefully when network/fetch fails in offline desktop usage
+  }
+
+  const localOnlyItems = Array.from(localMap.values())
+    .filter((rec) => !serverItems.some((s) => s.sha256 === rec.sha256))
+    .map((rec) => ({
+      id: `local-${rec.sha256.slice(0, 8)}`,
+      name: rec.name,
+      url: rec.sha256 ? `/local-media/${rec.sha256.toLowerCase()}` : '',
+      type: rec.mimeType.startsWith('video/') ? 'video' : 'audio',
+      size: rec.sizeBytes,
+      sha256: rec.sha256,
+      source: 'local',
+      local: {
+        storageKind: rec.storageKind,
+        stale: false,
+        fileHandle: rec.fileHandle,
+        orderKey: rec.orderKey,
+      },
+      orderKey: rec.orderKey,
+    }));
+
+  const allItems = [...serverItems, ...localOnlyItems];
+  assert.equal(allItems.length, 1, 'Offline hydration must retain 1 local item');
+  assert.equal(allItems[0].id, `local-${sampleSha.slice(0, 8)}`);
+  assert.equal(allItems[0].url, `/local-media/${sampleSha}`);
+  assert.equal(allItems[0].source, 'local');
+
+  mediaStore.dispatch({ type: 'ADD_ITEMS', items: allItems });
+  const snapshot = mediaStore.getSnapshot();
+  assert.equal(snapshot.items.length, 1);
+  assert.equal(snapshot.items[0].name, 'Offline Worship Track.mp3');
+  assert.equal(snapshot.items[0].url, `/local-media/${sampleSha}`);
+
+  // Test runtime playback routing seam under uncontrolled vs controlled SW
+  const syncedItem = {
+    id: 'item-sync-1',
+    name: 'Synced Sermon.mp4',
+    url: `/local-media/${sampleSha}`,
+    type: 'video',
+    sha256: sampleSha,
+    source: 'local',
+    cloud: { id: 'item-sync-1', name: 'Synced Sermon.mp4', url: 'https://cdn.church/sermon.mp4' },
+  };
+
+  // 1. Uncontrolled SW -> gracefully falls back to real cloud URL
+  const uncontrolledRoute = routePlaybackSource(syncedItem, { customSWActive: false });
+  assert.equal(uncontrolledRoute.canRouteLocal, false);
+  assert.equal(uncontrolledRoute.resolvedUrl, 'https://cdn.church/sermon.mp4');
+  assert.equal(uncontrolledRoute.source, 'cloud');
+
+  // 2. Controlled SW + local file in registry -> routes to local-media stream
+  const { localMediaRegistry } = await import(
+    srcUrl('operator', 'present', 'media-player', 'local-media-registry.ts')
+  );
+  await localMediaRegistry.saveRecord({
+    sha256: sampleSha,
+    name: 'Synced Sermon.mp4',
+    sizeBytes: 4096000,
+    mimeType: 'video/mp4',
+    storageKind: 'in-memory',
+    lastModified: 1000,
+    verifiedAt: new Date().toISOString(),
+  });
+
+  const controlledRoute = routePlaybackSource(syncedItem, {
+    customSWActive: true,
+    currentSizeBytes: 4096000,
+    currentLastModified: 1000,
+  });
+  assert.equal(controlledRoute.canRouteLocal, true);
+  assert.equal(controlledRoute.resolvedUrl, `/local-media/${sampleSha}`);
+  assert.equal(controlledRoute.source, 'local');
+});

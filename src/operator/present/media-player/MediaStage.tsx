@@ -9,6 +9,7 @@ import {
 import type { MediaStore } from './media-store';
 import type { MediaEngine } from './media-engine';
 import { resolveNextPlaylistItem, type PlaylistItem } from './playlist-model';
+import { routePlaybackSource } from './playback-router';
 
 export interface MediaStageProps {
   store: MediaStore;
@@ -78,6 +79,9 @@ export const MediaStage = memo(function MediaStage({
           return;
         }
 
+        const route = routePlaybackSource(current);
+        const targetUrl = route.resolvedUrl || current.url;
+
         const baseVol = mutedOverride
           ? 0
           : typeof engine.getBaseVolume === 'function'
@@ -88,7 +92,7 @@ export const MediaStage = memo(function MediaStage({
         if (current.type === 'video') {
           if (videoRef.current) {
             const el = videoRef.current;
-            videoRef.current.src = current.url;
+            videoRef.current.src = targetUrl;
             videoRef.current.muted = effectiveMuted;
             videoRef.current.volume = baseVol;
             videoRef.current.load();
@@ -111,7 +115,7 @@ export const MediaStage = memo(function MediaStage({
         } else {
           if (audioRef.current) {
             const el = audioRef.current;
-            audioRef.current.src = current.url;
+            audioRef.current.src = targetUrl;
             audioRef.current.muted = effectiveMuted;
             audioRef.current.volume = baseVol;
             audioRef.current.load();

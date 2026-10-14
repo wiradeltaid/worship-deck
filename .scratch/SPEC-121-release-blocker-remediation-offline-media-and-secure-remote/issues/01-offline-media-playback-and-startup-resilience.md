@@ -2,7 +2,7 @@
 
 **Satisfies:** [FR-16, UC-12]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Ensure full resilience when starting the desktop application without internet connectivity:
