@@ -128,7 +128,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	srv := &httpapi.Server{DB: handle, Root: root, IsDesktop: isDesktop}
+	srv := &httpapi.Server{DB: handle, Root: root, IsDesktop: isDesktop, DataDir: dataDir}
 
 	// 5. Resolve host and port listener
 	preferredPort := 3000
