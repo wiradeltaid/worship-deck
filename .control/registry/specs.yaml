@@ -5072,6 +5072,53 @@ waves:
         touches: [remote-control, present-channel]
         tests:
           - tests/remote-presenting-client.test.mjs
+  - id: SPEC-121
+    status: open
+    release: release-blocker-remediation-offline-media-and-secure-remote
+    prd: [operator-turn]
+    fr: [FR-16, FR-25, FR-35]
+    size: M
+    depends_on: [SPEC-120]
+    spec_folder: .scratch/SPEC-121-release-blocker-remediation-offline-media-and-secure-remote/
+    spec_reviewed:
+      date: '2026-10-14'
+      sha: 'e8410599'
+      lenses: [structure, prose, edge-case-hunter, security-adversary]
+    tickets:
+      - id: "SPEC-121-01"
+        component: presenter
+        satisfies: [FR-16, UC-12]
+        blocked_by: []
+        touches: [presenter, media-player]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/local-media-player.test.mjs
+      - id: "SPEC-121-02"
+        component: hub
+        satisfies: [FR-35, UC-29]
+        blocked_by: ["SPEC-121-01"]
+        touches: [remote-control, httpapi, gate]
+        tests:
+          - tests/remote-control-go-http.test.mjs
+          - tests/remote-presenting-client.test.mjs
+      - id: "SPEC-121-03"
+        component: hub
+        satisfies: [FR-35]
+        blocked_by: ["SPEC-121-02"]
+        touches: [httpapi, services]
+        tests:
+          - tests/go-http-gate.test.mjs
+          - tests/sync-cors-and-bearer-auth.test.mjs
+      - id: "SPEC-121-04"
+        component: presenter
+        satisfies: [FR-16, FR-25, UC-12, UC-29]
+        blocked_by: ["SPEC-121-03"]
+        touches: [present-channel, projected]
+        tests:
+          - tests/presenter-media-player.test.mjs
+          - tests/remote-presenting-client.test.mjs
+          - tests/bilingual-i18n-parity.test.mjs
+          - tests/theme-chrome.test.mjs
 
 
 

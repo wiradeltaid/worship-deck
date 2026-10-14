@@ -2357,6 +2357,38 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-121-01
+  spec: SPEC-121
+  release: release-blocker-remediation-offline-media-and-secure-remote
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/local-media-player.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-121-04
+  spec: SPEC-121
+  release: release-blocker-remediation-offline-media-and-secure-remote
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  - tests/theme-chrome.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -9611,6 +9643,52 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-120-01
+  spec: SPEC-120
+  release: presenter-remote-pairing-session-liveness-decoupling
+  test:
+  - tests/remote-presenting-client.test.mjs
+  status: done
+  exempt: false
+  green: true
+  broken_at: ''
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-121-02
+  spec: SPEC-121
+  release: release-blocker-remediation-offline-media-and-secure-remote
+  test:
+  - tests/remote-control-go-http.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-35
+  DEC: []
+  UC: UC-29
+  ticket: SPEC-121-04
+  spec: SPEC-121
+  release: release-blocker-remediation-offline-media-and-secure-remote
+  test:
+  - tests/presenter-media-player.test.mjs
+  - tests/remote-presenting-client.test.mjs
+  - tests/bilingual-i18n-parity.test.mjs
+  - tests/theme-chrome.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35

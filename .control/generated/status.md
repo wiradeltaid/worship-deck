@@ -5,8 +5,8 @@
 ```yaml
 promise_progress: 100%
 rtm_rows:
-  green: 855
-  counted: 855
+  green: 856
+  counted: 860
   excluded_no_uc: 1
 work_progress:
 - spec: SPEC-100
@@ -114,6 +114,16 @@ work_progress:
   tickets_done: 8
   tickets_total: 8
   work_progress: 100%
+- spec: SPEC-120
+  status: closed
+  tickets_done: 1
+  tickets_total: 1
+  work_progress: 100%
+- spec: SPEC-121
+  status: open
+  tickets_done: 0
+  tickets_total: 4
+  work_progress: 0%
 - spec: SPEC-13
   status: closed
   tickets_done: 13
@@ -604,8 +614,9 @@ work_progress:
   tickets_done: 5
   tickets_total: 5
   work_progress: 100%
-gate_readiness: 100%
-validators_red: []
+gate_readiness: 96%
+validators_red:
+- review-trace
 validators_skipped:
   review-trace: 'advisory — trace stale, re-run before the next gate or spec close: .how/_platform/ARCHITECTURE-SPINE.md
     (changed at 4c1e5ac, reviewed at e1558cc), .how/hub/SDD-hub.md (changed at ecfb31b, reviewed at bc6c694),

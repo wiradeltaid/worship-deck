@@ -209,6 +209,20 @@ dag:
     - SPEC-12-07
   - parallel:
     - SPEC-12-08
+- spec: SPEC-120
+  order:
+  - parallel:
+    - SPEC-120-01
+- spec: SPEC-121
+  order:
+  - parallel:
+    - SPEC-121-01
+  - parallel:
+    - SPEC-121-02
+  - parallel:
+    - SPEC-121-03
+  - parallel:
+    - SPEC-121-04
 - spec: SPEC-13
   order:
   - parallel:
