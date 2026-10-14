@@ -526,7 +526,7 @@ export default function PresenterOperator({
   isOffline = false,
   rawService,
   mode = 'host',
-  onSendIntent,
+  onSendIntent: rawSendIntent,
   controlledState,
   controlledMediaState,
   controlledScriptureState,
@@ -726,7 +726,7 @@ export default function PresenterOperator({
   const lastSeenSeqRef = useRef<number>(0);
   const seekHoldRef = useRef<SeekHoldState | null>(null);
 
-  const handleRemoteMediaIntent = useCallback(
+  const onSendIntent = useCallback(
     (intent: PresenterRemoteIntent) => {
       if (intent.type === 'media-seek') {
         seekHoldRef.current = {
@@ -736,9 +736,9 @@ export default function PresenterOperator({
           committedAt: Date.now(),
         };
       }
-      onSendIntent?.(intent);
+      rawSendIntent?.(intent);
     },
-    [onSendIntent]
+    [rawSendIntent]
   );
 
   // SPEC-115-03 / SPEC-121-04: Synchronize mirrored media state from host SSE events with monotonic seq & seek hold
@@ -3241,7 +3241,7 @@ export default function PresenterOperator({
           engine={mediaEngine}
           onOpenDrawer={() => setMediaDrawerOpen(true)}
           isRemote={mode === 'remote'}
-          onRemoteMediaIntent={mode === 'remote' ? handleRemoteMediaIntent : undefined}
+          onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
           planIdentity={planIdentity}
         />
       </div>
@@ -3864,7 +3864,7 @@ export default function PresenterOperator({
         store={mediaStore}
         engine={mediaEngine}
         isRemote={mode === 'remote'}
-        onRemoteMediaIntent={mode === 'remote' ? handleRemoteMediaIntent : undefined}
+        onRemoteMediaIntent={mode === 'remote' ? onSendIntent : undefined}
         planIdentity={planIdentity}
       />
 
