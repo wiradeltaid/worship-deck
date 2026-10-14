@@ -2394,10 +2394,10 @@ rtm:
   release: mobile-media-bar-three-row-layout-and-phone-seekbar-resilience
   test:
   - tests/presenter-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -9713,10 +9713,10 @@ rtm:
   release: mobile-media-bar-three-row-layout-and-phone-seekbar-resilience
   test:
   - tests/presenter-media-player.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-35
