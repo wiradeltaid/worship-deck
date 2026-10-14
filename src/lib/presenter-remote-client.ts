@@ -387,6 +387,8 @@ export class PresenterRemoteSession {
   private stopped = false;
   private isBroadcasting = false;
   private pendingBroadcastState: Partial<RemoteControlSessionState> | null = null;
+  private seq = 0;
+  private sessionEpoch: number = Date.now();
 
   constructor(options: PresenterRemoteSessionOptions) {
     this.serviceId = options.serviceId;
@@ -407,6 +409,8 @@ export class PresenterRemoteSession {
 
   public async start(): Promise<void> {
     this.stopped = false;
+    this.sessionEpoch = Date.now();
+    this.seq = 0;
     const epoch = ++this.startRequestedEpoch;
     return this.enqueue(async () => {
       if (epoch <= this.stopEpoch) {
@@ -531,24 +535,56 @@ export class PresenterRemoteSession {
   public async broadcastState(state: Partial<RemoteControlSessionState>): Promise<void> {
     if (this.stopped) return;
 
+    const nextSeq = ++this.seq;
+    const now = Date.now();
+    const epoch = this.sessionEpoch;
+
+    const stampedState: Partial<RemoteControlSessionState> = {
+      ...state,
+      seq: state.seq ?? nextSeq,
+      sessionEpoch: state.sessionEpoch ?? epoch,
+      timestamp: state.timestamp ?? now,
+    };
+    if (stampedState.media) {
+      stampedState.media = {
+        ...stampedState.media,
+        seq: stampedState.media.seq ?? stampedState.seq,
+        sessionEpoch: stampedState.media.sessionEpoch ?? epoch,
+        timestamp: stampedState.media.timestamp ?? now,
+      };
+    }
+
     if (this.isBroadcasting) {
       if (!this.pendingBroadcastState) {
-        this.pendingBroadcastState = { ...state };
+        this.pendingBroadcastState = { ...stampedState };
       } else {
-        const mergedMedia = state.media
-          ? { ...(this.pendingBroadcastState.media || {}), ...state.media }
+        const mergedMedia = stampedState.media
+          ? { ...(this.pendingBroadcastState.media || {}), ...stampedState.media }
           : this.pendingBroadcastState.media;
+        const coalescedSeq = ++this.seq;
+        const coalescedNow = Date.now();
         this.pendingBroadcastState = {
           ...this.pendingBroadcastState,
-          ...state,
+          ...stampedState,
           ...(mergedMedia ? { media: mergedMedia } : {}),
+          seq: coalescedSeq,
+          sessionEpoch: epoch,
+          timestamp: coalescedNow,
         };
+        if (this.pendingBroadcastState.media) {
+          this.pendingBroadcastState.media = {
+            ...this.pendingBroadcastState.media,
+            seq: coalescedSeq,
+            sessionEpoch: epoch,
+            timestamp: coalescedNow,
+          };
+        }
       }
       return;
     }
 
     this.isBroadcasting = true;
-    let nextState: Partial<RemoteControlSessionState> | null = state;
+    let nextState: Partial<RemoteControlSessionState> | null = stampedState;
 
     try {
       while (nextState && !this.stopped) {
@@ -587,6 +623,9 @@ export interface PlaylistItemSummary {
 }
 
 export type RemoteControlSessionState = {
+  seq?: number;
+  sessionEpoch?: number;
+  timestamp?: number;
   index?: number;
   blank?: boolean;
   transition?: SlideTransition;
@@ -604,6 +643,9 @@ export type RemoteControlSessionState = {
     volume?: number;
     isMuted?: boolean;
     playlistManifest?: PlaylistItemSummary[];
+    seq?: number;
+    sessionEpoch?: number;
+    timestamp?: number;
   };
   scripture?: {
     reference: string;
@@ -943,4 +985,136 @@ export class RemoteControlSession {
     }
     this.onConnectionChange?.('idle');
   }
+}
+
+export interface SeekHoldState {
+  epoch: number;
+  committedSeq: number;
+  targetTime: number;
+  committedAt: number;
+}
+
+export interface TelemetryHoldDecision {
+  nextHold: SeekHoldState | null;
+  dropTimeUpdate: boolean;
+  activeEpoch: number;
+  maxSeenSeq: number;
+}
+
+/**
+ * Resolves monotonic telemetry updates against optimistic seek holds (SPEC-121-04).
+ *
+ * Rules:
+ * 1. If incoming sessionEpoch differs from activeEpoch and is non-zero,
+ *    presenter has restarted: seek hold is reset immediately and update is accepted.
+ * 2. If a seek hold is active in the current epoch, updates with seq <= committedSeq
+ *    are dropped to prevent rubber-banding during network jitter.
+ * 3. Once an update with seq > committedSeq arrives, if the presenter time has caught up
+ *    (within 0.75s of target) or grace timeout elapsed (3s), the hold clears and update is accepted.
+ */
+export function resolveMonotonicSeekHold(
+  currentHold: SeekHoldState | null,
+  activeEpoch: number,
+  maxSeenSeq: number,
+  incoming: {
+    seq?: number;
+    sessionEpoch?: number;
+    currentTime?: number;
+  },
+  now: number = Date.now()
+): TelemetryHoldDecision {
+  const incomingEpoch = incoming.sessionEpoch ?? 0;
+  const incomingSeq = incoming.seq ?? 0;
+
+  let nextEpoch = activeEpoch;
+  let nextMaxSeq = maxSeenSeq;
+  let nextHold = currentHold;
+
+  // Rule 1: Presenter restart (newer epoch) resets seek hold
+  if (incomingEpoch > 0 && incomingEpoch > activeEpoch) {
+    nextEpoch = incomingEpoch;
+    nextMaxSeq = incomingSeq;
+    return {
+      nextHold: null,
+      dropTimeUpdate: false,
+      activeEpoch: nextEpoch,
+      maxSeenSeq: nextMaxSeq,
+    };
+  }
+
+  // Ignore stale delayed packets from an older epoch
+  if (incomingEpoch > 0 && incomingEpoch < activeEpoch) {
+    return {
+      nextHold,
+      dropTimeUpdate: true,
+      activeEpoch,
+      maxSeenSeq,
+    };
+  }
+
+  if (incomingSeq > nextMaxSeq) {
+    nextMaxSeq = incomingSeq;
+  }
+
+  // If no hold active, accept update
+  if (!nextHold) {
+    return {
+      nextHold: null,
+      dropTimeUpdate: false,
+      activeEpoch: nextEpoch,
+      maxSeenSeq: nextMaxSeq,
+    };
+  }
+
+  // Rule 2: In same epoch, drop older or concurrent seq updates
+  if (incomingEpoch === nextHold.epoch && incomingSeq <= nextHold.committedSeq) {
+    return {
+      nextHold,
+      dropTimeUpdate: true,
+      activeEpoch: nextEpoch,
+      maxSeenSeq: nextMaxSeq,
+    };
+  }
+
+  // Rule 3: Seq is newer than committedSeq — check convergence or timeout
+  const elapsed = now - nextHold.committedAt;
+  if (elapsed > 3000) {
+    // Grace timeout elapsed — clear hold and accept update
+    return {
+      nextHold: null,
+      dropTimeUpdate: false,
+      activeEpoch: nextEpoch,
+      maxSeenSeq: nextMaxSeq,
+    };
+  }
+
+  // If incoming update carries no currentTime (e.g. partial volume or manifest broadcast),
+  // preserve the seek hold and do not clear prematurely
+  if (typeof incoming.currentTime !== 'number') {
+    return {
+      nextHold,
+      dropTimeUpdate: false,
+      activeEpoch: nextEpoch,
+      maxSeenSeq: nextMaxSeq,
+    };
+  }
+
+  const timeDrift = Math.abs(incoming.currentTime - nextHold.targetTime);
+  if (timeDrift <= 0.75) {
+    // Caught up to seek target — clear hold and accept update
+    return {
+      nextHold: null,
+      dropTimeUpdate: false,
+      activeEpoch: nextEpoch,
+      maxSeenSeq: nextMaxSeq,
+    };
+  }
+
+  // Still catching up
+  return {
+    nextHold,
+    dropTimeUpdate: true,
+    activeEpoch: nextEpoch,
+    maxSeenSeq: nextMaxSeq,
+  };
 }

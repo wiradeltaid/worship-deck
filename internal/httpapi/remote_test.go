@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -301,5 +302,92 @@ func TestRemoteCapabilityToken_IsolationAndHijackRefusal(t *testing.T) {
 	srv.deleteRemotePair(recAdminDel, reqAdminDel)
 	if recAdminDel.Code != http.StatusNoContent {
 		t.Fatalf("expected admin delete pair to return 204, got %d", recAdminDel.Code)
+	}
+}
+
+func TestRemoteStreamImmediateFullSnapshotOnConnect(t *testing.T) {
+	srv := &Server{DB: nil}
+	ResetRemoteHubForTests()
+	serviceID := 999
+	presenterUID := 501
+
+	presenterSess := &auth.Session{UID: presenterUID, Role: "operator", SID: "pres-501"}
+
+	// 1. Presenter pairs
+	reqPair := httptest.NewRequest("POST", fmt.Sprintf("/api/present/%d/remote/pair", serviceID), nil)
+	reqPair.SetPathValue("id", fmt.Sprintf("%d", serviceID))
+	reqPair = withSession(reqPair, presenterSess)
+	recPair := httptest.NewRecorder()
+	srv.postRemotePair(recPair, reqPair)
+	if recPair.Code != http.StatusOK {
+		t.Fatalf("pair failed: %d", recPair.Code)
+	}
+	var pairResp map[string]any
+	_ = json.Unmarshal(recPair.Body.Bytes(), &pairResp)
+	code := pairResp["code"].(string)
+
+	// 2. Mobile claims via code to obtain capability token
+	claimBody, _ := json.Marshal(map[string]any{"code": code})
+	reqClaim := httptest.NewRequest("POST", fmt.Sprintf("/api/present/%d/remote/claim", serviceID), bytes.NewReader(claimBody))
+	reqClaim.SetPathValue("id", fmt.Sprintf("%d", serviceID))
+	recClaim := httptest.NewRecorder()
+	srv.postRemoteClaim(recClaim, reqClaim)
+	if recClaim.Code != http.StatusOK {
+		t.Fatalf("claim failed: %d", recClaim.Code)
+	}
+	var claimResp map[string]any
+	_ = json.Unmarshal(recClaim.Body.Bytes(), &claimResp)
+	token := claimResp["session_token"].(string)
+
+	// 3. Presenter broadcasts full state
+	statePayload := map[string]any{
+		"index":        4,
+		"blank":        false,
+		"seq":          42,
+		"sessionEpoch": 1728900000000,
+		"media": map[string]any{
+			"activeId":    "song-1",
+			"isPlaying":   true,
+			"currentTime": 45.2,
+		},
+	}
+	stateBody, _ := json.Marshal(statePayload)
+	reqState := httptest.NewRequest("POST", fmt.Sprintf("/api/present/%d/remote/state", serviceID), bytes.NewReader(stateBody))
+	reqState.SetPathValue("id", fmt.Sprintf("%d", serviceID))
+	reqState = withSession(reqState, presenterSess)
+	recState := httptest.NewRecorder()
+	srv.postRemoteState(recState, reqState)
+	if recState.Code != http.StatusOK {
+		t.Fatalf("post state failed: %d", recState.Code)
+	}
+
+	// 4. Remote connects to SSE stream using token -> MUST receive immediate full state snapshot
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	reqStream := httptest.NewRequest("GET", fmt.Sprintf("/api/present/%d/remote/stream?role=remote&token=%s", serviceID, token), nil).WithContext(ctx)
+	reqStream.SetPathValue("id", fmt.Sprintf("%d", serviceID))
+	recStream := httptest.NewRecorder()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		srv.getRemoteStream(recStream, reqStream)
+	}()
+
+	// Wait briefly for first event and cancel context
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	<-done
+
+	streamOutput := recStream.Body.String()
+	if !strings.Contains(streamOutput, "data: ") {
+		t.Fatalf("expected stream to contain initial data snapshot, got: %q", streamOutput)
+	}
+	if !strings.Contains(streamOutput, `"index":4`) || !strings.Contains(streamOutput, `"activeId":"song-1"`) {
+		t.Fatalf("expected snapshot to include slide index and media state, got: %q", streamOutput)
+	}
+	if !strings.Contains(streamOutput, `"seq":42`) {
+		t.Fatalf("expected snapshot to include monotonic seq, got: %q", streamOutput)
 	}
 }

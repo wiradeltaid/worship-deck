@@ -557,6 +557,12 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 		}
 		state.remoteChans[ch] = struct{}{}
 	}
+
+	var initialSnapshot []byte
+	if role == "remote" && len(state.lastState) > 0 {
+		initialSnapshot = make([]byte, len(state.lastState))
+		copy(initialSnapshot, state.lastState)
+	}
 	state.mu.Unlock()
 
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -566,6 +572,15 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
+
+	// SPEC-121-04: When a remote client connects or reconnects to the SSE stream,
+	// immediately dispatch an unthrottled full presentation state snapshot.
+	if len(initialSnapshot) > 0 {
+		_, err := fmt.Fprintf(w, "data: %s\n\n", initialSnapshot)
+		if err == nil {
+			flusher.Flush()
+		}
+	}
 
 	// If there's an initial event or keepalive
 	ticker := time.NewTicker(StreamFreshnessWindow / 2)

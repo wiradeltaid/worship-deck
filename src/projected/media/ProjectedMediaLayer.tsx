@@ -116,6 +116,7 @@ export default function ProjectedMediaLayer({
         ref={videoRef}
         autoPlay={source.isPlaying}
         muted
+        defaultMuted
         playsInline
         src={source.mediaUrl}
         onCanPlay={handleCanPlay}
