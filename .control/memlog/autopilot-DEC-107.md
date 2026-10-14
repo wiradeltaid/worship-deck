@@ -6,12 +6,12 @@ artifact: .control/decisions/DEC-107-daily-autopilot-mandate-release-blocker-rem
 
 ## Resume
 
-- Iteration: I-4 (SPEC-121-04 Delivered, SPEC-121 Completed)
+- Iteration: Complete (Mandate DEC-107 Applied)
 - Run branch: autopilot/DEC-107
-- Stopped at: Mandate DEC-107 completed (All 4 release blocker tickets in SPEC-121 delivered and peer-reviewed)
+- Stopped at: Done (All 4 release blocker tickets in SPEC-121 delivered, verified, and peer-reviewed)
 - Blocked: —
 - Parked: —
-- Next: Done / Merge PR
+- Next: Done — Maintainer merge of PR into main
 
 ## Decisions
 

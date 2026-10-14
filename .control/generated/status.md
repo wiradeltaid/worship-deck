@@ -637,12 +637,7 @@ open_questions:
   blocking_over_budget: false
   assumptions_budget_per_gate: 15
 mandates:
-  resolution: one
-  active_ids:
-  - DEC-107
-  active_mandate:
-    id: DEC-107
-    status: accepted
-    expires: '2026-10-21'
-    scope: all
+  resolution: none
+  active_ids: []
+  active_mandate: null
 ```
