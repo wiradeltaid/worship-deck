@@ -2,7 +2,7 @@
 
 **Satisfies:** [FR-35, UC-29]
 **Blocked by:** ["SPEC-121-01"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Eliminate the mobile QR pairing login barrier while hardening presenter authority:

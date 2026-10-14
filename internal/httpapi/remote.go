@@ -198,6 +198,54 @@ func generateSessionToken() string {
 	return fmt.Sprintf("%x", b)
 }
 
+type claimRateLimiter struct {
+	mu       sync.Mutex
+	failures map[int][]time.Time
+}
+
+var globalClaimLimiter = &claimRateLimiter{
+	failures: make(map[int][]time.Time),
+}
+
+func (l *claimRateLimiter) recordFailure(serviceID int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-1 * time.Minute)
+	var kept []time.Time
+	for _, t := range l.failures[serviceID] {
+		if t.After(cutoff) {
+			kept = append(kept, t)
+		}
+	}
+	l.failures[serviceID] = append(kept, now)
+}
+
+func (l *claimRateLimiter) isRateLimited(serviceID int) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-1 * time.Minute)
+	var kept []time.Time
+	for _, t := range l.failures[serviceID] {
+		if t.After(cutoff) {
+			kept = append(kept, t)
+		}
+	}
+	if len(kept) == 0 {
+		delete(l.failures, serviceID)
+	} else {
+		l.failures[serviceID] = kept
+	}
+	return len(kept) >= 5
+}
+
+func (l *claimRateLimiter) reset(serviceID int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.failures, serviceID)
+}
+
 // 1. POST /api/present/{id}/remote/pair
 // Claims presenting role for the caller and returns a short-lived single-use code.
 // Called again while first code is unclaimed, returns a new code and invalidates the old.
@@ -217,6 +265,7 @@ func (s *Server) postRemotePair(w http.ResponseWriter, r *http.Request) {
 	}
 
 	code := generate6DigitCode()
+	globalClaimLimiter.reset(serviceID)
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 
 	state.mu.Lock()
@@ -273,6 +322,7 @@ func (s *Server) getRemotePairStatus(w http.ResponseWriter, r *http.Request) {
 // With a valid code, binds caller as remote and returns current session state.
 // With wrong, expired, or already-used code -> 400 (opaque error).
 // Second claim against live pairing -> 409 (first remote keeps working).
+// Rate-limited to 5 failed attempts per service per minute -> 429.
 func (s *Server) postRemoteClaim(w http.ResponseWriter, r *http.Request) {
 	serviceID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil || serviceID <= 0 {
@@ -280,23 +330,26 @@ func (s *Server) postRemoteClaim(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess := sessionFrom(r)
-	if sess == nil {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
+	if globalClaimLimiter.isRateLimited(serviceID) {
+		writeError(w, http.StatusTooManyRequests, "Too many failed claim attempts. Please wait 1 minute.")
 		return
 	}
 
 	body, err, status, msg := readJSONObject(r, 64<<10)
 	if err != nil {
+		globalClaimLimiter.recordFailure(serviceID)
 		writeError(w, status, msg)
 		return
 	}
 
 	code, _ := body["code"].(string)
 	if code == "" {
+		globalClaimLimiter.recordFailure(serviceID)
 		writeError(w, http.StatusBadRequest, "Invalid pairing code")
 		return
 	}
+
+	sess := sessionFrom(r)
 
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 	state.mu.Lock()
@@ -311,15 +364,21 @@ func (s *Server) postRemoteClaim(w http.ResponseWriter, r *http.Request) {
 
 	// Validate code: must match, must not be empty, must not be expired
 	if state.pendingCode == "" || state.pendingCode != code || time.Now().After(state.codeExpiresAt) {
+		globalClaimLimiter.recordFailure(serviceID)
 		// Opaque 400 for wrong, expired, or already-used code
 		writeError(w, http.StatusBadRequest, "Invalid pairing code")
 		return
 	}
 
-	// Successful claim: consume the code (single-use)
+	// Successful claim: reset limiter and consume the code (single-use)
+	globalClaimLimiter.reset(serviceID)
 	state.pendingCode = ""
 	state.hasPairedRemote = true
-	state.pairedRemoteUID = sess.UID
+	if sess != nil {
+		state.pairedRemoteUID = sess.UID
+	} else {
+		state.pairedRemoteUID = 0
+	}
 	state.sessionToken = generateSessionToken()
 
 	var currentState any = nil
@@ -345,12 +404,6 @@ func (s *Server) postRemoteResume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess := sessionFrom(r)
-	if sess == nil {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
 	body, err, status, msg := readJSONObject(r, 64<<10)
 	if err != nil {
 		writeError(w, status, msg)
@@ -362,9 +415,14 @@ func (s *Server) postRemoteResume(w http.ResponseWriter, r *http.Request) {
 		token, _ = body["session_token"].(string)
 	}
 	if token == "" {
+		token = r.Header.Get("X-Remote-Token")
+	}
+	if token == "" {
 		writeError(w, http.StatusBadRequest, "Missing session token")
 		return
 	}
+
+	sess := sessionFrom(r)
 
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 	state.mu.Lock()
@@ -377,7 +435,9 @@ func (s *Server) postRemoteResume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rebind caller UID in case user ID or cookie was refreshed
-	state.pairedRemoteUID = sess.UID
+	if sess != nil {
+		state.pairedRemoteUID = sess.UID
+	}
 
 	var currentState any = nil
 	if len(state.lastState) > 0 {
@@ -403,36 +463,40 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess := sessionFrom(r)
-	if sess == nil {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeError(w, http.StatusInternalServerError, "Streaming unsupported")
 		return
 	}
 
+	sess := sessionFrom(r)
+
 	tokenQuery := r.URL.Query().Get("token")
 	if tokenQuery == "" {
 		tokenQuery = r.URL.Query().Get("session_token")
 	}
-	role := r.URL.Query().Get("role")
+	requestedRole := r.URL.Query().Get("role")
+	role := requestedRole
 	if tokenQuery != "" {
 		state := globalRemoteHub.getOrCreateSession(serviceID)
 		state.mu.Lock()
 		if state.hasPairedRemote && state.sessionToken != "" && state.sessionToken == tokenQuery {
+			if requestedRole == "presenter" {
+				state.mu.Unlock()
+				writeError(w, http.StatusForbidden, "Remote capability token cannot claim presenter role")
+				return
+			}
 			role = "remote"
-			state.pairedRemoteUID = sess.UID
+			if sess != nil {
+				state.pairedRemoteUID = sess.UID
+			}
 		}
 		state.mu.Unlock()
 	} else if role != "presenter" && role != "remote" {
 		// Default: if caller is the paired remote UID, role is remote; otherwise presenter
 		state := globalRemoteHub.getOrCreateSession(serviceID)
 		state.mu.Lock()
-		if state.hasPairedRemote && state.pairedRemoteUID == sess.UID {
+		if sess != nil && state.hasPairedRemote && state.pairedRemoteUID == sess.UID && state.pairedRemoteUID != 0 {
 			role = "remote"
 		} else {
 			role = "presenter"
@@ -441,6 +505,16 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if role == "presenter" {
+		state := globalRemoteHub.getOrCreateSession(serviceID)
+		state.mu.Lock()
+		presenterUID := state.presenterUID
+		state.mu.Unlock()
+
+		if sess == nil || presenterUID == 0 || sess.UID != presenterUID {
+			writeError(w, http.StatusForbidden, "Caller is not the authorized presenter")
+			return
+		}
+
 		globalRemoteHub.mu.Lock()
 		if globalRemoteHub.syncActive {
 			globalRemoteHub.mu.Unlock()
@@ -464,7 +538,14 @@ func (s *Server) getRemoteStream(w http.ResponseWriter, r *http.Request) {
 		state.presenterUID = sess.UID
 	} else {
 		// Remote role
-		if !state.hasPairedRemote || state.pairedRemoteUID != sess.UID {
+		isAuthorizedRemote := false
+		if tokenQuery != "" && state.hasPairedRemote && state.sessionToken != "" && state.sessionToken == tokenQuery {
+			isAuthorizedRemote = true
+		} else if sess != nil && state.hasPairedRemote && state.pairedRemoteUID == sess.UID && state.pairedRemoteUID != 0 {
+			isAuthorizedRemote = true
+		}
+
+		if !isAuthorizedRemote {
 			state.mu.Unlock()
 			writeError(w, http.StatusConflict, "Not paired")
 			return
@@ -537,10 +618,6 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sess := sessionFrom(r)
-	if sess == nil {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
 
 	body, err, status, msg := readJSONObject(r, 256<<10)
 	if err != nil {
@@ -608,15 +685,34 @@ func (s *Server) postRemoteIntent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	token, _ := body["token"].(string)
+	if token == "" {
+		token, _ = body["session_token"].(string)
+	}
+	if token == "" {
+		token = r.Header.Get("X-Remote-Token")
+	}
+
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 	state.mu.Lock()
 	defer state.mu.Unlock()
 
-	// Check if caller holds live pairing as the remote
-	if !state.hasPairedRemote || state.pairedRemoteUID != sess.UID {
+	// Check if caller holds live pairing as the remote (via capability token or session UID)
+	isAuthorized := false
+	if token != "" && state.hasPairedRemote && state.sessionToken != "" && state.sessionToken == token {
+		isAuthorized = true
+	} else if sess != nil && state.hasPairedRemote && state.pairedRemoteUID == sess.UID && state.pairedRemoteUID != 0 {
+		isAuthorized = true
+	}
+
+	if !isAuthorized {
 		writeError(w, http.StatusConflict, "Caller does not hold an active pairing")
 		return
 	}
+
+	// Strip capability tokens before marshaling intent payload to prevent token leak in broadcast/state
+	delete(body, "token")
+	delete(body, "session_token")
 
 	// Marshal raw intent to send to presenter
 	intentBytes, err := json.Marshal(body)
@@ -739,6 +835,13 @@ func (s *Server) deleteRemotePair(w http.ResponseWriter, r *http.Request) {
 
 	state := globalRemoteHub.getOrCreateSession(serviceID)
 	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	// Only active presenter or admin can end pairing
+	if sess.Role != "admin" && (state.presenterUID == 0 || sess.UID != state.presenterUID) {
+		writeError(w, http.StatusForbidden, "Only the active presenter or an administrator can end pairing")
+		return
+	}
 
 	state.pendingCode = ""
 	state.hasPairedRemote = false
@@ -750,8 +853,6 @@ func (s *Server) deleteRemotePair(w http.ResponseWriter, r *http.Request) {
 		close(ch)
 		delete(state.remoteChans, ch)
 	}
-
-	state.mu.Unlock()
 
 	w.WriteHeader(http.StatusNoContent)
 }

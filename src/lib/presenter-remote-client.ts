@@ -751,7 +751,10 @@ export class RemoteControlSession {
     try {
       const res = await fetch(`/api/present/${this.serviceId}/remote/resume`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Remote-Token': tokenToUse,
+        },
         body: JSON.stringify({ token: tokenToUse }),
         credentials: 'same-origin',
       });
@@ -904,10 +907,15 @@ export class RemoteControlSession {
   public async sendIntent(intent: PresenterRemoteIntent): Promise<boolean> {
     if (this.stopped) return false;
     try {
+      const token = this.getSessionToken();
+      const payload = token ? { ...intent, token } : intent;
       const res = await fetch(`/api/present/${this.serviceId}/remote/intent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(intent),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'X-Remote-Token': token } : {}),
+        },
+        body: JSON.stringify(payload),
         credentials: 'same-origin',
       });
       return res.ok;

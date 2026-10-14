@@ -152,12 +152,9 @@ test('GET pptx is gated', async () => {
 // `internal/gate/gate_test.go`, which fails when a path is exempted; this test
 // still passes in that state because the handler catches it. Verified by
 // injecting `/api/present` into exemptPrefixes on 2026-08-22.
-test('every remote control path is gated (401 without a session)', async () => {
+test('presenter remote control paths are gated (401 without a session)', async () => {
   const paths = [
     { path: '/api/present/1/remote/pair', method: 'POST' },
-    { path: '/api/present/1/remote/claim', method: 'POST' },
-    { path: '/api/present/1/remote/stream', method: 'GET' },
-    { path: '/api/present/1/remote/intent', method: 'POST' },
     { path: '/api/present/1/remote/pair', method: 'DELETE' },
   ];
   for (const { path: p, method } of paths) {
@@ -189,4 +186,33 @@ test('every remote control path is gated (401 without a session)', async () => {
     assert.equal(res.status, 401, `${method} ${p} must be 401 without session`);
     assert.match(res.body, /Unauthorized/);
   }
+
+  // SPEC-121-02: /api/present/1/remote/claim is exempt from session gate (unauthenticated mobile QR entry)
+  const claimU = new URL(`${base}/api/present/1/remote/claim`);
+  const claimRes = await new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: claimU.hostname,
+        port: claimU.port,
+        path: claimU.pathname,
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+      },
+      (r) => {
+        const chunks = [];
+        r.on('data', (c) => chunks.push(c));
+        r.on('end', () =>
+          resolve({
+            status: r.statusCode,
+            headers: r.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+          })
+        );
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
+  // Without session, reaches handler and returns 400 (missing/invalid code), not 401
+  assert.equal(claimRes.status, 400, 'POST /remote/claim must not be blocked with 401 by session gate');
 });

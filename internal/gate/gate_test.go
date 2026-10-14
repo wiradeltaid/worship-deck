@@ -28,9 +28,6 @@ func TestGatedPaths(t *testing.T) {
 		"/api/scripture",
 		"/api/bible-translations",
 		"/api/present/1/remote/pair",
-		"/api/present/1/remote/claim",
-		"/api/present/1/remote/stream",
-		"/api/present/1/remote/intent",
 		"/api/present/42/remote/pair",
 		"/_next/staticfoo",
 		"/_next/imagefoo",
@@ -69,6 +66,12 @@ func TestExemptPaths(t *testing.T) {
 		"/branding/worship-deck-mark.svg",
 		"/api/setup/status",
 		"/api/setup/admin",
+		"/remote",
+		"/remote/",
+		"/api/present/1/remote/claim",
+		"/api/present/1/remote/stream",
+		"/api/present/1/remote/resume",
+		"/api/present/1/remote/intent",
 	}
 	for _, p := range exempt {
 		if IsGated(p) {

@@ -592,19 +592,142 @@ test('7. DELETE /api/present/{id}/remote/pair ends pairing and is idempotent (20
   assert.equal(intent.status, 409);
 });
 
-test('8. Unauthenticated requests to all 5 paths return 401', async () => {
-  const endpoints = [
+test('8. SPEC-121-02: Unauthenticated pairing boundary, rate limiting, and capability-token authorization', async () => {
+  // Gated presenter endpoints return 401 without cookie
+  const gatedEndpoints = [
     { path: `/api/present/${serviceId}/remote/pair`, method: 'POST' },
-    { path: `/api/present/${serviceId}/remote/claim`, method: 'POST' },
-    { path: `/api/present/${serviceId}/remote/stream`, method: 'GET' },
-    { path: `/api/present/${serviceId}/remote/intent`, method: 'POST' },
     { path: `/api/present/${serviceId}/remote/pair`, method: 'DELETE' },
   ];
-
-  for (const ep of endpoints) {
+  for (const ep of gatedEndpoints) {
     const res = await apiRequest(ep.path, { method: ep.method, cookie: '' });
     assert.equal(res.status, 401, `${ep.method} ${ep.path} must return 401 without cookie`);
   }
+
+  // Stream without token or cookie is refused (401 or 409)
+  const streamNoAuth = await apiRequest(`/api/present/${serviceId}/remote/stream`, { method: 'GET', cookie: '' });
+  assert.ok(streamNoAuth.status === 401 || streamNoAuth.status === 409 || streamNoAuth.status === 403);
+
+  // Intent without token or cookie is refused with 409
+  const intentNoAuth = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: '',
+    body: { type: 'blank', blank: true, planIdentity: 'p' },
+  });
+  assert.equal(intentNoAuth.status, 409);
+
+  // Claim without cookie: invalid PIN returns 400
+  const claimInvalid = await apiRequest(`/api/present/${serviceId}/remote/claim`, {
+    method: 'POST',
+    cookie: '',
+    body: { code: '000000' },
+  });
+  assert.equal(claimInvalid.status, 400);
+
+  // Reset pairing & issue fresh PIN from presenter (Op1)
+  await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'DELETE', cookie: cookieOp1 });
+  const freshPair = await apiRequest(`/api/present/${serviceId}/remote/pair`, { method: 'POST', cookie: cookieOp1 });
+  assert.equal(freshPair.status, 200);
+
+  // Clean mobile smartphone without cookie successfully claims pairing via PIN
+  const mobileClaim = await apiRequest(`/api/present/${serviceId}/remote/claim`, {
+    method: 'POST',
+    cookie: '', // Clean phone, no cookie!
+    body: { code: freshPair.body.code },
+  });
+  assert.equal(mobileClaim.status, 200, 'Unauthenticated mobile phone must successfully claim pairing');
+  assert.equal(mobileClaim.body.paired, true);
+  assert.ok(mobileClaim.body.token, 'Must return capability session token');
+  const mobileToken = mobileClaim.body.token;
+
+  // Mobile smartphone dispatches intent carrying capability token (without cookies!)
+  const mobileIntent = await apiRequest(`/api/present/${serviceId}/remote/intent`, {
+    method: 'POST',
+    cookie: '',
+    body: { type: 'blank', blank: true, planIdentity: 'p', token: mobileToken },
+  });
+  assert.equal(mobileIntent.status, 200, 'Mobile client with token must successfully dispatch intent without cookies');
+
+  // Sibling authenticated session cannot hijack presenter stream role without presenter credentials
+  const hijackRes = await apiRequest(`/api/present/${serviceId}/remote/stream?role=presenter`, {
+    method: 'GET',
+    cookie: cookieOp2, // Op2 tries to hijack Op1's presenter stream
+  });
+  assert.equal(hijackRes.status, 403, 'Sibling session must be rejected with 403 when trying to claim presenter role');
+
+  // Remote capability token cannot hijack presenter stream role
+  const tokenHijackRes = await apiRequest(`/api/present/${serviceId}/remote/stream?role=presenter&token=${mobileToken}`, {
+    method: 'GET',
+    cookie: '',
+  });
+  assert.equal(tokenHijackRes.status, 403, 'Remote token must be rejected with 403 when trying to claim presenter role');
+
+  // Capability token cannot authenticate operator or admin endpoints outside remote API
+  const adminWithToken = await fetchRaw(`${base}/api/admin/accounts`, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${mobileToken}`, 'X-Remote-Token': mobileToken },
+  });
+  assert.equal(adminWithToken.status, 401, 'Remote capability token must never authenticate admin endpoints');
+
+  const pairWithToken = await fetchRaw(`${base}/api/present/${serviceId}/remote/pair`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${mobileToken}`, 'X-Remote-Token': mobileToken },
+  });
+  assert.equal(pairWithToken.status, 401, 'Remote capability token must never authenticate pair endpoint');
+
+  // Unpair defense:
+  // 1. Remote capability token cannot delete pairing
+  const tokenDelete = await fetchRaw(`${base}/api/present/${serviceId}/remote/pair`, {
+    method: 'DELETE',
+    headers: { 'X-Remote-Token': mobileToken },
+  });
+  assert.equal(tokenDelete.status, 401, 'Unauthenticated request with capability token cannot delete pairing');
+
+  // 2. Unauthorized session cannot delete pairing (must be active presenter or admin)
+  // Pair Op2 as presenter on a new service (service 2)
+  const pairOp2 = await apiRequest(`/api/present/2/remote/pair`, { method: 'POST', cookie: cookieOp2 });
+  assert.equal(pairOp2.status, 200);
+
+  // Another non-admin user (if we had op3, or op1 acting as admin)
+  // Admin (cookieOp1) can delete pairing created by Op2
+  const adminDelete = await apiRequest(`/api/present/2/remote/pair`, { method: 'DELETE', cookie: cookieOp1 });
+  assert.equal(adminDelete.status, 204, 'Admin must be able to delete active pairing created by other presenters');
+
+  // Rate limiting defense on POST /claim: 5 failed attempts trigger 429
+  const bruteForceServiceId = 999;
+  const pairForBruteForce = await apiRequest(`/api/present/${bruteForceServiceId}/remote/pair`, { method: 'POST', cookie: cookieOp1 });
+
+  for (let i = 0; i < 5; i++) {
+    const failRes = await apiRequest(`/api/present/${bruteForceServiceId}/remote/claim`, {
+      method: 'POST',
+      cookie: '',
+      body: { code: '999999' },
+    });
+    assert.equal(failRes.status, 400);
+  }
+  // 6th attempt within 1 minute must be rate limited with 429
+  const rateLimitedRes = await apiRequest(`/api/present/${bruteForceServiceId}/remote/claim`, {
+    method: 'POST',
+    cookie: '',
+    body: { code: pairForBruteForce.body.code },
+  });
+  assert.equal(rateLimitedRes.status, 429, '6th failed claim attempt within 1 minute must return HTTP 429');
+
+  // Parallel burst rate-limiting test (Terra Codex requirement)
+  const parallelServiceId = 998;
+  const parallelCodes = ['100001', '100002', '100003', '100004', '100005', '100006', '100007', '100008'];
+  const parallelResults = await Promise.all(
+    parallelCodes.map((c) =>
+      apiRequest(`/api/present/${parallelServiceId}/remote/claim`, {
+        method: 'POST',
+        cookie: '',
+        body: { code: c },
+      })
+    )
+  );
+  const count400 = parallelResults.filter((r) => r.status === 400).length;
+  const count429 = parallelResults.filter((r) => r.status === 429).length;
+  assert.ok(count400 <= 5, `At most 5 failed attempts allowed (got ${count400})`);
+  assert.ok(count429 >= 3, `Excess attempts must receive 429 (got ${count429})`);
 });
 
 test('9. An API restart ends every pairing (memory-only, no DB table)', async () => {

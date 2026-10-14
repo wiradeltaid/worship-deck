@@ -83,6 +83,19 @@ export default function App() {
  */
 function PresentGate() {
   const { status } = useSession();
+  const location = useLocation();
+
+  const isRemoteRoute =
+    location.pathname === '/remote' ||
+    location.pathname.startsWith('/remote/') ||
+    /^\/services\/[^/]+\/remote\/?$/.test(location.pathname);
+
+  // Remote controller routes allow unauthenticated mobile QR pairing
+  if (isRemoteRoute) {
+    if (status === 'loading') return null;
+    return <Outlet />;
+  }
+
   if (status !== 'authed') return null;
   return <Outlet />;
 }

@@ -248,12 +248,6 @@ func (s *Server) gate(next http.Handler) http.Handler {
 			}
 		}
 
-		if !gate.IsGated(path) {
-			next.ServeHTTP(w, r)
-			return
-		}
-		setNoStore(w)
-
 		var current *auth.Session
 		cookie, _ := r.Cookie(auth.CookieName)
 		if cookie != nil && cookie.Value != "" {
@@ -263,6 +257,15 @@ func (s *Server) gate(next http.Handler) http.Handler {
 				}
 			}
 		}
+
+		if !gate.IsGated(path) {
+			if current != nil {
+				r = withSession(r, current)
+			}
+			next.ServeHTTP(w, r)
+			return
+		}
+		setNoStore(w)
 
 		// On sync paths: if cookie is absent, invalid, expired, or non-admin, fall back to Authorization: Bearer <token>
 		if isSyncPath(path) && (current == nil || current.Role != "admin") {
