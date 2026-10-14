@@ -24,6 +24,7 @@ type Server struct {
 	DB        *sql.DB
 	Root      string
 	IsDesktop bool
+	DataDir   string
 }
 
 func (s *Server) isDesktop() bool {
@@ -160,6 +161,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/sync/assets/check", s.syncAssetsCheck)
 	mux.HandleFunc("POST /api/sync/assets/upload", s.syncAssetUpload)
 	mux.HandleFunc("GET /api/sync/assets/{sha256}", s.syncAssetDownload)
+
+	// SPEC-123: FOH Desktop Cloud Workplace Pairing
+	mux.HandleFunc("GET /api/desktop/pairing", s.getDesktopPairing)
+	mux.HandleFunc("POST /api/desktop/pairing/test", s.testDesktopPairing)
+	mux.HandleFunc("POST /api/desktop/pairing", s.postDesktopPairing)
+	mux.HandleFunc("DELETE /api/desktop/pairing", s.deleteDesktopPairing)
+	mux.HandleFunc("POST /api/desktop/sync/pull-cloud", s.pullCloudSync)
 	mux.HandleFunc("POST /api/webhook", s.postWebhook)
 
 	// SPEC-95: Microsoft OneDrive Cloud Connector
@@ -335,8 +343,11 @@ func (s *Server) gate(next http.Handler) http.Handler {
 		}
 
 		var current *auth.Session
+		if s := sessionFrom(r); s != nil {
+			current = s
+		}
 		cookie, _ := r.Cookie(auth.CookieName)
-		if cookie != nil && cookie.Value != "" {
+		if current == nil && cookie != nil && cookie.Value != "" {
 			if sess := auth.Verify(cookie.Value); sess != nil {
 				if dbSess, err := auth.ValidateAgainstDB(s.DB, sess); err == nil && dbSess != nil {
 					current = dbSess

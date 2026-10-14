@@ -4,6 +4,7 @@ import { KeyRound, RefreshCw, Info } from 'lucide-react';
 import LogoutButton from './LogoutButton';
 import ThemeToggle from './ThemeToggle';
 import AboutModal from './AboutModal';
+import FohSyncIndicator from '@/operator/sync/FohSyncIndicator';
 import { CustomLink } from './navigation-blocker';
 import { headerLinkClass, HEADER_CONTROL_BOX_BASE } from './header-chrome';
 import { useT } from '@/lib/i18n/operator';
@@ -150,6 +151,8 @@ export default function Header({
             )
           )}
         </nav>
+
+        <FohSyncIndicator />
 
         <ThemeToggle />
 

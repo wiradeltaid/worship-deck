@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wiradeltaid/worship-deck/internal/desktop"
 	"github.com/wiradeltaid/worship-deck/internal/plan"
 )
 
@@ -22,6 +23,10 @@ var uploadRef = regexp.MustCompile(`(?i)^([a-f0-9]{32}|[a-f0-9]{64})\.(jpe?g|png
 func uploadsDir() string {
 	if d := strings.TrimSpace(os.Getenv("UPLOADS_DIR")); d != "" {
 		return d
+	}
+	dir, err := desktop.ResolveDataDir("", os.Getenv("DESKTOP") == "1")
+	if err == nil && dir != "" {
+		return filepath.Join(dir, "uploads")
 	}
 	return filepath.Join("data", "uploads")
 }

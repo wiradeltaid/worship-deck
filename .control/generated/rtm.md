@@ -2408,10 +2408,10 @@ rtm:
   release: foh-cloud-pairing-and-delta-sync-client
   test:
   - internal/httpapi/sync_freeze_guard_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -2422,10 +2422,10 @@ rtm:
   release: foh-cloud-pairing-and-delta-sync-client
   test:
   - tests/foh-cloud-pairing-ui.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-2
   CAP: CAP-6
   FR: FR-16
@@ -12170,10 +12170,10 @@ rtm:
   test:
   - internal/desktop/pairing_test.go
   - internal/httpapi/pairing_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -12184,10 +12184,10 @@ rtm:
   release: foh-cloud-pairing-and-delta-sync-client
   test:
   - internal/httpapi/foh_sync_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -12198,10 +12198,10 @@ rtm:
   release: foh-cloud-pairing-and-delta-sync-client
   test:
   - internal/httpapi/sync_freeze_guard_test.go
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
@@ -12212,10 +12212,10 @@ rtm:
   release: foh-cloud-pairing-and-delta-sync-client
   test:
   - tests/foh-cloud-pairing-ui.test.mjs
-  status: open
+  status: done
   exempt: false
-  green: false
-  broken_at: status
+  green: true
+  broken_at: ''
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40
