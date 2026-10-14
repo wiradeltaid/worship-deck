@@ -23,4 +23,4 @@ artifact: .control/decisions/DEC-107-daily-autopilot-mandate-release-blocker-rem
 ## Smoke Test Results
 
 - Preflight verification: PASS (Go test suite green, Vite build green, public-repo-guard green, full npm test suite green [1979 pass, 0 fail, exit code 0], validator green)
-- SPEC-121-01: PASS (46/46 tests in presenter-media-player and local-media-player pass; TypeScript 0 errors; Vite build clean; public-repo-guard green; peer reviews by DeepSeek V4 Pro [APPROVED] and Terra Codex [Addressed and verified])
+- SPEC-121-01: PASS (46/46 tests in presenter-media-player and local-media-player pass; TypeScript 0 errors; Vite build clean; public-repo-guard green; peer reviews by DeepSeek V4 Pro [APPROVED] and Terra Codex [PASS / APPROVED])
