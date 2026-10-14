@@ -1,0 +1,32 @@
+---
+artifact: .control/decisions/DEC-107-daily-autopilot-mandate-release-blocker-remediation-offline-media-secure-remote.md
+---
+
+# Autopilot Ledger — DEC-107
+
+## Resume
+
+- Iteration: Complete (Mandate DEC-107 Applied)
+- Run branch: autopilot/DEC-107
+- Stopped at: Done (All 4 release blocker tickets in SPEC-121 delivered, verified, and peer-reviewed)
+- Blocked: —
+- Parked: —
+- Next: Done — Maintainer merge of PR into main
+
+## Decisions
+
+| When | Where | Decided | Instead of | Cost if wrong | Landed in |
+|---|---|---|---|---|---|
+| I-0 (start) | mandate | Start daily autopilot mandate DEC-107 for Production Release Blocker Remediation: Offline Media Playback, Secure QR Mobile Pairing, Backend Security Boundaries, and Telemetry Monotonicity (SPEC-121) | waiting for interactive manual dispatch | low | .control/decisions/DEC-107-daily-autopilot-mandate-release-blocker-remediation-offline-media-secure-remote.md |
+| I-1 | SPEC-121-01 | Wrap playlist fetch in isolated try/catch to mount local-only media offline, sync SW IDB to v2 with onupgradeneeded schema init, and prioritize local byte-range stream in MediaStage while preserving Blob URLs under uncontrolled SW | dropping local items on offline startup or failing with SW VersionError | presenter console failure and dropped media during offline desktop services | PresenterOperator.tsx, media-sw.js, MediaStage.tsx, playback-router.ts, playlist-model.ts, tests/local-media-player.test.mjs, tests/presenter-media-player.test.mjs |
+| I-2 | SPEC-121-02 | Exempt /remote and remote claim/stream/resume/intent from session cookie gate, authenticate secondary mobile controllers via scoped capability tokens with 5-failure/min rate limiting, reject presenter role hijack (403), and restrict unpair to active presenter or admin | requiring operator login on personal smartphones or exposing presenter streams to sibling takeover | mobile pairing barrier and presentation hijacking over church LAN | internal/gate/gate.go, internal/httpapi/remote.go, internal/httpapi/server.go, spa/src/App.tsx, src/lib/presenter-remote-client.ts, internal/httpapi/remote_test.go, tests/go-http-gate.test.mjs, tests/remote-control-go-http.test.mjs |
+| I-3 | SPEC-121-03 | Validate Host headers against loopback, private LAN, RFC 2606 test host, and SYNC_ALLOWED_ORIGINS; enforce fail-closed CSRF (Origin/Referer/Sec-Fetch-Site) on gated state changes; restrict storageKey to canonical 64-hex SHA-256 regex; enforce strict path containment under uploadsDir | accepting forged Host/Origin headers or allowing path traversal on media content/purge | DNS rebinding, CSRF on church network, and arbitrary file disclosure/deletion on host | internal/httpapi/server.go, internal/httpapi/media_playlist.go, internal/httpapi/media_playlist_test.go |
+| I-4 | SPEC-121-04 | Add monotonic seq, sessionEpoch, and timestamp to broadcastState, drop stale seq during seek hold, immediately dispatch unthrottled full snapshot on remote stream connect, enforce static defaultMuted in JSX, and achieve 100% bilingual parity for emergency modal controls | time-only grace periods or unthrottled streaming without snapshot on reconnect | seekbar rubber-banding under church Wi-Fi jitter, missed slide states on reconnect, and video audio leaks | PresenterOperator.tsx, presenter-remote-client.ts, ProjectedMediaLayer.tsx, keys.ts, catalogue-en.ts, catalogue-id.ts, remote.go, remote_test.go, tests/monotonic-telemetry-and-bilingual-parity.test.mjs |
+
+## Smoke Test Results
+
+- Preflight verification: PASS (Go test suite green, Vite build green, public-repo-guard green, full npm test suite green [1979 pass, 0 fail, exit code 0], validator green)
+- SPEC-121-01: PASS (46/46 tests in presenter-media-player and local-media-player pass; TypeScript 0 errors; Vite build clean; public-repo-guard green; peer reviews by DeepSeek V4 Pro [APPROVED] and Terra Codex [PASS / APPROVED])
+- SPEC-121-02: PASS (68/68 tests in remote and gate suites pass; Go unit and HTTP tests pass 100%; TypeScript 0 errors; Vite build clean; public-repo-guard green; peer reviews by DeepSeek V4 Pro [APPROVED] and GLM-5.3 [APPROVED])
+- SPEC-121-03: PASS (Go test suite green including Host/Origin/storageKey/containment tests; public-repo-guard green; peer reviews by DeepSeek V4 Pro [APPROVED] and GLM-5.3 [APPROVED])
+- SPEC-121-04: PASS (8/8 tests in monotonic-telemetry-and-bilingual-parity; 92/92 smoke tests pass; Go tests green with stream snapshot test; TypeScript clean; Vite build clean; full test suite 1991 pass, 0 fail; public-repo-guard green; peer reviews by DeepSeek V4 Pro [APPROVED / SETIA] and GLM-5.3 [APPROVED / PASS])

@@ -2,7 +2,7 @@
 
 **Satisfies:** [FR-35]
 **Blocked by:** ["SPEC-121-02"]
-**Status:** open
+**Status:** closed
 
 ## Summary
 Harden HTTP server boundaries against network-level and payload-level attacks in church Wi-Fi environments:

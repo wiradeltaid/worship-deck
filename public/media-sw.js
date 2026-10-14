@@ -40,6 +40,8 @@ async function handleLocalMediaStream(request, url) {
       } catch (err) {
         // Handle might require user re-affirmation
       }
+    } else if (record.fileHandle && (record.fileHandle instanceof Blob || typeof record.fileHandle.slice === 'function')) {
+      file = record.fileHandle;
     } else if (record.blob) {
       file = record.blob;
     }
@@ -147,7 +149,16 @@ async function getIndexedDBRecord(sha256) {
   if (typeof indexedDB === 'undefined') return null;
   return new Promise((resolve) => {
     try {
-      const req = indexedDB.open('worship-deck-media', 1);
+      const req = indexedDB.open('worship-deck-media', 2);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('media-settings')) {
+          db.createObjectStore('media-settings');
+        }
+        if (!db.objectStoreNames.contains('media-index')) {
+          db.createObjectStore('media-index', { keyPath: 'sha256' });
+        }
+      };
       req.onsuccess = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('media-index')) {

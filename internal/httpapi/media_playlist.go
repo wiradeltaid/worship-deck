@@ -16,6 +16,7 @@ import (
 )
 
 var hexSha256Regex = regexp.MustCompile(`^[0-9a-f]{64}$`)
+var storageKeyRegex = regexp.MustCompile(`^[a-f0-9]{64}\.[a-z0-9]+$`)
 
 type MediaPlaylistItem struct {
 	ID         string   `json:"id"`
@@ -116,6 +117,10 @@ func (s *Server) createMediaPlaylistItem(w http.ResponseWriter, r *http.Request)
 	req.StorageKey = strings.TrimSpace(req.StorageKey)
 	if req.StorageKey == "" {
 		writeError(w, http.StatusBadRequest, "Storage key must not be empty")
+		return
+	}
+	if !storageKeyRegex.MatchString(req.StorageKey) {
+		writeError(w, http.StatusBadRequest, "storage_key must be in canonical format <64-hex-sha256>.<ext>")
 		return
 	}
 	if req.SizeBytes < 0 {
@@ -275,9 +280,9 @@ func (s *Server) purgeMediaAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storageKey := r.PathValue("storageKey")
-	if storageKey == "" {
-		writeError(w, http.StatusBadRequest, "Missing storage key")
+	storageKey := strings.TrimSpace(r.PathValue("storageKey"))
+	if storageKey == "" || !storageKeyRegex.MatchString(storageKey) {
+		writeError(w, http.StatusBadRequest, "Invalid storage key format")
 		return
 	}
 
@@ -332,16 +337,32 @@ func (s *Server) getMediaContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := filepath.Base(filepath.Clean(storageKey))
-	filePath := filepath.Join(uploadsDir(), filename)
+	cleanKey := filepath.Clean(storageKey)
+	if strings.Contains(storageKey, "..") || strings.Contains(storageKey, "/") || strings.Contains(storageKey, `\`) || cleanKey != storageKey || filepath.Base(cleanKey) != storageKey {
+		writeError(w, http.StatusForbidden, "Path traversal forbidden")
+		return
+	}
 
-	st, err := os.Stat(filePath)
+	filename := filepath.Base(cleanKey)
+	baseDir, err := filepath.Abs(uploadsDir())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to resolve uploads directory")
+		return
+	}
+	filePath := filepath.Join(baseDir, filename)
+	absPath, err := filepath.Abs(filePath)
+	if err != nil || !strings.HasPrefix(absPath, baseDir+string(filepath.Separator)) {
+		writeError(w, http.StatusForbidden, "Path traversal forbidden")
+		return
+	}
+
+	st, err := os.Stat(absPath)
 	if err != nil || st.IsDir() {
 		writeError(w, http.StatusNotFound, "Media file not found on disk")
 		return
 	}
 
-	f, err := os.Open(filePath)
+	f, err := os.Open(absPath)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to open media file")
 		return
@@ -371,7 +392,11 @@ func (s *Server) getMediaContent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) countAssetReferences(storageKey string) (int, error) {
-	filename := filepath.Base(filepath.Clean(storageKey))
+	cleanKey := filepath.Clean(storageKey)
+	if strings.Contains(storageKey, "..") || strings.Contains(storageKey, "/") || strings.Contains(storageKey, `\`) || cleanKey != storageKey || filepath.Base(cleanKey) != storageKey {
+		return 0, fmt.Errorf("path traversal forbidden: %s", storageKey)
+	}
+	filename := filepath.Base(cleanKey)
 
 	var playlistRefs int
 	err := s.DB.QueryRow(`
@@ -396,7 +421,20 @@ func (s *Server) countAssetReferences(storageKey string) (int, error) {
 }
 
 func (s *Server) removeAssetFile(storageKey string) error {
-	filename := filepath.Base(filepath.Clean(storageKey))
-	filePath := filepath.Join(uploadsDir(), filename)
-	return os.Remove(filePath)
+	cleanKey := filepath.Clean(storageKey)
+	if strings.Contains(storageKey, "..") || strings.Contains(storageKey, "/") || strings.Contains(storageKey, `\`) || cleanKey != storageKey || filepath.Base(cleanKey) != storageKey {
+		return fmt.Errorf("path traversal forbidden: %s", storageKey)
+	}
+
+	filename := filepath.Base(cleanKey)
+	baseDir, err := filepath.Abs(uploadsDir())
+	if err != nil {
+		return err
+	}
+	filePath := filepath.Join(baseDir, filename)
+	absPath, err := filepath.Abs(filePath)
+	if err != nil || !strings.HasPrefix(absPath, baseDir+string(filepath.Separator)) {
+		return fmt.Errorf("path traversal forbidden: %s", storageKey)
+	}
+	return os.Remove(absPath)
 }

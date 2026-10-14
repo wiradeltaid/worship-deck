@@ -5064,6 +5064,10 @@ waves:
     size: S
     depends_on: [SPEC-119]
     spec_folder: .scratch/SPEC-120-presenter-remote-pairing-session-liveness-decoupling/
+    spec_reviewed:
+      date: '2026-10-14'
+      sha: '45e906bd'
+      lenses: [structure, prose, edge-case-hunter]
     tickets:
       - id: "SPEC-120-01"
         component: presenter
@@ -5073,7 +5077,7 @@ waves:
         tests:
           - tests/remote-presenting-client.test.mjs
   - id: SPEC-121
-    status: open
+    status: closed
     release: release-blocker-remediation-offline-media-and-secure-remote
     prd: [operator-turn]
     fr: [FR-16, FR-25, FR-35]
@@ -5089,7 +5093,7 @@ waves:
         component: presenter
         satisfies: [FR-16, UC-12]
         blocked_by: []
-        touches: [presenter, media-player]
+        touches: [present-channel, uploads]
         tests:
           - tests/presenter-media-player.test.mjs
           - tests/local-media-player.test.mjs
@@ -5097,7 +5101,7 @@ waves:
         component: hub
         satisfies: [FR-35, UC-29]
         blocked_by: ["SPEC-121-01"]
-        touches: [remote-control, httpapi, gate]
+        touches: [remote-control, auth]
         tests:
           - tests/remote-control-go-http.test.mjs
           - tests/remote-presenting-client.test.mjs
@@ -5105,7 +5109,7 @@ waves:
         component: hub
         satisfies: [FR-35]
         blocked_by: ["SPEC-121-02"]
-        touches: [httpapi, services]
+        touches: [services, uploads]
         tests:
           - tests/go-http-gate.test.mjs
           - tests/sync-cors-and-bearer-auth.test.mjs
@@ -5113,7 +5117,7 @@ waves:
         component: presenter
         satisfies: [FR-16, FR-25, UC-12, UC-29]
         blocked_by: ["SPEC-121-03"]
-        touches: [present-channel, projected]
+        touches: [present-channel, remote-control]
         tests:
           - tests/presenter-media-player.test.mjs
           - tests/remote-presenting-client.test.mjs

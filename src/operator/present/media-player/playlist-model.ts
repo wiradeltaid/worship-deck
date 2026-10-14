@@ -140,12 +140,13 @@ export function mergeUnifiedPlaylistItem(
   const sha256 = (cloudItem.sha256 || '').toLowerCase();
   const hasLocal = Boolean(localRecord);
   const isStale = Boolean(localRecord?.stale);
+  const localUrl = hasLocal && !isStale && sha256 ? `/local-media/${sha256}` : cloudItem.url;
 
   return {
     ...cloudItem,
     id: cloudItem.id,
     name: cloudItem.name, // Server name is authoritative for catalog display
-    url: cloudItem.url,
+    url: localUrl,
     sha256,
     cloud: {
       id: cloudItem.id,

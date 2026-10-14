@@ -203,3 +203,161 @@ func TestMediaPlaylistRESTAndStreaming(t *testing.T) {
 		t.Fatalf("expected file to be deleted from disk on purge: err=%v", err)
 	}
 }
+
+func TestMediaSecurityBoundariesAndStorageKeyValidation(t *testing.T) {
+	ts, db, _ := newSongSetTestServer(t)
+	cookie := songSetLogin(t, ts)
+
+	uploadsDir := t.TempDir()
+	t.Setenv("UPLOADS_DIR", uploadsDir)
+
+	validSHA := strings.Repeat("a", 64)
+
+	// 1. StorageKey regex validation on create: non-hex64 or path traversal rejected with 400
+	invalidStorageKeys := []string{
+		"not-a-hash.mp4",
+		"../../evil.mp4",
+		validSHA, // missing extension
+		strings.Repeat("A", 64) + ".mp4", // uppercase hex rejected
+		"12345.mp4", // short hash
+		validSHA + ".MP4", // uppercase extension rejected
+		validSHA + "/../escape.mp4",
+	}
+
+	for _, sk := range invalidStorageKeys {
+		payload := fmt.Sprintf(`{
+			"name": "Test Item",
+			"type": "video",
+			"storage_key": "%s",
+			"size_bytes": 100,
+			"sha256": "%s"
+		}`, sk, validSHA)
+		res := songSetRequest(t, ts, "POST", "/api/media/playlist", payload, cookie)
+		if res.StatusCode != http.StatusBadRequest {
+			t.Errorf("expected 400 for invalid storage_key %q, got %d", sk, res.StatusCode)
+		}
+		res.Body.Close()
+	}
+
+	// 2. StorageKey regex validation on purge
+	resPurge := songSetRequest(t, ts, "POST", "/api/media/assets/invalid-key/purge", "", cookie)
+	if resPurge.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid storageKey on purge, got %d", resPurge.StatusCode)
+	}
+	resPurge.Body.Close()
+
+	// 3. Path containment check in getMediaContent
+	// Insert malicious item with path traversal directly in DB to test defense-in-depth
+	_, err := db.Exec(`
+		INSERT INTO media_playlist_items (id, name, type, storage_key, size_bytes, sha256, order_key, created_at)
+		VALUES ('evil-item', 'Evil', 'video', '../secret.txt', 10, '`+validSHA+`', 1.0, '2026-10-14T00:00:00Z')
+	`)
+	if err != nil {
+		t.Fatalf("failed to insert test item: %v", err)
+	}
+
+	// Attempting to stream evil-item must be blocked with 403 Forbidden
+	resStream := songSetRequest(t, ts, "GET", "/api/media/evil-item/content", "", cookie)
+	if resStream.StatusCode != http.StatusForbidden {
+		t.Errorf("expected 403 Forbidden for path traversal attempt, got %d", resStream.StatusCode)
+	}
+	resStream.Body.Close()
+
+	// 4. Host header validation
+	client := &http.Client{}
+	reqEvilHost, _ := http.NewRequest("GET", ts.URL+"/api/media/playlist", nil)
+	reqEvilHost.Host = "attacker.com"
+	reqEvilHost.AddCookie(cookie)
+	resEvilHost, err := client.Do(reqEvilHost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resEvilHost.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request for malicious Host header, got %d", resEvilHost.StatusCode)
+	}
+	resEvilHost.Body.Close()
+
+	// 5. CSRF Origin validation: cross-site origin on state-changing request blocked with 403
+	reqEvilOrigin, _ := http.NewRequest("POST", ts.URL+"/api/services", strings.NewReader(`{"raw_payload":"Test"}`))
+	reqEvilOrigin.Header.Set("Content-Type", "application/json")
+	reqEvilOrigin.Header.Set("Origin", "http://evil.com")
+	reqEvilOrigin.AddCookie(cookie)
+	resEvilOrigin, err := client.Do(reqEvilOrigin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resEvilOrigin.StatusCode != http.StatusForbidden {
+		t.Errorf("expected 403 Forbidden for cross-site Origin header, got %d", resEvilOrigin.StatusCode)
+	}
+	resEvilOrigin.Body.Close()
+
+	// 6. CSRF Sec-Fetch-Site validation: cross-site fetch blocked with 403
+	reqCrossSite, _ := http.NewRequest("POST", ts.URL+"/api/services", strings.NewReader(`{"raw_payload":"Test"}`))
+	reqCrossSite.Header.Set("Content-Type", "application/json")
+	reqCrossSite.Header.Set("Sec-Fetch-Site", "cross-site")
+	reqCrossSite.AddCookie(cookie)
+	resCrossSite, err := client.Do(reqCrossSite)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resCrossSite.StatusCode != http.StatusForbidden {
+		t.Errorf("expected 403 Forbidden for Sec-Fetch-Site: cross-site, got %d", resCrossSite.StatusCode)
+	}
+	resCrossSite.Body.Close()
+
+	// 7. Positive Host header validation: private LAN IP allowed
+	reqLanHost, _ := http.NewRequest("GET", ts.URL+"/api/media/playlist", nil)
+	reqLanHost.Host = "192.168.1.100:8080"
+	reqLanHost.AddCookie(cookie)
+	resLanHost, err := client.Do(reqLanHost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resLanHost.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for private LAN Host header, got %d", resLanHost.StatusCode)
+	}
+	resLanHost.Body.Close()
+
+	// 8. Positive Host header validation: sync peer configured in SYNC_ALLOWED_ORIGINS allowed
+	t.Setenv("SYNC_ALLOWED_ORIGINS", "https://approved.church.org")
+	reqSyncHost, _ := http.NewRequest("GET", ts.URL+"/api/media/playlist", nil)
+	reqSyncHost.Host = "approved.church.org:443"
+	reqSyncHost.AddCookie(cookie)
+	resSyncHost, err := client.Do(reqSyncHost)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resSyncHost.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK for SYNC_ALLOWED_ORIGINS Host header, got %d", resSyncHost.StatusCode)
+	}
+	resSyncHost.Body.Close()
+
+	// 9. CSRF Referer validation: malicious Referer blocked with 403
+	reqEvilReferer, _ := http.NewRequest("POST", ts.URL+"/api/services", strings.NewReader(`{"raw_payload":"Test"}`))
+	reqEvilReferer.Header.Set("Content-Type", "application/json")
+	reqEvilReferer.Header.Set("Referer", "http://evil.com/malicious.html")
+	reqEvilReferer.AddCookie(cookie)
+	resEvilReferer, err := client.Do(reqEvilReferer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resEvilReferer.StatusCode != http.StatusForbidden {
+		t.Errorf("expected 403 Forbidden for cross-site Referer header, got %d", resEvilReferer.StatusCode)
+	}
+	resEvilReferer.Body.Close()
+
+	// 10. CSRF Referer validation: legitimate loopback Referer allowed
+	validRundown := `{"raw_payload":"SABBATH, AUGUST 22, 2026\nDIVINE SERVICE\nOpening Song: SDAH #159"}`
+	reqGoodReferer, _ := http.NewRequest("POST", ts.URL+"/api/services", strings.NewReader(validRundown))
+	reqGoodReferer.Header.Set("Content-Type", "application/json")
+	reqGoodReferer.Header.Set("Referer", "http://127.0.0.1:3000/services/new")
+	reqGoodReferer.AddCookie(cookie)
+	resGoodReferer, err := client.Do(reqGoodReferer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resGoodReferer.StatusCode != http.StatusCreated {
+		t.Errorf("expected 201 Created for legitimate loopback Referer, got %d", resGoodReferer.StatusCode)
+	}
+	resGoodReferer.Body.Close()
+}

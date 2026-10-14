@@ -154,10 +154,12 @@ import ScriptureOverlayView from '@/components/ScriptureOverlayView';
 import { useT } from '@/lib/i18n/operator';
 import {
   PresenterRemoteSession,
+  resolveMonotonicSeekHold,
   type PresenterRemoteConnectionState,
   type PresenterRemoteIntent,
   type RemoteControlSessionState,
   type PlaylistItemSummary,
+  type SeekHoldState,
 } from '@/lib/presenter-remote-client';
 import { hydrateImportedFonts } from '@/lib/registry/font-catalog';
 import { OfflineReadinessBadge } from '@/components/offline/OfflineReadinessBadge';
@@ -170,6 +172,8 @@ import {
   MediaControlBar,
   MediaDrawer,
   localMediaRegistry,
+  registerMediaServiceWorker,
+  setupStreamBridgeListener,
   mergeUnifiedPlaylistItem,
   type MediaStore,
   type MediaEngine,
@@ -522,7 +526,7 @@ export default function PresenterOperator({
   isOffline = false,
   rawService,
   mode = 'host',
-  onSendIntent,
+  onSendIntent: rawSendIntent,
   controlledState,
   controlledMediaState,
   controlledScriptureState,
@@ -573,6 +577,13 @@ export default function PresenterOperator({
 
   const [mediaDrawerOpen, setMediaDrawerOpen] = useState(false);
 
+  // SPEC-121-01: Register media service worker and bridge listener on host mount
+  useEffect(() => {
+    if (mode === 'remote') return;
+    void registerMediaServiceWorker();
+    return setupStreamBridgeListener(localMediaRegistry);
+  }, [mode]);
+
   // SPEC-114-02 & SPEC-116-02: Mount hydration for persistent media playlist (read-only on remote)
   useEffect(() => {
     let cancelled = false;
@@ -584,10 +595,17 @@ export default function PresenterOperator({
           localMap = localMediaRegistry.getMatchingMap();
         }
 
-        const res = await fetch('/api/media/playlist');
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        const serverItems = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+        let serverItems: any[] = [];
+        try {
+          const res = await fetch('/api/media/playlist');
+          if (res.ok && !cancelled) {
+            const data = await res.json();
+            serverItems = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+          }
+        } catch {
+          // Fall back gracefully when network/fetch fails in offline desktop usage
+        }
+        if (cancelled) return;
 
         const mergedItems: PlaylistItem[] = serverItems.map((raw: any) => {
           const contentUrl = raw.content_url || raw.url || '';
@@ -616,7 +634,7 @@ export default function PresenterOperator({
             ? Array.from(localMap.values())
                 .filter((rec) => !serverItems.some((s: any) => s.sha256 === rec.sha256))
                 .map((rec) => {
-                  let localUrl = '';
+                  let localUrl = rec.sha256 ? `/local-media/${rec.sha256.toLowerCase()}` : '';
                   if (rec.fileHandle && typeof URL !== 'undefined' && rec.fileHandle instanceof Blob) {
                     localUrl = URL.createObjectURL(rec.fileHandle);
                   }
@@ -703,9 +721,43 @@ export default function PresenterOperator({
     }
   }, [mode, controlledState, activeSlides.length]);
 
-  // SPEC-115-03: Synchronize mirrored media state from host SSE events
+  // SPEC-121-04: Monotonic sequence and optimistic seek hold state
+  const lastSeenEpochRef = useRef<number>(0);
+  const lastSeenSeqRef = useRef<number>(0);
+  const seekHoldRef = useRef<SeekHoldState | null>(null);
+
+  const onSendIntent = useCallback(
+    (intent: PresenterRemoteIntent) => {
+      if (intent.type === 'media-seek') {
+        seekHoldRef.current = {
+          epoch: lastSeenEpochRef.current,
+          committedSeq: lastSeenSeqRef.current,
+          targetTime: intent.timeSeconds,
+          committedAt: Date.now(),
+        };
+      }
+      rawSendIntent?.(intent);
+    },
+    [rawSendIntent]
+  );
+
+  // SPEC-115-03 / SPEC-121-04: Synchronize mirrored media state from host SSE events with monotonic seq & seek hold
   useEffect(() => {
     if (mode === 'remote' && controlledMediaState) {
+      const decision = resolveMonotonicSeekHold(
+        seekHoldRef.current,
+        lastSeenEpochRef.current,
+        lastSeenSeqRef.current,
+        {
+          seq: controlledMediaState.seq,
+          sessionEpoch: controlledMediaState.sessionEpoch,
+          currentTime: controlledMediaState.currentTime,
+        }
+      );
+      seekHoldRef.current = decision.nextHold;
+      lastSeenEpochRef.current = decision.activeEpoch;
+      lastSeenSeqRef.current = decision.maxSeenSeq;
+
       if (Array.isArray(controlledMediaState.playlistManifest)) {
         mediaStore.dispatch({
           type: 'SYNC_MANIFEST',
@@ -727,7 +779,7 @@ export default function PresenterOperator({
           projectStatus: controlledMediaState.isProjected ? 'on_screen' : 'off',
         });
       }
-      if (typeof controlledMediaState.currentTime === 'number') {
+      if (typeof controlledMediaState.currentTime === 'number' && !decision.dropTimeUpdate) {
         mediaStore.dispatch({ type: 'SET_TIME', currentTime: controlledMediaState.currentTime });
       }
       if (typeof controlledMediaState.duration === 'number') {
@@ -3018,7 +3070,7 @@ export default function PresenterOperator({
                 size="sm"
                 onClick={() => setRemoteDialogOpen(true)}
                 className="flex items-center gap-1.5 h-8 text-xs font-medium"
-                title="Mobile remote control pairing"
+                title={t('presenter.remote.qrTitle')}
               >
                 <span
                   className={cn(
@@ -4295,9 +4347,9 @@ export function EmergencyCanvasDesignerModal({
           {/* Left Column: Live Canvas Preview Stage */}
           <div className="lg:col-span-7 flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
-              <span>Pratinjau Layar Auditorium (16:9)</span>
+              <span>{t('emergency.modal.canvasPreviewTitle')}</span>
               <span className="text-[11px] font-mono text-zinc-400">
-                {draftArtifact?.layout?.elements?.length || 0} elemen terdeteksi
+                {t('emergency.modal.elementsDetected', { n: draftArtifact?.layout?.elements?.length || 0 })}
               </span>
             </div>
             <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-zinc-800 bg-black shadow-inner">
@@ -4414,7 +4466,7 @@ export function EmergencyCanvasDesignerModal({
                         onChange={(e) => handleUpdateText(e.target.value)}
                         rows={5}
                         className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 font-mono"
-                        placeholder="Ketik teks elemen..."
+                        placeholder={t('emergency.modal.textPlaceholder')}
                       />
                     </div>
 
@@ -4463,7 +4515,7 @@ export function EmergencyCanvasDesignerModal({
                           value={selectedElement.style?.fontColor || '#FFFFFF'}
                           onChange={(e) => handleUpdateStyle({ fontColor: e.target.value })}
                           className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
-                          title="Warna Teks"
+                          title={t('emergency.modal.textColor')}
                         />
 
                         {/* Align Buttons */}
@@ -4556,14 +4608,14 @@ export function EmergencyCanvasDesignerModal({
                             value={selectedElement.style?.fillColor || '#FFFFFF'}
                             onChange={(e) => handleUpdateStyle({ fillColor: e.target.value })}
                             className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
-                            title="Warna Isian Bentuk"
+                            title={t('emergency.modal.shapeFillColor')}
                           />
                           <span className="font-mono text-xs text-zinc-300">
                             {selectedElement.style?.fillColor || '#FFFFFF'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 flex-1 min-w-[120px]">
-                          <span className="text-xs text-zinc-400">Opasitas:</span>
+                          <span className="text-xs text-zinc-400">{t('emergency.modal.opacity')}:</span>
                           <input
                             type="range"
                             data-testid="emergency-shape-opacity"
@@ -4590,10 +4642,10 @@ export function EmergencyCanvasDesignerModal({
                           value={selectedElement.style?.strokeColor || '#FFFFFF'}
                           onChange={(e) => handleUpdateStyle({ strokeColor: e.target.value })}
                           className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
-                          title="Warna Garis Tepi"
+                          title={t('emergency.modal.shapeStrokeColor')}
                         />
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-400">Tebal:</span>
+                          <span className="text-xs text-zinc-400">{t('emergency.modal.thickness')}:</span>
                           <input
                             type="number"
                             data-testid="emergency-shape-stroke-width"
@@ -4624,14 +4676,14 @@ export function EmergencyCanvasDesignerModal({
                             value={selectedElement.style?.strokeColor || selectedElement.style?.fillColor || '#FFFFFF'}
                             onChange={(e) => handleUpdateStyle({ strokeColor: e.target.value, fillColor: e.target.value })}
                             className="h-8 w-8 cursor-pointer rounded border border-zinc-700 bg-zinc-950 p-0.5"
-                            title="Warna Garis"
+                            title={t('emergency.modal.lineColorTitle')}
                           />
                           <span className="font-mono text-xs text-zinc-300">
                             {selectedElement.style?.strokeColor || selectedElement.style?.fillColor || '#FFFFFF'}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-400">Tebal:</span>
+                          <span className="text-xs text-zinc-400">{t('emergency.modal.thickness')}:</span>
                           <input
                             type="number"
                             data-testid="emergency-line-width"
@@ -4692,7 +4744,7 @@ export function EmergencyCanvasDesignerModal({
                           className="h-8 gap-1.5 text-xs text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
                         >
                           <Upload className="size-3.5" />
-                          <span>{isUploadingImage ? t('emergency.modal.uploading') : 'Upload & Crop'}</span>
+                          <span>{isUploadingImage ? t('emergency.modal.uploading') : t('emergency.modal.uploadAndCrop')}</span>
                         </Button>
                       </div>
                     </div>
@@ -4707,7 +4759,7 @@ export function EmergencyCanvasDesignerModal({
                         data-testid="emergency-image-url"
                         value={selectedElement.imageUrl || ''}
                         onChange={(e) => handleUpdateImage(e.target.value, selectedElement.style?.objectFit)}
-                        placeholder="https://... atau /assets/..."
+                        placeholder={t('emergency.modal.urlPlaceholder')}
                         className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
                       />
                     </div>
@@ -4729,9 +4781,9 @@ export function EmergencyCanvasDesignerModal({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="contain">Contain (Muat Utuh)</SelectItem>
-                          <SelectItem value="cover">Cover (Penuh / Potong)</SelectItem>
-                          <SelectItem value="fill">Fill (Regang Penuh)</SelectItem>
+                          <SelectItem value="contain">{t('emergency.modal.fitContain')}</SelectItem>
+                          <SelectItem value="cover">{t('emergency.modal.fitCover')}</SelectItem>
+                          <SelectItem value="fill">{t('emergency.modal.fitFill')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -4813,7 +4865,7 @@ export function EmergencyCanvasDesignerModal({
                     data-testid="emergency-bg-image"
                     value={draftArtifact?.layout?.backgroundImage || ''}
                     onChange={(e) => handleUpdateBackground({ image: e.target.value })}
-                    placeholder="https://... atau /assets/..."
+                    placeholder={t('emergency.modal.urlPlaceholder')}
                     className="h-8 w-full rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-zinc-200"
                   />
                   {draftArtifact?.layout?.backgroundImage ? (

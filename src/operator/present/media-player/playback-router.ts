@@ -42,8 +42,23 @@ export function routePlaybackSource(
     };
   }
 
-  // Cloud URL fallback
-  const cloudUrl = item.url || (item.id ? `/api/media/${item.id}/content` : '');
+  // Cloud URL fallback: extract genuine cloud URL and guard against local-media URLs
+  const rawCloudUrl = (item as any).cloud?.url;
+  const isSyntheticLocalId = typeof item.id === 'string' && item.id.startsWith('local-');
+  let cloudUrl = '';
+
+  if (rawCloudUrl && !rawCloudUrl.startsWith('/local-media/') && !rawCloudUrl.startsWith('blob:')) {
+    cloudUrl = rawCloudUrl;
+  } else if (item.url && item.url.startsWith('blob:')) {
+    // Preserve playable Blob URL for local items when Service Worker is not active
+    cloudUrl = item.url;
+  } else if (!isSyntheticLocalId && item.url && !item.url.startsWith('/local-media/')) {
+    cloudUrl = item.url;
+  } else if (!isSyntheticLocalId && item.id) {
+    cloudUrl = `/api/media/${item.id}/content`;
+  } else if (item.url) {
+    cloudUrl = item.url;
+  }
 
   // Predicate 1: Item must have valid sha256
   const sha = (item.sha256 || '').toLowerCase().trim();
@@ -135,11 +150,6 @@ export async function resolveLazyMediaUrl(
         return { url: route.resolvedUrl };
       }
 
-      if (activeBlobUrl && typeof URL !== 'undefined') {
-        URL.revokeObjectURL(activeBlobUrl);
-        activeBlobUrl = null;
-      }
-
       let fileObj: Blob | File | null = null;
       if (typeof rec.fileHandle.getFile === 'function') {
         try {
@@ -157,8 +167,10 @@ export async function resolveLazyMediaUrl(
         return {
           url: u,
           revoke: () => {
-            if (activeBlobUrl === u && typeof URL !== 'undefined') {
+            if (typeof URL !== 'undefined') {
               URL.revokeObjectURL(u);
+            }
+            if (activeBlobUrl === u) {
               activeBlobUrl = null;
             }
           },
