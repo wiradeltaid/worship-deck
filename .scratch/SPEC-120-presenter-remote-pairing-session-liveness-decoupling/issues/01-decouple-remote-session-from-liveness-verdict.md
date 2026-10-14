@@ -2,7 +2,8 @@
 
 **Satisfies:** [UC-29, FR-35]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
+**Closed at:** 2026-10-14
 
 ## Summary
 Prevent remote pairing code regeneration when opening, closing, or reloading the congregation screen. Replace `liveness.verdict` state reference in `PresenterOperator.tsx` remote session effect with mutable `livenessRef.current.verdict`, remove `liveness.verdict` from the `useEffect` dependencies, and add an automated regression scan guard.

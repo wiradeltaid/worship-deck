@@ -5057,7 +5057,7 @@ waves:
         tests:
           - tests/presenter-media-player.test.mjs
   - id: SPEC-120
-    status: open
+    status: closed
     release: presenter-remote-pairing-session-liveness-decoupling
     prd: [operator-turn]
     fr: [FR-35]

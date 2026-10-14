@@ -1055,3 +1055,60 @@ test('SPEC-119-02 behavioral: PresenterRemoteSession coalesces in-flight broadca
   }
 });
 
+// -----------------------------------------------------------------------------
+// SPEC-120-01: Decouple Presenter Remote Pairing Session from Projector Liveness
+// -----------------------------------------------------------------------------
+export function scanSpec12001RemoteSessionLivenessDecouplingGuards(operatorSource) {
+  const defects = [];
+
+  // Match the useEffect block that instantiates new PresenterRemoteSession
+  // and extract its dependency array.
+  const sessionEffectRegex = /new\s+PresenterRemoteSession\([\s\S]*?\n\s*\}\);\s*remoteSessionRef\.current\s*=\s*session;[\s\S]*?void\s+session\.start\(\);[\s\S]*?\}\s*,\s*\[([\s\S]*?)\]\);/;
+  const match = sessionEffectRegex.exec(operatorSource);
+  if (!match) {
+    defects.push('missing-remote-session-use-effect');
+  } else {
+    const deps = match[1];
+    if (deps.includes('liveness') || deps.includes('liveness.verdict') || deps.includes('livenessRef')) {
+      defects.push('remote-session-effect-depends-on-liveness');
+    }
+  }
+
+  // Verify handleGuestProject reads livenessRef.current.verdict instead of liveness.verdict
+  if (!operatorSource.includes("livenessRef.current.verdict === 'live'")) {
+    defects.push('handle-guest-project-must-read-liveness-ref');
+  }
+
+  return defects;
+}
+
+test('SPEC-120-01: Decouple Presenter Remote Pairing Session from Projector Liveness Verdict', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx').replace(/\r\n/g, '\n');
+  const defects = scanSpec12001RemoteSessionLivenessDecouplingGuards(operatorSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-120-01 defect injection: remote session effect depending on liveness fails guard', () => {
+  const operatorSource = readRaw('src/operator/present/PresenterOperator.tsx').replace(/\r\n/g, '\n');
+
+  // Inject liveness.verdict into the remote session dependency array
+  const mutatedWithDep = operatorSource.replace(
+    'mediaStore,\n  ]);',
+    'mediaStore,\n    liveness.verdict,\n  ]);'
+  );
+  assert.deepEqual(
+    scanSpec12001RemoteSessionLivenessDecouplingGuards(mutatedWithDep),
+    ['remote-session-effect-depends-on-liveness']
+  );
+
+  // Inject state read in handleGuestProject
+  const mutatedWithStateRead = operatorSource.replace(
+    "livenessRef.current.verdict === 'live'",
+    "liveness.verdict === 'live'"
+  );
+  assert.deepEqual(
+    scanSpec12001RemoteSessionLivenessDecouplingGuards(mutatedWithStateRead),
+    ['handle-guest-project-must-read-liveness-ref']
+  );
+});
+
