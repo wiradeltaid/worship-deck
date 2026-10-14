@@ -2403,6 +2403,34 @@ rtm:
   FR: FR-16
   DEC: []
   UC: UC-12
+  ticket: SPEC-123-03
+  spec: SPEC-123
+  release: foh-cloud-pairing-and-delta-sync-client
+  test:
+  - internal/httpapi/sync_freeze_guard_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
+  ticket: SPEC-123-04
+  spec: SPEC-123
+  release: foh-cloud-pairing-and-delta-sync-client
+  test:
+  - tests/foh-cloud-pairing-ui.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-2
+  CAP: CAP-6
+  FR: FR-16
+  DEC: []
+  UC: UC-12
   ticket: SPEC-37-02
   spec: SPEC-37
   release: font-availability-parity-and-unacquired-status-reconciliation
@@ -12131,6 +12159,63 @@ rtm:
   exempt: false
   green: true
   broken_at: ''
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-123-01
+  spec: SPEC-123
+  release: foh-cloud-pairing-and-delta-sync-client
+  test:
+  - internal/desktop/pairing_test.go
+  - internal/httpapi/pairing_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-123-02
+  spec: SPEC-123
+  release: foh-cloud-pairing-and-delta-sync-client
+  test:
+  - internal/httpapi/foh_sync_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-123-03
+  spec: SPEC-123
+  release: foh-cloud-pairing-and-delta-sync-client
+  test:
+  - internal/httpapi/sync_freeze_guard_test.go
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
+- BG: BG-3
+  CAP: CAP-12
+  FR: FR-40
+  DEC: []
+  UC: UC-32
+  ticket: SPEC-123-04
+  spec: SPEC-123
+  release: foh-cloud-pairing-and-delta-sync-client
+  test:
+  - tests/foh-cloud-pairing-ui.test.mjs
+  status: open
+  exempt: false
+  green: false
+  broken_at: status
 - BG: BG-3
   CAP: CAP-12
   FR: FR-40

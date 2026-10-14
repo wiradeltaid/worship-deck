@@ -96,6 +96,9 @@ slides-new/
 # Local databases and their backups.
 data/*.db
 data.db.bak-*
+pairing.json
+**/pairing.json
+
 
 # Raw diff dumps from review sessions. A diff is worse than scratch output: it
 # records the *pre-remediation* state of the files it touches, which is exactly

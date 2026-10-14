@@ -277,6 +277,19 @@ test('no congregation directory is tracked', () => {
   );
 });
 
+test('no pairing credentials file is tracked', () => {
+  const tracked = trackedFiles();
+  if (tracked === null) return;
+  const offenders = tracked.filter((file) =>
+    file === 'pairing.json' || file.endsWith('/pairing.json') || file.endsWith('\\pairing.json')
+  );
+  assert.deepEqual(
+    offenders,
+    [],
+    `pairing credentials belong to local data directory, not to a public repository:\n  ${offenders.join('\n  ')}`
+  );
+});
+
 test('no source presentation deck is tracked', () => {
   const tracked = trackedFiles();
   if (tracked === null) return;
