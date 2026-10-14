@@ -1933,7 +1933,7 @@ export default function PresenterOperator({
         handleGuestProject: (projected) => {
           if (projected) {
             try {
-              guestFeedControllerRef.current?.switch(liveness.verdict === 'live');
+              guestFeedControllerRef.current?.switch(livenessRef.current.verdict === 'live');
             } catch (err: any) {
               const currentSnap = guestFeedControllerRef.current?.getSnapshot();
               if (currentSnap) {
@@ -1986,7 +1986,6 @@ export default function PresenterOperator({
     broadcast,
     mediaEngine,
     mediaStore,
-    liveness.verdict,
   ]);
 
   // Host-to-remote media playback state mirroring over SSE (only when remote is connected)
