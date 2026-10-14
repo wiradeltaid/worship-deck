@@ -43,7 +43,7 @@ func (s *Server) pullCloudSync(w http.ResponseWriter, r *http.Request) {
 	}
 	defer releaseSync()
 
-	// 2. Invariant K2-04: Dirty local emergency changes hold pull
+	// 2. Invariant K2-04: Dirty local emergency changes hold pull (fail-closed)
 	var dirtyCount int
 	err := s.DB.QueryRowContext(r.Context(), `
 		SELECT count(*) FROM services
@@ -51,7 +51,11 @@ func (s *Server) pullCloudSync(w http.ResponseWriter, r *http.Request) {
 		  AND emergency_patches != ''
 		  AND emergency_patches != '[]'
 	`).Scan(&dirtyCount)
-	if err == nil && dirtyCount > 0 {
+	if err != nil && err != sql.ErrNoRows {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Checking dirty state: %v", err))
+		return
+	}
+	if dirtyCount > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 		_ = json.NewEncoder(w).Encode(map[string]any{

@@ -169,3 +169,28 @@ func TestDesktopPairing_Lifecycle(t *testing.T) {
 		t.Errorf("expected paired=false after delete")
 	}
 }
+
+func TestDesktopPairing_NetworkErrorReturns502(t *testing.T) {
+	srv, adminSess, _ := setupTestServer(t)
+	srv.DataDir = t.TempDir()
+	srv.IsDesktop = true
+
+	handler := srv.Handler()
+
+	validSecret := "7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8"
+	validToken := "foh_tenant123." + validSecret
+
+	// Point to unreachable port on loopback
+	payload := `{"cloud_url":"http://127.0.0.1:54321","token":"` + validToken + `"}`
+	req := httptest.NewRequest("POST", "/api/desktop/pairing/test", strings.NewReader(payload))
+	req = withSession(req, adminSess)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	// Invariant: Network reachability failures return 502 Bad Gateway
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502 Bad Gateway for network error, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
