@@ -5124,7 +5124,7 @@ waves:
           - tests/bilingual-i18n-parity.test.mjs
           - tests/theme-chrome.test.mjs
   - id: SPEC-122
-    status: open
+    status: closed
     release: mobile-media-bar-three-row-layout-and-phone-seekbar-resilience
     prd: [operator-turn]
     fr: [FR-16, FR-35]

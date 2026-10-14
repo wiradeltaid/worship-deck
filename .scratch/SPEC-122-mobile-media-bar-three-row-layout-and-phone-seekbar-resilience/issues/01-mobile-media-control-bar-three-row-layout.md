@@ -2,7 +2,7 @@
 
 **Satisfies:** [FR-16, FR-35, UC-12, UC-29]
 **Blocked by:** []
-**Status:** open
+**Status:** closed
 
 ## Summary
 Restructure `MediaControlBar.tsx` to eliminate seekbar crushing on mobile phone viewports (< 640px / `< sm`):

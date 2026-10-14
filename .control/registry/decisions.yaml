@@ -2248,6 +2248,27 @@ decisions:
       - .control/registry/decisions.yaml
       - .scratch/SPEC-121-release-blocker-remediation-offline-media-and-secure-remote/
 
+  - id: DEC-108
+    type: mandate
+    status: applied
+    applied_at: '2026-10-14'
+    accepted_by: "kodesh87 (2026-10-14)"
+    title: Daily Autopilot mandate for Mobile Media Control Bar Three-Row Layout and Phone Seekbar Resilience (SPEC-122)
+    file: .control/decisions/DEC-108-daily-autopilot-mandate-mobile-media-control-bar-three-row-layout.md
+    mandate:
+      from_gate: G5
+      scope: all
+      parked: [ad-n]
+      smoke_test: agent
+      loop: 10m
+      expires: '2026-10-21'
+    touches:
+      - .control/memlog/autopilot-DEC-108.md
+      - .control/registry/specs.yaml
+      - .control/registry/decisions.yaml
+      - .scratch/SPEC-122-mobile-media-bar-three-row-layout-and-phone-seekbar-resilience/
+
+
 
 
 

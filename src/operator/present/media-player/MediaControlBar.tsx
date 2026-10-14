@@ -434,13 +434,14 @@ export const MediaControlBar = memo(function MediaControlBar({
       {/* Row 1 on Mobile & Tablet (< xl) / Center metadata & seekbar + Right Drawer Launcher on Desktop (>= xl) */}
       <div
         data-testid="media-control-bar-row-1"
-        className="flex items-center justify-between gap-2 w-full min-w-0 xl:contents"
+        className="grid grid-cols-[1fr_auto] sm:flex sm:flex-row items-center justify-between gap-x-2 gap-y-1.5 sm:gap-2.5 w-full min-w-0 xl:contents"
       >
-        {/* Track metadata & full-width seekbar */}
-        <div className="flex flex-1 items-center gap-2.5 min-w-0 max-w-2xl px-1 xl:order-2">
-          {activeItem ? (
-            <>
-              <div className="flex items-center gap-1.5 shrink-0 max-w-[9rem] sm:max-w-[12rem] min-w-0">
+        {activeItem ? (
+          <>
+            {/* Metadata & Seekbar Aggregate Envelope: on phone contents (participating in grid), on tablet/desktop retains exact legacy sm:flex-1 sm:max-w-2xl sm:px-1 bounds */}
+            <div className="contents sm:flex sm:flex-1 sm:items-center sm:gap-2.5 sm:min-w-0 sm:max-w-2xl sm:px-1 xl:order-2">
+              {/* Track Metadata (phone: col 1 row 1, tablet/desktop: flex child) */}
+              <div className="col-start-1 row-start-1 flex items-center gap-1.5 shrink-0 min-w-0 max-w-full sm:max-w-[12rem]">
                 {isVideo ? (
                   <Video className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                 ) : (
@@ -472,8 +473,11 @@ export const MediaControlBar = memo(function MediaControlBar({
                 </span>
               </div>
 
-              {/* Seekbar & Time */}
-              <div className="flex flex-1 items-center gap-2 min-w-0">
+              {/* Dedicated Seekbar Container (phone: col-span-2 row 2, tablet/desktop: flex-1 inside aggregate max-w-2xl envelope) */}
+              <div
+                data-testid="media-control-bar-seekbar"
+                className="col-span-2 row-start-2 flex flex-1 items-center gap-2 w-full min-w-[120px] sm:min-w-0"
+              >
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
                   {formatTime(displayTime)}
                 </span>
@@ -493,23 +497,25 @@ export const MediaControlBar = memo(function MediaControlBar({
                   onBlur={handleSeekBlur}
                   onMouseDown={(e) => e.stopPropagation()}
                   aria-label={t('media.dock.seekAriaLabel')}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none touch-none"
+                  className="h-1.5 w-full flex-1 min-w-[120px] cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none touch-none"
                 />
                 <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">
                   {formatTime(duration)}
                 </span>
               </div>
-            </>
-          ) : (
+            </div>
+          </>
+        ) : (
+          <div className="col-start-1 row-start-1 flex flex-1 items-center justify-between gap-2 w-full min-w-0 sm:max-w-2xl sm:order-2 xl:order-2">
             <span className="text-muted-foreground/70 italic text-[11px] mx-auto">
               {t('media.topBar.emptyPlaceholder')}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Playlist Drawer Launcher (Right of Row 1 on mobile/tablet, 4th item on desktop) */}
+        {/* Playlist Drawer Launcher (SINGLE ELEMENT IN DOM: phone col 2 row 1, tablet right sibling, desktop xl:order-4) */}
         {onOpenDrawer && (
-          <div className="shrink-0 xl:order-4">
+          <div className="col-start-2 row-start-1 shrink-0 sm:order-3 xl:order-4">
             <Button
               type="button"
               size="sm"

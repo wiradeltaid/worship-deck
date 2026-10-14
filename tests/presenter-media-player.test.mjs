@@ -1311,7 +1311,7 @@ test('SPEC-119-03 behavioral: optimistic seek hold eliminates rubber-banding on 
 export function scanSpec11904MobileTouchErgonomicsGuards(barSource) {
   const defects = [];
   // 1. Range slider has touch-none in className
-  if (!barSource.includes('className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none touch-none"')) {
+  if (!barSource.includes('className="h-1.5 w-full flex-1 min-w-[120px] cursor-pointer appearance-none rounded-lg bg-muted accent-primary focus:outline-none touch-none"')) {
     defects.push('missing-touch-none-gesture-containment');
   }
   // 2. commitSeek idempotency check
@@ -1546,4 +1546,104 @@ test('SPEC-121-01 behavioral: offline startup preserves local items and maps to 
   assert.equal(controlledRoute.canRouteLocal, true);
   assert.equal(controlledRoute.resolvedUrl, `/local-media/${sampleSha}`);
   assert.equal(controlledRoute.source, 'local');
+});
+
+// -----------------------------------------------------------------------------
+// SPEC-122-01: Mobile Media Control Bar Three-Row Layout and Phone Seekbar Resilience
+// -----------------------------------------------------------------------------
+export function scanSpec12201MediaControlBarThreeRowLayoutGuards(barSource) {
+  const defects = [];
+  const seekbarContainerStart = barSource.indexOf('data-testid="media-control-bar-seekbar"');
+  if (seekbarContainerStart === -1) {
+    defects.push('missing-dedicated-seekbar-container');
+  } else {
+    // Strictly isolate the seekbar container DOM slice up to its closing </div>
+    const seekbarContainerEnd = barSource.indexOf('</div>', seekbarContainerStart);
+    const seekbarContainerSlice = seekbarContainerEnd !== -1
+      ? barSource.slice(seekbarContainerStart, seekbarContainerEnd)
+      : '';
+    const containerOpeningTag = seekbarContainerSlice.slice(0, seekbarContainerSlice.indexOf('>'));
+    if (!containerOpeningTag.includes('min-w-[120px]')) {
+      defects.push('missing-seekbar-container-min-width-invariant');
+    }
+    const seekbarInputMatch = seekbarContainerSlice.match(/<input[\s\S]*?type="range"[\s\S]*?className="([^"]*)"/);
+    if (!seekbarInputMatch || !seekbarInputMatch[1].includes('min-w-[120px]')) {
+      defects.push('missing-seekbar-input-min-width-invariant');
+    }
+  }
+  if (!barSource.includes('grid grid-cols-[1fr_auto] sm:flex sm:flex-row')) {
+    defects.push('missing-mobile-subrow-grid-decomposition');
+  }
+  if (!barSource.includes('contents sm:flex')) {
+    defects.push('missing-envelope-contents-coalescing');
+  }
+  if (!barSource.includes('sm:max-w-2xl sm:px-1')) {
+    defects.push('missing-aggregate-envelope-preservation');
+  }
+  const drawerTestIdMatches = barSource.match(/data-testid="media-control-bar-drawer"/g) || [];
+  const drawerLauncherMatches = barSource.match(/openDrawerTitle/g) || [];
+  if (drawerTestIdMatches.length !== 1 || drawerLauncherMatches.length !== 1) {
+    defects.push('duplicate-drawer-button-in-dom');
+  }
+  return defects;
+}
+
+test('SPEC-122-01: MediaControlBar renders responsive 3-row layout on mobile and preserves tablet/desktop hierarchy', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const barSource = fs.readFileSync(barPath, 'utf8');
+
+  const defects = scanSpec12201MediaControlBarThreeRowLayoutGuards(barSource);
+  assert.deepEqual(defects, []);
+});
+
+test('SPEC-122-01 defect injection: individual invariant failure proofs', async () => {
+  const fs = await import('node:fs');
+  const barPath = path.join(ROOT, 'src', 'operator', 'present', 'media-player', 'MediaControlBar.tsx');
+  const pristine = fs.readFileSync(barPath, 'utf8');
+
+  // Invariant 1: dedicated seekbar container
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(pristine.replace('data-testid="media-control-bar-seekbar"', 'data-testid="media-control-bar-seekbar-mutated"')),
+    ['missing-dedicated-seekbar-container']
+  );
+
+  // Invariant 2a: container min-w-[120px]
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(pristine.replace('w-full min-w-[120px] sm:min-w-0', 'w-full min-w-0')),
+    ['missing-seekbar-container-min-width-invariant']
+  );
+
+  // Invariant 2b: input min-w-[120px]
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(pristine.replace('h-1.5 w-full flex-1 min-w-[120px]', 'h-1.5 w-full flex-1 min-w-0')),
+    ['missing-seekbar-input-min-width-invariant']
+  );
+
+  // Invariant 3: mobile subrow grid decomposition
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(pristine.replace('grid grid-cols-[1fr_auto] sm:flex sm:flex-row', 'flex flex-row')),
+    ['missing-mobile-subrow-grid-decomposition']
+  );
+
+  // Invariant 4: envelope contents coalescing
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(pristine.replace('contents sm:flex', 'block sm:flex')),
+    ['missing-envelope-contents-coalescing']
+  );
+
+  // Invariant 5: aggregate envelope preservation
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(pristine.replaceAll('sm:max-w-2xl sm:px-1', 'sm:max-w-xl')),
+    ['missing-aggregate-envelope-preservation']
+  );
+
+  // Invariant 6: single drawer button in DOM (detects duplicate drawer element injection with complete valid JSX)
+  const drawerBlock = pristine.match(/\{onOpenDrawer\s*&&[\s\S]*?data-testid="media-control-bar-drawer"[\s\S]*?<\/Button>[\s\S]*?<\/div>[\s\S]*?\}/)?.[0];
+  assert.ok(drawerBlock, 'Must match full valid drawer JSX block in pristine source');
+  const duplicatedDrawer = pristine.replace(drawerBlock, `${drawerBlock}\n        ${drawerBlock}`);
+  assert.deepEqual(
+    scanSpec12201MediaControlBarThreeRowLayoutGuards(duplicatedDrawer),
+    ['duplicate-drawer-button-in-dom']
+  );
 });
