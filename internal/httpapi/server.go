@@ -189,6 +189,9 @@ func (s *Server) isOriginAllowed(origin string) bool {
 	if origin == "" {
 		return false
 	}
+	if u, err := url.Parse(origin); err == nil && isHostAllowed(u.Host) {
+		return true
+	}
 	allowedEnv := strings.TrimSpace(os.Getenv("SYNC_ALLOWED_ORIGINS"))
 	var patterns []string
 	if allowedEnv != "" {
@@ -220,9 +223,69 @@ func (s *Server) isOriginAllowed(origin string) bool {
 	return false
 }
 
+func isHostAllowed(host string) bool {
+	h := strings.TrimSpace(host)
+	if h == "" {
+		return false
+	}
+	hostname, _, err := net.SplitHostPort(h)
+	if err != nil {
+		hostname = h
+	}
+	hostname = strings.Trim(hostname, "[]")
+
+	if strings.EqualFold(hostname, "localhost") || hostname == "127.0.0.1" || hostname == "::1" || strings.EqualFold(hostname, "example.com") {
+		return true
+	}
+
+	ip := net.ParseIP(hostname)
+	if ip != nil {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
+			return true
+		}
+	}
+
+	// Allow hosts explicitly configured in SYNC_ALLOWED_ORIGINS (so peer sync is never blocked)
+	if allowedSync := strings.TrimSpace(os.Getenv("SYNC_ALLOWED_ORIGINS")); allowedSync != "" {
+		for _, part := range strings.Split(allowedSync, ",") {
+			part = strings.TrimSpace(part)
+			if part == "*" {
+				return true
+			}
+			if u, err := url.Parse(part); err == nil && u.Host != "" {
+				syncHost, _, err := net.SplitHostPort(u.Host)
+				if err != nil {
+					syncHost = u.Host
+				}
+				if strings.EqualFold(syncHost, hostname) {
+					return true
+				}
+			} else if strings.EqualFold(part, hostname) {
+				return true
+			}
+		}
+	}
+
+	if allowedHosts := os.Getenv("SERVER_ALLOWED_HOSTS"); allowedHosts != "" {
+		for _, part := range strings.Split(allowedHosts, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" && (strings.EqualFold(part, hostname) || part == "*") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (s *Server) gate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+
+		if !isHostAllowed(r.Host) {
+			writeError(w, http.StatusBadRequest, "Invalid Host header")
+			return
+		}
 
 		if isCORSPath(path) {
 			origin := r.Header.Get("Origin")
@@ -245,6 +308,29 @@ func (s *Server) gate(next http.Handler) http.Handler {
 			} else if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return
+			}
+		}
+
+		// Fail-closed Origin/Referer matching on state-changing requests to prevent CSRF
+		if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch || r.Method == http.MethodDelete {
+			if gate.IsGated(path) {
+				if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+					writeError(w, http.StatusForbidden, "Cross-site request forbidden")
+					return
+				}
+				origin := r.Header.Get("Origin")
+				if origin != "" && !s.isOriginAllowed(origin) {
+					writeError(w, http.StatusForbidden, "Cross-site request forbidden")
+					return
+				}
+				if origin == "" {
+					if referer := r.Header.Get("Referer"); referer != "" {
+						if u, err := url.Parse(referer); err != nil || !isHostAllowed(u.Host) {
+							writeError(w, http.StatusForbidden, "Cross-site request forbidden")
+							return
+						}
+					}
+				}
 			}
 		}
 
