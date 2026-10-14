@@ -184,6 +184,13 @@ func TestFohSync_PullSuccessAndMediaStreaming(t *testing.T) {
 	if len(files) > 0 {
 		t.Errorf("expected no temp files left in uploads dir, found: %v", files)
 	}
+
+	// 8. Verify last_cloud_pull_cursor stored in sync_state
+	var savedCursor string
+	err = srv.DB.QueryRow(`SELECT value FROM sync_state WHERE key = 'last_cloud_pull_cursor'`).Scan(&savedCursor)
+	if err != nil || savedCursor != "rev-100" {
+		t.Errorf("expected last_cloud_pull_cursor 'rev-100', got %q (err=%v)", savedCursor, err)
+	}
 }
 
 func TestFohSync_CorruptedAssetRejectedAndCleanedUp(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -82,7 +83,13 @@ func (s *Server) pullCloudSync(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
 	// 4. Issue authenticated pull request to remote cloud instance (outside of SQLite transaction, Kernel K2-02)
+	var lastCursor string
+	_ = s.DB.QueryRowContext(r.Context(), `SELECT value FROM sync_state WHERE key = 'last_cloud_pull_cursor'`).Scan(&lastCursor)
+
 	pullURL := fmt.Sprintf("%s/api/sync/pull", strings.TrimRight(cfg.CloudURL, "/"))
+	if lastCursor != "" {
+		pullURL += "?since=" + url.QueryEscape(lastCursor)
+	}
 	client := &http.Client{Timeout: 60 * time.Second}
 
 	req, err := http.NewRequestWithContext(r.Context(), "GET", pullURL, nil)
@@ -171,9 +178,27 @@ func (s *Server) pullCloudSync(w http.ResponseWriter, r *http.Request) {
 	committed := false
 	defer func() {
 		if !committed {
-			_, _ = conn.ExecContext(r.Context(), `ROLLBACK;`)
+			_, _ = conn.ExecContext(context.Background(), `ROLLBACK;`)
 		}
 	}()
+
+	// Re-verify dirty emergency changes inside immediate transaction to eliminate TOCTOU race (GLM-5.3 #2)
+	var dirtyCountInside int
+	err = conn.QueryRowContext(r.Context(), `
+		SELECT count(*) FROM services
+		WHERE emergency_patches IS NOT NULL
+		  AND emergency_patches != ''
+		  AND emergency_patches != '[]'
+	`).Scan(&dirtyCountInside)
+	if err == nil && dirtyCountInside > 0 {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"error": map[string]string{
+				"code":    "local_changes_pending",
+				"message": "Ada perubahan darurat lokal yang belum tersinkron ke cloud.",
+			},
+		})
+		return
+	}
 
 	nowStr := time.Now().UTC().Format(time.RFC3339Nano)
 
@@ -185,10 +210,16 @@ func (s *Server) pullCloudSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update sync cursor state in DB
-	_, _ = conn.ExecContext(r.Context(), `
-		INSERT OR REPLACE INTO sync_state (key, value, updated_at)
-		VALUES ('last_cloud_pull_cursor', ?, ?)
-	`, pullData.Cursor, nowStr)
+	if pullData.Cursor != "" {
+		if _, err := conn.ExecContext(r.Context(), `
+			INSERT INTO sync_state (key, value, updated_at)
+			VALUES ('last_cloud_pull_cursor', ?, ?)
+			ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+		`, pullData.Cursor, nowStr); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Updating sync cursor: %v", err))
+			return
+		}
+	}
 
 	// Commit SQLite transaction atomically (Kernel K2-02)
 	if _, err := conn.ExecContext(r.Context(), `COMMIT;`); err != nil {
