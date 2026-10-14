@@ -4,7 +4,7 @@
 
 Decisions are no longer looked up through the memlog — the memlog goes back to being just a pass log.
 
-**107 decisions** — accepted: 1 · applied: 105 · superseded: 1.
+**108 decisions** — accepted: 2 · applied: 105 · superseded: 1.
 
 | id | Title | Status | Type | Touches | File |
 | --- | --- | --- | --- | --- | --- |
@@ -115,3 +115,4 @@ Decisions are no longer looked up through the memlog — the memlog goes back to
 | `DEC-105` | Daily Autopilot mandate for Presenter Layout Stability across Viewports, Tablet Media Bar Ergonomics, and Rem… | `applied` | mandate | `.control/memlog/autopilot-DEC-105.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-118-presenter-layout-stability-tablet-media-bar-and-remote-resilience/` | `.control/decisions/DEC-105-daily-autopilot-mandate-presenter-layout-stability-tablet-media-bar-remote-resilience.md` |
 | `DEC-106` | Daily Autopilot mandate for Presenter Remote Media Seekbar Telemetry Resilience, Inert Remote Audio Isolation… | `applied` | mandate | `.control/memlog/autopilot-DEC-106.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-119-presenter-remote-seekbar-telemetry-resilience-and-touch-scrubbing/` | `.control/decisions/DEC-106-daily-autopilot-mandate-remote-seekbar-telemetry-resilience-touch-scrubbing.md` |
 | `DEC-107` | Daily Autopilot mandate for Production Release Blocker Remediation - Offline Media Playback, Secure QR Mobile… | `applied` | mandate | `.control/memlog/autopilot-DEC-107.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-121-release-blocker-remediation-offline-media-and-secure-remote/` | `.control/decisions/DEC-107-daily-autopilot-mandate-release-blocker-remediation-offline-media-secure-remote.md` |
+| `DEC-108` | Daily Autopilot mandate for Mobile Media Control Bar Three-Row Layout and Phone Seekbar Resilience (SPEC-122) | `accepted` | mandate | `.control/memlog/autopilot-DEC-108.md`, `.control/registry/specs.yaml`, `.control/registry/decisions.yaml`, `.scratch/SPEC-122-mobile-media-bar-three-row-layout-and-phone-seekbar-resilience/` | `.control/decisions/DEC-108-daily-autopilot-mandate-mobile-media-control-bar-three-row-layout.md` |
