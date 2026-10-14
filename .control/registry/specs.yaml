@@ -5056,6 +5056,22 @@ waves:
         touches: [present-channel]
         tests:
           - tests/presenter-media-player.test.mjs
+  - id: SPEC-120
+    status: open
+    release: presenter-remote-pairing-session-liveness-decoupling
+    prd: [operator-turn]
+    fr: [FR-35]
+    size: S
+    depends_on: [SPEC-119]
+    spec_folder: .scratch/SPEC-120-presenter-remote-pairing-session-liveness-decoupling/
+    tickets:
+      - id: "SPEC-120-01"
+        component: presenter
+        satisfies: [UC-29, FR-35]
+        blocked_by: []
+        touches: [remote-control, present-channel]
+        tests:
+          - tests/remote-presenting-client.test.mjs
 
 
 
