@@ -1625,39 +1625,51 @@ test('SPEC-121-01: Service Worker DB Version Parity, Local Stream Priority, and 
   });
   assert.ok(lazyRes.url.startsWith('blob:'), 'Unconnected local item must resolve to playable Blob URL');
 
-  // 6. Out-of-order A -> B resolution lifecycle: slow A resolution does not revoke B
-  let aRevoked = false;
-  let bRevoked = false;
-  const mockLazyA = {
-    url: 'blob:http://localhost/item-a',
-    revoke: () => { aRevoked = true; },
+  // 6. Decoupled resolveLazyMediaUrl lifecycle: request A resolution does not revoke B
+  const sampleShaB = 'bbbb222233334444555566667777888899990000aaaabbbbccccddddeeeeffff';
+  await localMediaRegistry.saveRecord({
+    sha256: sampleShaB,
+    name: 'Item B.mp4',
+    sizeBytes: 2048,
+    lastModified: 2000,
+    mimeType: 'video/mp4',
+    storageKind: 'in-memory',
+    verifiedAt: new Date().toISOString(),
+    fileHandle: new Blob(['mock video B'], { type: 'video/mp4' }),
+  });
+
+  const itemA = { id: 'local-A', name: 'Item A', url: `/local-media/${sampleSha}`, type: 'video', sha256: sampleSha };
+  const itemB = { id: 'local-B', name: 'Item B', url: `/local-media/${sampleShaB}`, type: 'video', sha256: sampleShaB };
+
+  const revokedUrls = new Set();
+  const originalRevokeObjectURL = globalThis.URL.revokeObjectURL;
+  globalThis.URL.revokeObjectURL = (u) => {
+    revokedUrls.add(u);
+    if (typeof originalRevokeObjectURL === 'function') {
+      try { originalRevokeObjectURL(u); } catch {}
+    }
   };
-  const mockLazyB = {
-    url: 'blob:http://localhost/item-b',
-    revoke: () => { bRevoked = true; },
-  };
 
-  // Generation 1 started for A, superseded by Gen 2 for B
-  let currentGen = 2;
-  let activeRevoke = null;
+  try {
+    const resA = await resolveLazyMediaUrl(itemA, { customSWActive: false, currentSizeBytes: 4096000, currentLastModified: 1000 });
+    const resB = await resolveLazyMediaUrl(itemB, { customSWActive: false, currentSizeBytes: 2048, currentLastModified: 2000 });
 
-  // Gen 2 (B) finishes first
-  activeRevoke = mockLazyB.revoke;
-  assert.equal(bRevoked, false, 'B is currently active');
+    assert.ok(resA.url.startsWith('blob:'), 'resA has valid Blob URL');
+    assert.ok(resB.url.startsWith('blob:'), 'resB has valid Blob URL');
+    assert.notEqual(resA.url, resB.url, 'URLs must be distinct');
 
-  // Gen 1 (A) finishes later (stale):
-  const genA = 1;
-  if (currentGen !== genA) {
-    mockLazyA.revoke(); // Stale A is immediately revoked without affecting active B
-  } else {
-    activeRevoke?.();
-    activeRevoke = mockLazyA.revoke;
+    // Generating B must NOT immediately revoke A's URL
+    assert.equal(revokedUrls.has(resA.url), false, 'Generating B must not prematurely revoke in-flight A URL');
+
+    // Revoking A must only revoke A, not B
+    resA.revoke?.();
+    assert.equal(revokedUrls.has(resA.url), true, 'A must be revoked');
+    assert.equal(revokedUrls.has(resB.url), false, 'B must remain unrevoked');
+
+    // Revoking B
+    resB.revoke?.();
+    assert.equal(revokedUrls.has(resB.url), true, 'B revoked cleanly');
+  } finally {
+    globalThis.URL.revokeObjectURL = originalRevokeObjectURL;
   }
-
-  assert.equal(aRevoked, true, 'Stale A must be revoked immediately');
-  assert.equal(bRevoked, false, 'Active B must remain untouched and playing');
-
-  // Unmount cleanly revokes active B
-  activeRevoke?.();
-  assert.equal(bRevoked, true, 'Active B revoked on unmount');
 });

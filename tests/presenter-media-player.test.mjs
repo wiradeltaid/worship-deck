@@ -1406,6 +1406,13 @@ export function scanSpec12101OfflineMediaStartupGuards(presenterSource, stageSou
   if (!presenterSource.includes('registerMediaServiceWorker') || !presenterSource.includes('setupStreamBridgeListener')) {
     defects.push('missing-presenter-sw-registration-and-bridge-listener');
   }
+  // 5. MediaStage invalidates playGeneration and cleans active blob on inert transition and unmount
+  if (
+    !/if\s*\(\s*isInert\s*\)\s*\{[\s\S]*?playGenerationRef\.current\+\+;[\s\S]*?activeBlobRevokeRef\.current\?\.?\(\);/m.test(stageSource) ||
+    !/return\s*\(\)\s*=>\s*\{[\s\S]*?playGenerationRef\.current\+\+;[\s\S]*?activeBlobRevokeRef\.current\?\.?\(\);/m.test(stageSource)
+  ) {
+    defects.push('missing-stage-generation-invalidation-on-inert-or-unmount');
+  }
   return defects;
 }
 
@@ -1435,6 +1442,7 @@ test('SPEC-121-01 defect injection: unhandled offline fetch or missing local URL
     'missing-local-media-url-mapping',
     'missing-stage-route-playback-source-resolution',
     'missing-presenter-sw-registration-and-bridge-listener',
+    'missing-stage-generation-invalidation-on-inert-or-unmount',
   ]);
 });
 

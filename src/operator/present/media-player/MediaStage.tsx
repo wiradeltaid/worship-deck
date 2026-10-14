@@ -65,6 +65,9 @@ export const MediaStage = memo(function MediaStage({
   // Keep track of active item and synchronize src (guarded: fully inert when isInert is true)
   useEffect(() => {
     if (isInert) {
+      playGenerationRef.current++;
+      activeBlobRevokeRef.current?.();
+      activeBlobRevokeRef.current = null;
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeAttribute('src');
@@ -76,7 +79,7 @@ export const MediaStage = memo(function MediaStage({
       return;
     }
 
-    return store.subscribe(() => {
+    const unsubscribe = store.subscribe(() => {
       const state = store.getSnapshot();
       const repeatOne = state.repeatMode === 'one';
       setIsRepeatOne(repeatOne);
@@ -195,6 +198,13 @@ export const MediaStage = memo(function MediaStage({
         }
       }
     });
+
+    return () => {
+      playGenerationRef.current++;
+      activeBlobRevokeRef.current?.();
+      activeBlobRevokeRef.current = null;
+      unsubscribe();
+    };
   }, [store, engine, audioRef, videoRef, mutedOverride, isInert]);
 
   const handleTimeUpdate = useCallback(
