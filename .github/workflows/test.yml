@@ -1,11 +1,10 @@
 name: Node.js CI
 
 on:
+  # CI cloud hanya saat PR ditandai ready (keputusan pemilik 2026-10-20; wdi-method ci-guide.md).
   workflow_dispatch:
   pull_request:
     types: [ready_for_review]
-  push:
-    branches: [ "main" ]
 
 concurrency:
   group: ci-${{ github.ref }}
