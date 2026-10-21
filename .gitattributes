@@ -2,3 +2,4 @@
 # when the repository was cloned on Windows with core.autocrlf=true, which is
 # what this checkout uses. Without this, bash sees a trailing CR on every line.
 *.sh text eol=lf
+.githooks/* text eol=lf
