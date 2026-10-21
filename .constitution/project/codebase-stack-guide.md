@@ -3,8 +3,8 @@ status: Accepted
 ratified_by: 5903b59
 playbook:
   repo: wiradeltaid/ops
-  path: research/wdi-ecosystem-strategy/coding-playbook/
-  local: D:\Developer\wiradeltaid\ops\research\wdi-ecosystem-strategy\coding-playbook\
+  path: research/wdi-ecosystem-strategy/playbooks/coding/
+  local: D:\Developer\wiradeltaid\ops\research\wdi-ecosystem-strategy\playbooks\coding\
   rev: 5903b59
 reads:
   - 01-principles.md
