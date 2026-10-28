@@ -1,0 +1,14 @@
+{
+  "runner": "terra-codex",
+  "description": "GPT-5.6-Terra (Codex CLI, cadangan Terra)",
+  "executable": "codex",
+  "session": "spec-123-review",
+  "runId": "01-terra-codex",
+  "status": "timed_out",
+  "exitCode": 124,
+  "durationMs": 300114,
+  "timestamp": "2026-10-14T21:04:50.2423569+07:00",
+  "outputFile": "D:\\Developer\\wiradeltaid\\worship-deck\\.work\\shell-out\\spec-123-review\\01-terra-codex\\jawaban.md",
+  "packetLength": 2683,
+  "failureReason": ""
+}

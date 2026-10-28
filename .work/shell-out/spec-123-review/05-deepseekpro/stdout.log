@@ -1,0 +1,45 @@
+I have completed my read-only review. Here are my findings.
+
+---
+
+## 1. Verdict: **PASS** (dengan catatan)
+
+Commit `28a713e4` memenuhi seluruh lima temuan sebelumnya terhadap SPEC-123. Tidak ada regresi yang teramati pada scope yang direview. Tiga catatan non-blocking perlu ditindaklanjuti (lihat §3).
+
+---
+
+## 2. Evaluasi status temuan sebelumnya
+
+**Temuan 1 — Full Ingestion: ✅ TERVALIDASI / DITUTUP**
+`applyFullFohSyncMutations` (foh_sync.go:214-597) memproses seluruh 11 kategori `SyncMutations` + tombstones, di dalam satu `BEGIN IMMEDIATE` dengan `PRAGMA foreign_keys = ON`. `SyncMutations` (sync.go:25-37) memang memiliki 11 field, dan ke-11 loop upsert + 1 loop tombstone semuanya hadir. Atomicity benar: cursor di-update dan `COMMIT` terjadi di transaksi yang sama (foh_sync.go:184-194), dengan deferred `ROLLBACK` saat gagal. Ordering parent-before-child benar (services → announcement_sets → slides/templates/snapshots → dst.).
+
+**Temuan 2 — Dirty Guard: ✅ TERVALIDASI / DITUTUP**
+Guard `K2-04` ada di foh_sync.go:46-64, menolak dengan `409 Conflict` + `local_changes_pending` ("Ada perubahan darurat lokal yang belum tersinkron ke cloud.") *sebelum* load pairing config maupun network I/O — sesuai urutan yang diminta. Test `TestFohSync_LocalEmergencyPatchesHoldPull` (foh_sync_test.go:277-327) menegaskan 409 dan kode error. Satu catatan minor di bawah (§3.a).
+
+**Temuan 3 — Uploads Dir: ✅ TERVALIDASI / DITUTUP**
+`getUploadsDir()` (pairing.go:43-48) → `filepath.Join(s.getDataDir(), "uploads")`; `getDataDir()` (pairing.go:29-41) memanggil `desktop.ResolveDataDir("", s.isDesktop())`. Di mode desktop → `%LOCALAPPDATA%\WorshipDeck` (datadir.go:31-40), sehingga uploads tidak mencemari root repo. Fallback ke `UPLOADS_DIR` env tetap dipertahankan.
+
+**Temuan 5 — PairedAt Semantics: ✅ TERVALIDASI / DITUTUP**
+`PairingConfig` (desktop/pairing.go:20-29) kini punya `PairedAt` (abadi, tidak diubah saat sync) + `LastSyncedAt` (terpisah, `omitempty`). Saat pull sukses, hanya `LastSyncedAt` yang di-set, `PairedAt` tidak disentuh (foh_sync.go:197-198). `GET /api/desktop/pairing` mengembalikan `paired_at` dan `last_synced_at` terpisah (pairing.go:81-82). Sesuai Kernel K1-01.
+
+**Temuan 6 — HTTP Status: ✅ TERVALIDASI / DITUTUP (sebagian)**
+Kegagalan network/handshake di `pairing.go` (testDesktopPairing:105, postDesktopPairing:137) dan seluruh kegagalan cloud di `foh_sync.go` (95, 105, 117, 142) dikembalikan sebagai `502 Bad Gateway`. Ada test di `onedrive_test.go` untuk pola 502 serupa, tetapi **tidak ada test khusus** yang membuktikan jalur 502 untuk handshake pairing yang gagal secara network (lihat §3.b).
+
+---
+
+## 3. Catatan penutup review
+
+**a. (Minor) Dirty-guard query gagal terbuka (`err != nil`) → pull lanjut.** Di foh_sync.go:48-54, jika `QueryRowContext` error, guard `dirtyCount` dibiarkan 0 dan pull dilanjutkan alih-alih gagal tertutup. Ini berarti DB error pada pengecekan emergency patches akan *melewati* invariant K2-04. Disarankan `fail-closed` (kembalikan 500) saat query gagal, bukan `err == nil &&`.
+
+**b. (Gap test) Temuan 6 belum dibuktikan oleh test khusus.** Tidak ada unit/integration test yang menyuntikkan network error pada handshake `executeCloudHandshake` dan menegaskan `502`. Verdict PASS pada temuan ini berdasar inspeksi kode, bukan bukti merah→hijau — sesuai aturan repo tentang absence/guard proof, sebaiknya ditambahkan test.
+
+**c. (Observasi) Tombstone delete `service_registry_snapshots` memakai `template_id OR service_global_id`.** (foh_sync.go:584) Dengan `foreign_keys=ON`, delete berlebih dari satu tombstone bisa menimpa baris milik entity lain. Ini bukan temuan lama, tapi layak dikonfirmasi terhadap semantik tombstone cloud agar tidak menghapus snapshot yang seharusnya bertahan.
+
+---
+
+**What was done:** Re-review read-only komit 28a713e4 terhadap SPEC-123 — kelima temuan (Full Ingestion, Dirty Guard, Uploads Dir, PairedAt, HTTP Status) diverifikasi di kode dan test; verdict PASS.
+
+**What blocked it / stayed uncertain:** Tidak bisa menjalankan `go test`/git (batasan read-only); Temuan 6 diverifikasi lewat inspeksi kode, bukan bukti test merah→hijau, dan dirty-guard memakai `fail-open` pada error query.
+
+**What comes next:** Pertimbangkan (a) ubah dirty-guard jadi fail-closed, (b) tambah test 502 untuk handshake network failure, (c) konfirmasi semantik tombstone `service_registry_snapshots`.
+

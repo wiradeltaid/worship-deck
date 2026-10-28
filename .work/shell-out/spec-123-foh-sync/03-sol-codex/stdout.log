@@ -1,0 +1,230 @@
+**Kernel SPEC-123 — mode `kernel`.** Rekomendasi: pairing terikat pada identitas tenant yang diverifikasi server; pull dipublikasikan sebagai satu batch lengkap; aset diverifikasi sebelum SQLite merujuknya; aktivasi presenter dan sync memakai satu barrier backend.
+
+Pelaksana tetap **Gemini Flash, sesi `worship-deck-c8`**; Pengarah mengikuti target eksplisit **Sol Codex**. Pekerjaan ini berada pada kategori arsitektur/SDD, tetapi baris §3 dan urutan reviewer §4 belum dapat diverifikasi karena shell gagal berjalan. Review fondasi MUST melibatkan dua keluarga di luar Google dan OpenAI; kandidat advisori adalah Opus dan DeepSeek Pro, dengan kelayakan akhir mengikuti §4. Tidak ada delegasi yang dijalankan.
+
+Isi ODR-019, handover, SPEC, dan berkas Go belum terbaca. Kernel berikut bertumpu pada keputusan yang diberikan dalam paket; nama endpoint atau field baru adalah **rekomendasi kontrak**, bukan klaim mengenai implementasi sekarang.
+
+**K1-01 — Schema penyimpanan pairing.**
+
+`PairingConfig` MUST memiliki kontrak berikut:
+
+| Field JSON | Tipe Go | Ketentuan |
+|---|---|---|
+| `version` | `int` | Versi schema; rekomendasi awal `1`. |
+| `cloud_url` | `string` | Origin HTTPS kanonis instance tenant. |
+| `tenant_id` | `string` | Identitas dari handshake terautentikasi. |
+| `device_id` | `string` | Identitas perangkat dari server, jika tersedia. |
+| `token` | `string` | Bearer lengkap; hanya untuk penyimpanan dan penggunaan backend. |
+| `paired_at` | `time.Time` | Waktu UTC, serialized sebagai RFC3339. |
+
+Cursor, revision, dan status outbox MUST disimpan di SQLite bersama state replica. Mereka MUST NOT disimpan dalam `pairing.json`, karena kemajuan sync harus mengikuti commit data.
+
+Path MUST berasal dari `desktop.ResolveDataDir`, dengan target Windows `%LOCALAPPDATA%\WorshipDeck\pairing.json`. Kegagalan memperoleh lokasi aman MUST menghentikan pairing; implementasi MUST NOT fallback ke working directory atau repo.
+
+**K1-02 — Validasi token dan URL.**
+
+Rekomendasi profil issuer: secret dari **32 byte acak kriptografis**, encoded sebagai base64url tanpa padding. Regex profil tersebut:
+
+```text
+^foh_([A-Za-z0-9_-]{1,128})\.([A-Za-z0-9_-]{43})$
+```
+
+Backend MUST memvalidasi decoding secret menjadi tepat 32 byte dan encoding kanonisnya. Token MUST NOT dinormalisasi atau diubah case-nya. ID pada prefix MUST diperlakukan sebagai identifier opaque; ID tersebut MUST NOT menjadi bukti tenant atau otorisasi.
+
+Profil ini MUST diselaraskan dengan issuer Control Plane sebelum implementasi. Jika issuer memakai encoding lain, Pelaksana MUST mengembalikan perbedaan itu sebagai simpang kontrak.
+
+URL MUST diparse secara struktural dan dibatasi pada:
+
+- HTTPS, hostname ASCII kanonis satu label tenant di bawah `.worshipdeck.org`, dan port default `443`.
+- Tanpa userinfo, query, fragment, atau path selain kosong dan `/`.
+- Host instance yang cocok dengan hasil handshake.
+- Tanpa redirect pada request yang membawa bearer; verifikasi TLS MUST tetap aktif.
+- Resolusi dan koneksi yang menolak tujuan loopback, private, link-local, atau reserved untuk kontrak cloud publik ini.
+
+Token MUST dikirim melalui `Authorization: Bearer …`; token MUST NOT masuk query string.
+
+**K1-03 — Handshake dan binding tenant.**
+
+Pairing MUST melakukan handshake terautentikasi sebelum menyimpan konfigurasi. Rekomendasi endpoint jika belum tersedia: `POST /api/sync/handshake`.
+
+Respons MUST mengikat `tenant_id`, identitas token/perangkat, origin instance, versi protokol, dan capability pull serta baca aset. Instance cloud MUST memperoleh hasil verifikasi dari otoritas token Control Plane melalui jalur server yang dipercaya. FOH MUST NOT menerima kunci HMAC.
+
+Backend MUST menolak mismatch tenant, origin, capability, atau versi. Token format valid saja MUST NOT menghasilkan status `paired`.
+
+Setiap pull dan download aset MUST memverifikasi otorisasi server. Endpoint aset MUST memeriksa bahwa hash dimiliki atau dirujuk tenant terautentikasi; mengetahui hash MUST NOT memberi akses lintas tenant.
+
+Pergantian tenant MUST memakai replica dan direktori aset yang terisolasi. Database, cursor, maupun aset tenant lama MUST NOT diwariskan ke tenant baru.
+
+**K1-04 — Penulisan aman pada Unix dan Windows.**
+
+Penulisan MUST mengikuti urutan: membuat temporary file unik dalam direktori yang sama → menerapkan proteksi → menulis JSON → flush → close → mempublikasikan melalui helper penggantian platform.
+
+Pada Unix, direktori kredensial MUST berpermission `0700`, file temporary dan final `0600`, dengan rename pada filesystem yang sama serta sinkronisasi direktori untuk durability.
+
+Pada Windows, `0600` MUST dilengkapi **DACL terproteksi** yang memberi akses kepada akun pemilik dan principal sistem yang diperlukan, tanpa akses baca untuk pengguna biasa lainnya. Proteksi MUST berlaku sejak temporary file dibuat. Go `Chmod(0600)` hanya mengatur atribut writable/read-only pada Windows; ia tidak membatasi pembaca. [Dokumentasi Go](https://pkg.go.dev/os#Chmod), [keamanan file Windows](https://learn.microsoft.com/en-us/windows/win32/fileio/file-security-and-access-rights).
+
+Helper Windows SHOULD menggunakan `ReplaceFileW` untuk mengganti file yang sudah ada dan primitive move yang sesuai untuk publikasi pertama, pada volume yang sama. Implementasi MUST menjaga ACL, menangani hasil kegagalan yang ambigu, dan membuktikan perilaku filesystem target. Implementasi MUST NOT memakai fallback “hapus file lama, lalu rename”. `os.Rename` sendiri tidak menjamin atomicity pada platform non-Unix. [Dokumentasi Go](https://pkg.go.dev/os#Rename), [ReplaceFileW](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew).
+
+Pembaca MUST memperoleh konfigurasi lama yang lengkap atau konfigurasi baru yang lengkap. File parsial MUST NOT dianggap konfigurasi valid.
+
+**K1-05 — Proyeksi aman untuk UI lokal.**
+
+`GET /api/desktop/pairing` MUST menggunakan DTO terpisah. Respons SHOULD berisi `paired`, `cloud_url`, `tenant_id`, `device_id`, `paired_at`, dan `token_masked`.
+
+`token_masked` MUST memakai secret pengganti tetap, misalnya `foh_<id>.********`; karakter secret asli MUST NOT dikembalikan. Respons MUST memakai `Cache-Control: no-store`.
+
+Token lengkap MUST NOT muncul pada respons pairing, error, log, telemetry, atau state browser yang dipersist. Setelah pengiriman berhasil, UI MUST menghapus token dari state form. Endpoint pengubahan pairing MUST berada di balik autentikasi lokal dan validasi Origin/Host yang sesuai.
+
+**K2-01 — Kontrak delta yang dapat dipulihkan.**
+
+Respons pull MUST membawa versi protokol, identitas tenant, epoch replica, batas revision tetap untuk batch, cursor berikutnya, mutations, serta manifest aset.
+
+Cursor MUST opaque dan terikat tenant serta epoch. Semua halaman satu batch MUST mengikuti batas revision yang sama. Mutations MUST memiliki urutan server yang deterministik dan semantics replay yang idempotent.
+
+Jika cursor kedaluwarsa atau epoch berubah, server MUST mengembalikan kondisi `resync_required`. Client MUST mempertahankan replica lama sampai snapshot pengganti lengkap dan valid.
+
+**K2-02 — Urutan publikasi SQLite.**
+
+Satu batch logis, termasuk seluruh halamannya, MUST dipublikasikan sebagai satu unit:
+
+1. Memperoleh reservasi sync menurut K-FREEZE-01.
+2. Memeriksa binding tenant dan perubahan lokal tertunda.
+3. Mengambil delta lengkap ke staging privat, memvalidasi schema, revision, tombstone, dan dependency.
+4. Mengunduh serta memverifikasi semua aset yang dibutuhkan state hasil batch.
+5. Memulai transaksi tulis SQLite pada **satu koneksi**; MUST menggunakan reservasi write setara `BEGIN IMMEDIATE`.
+6. Memeriksa ulang cursor awal, binding tenant, ownership reservasi, dan state perubahan lokal.
+7. Menerapkan mutations, memeriksa foreign key, lalu menyimpan cursor dan revision dalam transaksi yang sama.
+8. Commit, kemudian memperbarui cache/notifikasi lokal dari revision yang telah committed.
+
+Network I/O MUST NOT dilakukan dalam transaksi SQLite. Kegagalan mutation, validasi, pemeriksaan FK, atau commit MUST menyebabkan rollback dan mempertahankan cursor lama. SQLite hanya mengizinkan satu write transaction pada satu waktu. [Dokumentasi transaksi SQLite](https://www.sqlite.org/lang_transaction.html).
+
+Aset final yang telanjur tersimpan saat transaksi gagal MAY menjadi orphan. Database MUST NOT merujuk aset yang belum lengkap atau belum terverifikasi.
+
+**K2-03 — Foreign key, tombstone, dan snapshot.**
+
+`foreign_keys=ON` MUST aktif pada setiap koneksi sebelum transaksi. Pelaksana MUST NOT mematikannya untuk memudahkan import.
+
+Mutations MUST mengikuti dependency schema: membuat parent sebelum child; melepas atau menghapus child sebelum parent; dan mempertahankan urutan revision untuk entity yang sama. Tombstone MUST tetap tercatat sebagai metadata revision sehingga replay mutation lama tidak menghidupkan entity kembali.
+
+Jika dependency bersiklus, penundaan FK MAY dipakai secara terkontrol. `foreign_key_check` MUST bersih sebelum commit; menunda FK tidak membenarkan state akhir yang invalid. [Dokumentasi foreign key SQLite](https://www.sqlite.org/foreignkeys.html).
+
+Upsert MUST mempertahankan identitas record. `INSERT OR REPLACE` MUST NOT dipakai sebagai upsert generik karena dapat menghapus record lama sebelum insertion. [Dokumentasi konflik SQLite](https://www.sqlite.org/lang_conflict.html).
+
+Snapshot presentasi MUST memakai revision yang dipin dan aset lokal immutable. Tombstone pada katalog MUST NOT menghapus isi snapshot atau aset yang masih dipin.
+
+**K2-04 — Perubahan darurat lokal.**
+
+Kebijakan rekomendasi SPEC-123: **dirty local state menahan pull**.
+
+Jika ada perubahan lokal yang belum diselesaikan atau diakui cloud, pull MUST berhenti dengan `409 local_changes_pending`, mempertahankan data dan cursor. Perbandingan timestamp MUST NOT dipakai untuk memenangkan perubahan cloud secara diam-diam.
+
+Resolusi MUST eksplisit: push melalui kontrak yang memang didukung dan memperoleh acknowledgement, atau discard perubahan lokal oleh operator. Pairing token MUST NOT otomatis memperoleh capability push.
+
+Reservasi sync MUST menahan penulisan lokal selama operasi. Pemeriksaan dirty state dan cursor MUST diulang dalam transaksi agar pemeriksaan awal tidak menjadi celah race.
+
+**K3-01 — Streaming dan verifikasi aset.**
+
+Manifest MUST memberikan SHA-256 kanonis lowercase sepanjang 64 karakter hex, panjang byte, dan tipe media. Ekstensi final MUST berasal dari allowlist MIME aplikasi; filename remote MUST NOT digunakan sebagai path.
+
+Client MUST membuka temporary file eksklusif di direktori uploads privat:
+
+```text
+.tmp_<hash>_<nonce>
+```
+
+Nonce MUST mencegah tabrakan antarpercobaan. File MUST tetap berada pada filesystem tujuan.
+
+Body MUST dialirkan langsung ke file dengan hash incremental, misalnya melalui `io.TeeReader` dan `crypto/sha256`. Client MUST menerapkan batas byte, timeout, cancellation, serta pemeriksaan hasil copy dan close.
+
+Keberhasilan MUST mensyaratkan status HTTP yang benar, panjang tepat, EOF yang valid, dan digest yang cocok. Stream terputus atau checksum berbeda MUST menghapus temporary file, menggagalkan batch, dan mempertahankan cursor.
+
+**K3-02 — Publikasi dan umur aset.**
+
+Setelah verifikasi, client MUST flush, close, lalu mempublikasikan file sebagai `uploads/<hash>.<ext>` melalui helper platform.
+
+Jika target sudah ada, client MUST memverifikasi bahwa target sesuai manifest sebelum menggunakannya kembali. File immutable yang valid MUST NOT ditimpa.
+
+Cleanup MUST hanya menghapus temporary file milik operasi atau orphan yang tidak dirujuk replica committed maupun snapshot yang dipin. Garbage collection MUST tunduk pada barrier presenter yang sama.
+
+**K-FREEZE-01 — Invariant formal in-flight service.**
+
+Definisikan:
+
+- `F(t)`: sesi presenter berada pada `STARTING`, `ACTIVE`, `STOPPING`, atau `RECOVERY`.
+- `Psync`: publikasi delta, perubahan cursor, perubahan binding pairing, atau penghapusan aset oleh sync.
+- `S`: snapshot service dan seluruh aset yang dipinnya.
+
+Invariant wajib:
+
+```text
+F(t) ⇒ Psync(t) dilarang
+
+Selama interval freeze:
+S(t) = S(t_start)
+dan semua aset S tetap tersedia secara lokal.
+```
+
+Freeze MUST dimulai ketika backend mereservasi aktivasi presenter, **sebelum** mengambil snapshot. Freeze MUST berakhir setelah penghentian sesi diakui backend dan penggunaan snapshot selesai.
+
+Navigasi slide MAY berjalan pada snapshot yang sama. Perubahan darurat yang didukung aplikasi MUST menggunakan jalur eksplisit terpisah; perubahan tersebut MUST NOT membuka izin sync.
+
+**K4-02 — Barrier dan liveness.**
+
+Aktivasi presenter, sync, pengubahan pairing, dan asset GC MUST memakai satu state machine serta synchronization barrier backend.
+
+- Jika presenter memperoleh reservasi lebih dahulu, pull MUST ditolak sebelum request cloud atau perubahan file.
+- Jika sync memperoleh reservasi lebih dahulu, aktivasi presenter MUST ditolak dengan `409 sync_in_progress` sampai operasi selesai.
+- Pemeriksaan lalu reservasi MUST merupakan satu langkah atomic.
+- Backend MUST memvalidasi ownership reservasi sebelum publikasi.
+- Akses writer dari beberapa proses MUST dicegah melalui single-instance lock atau koordinasi lintas proses yang setara.
+
+`isProjectorActive` atau heartbeat UI MUST NOT menjadi satu-satunya sumber kebenaran. Hilangnya heartbeat, disconnect browser, atau idle slide MUST NOT otomatis mengakhiri freeze.
+
+Sesi yang terputus tanpa penutupan terkonfirmasi MUST masuk `RECOVERY`. Pemulihan eksplisit MUST diperlukan sebelum sync dapat berjalan kembali.
+
+**K4-03 — Kontrak error.**
+
+Pull yang ditolak karena freeze MUST mengembalikan HTTP `409` dengan kode stabil:
+
+```json
+{
+  "error": {
+    "code": "presenter_active",
+    "message": "Sinkronisasi ditahan selama sesi presentasi."
+  }
+}
+```
+
+Kode lain MUST dibedakan: `sync_in_progress`, `local_changes_pending`, `tenant_mismatch`, `resync_required`, dan `asset_integrity_failed`. Backend MUST NOT meneruskan body error upstream yang mungkin memuat kredensial atau data tenant.
+
+**K4-04 — Bukti uji wajib.**
+
+Pelaksana MUST membuktikan setidaknya kasus berikut dengan fixture sintetis:
+
+| Nama test yang direkomendasikan | Bukti wajib |
+|---|---|
+| `TestPairing_TenantBinding` | Token, origin, respons handshake, dan tenant replica yang tidak cocok ditolak. |
+| `TestPairing_GetNeverExposesSecret` | Secret tidak muncul pada respons, error, log, atau telemetry yang diuji. |
+| `TestPairing_AtomicWriteAndPermissions` | Fault pada write/flush/publikasi tidak menghasilkan JSON parsial; permission Unix dan DACL Windows diuji secara native. |
+| `TestCloudPull_BatchAndCursorAtomic` | Fault pada mutation dan commit mempertahankan data serta cursor lama. |
+| `TestCloudPull_TombstoneReplayAndForeignKeys` | Delete parent/child, replay, dan urutan revision tidak merusak FK atau menghidupkan record lama. |
+| `TestCloudPull_LocalChangesPending` | Perubahan lokal tidak tertimpa dan cursor tidak maju. |
+| `TestAssetDownload_IntegrityAndInterruption` | Byte berubah, truncation, oversize, cancellation, dan kegagalan write tidak menghasilkan aset final yang diterima. |
+| `TestAssetDownload_TenantAuthorization` | Hash yang diketahui tidak memberi akses tenant lain. |
+| `TestCloudPull_PresenterActiveRejectsBeforeIO` | `409 presenter_active`, nol request cloud, dan nol perubahan data, cursor, pairing, atau uploads. |
+| `TestPresenterStart_ConcurrentPullIsExclusive` | Kedua urutan race menghasilkan tepat satu pemilik reservasi. |
+| `TestPresenter_HeartbeatLossKeepsFreeze` | Disconnect dan timeout heartbeat tetap menahan sync. |
+| `TestCloudPull_OfflineSnapshotAndRecovery` | Presentasi bekerja tanpa jaringan; crash tidak membuka snapshot parsial atau menghapus aset yang dipin. |
+
+Guard baru atau berubah MUST diperlihatkan **merah lalu hijau**: hapus pemeriksaan freeze, pisahkan check dari reservasi, majukan cursor sebelum commit, bypass checksum, bocorkan token sintetis, dan izinkan timeout heartbeat melepas freeze—masing-masing MUST membuat test terkait gagal.
+
+Uji race MUST memakai barrier/channel deterministik, bukan timing `sleep`. Setelah restorasi, suite terkait dan Go race detector MUST lulus. Sebelum commit, Pelaksana MUST menjalankan public-repository guard yang diwajibkan repo.
+
+**K4-05 — Penyelesaian alur captain.**
+
+Pelaksana MUST mengikuti urutan **kernel → implementasi dengan evidence → review §4 → ratifikasi read-only pada SHA yang dibekukan**. Paket ratifikasi MUST memuat pemetaan invariant ke kode dan test, bukti merah-ke-hijau, hasil reviewer, serta disposition temuan. Status `SETIA` MUST hanya diberikan pada tahap ratifikasi atas artefak yang telah direview.
+
+**Dikerjakan:** Kernel kontrak pairing, delta sync, aset, freeze, dan bukti uji telah dirumuskan.  
+**Hambatan/ketidakpastian:** SSOT lokal dan routing playbook belum terverifikasi; encoding issuer serta pemetaan kontrak API existing masih perlu dicocokkan.  
+**Berikutnya:** Gemini Flash mencocokkan kernel dengan SSOT, mengimplementasikan dan membuktikannya, lalu membawa hasil review ke ratifikasi SHA final.
+

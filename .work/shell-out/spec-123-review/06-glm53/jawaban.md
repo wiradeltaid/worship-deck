@@ -1,0 +1,31 @@
+## Verdict: **PASS** (dengan temuan sedang yang perlu ditindaklanjuti)
+
+Review dilakukan dengan membaca langsung `internal/desktop/pairing.go`, `internal/httpapi/pairing.go`, `internal/httpapi/foh_sync.go`, serta pendukung (`json.go`, `sync.go`, `remote.go`, `server.go`). Kontrak inti SPEC-123 (pairing CRUD, test tanpa persist, freeze guard 409, dirty guard fail-closed, streaming SHA-256, transaksi atomik 11 kategori + tombstones) terpenuhi. Namun ada celah yang layak dicatat.
+
+### Tabel Temuan
+
+| No | Severity | File:line | Lensa | Masalah | Saran |
+|---|---|---|---|---|---|
+| 1 | Sedang | foh_sync.go:85, 188–191 | SPEC-123 / SQLite | Cursor `last_cloud_pull_cursor` ditulis ke `sync_state` tetapi **tidak pernah dibaca/dikirim** — `GET /api/sync/pull` dibangun tanpa query param cursor, sehingga setiap pull adalah full-sync dan cursor menjadi dead write. Error insert cursor juga di-silent-ignore (`_, _ =`) di dalam transaksi kritis. | Kirim cursor dari `sync_state` sebagai query param; gagalkan (rollback) bila update cursor error. |
+| 2 | Sedang | foh_sync.go:48–68 vs 166 | SQLite | TOCTOU pada dirty guard: cek `emergency_patches` dilakukan **sebelum** `BEGIN IMMEDIATE`. Perubahan darurat lokal yang masuk di antara cek dan BEGIN akan tertimpa upsert. | Ulangi cek dirty di dalam transaksi BEGIN IMMEDIATE. |
+| 3 | Sedang | foh_sync.go:22, 688–691 | Go API | `uploadHashRegex` menerima hash 32-hex, tapi verifikasi selalu SHA-256 — aset yang direferensikan dengan hash 32-karakter **selalu** gagal checksum → 502 dan seluruh pull terblokir (fail-closed, tapi fail-permanen). | Tolak 32-hex lebih awal dengan pesan jelas, atau verifikasi sesuai panjang hash. |
+| 4 | Rendah | foh_sync.go:34–42 vs 104–111 | Standar API Go | Error envelope tidak konsisten pada endpoint yang sama: 409 memakai objek `{code, message}`, 401/502 memakai string. | Satukan bentuk error body. |
+| 5 | Rendah | foh_sync.go:77–79 | Status HTTP | Belum pairing dikembalikan 400 Bad Request; ini precondition failure, bukan malformed request. 409/428 lebih tepat. | Ganti ke 409 dengan code `not_paired`. |
+| 6 | Rendah | foh_sync.go:48–57 | Go | `err != sql.ErrNoRows` pada `count(*)` adalah dead code — agregat tidak pernah mengembalikan ErrNoRows. | Hapus kondisi itu. |
+| 7 | Rendah | pairing.go:87–93 | Go | Rekonstruksi URL dari `Hostname()` tanpa bracket merusak URL IPv6 (`https://::1:8080`). | Gunakan `parsed.Host` saat ada port, atau bungkus host IPv6. |
+| 8 | Rendah | foh_sync.go:136–151, 679 | Go API | Aset diunduh sebelum transaksi: kegagalan DB menyisakan file orphan di uploads; unduhan aset juga tanpa `LimitReader` (tulis disk tak terbatas dari remote). | Bersihkan orphan saat rollback; beri batas ukuran unduhan. |
+| 9 | Rendah | foh_sync.go:172–175 | SQLite | Deferred `ROLLBACK` memakai `r.Context()` yang bisa sudah dibatalkan saat client disconnect → rollback gagal senyap. | Pakai `context.Background()` untuk rollback. |
+| 10 | Rendah | pairing.go (httpapi):157–163 | Status HTTP | `POST /api/desktop/pairing` membuat resource tapi mengembalikan 200, bukan 201 Created. | Kembalikan 201. |
+| 11 | Info | pairing.go (httpapi):237–246 | SPEC-123 | Handshake fallback: tenant ID diturunkan dari prefix token dan church name di-fabricate ("WorshipDeck Sanctuary") bila cloud tidak mengembalikannya — data fabrikasi masuk pairing.json. | Jadikan field wajib dari cloud, gagal bila kosong. |
+
+### Catatan Evaluasi per Lensa
+
+- **Standar API Go**: Struktur handler rapi, `io.LimitReader` untuk body JSON, timeout klien eksplisit (10s handshake, 60s pull), atomic write dengan rename — pola benar. `PRAGMA foreign_keys = ON` dijalankan pada `*sql.Conn` khusus sebelum BEGIN, pattern `BEGIN IMMEDIATE` via conn terisolasi benar; urutan defer (rollback → Close) tepat. Kelemahan utama: konsistensi error envelope (#4) dan status code (#5, #10).
+- **Penanganan status HTTP**: 409 untuk freeze/dirty guard sudah idiomatik dengan machine-readable `code`; namun proxy 401/403 dan 502 tidak memakai bentuk sama. `TryAcquireSyncLock` di `remote.go` benar-benar memeriksa session presenter aktif (bukan stub) — freeze guard nyata, bukan kosmetik.
+- **Integritas skema SQLite**: Upsert `ON CONFLICT` pada semua 11 kategori konsisten dengan natural key (global_id / book_code+number / service_id+template_id). Urutan parent→child benar; resolusi FK yang gagal di-skip (bukan error) — toleran, tapi bisa menyembunyikan data hilang. Tombstone yang sebatch dengan mutasi tetap menghasilkan state akhir benar karena delete dijalankan setelah upsert. Isu substantif: TOCTOU dirty guard (#2) dan cursor tak terpakai (#1).
+- **Kepatuhan SPEC-123**: Semua endpoint, DTO masked token, `Cache-Control: no-store`, unpair tanpa menghapus data lokal, dan 2-stage UI sesuai. Celah kepatuhan terbesar adalah #1 (incremental sync via cursor tampaknya dijanjikan tapi tidak diimplementasikan) — perlu konfirmasi apakah SPEC-123 mensyaratkan incremental.
+
+—
+**Yang dilakukan**: Review read-only SHA 4c3b0f1a terhadap SPEC-123 pada 3 berkas inti + pendukung; verdict PASS dengan 11 temuan (3 sedang, 7 rendah, 1 info).
+**Yang menghambat/kurang pasti**: Berkas SPEC-123 di `.scratch/` tidak ditemukan via grep — kepatuhan dinilai dari komentar invarian di kode dan rangkuman Anda; temuan #1 perlu dicek terhadap teks spec aslinya.
+**Langkah berikutnya**: Konfirmasi apakah spec mensyaratkan incremental cursor; prioritaskan perbaikan #1–#3 sebelum rilis.

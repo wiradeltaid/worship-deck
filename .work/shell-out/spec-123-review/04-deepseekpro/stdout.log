@@ -1,0 +1,36 @@
+I have a confirmed significant finding on the uploads directory mismatch. `uploadsDir()` returns `data/uploads` by default (relative to CWD), NOT the desktop `dataDir/uploads` that `EnsureDataDir` creates (`%LOCALAPPDATA%\WorshipDeck\uploads`). In the FOH desktop flow, media assets would be written to `data/uploads` (repo-relative) rather than the secure app data dir — which (a) violates the K1-01 "NEVER in repository root" invariant, and (b) means `findAssetBySHA256` checks a different directory than where assets land in desktop mode. This is a real contract breach.
+
+I now have all evidence needed. Compiling the review.
+
+---
+
+## Review Commit `2753de41` vs SPEC-123
+
+### 1. Verdict: **FAIL**
+
+Kontrak inti delta-sync (§2.2.1) tidak terpenuhi: engine FOH hanya meng-ingest subset kecil dari mutasi yang diwajibkan spec, dan guard `K2-04 local_changes_pending` tidak pernah diimplementasikan di server (kode UI menanganinya, tapi server tak pernah mengirimnya — kontrak mati).
+
+### 2. Tabel Temuan
+
+| No | Severity | File:line | Lensa | Masalah | Saran |
+|---|---|---|---|---|---|
+| 1 | **High** | `internal/httpapi/foh_sync.go:153-269` | Fungsional / K2-01, K2-03 | Delta pull hanya meng-ingest `services`, `hymns`, `background_library_images`, dan tombstones. Spec §2.2.1 mewajibkan pula `song_set_entries`, `announcement_sets`, `announcement_set_slides`, `artifact_templates`, `service_registry_snapshots`, `song_set_layouts` — semuanya dibuang diam-diam. `SyncMutations` (sync.go:25-37) sudah mendefinisikan field-nya, tapi `pullCloudSync` tidak pernah memprosesnya. | Reuse `applySyncMutations`/path ingest di `sync.go` (250-660) atau panggil satu fungsi ingest bersama, bukan reimplementasi parsial. |
+| 2 | **High** | `internal/httpapi/foh_sync.go:25-53` | Fungsional / K2-04 | Tidak ada pengecekan *dirty state* lokal: spec §2.2.1 langkah "rejects with `409 local_changes_pending`" tidak ada. `FohSyncIndicator.tsx:111` menangani kode itu, tapi server tak pernah memancarkannya — jalur UI mati & kontrak tak terpenuhi. | Tambah pengecekan local-dirty/emergency-patch sebelum pull, kirim `409 local_changes_pending`. |
+| 3 | **High** | `internal/httpapi/foh_sync.go:99` (`uploadsDir()` → `uploads.go:22-27`) | Keamanan / K1-01 | Media FOH ditulis ke `data/uploads` (relatif CWD / env), bukan `dataDir/uploads` (`%LOCALAPPDATA%\WorshipDeck\uploads`) yang dibuat `EnsureDataDir` (datadir.go:68). Di mode desktop aset mendarat di path repo-relatif — melanggar invariant "NEVER in repository root", dan `findAssetBySHA256` mengecek direktori berbeda dari tempat aset sebenarnya tersimpan. Test hanya lolos karena menyuntik `UPLOADS_DIR` (foh_sync_test.go:46). | Resolusi direktori aset harus mengikuti `s.getDataDir()/uploads`, bukan `uploadsDir()` global, di jalur desktop. |
+| 4 | **Medium** | `internal/desktop/pairing.go:142` | Keamanan / K1-04 | Spec §2.1.2: "pada Windows, enforced with protected DACL". Implementasi hanya `os.WriteFile(..., 0600)` — di Windows bit mode ini diabaikan dan **tidak ada DACL** diterapkan. Test permission hanya dijalankan `runtime.GOOS != "windows"` (pairing_test.go:98), jadi klaim Windows tak pernah dibuktikan. | Terapkan ACL (owner+SYSTEM) via `windows` syscall di SavePairingConfig untuk Windows, dan tambah test path Windows. |
+| 5 | **Low** | `internal/httpapi/foh_sync.go:285-286` | Konsistensi / K1-01 | `cfg.PairedAt = now` menimpa timestamp *pairing* dengan waktu *sync*. DTO `paired_at` (pairing.go:67) lalu melaporkan "last sync" bukan "paired at", dan cursor sync disimpan di SQLite tapi `paired_at` sekaligus dipakai sebagai `last_synced_at` di UI. Overloading semantik ini menyimpang dari spec §2.1.2 ("cursors/revisions in SQLite, NEVER in pairing.json"). | Simpan `last_synced_at` terpisah di SQLite; biarkan `PairedAt` sebagai timestamp pairing. |
+| 6 | **Low** | `internal/httpapi/pairing.go:88-91` | Robustness | Kegagalan handshake network dikembalikan sebagai `400 Bad Request` (via `testDesktopPairing`/`postDesktopPairing`), bukan `502/504`. Menyesatkan klien soal sumber galat. | Kembalikan `502 Bad Gateway` untuk unreachable cloud, `400` khusus validasi input. |
+
+### 3. Catatan Evaluasi (lensa READ-ONLY)
+
+**Yang sudah benar & teruji:** freeze-guard `TryAcquireSyncLock` diletakkan *sebelum* I/O apapun (foh_sync.go:29) dan dijamin `defer releaseSync()` — sesuai K-FREEZE-01; defect-injection test (`sync_freeze_guard_test.go`) memang memaksa 409 `presenter_active` merah→hijau. Atomic save (`.tmp_pairing_<nonce>` + `os.Rename`), token masking, sanitasi URL (HTTPS-paksa + izin loopback), dan streaming SHA-256 dengan `io.TeeReader` + pembersihan temp-file semuanya terimplementasi rapi dan teruji (termasuk jalur korupsi aset di `foh_sync_test.go:189`).
+
+**Gap struktural:** implementasi membangun jalur ingest *paralel* yang lebih sempit dari engine `sync.go` yang sudah ada, alih-alih memakainya kembali. Akibatnya tujuh kategori mutasi yang diwajibkan spec lenyap tanpa peringatan — ini bukan sekadar "belum lengkap", tapi pelanggaran kontrak yang membuat data panggung (song-set, announcement, layout, registry snapshot) **tidak pernah tiba** di laptop FOH saat pull. Bersama temuan #2 (guard `local_changes_pending` tak terpasang di server), ini cukup untuk verdict FAIL.
+
+**Keamanan:** temuan #3 dan #4 sama-sama menyentuh invariant `K1-01`/`K1-04` yang oleh spec disebut "absolute" — lokasi penulisan aset dan proteksi DACL Windows belum memenuhi janji spec. Meski belum membocorkan token, keduanya melemahkan postur "kredensial/aset tak pernah di luar direktori data aplikasi".
+
+---
+**What was done:** review independen READ-ONLY atas `2753de41` terhadap SPEC-123 — memverifikasi kode aktual (`pairing.go`, `foh_sync.go`, `sync.go`, `remote.go`, UI, tests), bukan hanya ringkasan diff.
+**What blocked it / uncertain:** dua temuan High (#1, #2) dan satu High keamanan (#3) cukup untuk FAIL; temuan #3 bergantung pada asumsi bahwa mode desktop memakai `ResolveDataDir` (dikonfirmasi `isDesktop=true`) — patut dikonfirmasi di lingkungan packaging sebenarnya.
+**What comes next:** perbaiki ingest mutasi agar menyertakan tujuh kategori yang hilang, pasang guard `local_changes_pending` di server, arahkan direktori aset ke `dataDir/uploads`, lalu re-run gate G5.
+

@@ -1,0 +1,18 @@
+**Verdict: PASS** untuk commit 0f2d5e26.
+
+**Konfirmasi penutupan temuan** (diverifikasi langsung dari `internal/httpapi/foh_sync.go`):
+
+1. **Cursor inkremental — TERTUTUP.** Baris 86–92 membaca `last_cloud_pull_cursor` dari `sync_state` dan menyematkannya sebagai `?since=` (dengan `url.QueryEscape`). Penulisan cursor (baris 213–222) kini memvalidasi error dan menggagalkan transaksi dengan 500 bila upsert gagal — tidak ada lagi `_, _ =` senyap pada tulis cursor. Catatan minor: pembacaan cursor (baris 87) tetap mengabaikan error, tapi ini fail-safe yang benar — error apapun meluruh ke pull penuh, bukan ke kehilangan data.
+
+2. **TOCTOU — TERTUTUP.** Baris 185–201 mengulangi cek `local_changes_pending` di dalam `BEGIN IMMEDIATE` (baris 173), sehingga penulis emergency patch lainnya akan diblokir write lock sebelum mutasi sinkronisasi dijalankan. Tidak ada lagi jendela balapan antara cek awal (baris 49–69) dan transaksi. Sisa catatan kecil (non-blocking): bila query re-check di dalam transaksi error, cabangnya fail-open (`err == nil && dirtyCountInside > 0` — error dilewati dan pull dilanjutkan). Risiko praktisnya rendah karena error pada transaksi yang sama hampir pasti juga gagalkan `applyFullFohSyncMutations`, tapi bila ingin fail-closed penuh, kondisinya bisa dibalik menjadi `err != nil || dirtyCountInside > 0`.
+
+3. **Safe deferred rollback — TERTUTUP.** Baris 179–183: deferred `ROLLBACK` dijalankan dengan `context.Background()`, dilindungi flag `committed` yang diset hanya setelah `COMMIT` sukses (baris 225–229). Pembatalan context oleh klien tidak lagi membuat rollback gagal senyap.
+
+4. **Test verifikasi — TERKONFIRMASI.** `TestFohSync_PullSuccessAndMediaStreaming` (foh_sync_test.go:188–192) memverifikasi `last_cloud_pull_cursor` tersimpan sebagai `rev-100` di `sync_state` setelah pull.
+
+Catatan: review ini read-only; saya tidak menjalankan test suite — konfirmasi runtime atas test tersebut berada di tangan Pelaksana.
+
+—
+**Done:** Verdict PASS; ketiga temuan (TOCTOU, cursor, deferred rollback) terkonfirmasi tertutup pada kode, plus test cursor terverifikasi ada.
+**Blocked:** Tidak dijalankannya suite test secara runtime (review read-only) — klaim lulus test diambil dari kode, bukan eksekusi.
+**Next:** Opcional — perketat cabang error pada re-check TOCTOU (baris 193) menjadi fail-closed bila ingin menutup catatan minor terakhir.
